@@ -6,7 +6,7 @@ export default function Loading() {
     <div className={styles.container}>
       <div className={styles.loadingScreen}>
         <Image
-          src="/loading-screen.png"
+          src="/images/logo/loading-screen.png"
           alt="Loading..."
           width={254}
           height={153}
