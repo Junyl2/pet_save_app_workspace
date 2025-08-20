@@ -37,7 +37,7 @@
 
 .inputLabel {
   margin-bottom: 4px;
-  font-size: 0.9rem;
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
 }
 .inputWrapper {
   display: flex;
@@ -46,16 +46,16 @@
 }
 
 .inputField {
-  padding: 14px 8px;
+  padding: 1rem;
   margin-bottom: 16px;
   border: 1px solid #bcbcbc;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: clamp(1rem, 2.8vw, 1.1rem);
   color: #333;
   width: 100%;
 }
 .inputField::placeholder {
-  font-size: 13px;
+  font-size: clamp(13px, 2.5vw, 14px);
   color: rgba(0, 0, 0, 0.4);
 }
 .inputField:focus {
@@ -65,14 +65,14 @@
 
 .rememberLogin {
   margin-bottom: 16px;
-  font-size: 13px;
+  font-size: clamp(13px, 2.5vw, 14px);
   align-self: flex-end;
   color: rgba(0, 0, 0, 0.5);
 }
 .checkboxLabel {
   display: flex;
   align-items: center;
-  font-size: 13px;
+  font-size: clamp(13px, 2.5vw, 14px);
 }
 .checkbox {
   -webkit-appearance: none;
@@ -105,12 +105,12 @@
 }
 
 .loginButton {
-  padding: 10px 0;
+  padding: 14px 0;
   background-color: #66bfa7;
   color: white;
   border: none;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: clamp(1rem, 3vw, 1.2rem);
   cursor: pointer;
   transition: background-color 0.3s;
   margin-top: 1.5rem;
@@ -124,7 +124,7 @@
   display: flex;
   justify-content: center;
   gap: 1.8rem;
-  font-size: 13px;
+  font-size: clamp(13px, 2.5vw, 14px);
   text-align: center;
 }
 
