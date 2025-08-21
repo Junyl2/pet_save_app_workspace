@@ -4,29 +4,31 @@
   justify-content: center;
   height: 100vh;
   padding: 0 1rem;
+  margin-top: -61.1562px;
 }
 
 /* Header */
 .header {
-  position: fixed;
+  /* position: fixed;
   top: 0;
   right: 0;
-  left: 0;
+  left: 0; */
   display: flex;
   align-items: center;
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-  margin-bottom: 85px;
   margin-left: -16px;
   margin-right: -16px;
   padding: 0.8rem;
   text-align: center;
+  position: relative;
 }
 
 .backBtn {
   background-color: transparent;
   border: none;
   padding: 0;
-  margin-left: 1rem;
+  position: absolute;
+  left: 0;
 }
 
 .backIcon {
@@ -35,6 +37,7 @@
   font-weight: 100;
   cursor: pointer;
   color: rgba(0, 0, 0, 0.4);
+  margin-left: 1rem;
 }
 
 .title {
@@ -42,7 +45,7 @@
   font-weight: 600;
   text-align: center;
   color: black;
-  width: 86%;
+  width: 100%;
 }
 
 /* Input Groups */
