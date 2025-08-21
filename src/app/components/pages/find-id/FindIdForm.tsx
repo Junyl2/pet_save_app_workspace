@@ -21,7 +21,10 @@ export default function FindIdForm() {
   const [serverCode, setServerCode] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 00ed882 (feat(reset-password): complete page ui, validation, error handling, and next navigation (#3))
 
   /** Validation */
   const validate = () => {
