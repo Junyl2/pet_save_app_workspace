@@ -62,6 +62,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           <div className={styles.inputWrapper}>
             <input
               type="text"
+              autoComplete="user-name"
               className={styles.inputField}
               placeholder="아이디를 입력하세요."
               value={username}
@@ -73,6 +74,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           <div className={styles.passwordWrapper}>
             <input
               type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
               className={styles.inputField}
               placeholder="비밀번호를 입력하세요."
               value={password}

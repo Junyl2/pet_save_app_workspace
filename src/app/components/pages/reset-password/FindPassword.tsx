@@ -4,17 +4,22 @@ import { useRouter } from 'next/navigation';
 import { FaChevronLeft } from 'react-icons/fa';
 
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
-import AuthenticationComplete from '@/app/components/pages/find-id/AuthenticationComplete';
-import styles from './FindIdForm.module.css';
-
-export default function FindIdForm() {
+import PasswordResetScreen from './PasswordResetScreen';
+import styles from './FindPassword.module.css';
+export default function FindPassword() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [userId, setUserId] = useState('');
   const [confirmedName, setConfirmedName] = useState('');
   const [confirmedEmail, setConfirmedEmail] = useState('');
+  const [confirmedUserId, setConfirmedUserId] = useState('');
   const [authCode, setAuthCode] = useState('');
-  const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    userId?: string;
+  }>({});
   const [showAuthCode, setShowAuthCode] = useState(false);
   const [timeLeft, setTimeLeft] = useState(179);
   const [isVerified, setIsVerified] = useState(false);
@@ -22,11 +27,11 @@ export default function FindIdForm() {
   const [showModal, setShowModal] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
 
-
   /** Validation */
   const validate = () => {
-    const newErrors: { name?: string; email?: string } = {};
+    const newErrors: { name?: string; email?: string; userId?: string } = {};
     if (!name) newErrors.name = '이름을 입력해 주세요.';
+    if (!userId) newErrors.userId = '아이디를 입력해 주세요.';
     if (!email) {
       newErrors.email = '이메일을 입력해 주세요.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -82,7 +87,7 @@ export default function FindIdForm() {
 
   /** Submit Main Form */
   const isFormValid =
-    name && email && Object.keys(errors).length === 0 && isVerified;
+    name && userId && email && Object.keys(errors).length === 0 && isVerified;
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
@@ -99,13 +104,18 @@ export default function FindIdForm() {
     setShowModal(false);
     setShowComplete(true);
     setConfirmedName(name);
+    setConfirmedUserId(userId);
     setConfirmedEmail(email);
   };
 
   //  if authentication is complete, render that component instead
   if (showComplete) {
     return (
-      <AuthenticationComplete name={confirmedName} email={confirmedEmail} />
+      <PasswordResetScreen
+        name={confirmedName}
+        userId={confirmedUserId}
+        email={confirmedEmail}
+      />
     );
   }
 
@@ -120,7 +130,7 @@ export default function FindIdForm() {
         >
           <FaChevronLeft className={styles.backIcon} />
         </button>
-        <h1 className={styles.title}>아이디 찾기</h1>
+        <h1 className={styles.title}>비밀번호 찾기</h1>
       </div>
 
       {/* Name Input */}
@@ -132,9 +142,23 @@ export default function FindIdForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={validate}
-          className={errors.name ? styles.inputError : ''}
+          className={errors.name ? styles.inputError : styles.inputSuccess}
         />
         {errors.name && <p className={styles.error}>{errors.name}</p>}
+      </div>
+
+      {/* ID Input */}
+      <div className={styles.inputGroup}>
+        <label>아이디</label>
+        <input
+          type="text"
+          placeholder="아이디를 입력해주세요."
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+          onBlur={validate}
+          className={errors.userId ? styles.inputError : styles.inputSuccess}
+        />
+        {errors.userId && <p className={styles.error}>{errors.userId}</p>}
       </div>
 
       {/* Email Input with Send Button */}
@@ -149,8 +173,8 @@ export default function FindIdForm() {
               setEmail(e.target.value);
               validate();
             }}
+            className={errors.email ? styles.inputError : styles.inputSuccess}
             onBlur={validate}
-            className={errors.email ? styles.inputError : ''}
           />
           <button
             type="button"
@@ -174,7 +198,7 @@ export default function FindIdForm() {
               placeholder="인증번호를 입력해 주세요."
               value={authCode}
               onChange={(e) => setAuthCode(e.target.value)}
-              className={!authCode ? styles.inputError : ''}
+              className={authCode ? styles.authInput : styles.authError}
             />
 
             <div className={styles.authFooter}>
@@ -191,7 +215,7 @@ export default function FindIdForm() {
           </div>
 
           {!isVerified && (
-            <p className={styles.error}>이메일 인증를 완료해주세요.</p>
+            <p className={styles.error}>휴대전화 인증를 완료해주세요.</p>
           )}
           {isVerified && (
             <p className={styles.success}>인증이 완료되었습니다.</p>
@@ -206,18 +230,16 @@ export default function FindIdForm() {
         disabled={!isFormValid}
         onClick={handleSubmit}
       >
-        아이디 확인
+        다음
       </button>
 
       {/* Success Modal */}
       <BaseModal
         open={showModal}
         onClose={() => setShowModal(false)}
-        title="아이디 확인 완료"
+        title="인증 완료"
       >
-        <p className={styles.successMessage}>
-          아이디 확인 요청이 완료되었습니다.
-        </p>
+        <p className={styles.successMessage}>휴대폰 인증이 완료 되었습니다.</p>
         <button className={styles.modalButton} onClick={handleConfirm}>
           확인
         </button>
