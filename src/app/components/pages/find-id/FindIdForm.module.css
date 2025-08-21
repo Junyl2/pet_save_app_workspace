@@ -16,11 +16,15 @@
   margin-right: -16px;
   padding: 0.8rem;
   text-align: center;
+  position: relative;
 }
 .backBtn {
   background-color: transparent;
   border: none;
   padding: 0;
+  position: absolute;
+  left: 0;
+  margin-left: 1rem;
 }
 .backIcon {
   font-size: clamp(1.2rem, 2.8vw, 1.4rem);
@@ -34,7 +38,7 @@
   font-weight: 600;
   text-align: center;
   color: black;
-  width: 86%;
+  width: 100%;
 }
 
 /* Input Groups */
@@ -70,6 +74,11 @@
   color: red;
   font-size: clamp(13px, 2.3vw, 14px);
   margin-top: 0.3rem;
+}
+
+.inputError {
+  outline: none !important;
+  border-color: #ff6b6b !important;
 }
 
 /* Inline Button inside Input */
