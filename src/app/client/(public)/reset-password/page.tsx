@@ -1,3 +1,5 @@
+import FindPassword from '@/app/components/pages/reset-password/FindPassword';
+
 export default function ResetPassword() {
-  return <div>Reset Password</div>;
+  return <FindPassword />;
 }
