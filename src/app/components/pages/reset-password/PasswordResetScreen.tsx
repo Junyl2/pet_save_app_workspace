@@ -3,20 +3,34 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaChevronLeft } from 'react-icons/fa';
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
-import styles from './AuthenticationComplete.module.css';
+import AuthenticationComplete from '../find-id/AuthenticationComplete';
+import styles from './PasswordResetScreen.module.css';
+import ResetPassword from './ResetPassword';
 
-interface AuthenticationCompleteProps {
+interface PasswordResetScreenProps {
   name: string;
+  userId: string;
+
   email: string;
 }
 
-export default function AuthenticationComplete({
+export default function PasswordResetScreen({
   name,
+  userId,
   email,
-}: AuthenticationCompleteProps) {
+}: PasswordResetScreenProps) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
+  const [showComplete, setShowComplete] = useState(false);
 
+  const handleNext = () => {
+    setShowModal(true);
+    setShowComplete(true);
+  };
+
+  if (showComplete) {
+    return <ResetPassword />;
+  }
   return (
     <>
       {/* Header */}
@@ -29,7 +43,7 @@ export default function AuthenticationComplete({
         >
           <FaChevronLeft className={styles.backIcon} />
         </button>
-        <h1 className={styles.title}>아이디 찾기</h1>
+        <h1 className={styles.title}>비밀번호 찾기</h1>
       </div>
 
       <div className={styles.container}>
@@ -39,6 +53,10 @@ export default function AuthenticationComplete({
             <label>이름</label>
             <input type="text" value={name} readOnly />
           </div>
+          <div className={styles.inputGroup}>
+            <label>아이디</label>
+            <input type="text" value={userId} readOnly />
+          </div>
 
           <div className={styles.inputGroup}>
             <label>이메일</label>
@@ -47,15 +65,12 @@ export default function AuthenticationComplete({
         </div>
 
         {/* Confirm Button */}
-        <button
-          className={styles.modalButton}
-          onClick={() => setShowModal(true)}
-        >
-          아이디 확인
+        <button className={styles.modalButton} onClick={handleNext}>
+          다음
         </button>
 
         {/* Success Modal */}
-        <BaseModal
+        {/*   <BaseModal
           open={showModal}
           onClose={() => setShowModal(false)}
           title="아이디 찾기"
@@ -72,9 +87,9 @@ export default function AuthenticationComplete({
               router.push('/client/login');
             }}
           >
-            확인
+            다음
           </button>
-        </BaseModal>
+        </BaseModal> */}
       </div>
     </>
   );
