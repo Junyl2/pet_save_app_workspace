@@ -20,7 +20,7 @@ export default function FindIdForm() {
   const [isVerified, setIsVerified] = useState(false);
   const [serverCode, setServerCode] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [showComplete, setShowComplete] = useState(false); // ✅ new state
+  const [showComplete, setShowComplete] = useState(false); // new state
 
   /** Validation */
   const validate = () => {
@@ -131,6 +131,7 @@ export default function FindIdForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={validate}
+          className={errors.name ? styles.inputError : ''}
         />
         {errors.name && <p className={styles.error}>{errors.name}</p>}
       </div>
@@ -148,6 +149,7 @@ export default function FindIdForm() {
               validate();
             }}
             onBlur={validate}
+            className={errors.email ? styles.inputError : ''}
           />
           <button
             type="button"
@@ -171,7 +173,7 @@ export default function FindIdForm() {
               placeholder="인증번호를 입력해 주세요."
               value={authCode}
               onChange={(e) => setAuthCode(e.target.value)}
-              className={styles.authInput}
+              className={!authCode ? styles.inputError : ''}
             />
 
             <div className={styles.authFooter}>
@@ -188,7 +190,7 @@ export default function FindIdForm() {
           </div>
 
           {!isVerified && (
-            <p className={styles.error}>휴대전화 인증를 완료해주세요.</p>
+            <p className={styles.error}>이메일 인증를 완료해주세요.</p>
           )}
           {isVerified && (
             <p className={styles.success}>인증이 완료되었습니다.</p>
