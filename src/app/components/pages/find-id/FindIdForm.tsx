@@ -22,6 +22,7 @@ export default function FindIdForm() {
   const [showModal, setShowModal] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
 
+
   /** Validation */
   const validate = () => {
     const newErrors: { name?: string; email?: string } = {};
