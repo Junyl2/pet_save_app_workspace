@@ -140,7 +140,7 @@
 /* Main Submit Button */
 .mainButton {
   width: 100%;
-  padding: 14px 0;
+  padding: 1rem 0;
   border: none;
   border-radius: 4px;
   font-size: clamp(1rem, 2.8vw, 1.1rem);
