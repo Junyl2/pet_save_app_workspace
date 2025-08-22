@@ -165,6 +165,7 @@
   background-color: #51b59a;
 }
 
+
 @media (min-width: 768px) and (max-width: 1024px) {
   .title {
     text-align: center;
@@ -173,3 +174,4 @@
     text-align: center;
   }
 }
+
