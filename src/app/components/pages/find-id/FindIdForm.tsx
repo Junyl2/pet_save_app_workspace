@@ -26,6 +26,7 @@ export default function FindIdForm() {
 =======
 >>>>>>> 00ed882 (feat(reset-password): complete page ui, validation, error handling, and next navigation (#3))
 
+
   /** Validation */
   const validate = () => {
     const newErrors: { name?: string; email?: string } = {};
