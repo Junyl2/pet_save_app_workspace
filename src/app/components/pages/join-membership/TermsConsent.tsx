@@ -99,7 +99,7 @@ export default function TermsConsent() {
         >
           <FaChevronLeft className={styles.backIcon} />
         </button>
-        <h1 className={styles.headerTitle}>아이디 찾기</h1>
+        <h1 className={styles.headerTitle}>회원가입</h1>
       </div>
 
       {/* main content */}
