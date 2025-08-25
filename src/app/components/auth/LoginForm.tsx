@@ -23,8 +23,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     setError('');
 
     try {
-      //temporary
-
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,7 +60,8 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           <div className={styles.inputWrapper}>
             <input
               type="text"
-              autoComplete="user-name"
+              name="username"
+              autoComplete="username"
               className={styles.inputField}
               placeholder="아이디를 입력하세요."
               value={username}
@@ -74,6 +73,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           <div className={styles.passwordWrapper}>
             <input
               type={showPassword ? 'text' : 'password'}
+              name="password"
               autoComplete="current-password"
               className={styles.inputField}
               placeholder="비밀번호를 입력하세요."

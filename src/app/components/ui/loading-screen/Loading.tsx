@@ -7,6 +7,7 @@ export default function Loading() {
       <div className={styles.loadingScreen}>
         <Image
           src="/images/logo/loading-screen.png"
+          priority
           alt="Loading..."
           width={254}
           height={153}

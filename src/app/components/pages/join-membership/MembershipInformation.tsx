@@ -131,7 +131,9 @@ export default function MembershipInformation() {
   };
 
   // Submit form
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
     if (!validateForm()) {
       console.log('Form validation failed:', errors);
       return;
@@ -176,7 +178,8 @@ export default function MembershipInformation() {
         <h1 className={styles.headerTitle}>회원가입</h1>
       </div>
 
-      <div className={styles.container}>
+      {/* Wrap inputs in a form */}
+      <form className={styles.container} onSubmit={handleSubmit}>
         {/* Name */}
         <div className={styles.formGroup}>
           <label className={styles.label}>이름 (필수)</label>
@@ -201,6 +204,7 @@ export default function MembershipInformation() {
             onChange={handleChange}
             placeholder="아이디를 영문 소문자, 숫자 입력해주세요."
             className={styles.input}
+            autoComplete="username"
           />
           {errors.username && <p className={styles.error}>{errors.username}</p>}
         </div>
@@ -408,16 +412,15 @@ export default function MembershipInformation() {
 
         {/* Submit Button */}
         <button
-          type="button"
+          type="submit"
           className={`${styles.bottomButton} ${
             canSubmit ? styles.enabled : ''
           }`}
-          onClick={handleSubmit}
           disabled={!canSubmit}
         >
           가입 하기
         </button>
-      </div>
+      </form>
 
       {/* Success Modal */}
       <BaseModal open={showModal} onClose={() => setShowModal(false)}>
