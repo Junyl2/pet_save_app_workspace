@@ -8,45 +8,70 @@ export default function ClientWrapper({
 }: {
   children: React.ReactNode;
 }) {
-  const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false); // track client hydration
+  const [loading, setLoading] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const MIN_LOADING_TIME = 3000;
 
+  // Mark hydration complete
   useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  // Detect desktop on client only
+  useEffect(() => {
+    if (!hydrated) return;
+
     const checkDesktop = () => setIsDesktop(window.innerWidth >= 1025);
     checkDesktop();
     window.addEventListener('resize', checkDesktop);
     return () => window.removeEventListener('resize', checkDesktop);
-  }, []);
+  }, [hydrated]);
 
+  // Show loading only on first session load
   useEffect(() => {
-    const startTime = Date.now();
+    if (!hydrated) return;
 
-    async function initApp() {
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+    const hasLoaded = sessionStorage.getItem('hasShownLoading');
 
-        const elapsed = Date.now() - startTime;
-        const remainingTime = MIN_LOADING_TIME - elapsed;
+    if (!hasLoaded) {
+      setLoading(true);
 
-        if (remainingTime > 0) {
-          setTimeout(() => setLoading(false), remainingTime);
-        } else {
+      const startTime = Date.now();
+
+      async function initApp() {
+        try {
+          // simulate initialization if needed
+          await new Promise((resolve) => setTimeout(resolve, 0));
+
+          const elapsed = Date.now() - startTime;
+          const remainingTime = MIN_LOADING_TIME - elapsed;
+
+          setTimeout(
+            () => {
+              setLoading(false);
+              sessionStorage.setItem('hasShownLoading', 'true');
+            },
+            remainingTime > 0 ? remainingTime : 0
+          );
+        } catch (error) {
+          console.error(error);
           setLoading(false);
         }
-      } catch (error) {
-        console.error(error);
-        setLoading(false);
       }
+
+      initApp();
     }
+  }, [hydrated]);
 
-    initApp();
-  }, []);
+  // Exit animation
+  const exitAnimation = isDesktop ? {} : { opacity: 0, x: -500 };
 
-  const exitAnimation = isDesktop ? '' : { opacity: 0, x: -500 };
+  // Don't render anything until client hydration to avoid SSR mismatch
+  if (!hydrated) return null;
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {loading ? (
         <motion.div
           key="loading"
