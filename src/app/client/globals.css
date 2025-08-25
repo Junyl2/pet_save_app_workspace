@@ -61,5 +61,11 @@ body {
   .app-container {
     max-width: 468px !important;
     width: 468px;
+    border-radius: 8px;
+  }
+  .app-content {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    background-color: #fff;
   }
 }

@@ -1,0 +1,115 @@
+.topbar {
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  /*  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); */
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding-bottom: 0.5rem;
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1rem;
+}
+
+.logoWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo {
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.brand {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.icons {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 9999px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.iconBtn:hover {
+  background: #f3f4f6;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  color: #374151;
+}
+
+.searchWrapper {
+  position: relative;
+  margin-top: 0.5rem;
+  padding: 0 1rem;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  font-size: 1.4rem;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+.searchInput::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+.searchInput:focus {
+  border-color: #66bfa7;
+  outline: 1px solid #66bfa7;
+}
+
+.userLocation {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  border: 1px solid #66bfa7;
+  border-radius: 5px;
+  padding: 0.5rem 1rem;
+}
+
+.dropdownIcon {
+  width: 1.2rem;
+  height: 1.2rem;
+  color: rgba(0, 0, 0, 0.3);
+}
+
+@media (min-width: 1024px) {
+  .topbar {
+    width: 468px;
+  }
+}

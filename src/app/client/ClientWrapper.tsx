@@ -5,10 +5,12 @@ import Loading from '../components/ui/loading-screen/Loading';
 
 export default function ClientWrapper({
   children,
+  BottomBar, // pass BottomBar component as prop
 }: {
   children: React.ReactNode;
+  BottomBar?: React.ReactNode;
 }) {
-  const [hydrated, setHydrated] = useState(false); // track client hydration
+  const [hydrated, setHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const MIN_LOADING_TIME = 3000;
@@ -18,7 +20,7 @@ export default function ClientWrapper({
     setHydrated(true);
   }, []);
 
-  // Detect desktop on client only
+  // Detect desktop
   useEffect(() => {
     if (!hydrated) return;
 
@@ -41,7 +43,6 @@ export default function ClientWrapper({
 
       async function initApp() {
         try {
-          // simulate initialization if needed
           await new Promise((resolve) => setTimeout(resolve, 0));
 
           const elapsed = Date.now() - startTime;
@@ -64,10 +65,9 @@ export default function ClientWrapper({
     }
   }, [hydrated]);
 
-  // Exit animation
+  // Exit animation for mobile
   const exitAnimation = isDesktop ? {} : { opacity: 0, x: -500 };
 
-  // Don't render anything until client hydration to avoid SSR mismatch
   if (!hydrated) return null;
 
   return (
@@ -85,6 +85,8 @@ export default function ClientWrapper({
       ) : (
         <main className="app-container">
           <div className="app-content">{children}</div>
+          {/* BottomBar appears only after loading */}
+          {BottomBar && <div className="bottom-bar-container">{BottomBar}</div>}
         </main>
       )}
     </AnimatePresence>
