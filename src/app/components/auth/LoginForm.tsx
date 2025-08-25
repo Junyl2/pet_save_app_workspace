@@ -117,15 +117,21 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         {/* Links */}
         <div className={styles.loginLinks}>
           <span className={styles.linkItem}>
-            <Link href="/client/find-id">아이디 찾기</Link>
+            <Link href="/client/find-id" scroll={true}>
+              아이디 찾기
+            </Link>
           </span>
           <div className={styles.divider}> | </div>
           <span className={styles.linkItem}>
-            <Link href="/client/reset-password">비밀번호 재설정</Link>
+            <Link href="/client/reset-password" scroll={true}>
+              비밀번호 재설정
+            </Link>
           </span>
           <div className={styles.divider}> | </div>
           <span className={styles.linkItem}>
-            <Link href="/client/join-membership">회원가입</Link>
+            <Link href="/client/join-membership" scroll={true}>
+              회원가입
+            </Link>
           </span>
         </div>
       </div>

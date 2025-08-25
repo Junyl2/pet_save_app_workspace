@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 import Loading from '../components/ui/loading-screen/Loading';
 
 export default function ClientWrapper({
@@ -10,10 +11,20 @@ export default function ClientWrapper({
   children: React.ReactNode;
   BottomBar?: React.ReactNode;
 }) {
+  const pathname = usePathname(); // get current path
   const [hydrated, setHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const MIN_LOADING_TIME = 3000;
+
+  const excludedPages = [
+    '/client/find-id',
+    '/client/join-membership',
+    '/client/join-membership/membership-information',
+    '/client/reset-password',
+  ];
+
+  const showBottomBar = BottomBar && !excludedPages.includes(pathname);
 
   // Mark hydration complete
   useEffect(() => {
@@ -85,8 +96,10 @@ export default function ClientWrapper({
       ) : (
         <main className="app-container">
           <div className="app-content">{children}</div>
-          {/* BottomBar appears only after loading */}
-          {BottomBar && <div className="bottom-bar-container">{BottomBar}</div>}
+          {/* BottomBar appears only if not excluded page */}
+          {showBottomBar && (
+            <div className="bottom-bar-container">{BottomBar}</div>
+          )}
         </main>
       )}
     </AnimatePresence>

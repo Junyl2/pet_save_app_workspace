@@ -46,10 +46,36 @@ const mockProducts: Product[] = [
     category: '강아지',
     image: '/images/products/dog-snack.png',
   },
+  {
+    id: 3,
+    name: '강아지 간식 치즈볼',
+    weight: '500g',
+    quantity: '2개',
+    price: '15,000원',
+    discountPrice: '12,000원',
+    expiration: '25.12.01까지',
+    location: '서울특별시 강남구',
+    distance: '12km',
+    category: '강아지',
+    image: '/images/products/dog-snack.png',
+  },
+  {
+    id: 4,
+    name: '강아지 간식 치즈볼',
+    weight: '500g',
+    quantity: '2개',
+    price: '15,000원',
+    discountPrice: '12,000원',
+    expiration: '25.12.01까지',
+    location: '서울특별시 강남구',
+    distance: '12km',
+    category: '강아지',
+    image: '/images/products/dog-snack.png',
+  },
 
   // 고양이
   {
-    id: 3,
+    id: 5,
     name: '고양이 사료 참치 레시피',
     weight: '4kg',
     quantity: '1개',
@@ -62,7 +88,7 @@ const mockProducts: Product[] = [
     image: '/images/products/cat-food.png',
   },
   {
-    id: 4,
+    id: 6,
     name: '고양이 간식 연어 스틱',
     weight: '300g',
     quantity: '3개',
@@ -77,7 +103,7 @@ const mockProducts: Product[] = [
 
   // 햄스터
   {
-    id: 5,
+    id: 7,
     name: '햄스터 사료 혼합곡',
     weight: '500g',
     quantity: '1개',
@@ -89,7 +115,7 @@ const mockProducts: Product[] = [
     image: '/images/products/hamster-food.png',
   },
   {
-    id: 6,
+    id: 8,
     name: '햄스터 간식 해바라기씨',
     weight: '200g',
     quantity: '1개',
@@ -103,7 +129,7 @@ const mockProducts: Product[] = [
 
   // 새
   {
-    id: 7,
+    id: 9,
     name: '새 모이 혼합',
     weight: '1kg',
     quantity: '1개',
@@ -115,7 +141,7 @@ const mockProducts: Product[] = [
     image: '/images/products/bird-food.png',
   },
   {
-    id: 8,
+    id: 10,
     name: '새 간식 과일칩',
     weight: '300g',
     quantity: '1개',
@@ -129,7 +155,7 @@ const mockProducts: Product[] = [
 
   // 고슴도치
   {
-    id: 9,
+    id: 11,
     name: '고슴도치 사료 건조밀',
     weight: '500g',
     quantity: '1개',
@@ -141,7 +167,7 @@ const mockProducts: Product[] = [
     image: '/images/products/hedgehog-food.png',
   },
   {
-    id: 10,
+    id: 12,
     name: '고슴도치 간식 밀웜',
     weight: '200g',
     quantity: '1개',
