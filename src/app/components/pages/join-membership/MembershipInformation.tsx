@@ -27,7 +27,9 @@ export default function MembershipInformation() {
     referral: '',
   });
 
-  // 인증 관련 state
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Email verification states
   const [showAuthCode, setShowAuthCode] = useState(false);
   const [authCode, setAuthCode] = useState('');
   const [serverCode, setServerCode] = useState<string | null>(null);
@@ -40,9 +42,10 @@ export default function MembershipInformation() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: '' })); // clear error on typing
   };
 
-  // 인증번호 전송
+  // Send verification code
   const handleSendCode = async () => {
     try {
       const generatedCode = Math.floor(
@@ -50,7 +53,7 @@ export default function MembershipInformation() {
       ).toString();
       alert('Check console log for the dummy code');
       console.log(
-        'API → 인증번호 전송:',
+        'API → Verification code:',
         generatedCode,
         'to:',
         `${formData.email}@${formData.emailDomain}`
@@ -60,22 +63,27 @@ export default function MembershipInformation() {
       setTimeLeft(179);
       setIsVerified(false);
     } catch (err) {
-      console.error('인증번호 전송 실패', err);
+      console.error('Failed to send verification code', err);
     }
   };
 
-  // 인증 확인
+  // Verify code
   const handleVerifyCode = async () => {
     if (authCode === serverCode) {
-      console.log('API → 인증 성공');
+      console.log('API → Verification success');
       setIsVerified(true);
+      setErrors((prev) => ({ ...prev, email: '' }));
     } else {
-      console.log('API → 인증 실패');
+      console.log('API → Verification failed');
       setIsVerified(false);
+      setErrors((prev) => ({
+        ...prev,
+        email: '올바른 인증번호를 입력해주세요.',
+      }));
     }
   };
 
-  // 카운트다운
+  // Countdown timer
   useEffect(() => {
     if (!showAuthCode || timeLeft <= 0) return;
     const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
@@ -90,19 +98,69 @@ export default function MembershipInformation() {
     return `${m}:${s}`;
   };
 
+  // Form validation
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+    if (!formData.name) newErrors.name = '이름을 입력해주세요.';
+
+    if (!formData.username) {
+      newErrors.username = '아이디를 입력해주세요.';
+    } else if (!/^[a-z0-9]+$/.test(formData.username)) {
+      newErrors.username = '아이디는 영문 소문자와 숫자만 사용할 수 있습니다.';
+    }
+
+    if (!formData.password) {
+      newErrors.password = '비밀번호를 입력해주세요.';
+    } else if (!/^[0-9]{10}$/.test(formData.password)) {
+      newErrors.password = '비밀번호는 숫자 10자리여야 합니다.';
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = '비밀번호가 일치하지 않습니다.';
+    }
+
+    if (!formData.phone) newErrors.phone = '휴대폰 번호를 입력해주세요.';
+    if (!formData.email || !formData.emailDomain)
+      newErrors.email = '이메일을 입력해주세요.';
+    if (!isVerified) newErrors.email = '이메일 인증을 완료해주세요.';
+    if (!formData.postalCode || !formData.address)
+      newErrors.address = '배송지 주소를 입력해주세요.';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Submit form
   const handleSubmit = async () => {
-    setShowModal(true);
-    /*   try {
+    if (!validateForm()) {
+      console.log('Form validation failed:', errors);
+      return;
+    }
+
+    try {
       console.log('Submitting form:', formData);
-      alert('Sign-up complete!');
+      setShowModal(true);
     } catch (error) {
       console.error('Sign-up failed:', error);
-      alert('An error occurred during sign-up. Please try again.');
-    } */
+      alert('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
   };
 
   const canSendCode = formData.email && formData.emailDomain;
   const canVerify = !!authCode;
+
+  // 가입하기 버튼 활성화 조건
+  const canSubmit =
+    formData.name &&
+    formData.username &&
+    formData.password &&
+    formData.confirmPassword &&
+    formData.phone &&
+    formData.email &&
+    formData.emailDomain &&
+    formData.postalCode &&
+    formData.address &&
+    isVerified;
 
   return (
     <>
@@ -130,6 +188,7 @@ export default function MembershipInformation() {
             placeholder="이름을 입력해주세요."
             className={styles.input}
           />
+          {errors.name && <p className={styles.error}>{errors.name}</p>}
         </div>
 
         {/* Username */}
@@ -143,6 +202,7 @@ export default function MembershipInformation() {
             placeholder="아이디를 영문 소문자, 숫자 입력해주세요."
             className={styles.input}
           />
+          {errors.username && <p className={styles.error}>{errors.username}</p>}
         </div>
 
         {/* Password */}
@@ -157,6 +217,9 @@ export default function MembershipInformation() {
               placeholder="띄어쓰기 없이 숫자 10자"
               className={styles.input}
               autoComplete="new-password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={10}
             />
             <span
               className={styles.eyeIcon}
@@ -165,6 +228,7 @@ export default function MembershipInformation() {
               {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
             </span>
           </div>
+          {errors.password && <p className={styles.error}>{errors.password}</p>}
         </div>
 
         {/* Confirm Password */}
@@ -179,6 +243,9 @@ export default function MembershipInformation() {
               placeholder="비밀번호를 한번 더 입력해주세요."
               className={styles.input}
               autoComplete="new-password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={10}
             />
             <span
               className={styles.eyeIcon}
@@ -187,6 +254,9 @@ export default function MembershipInformation() {
               {showConfirm ? <FiEyeOff size={18} /> : <FiEye size={18} />}
             </span>
           </div>
+          {errors.confirmPassword && (
+            <p className={styles.error}>{errors.confirmPassword}</p>
+          )}
         </div>
 
         {/* Phone Number */}
@@ -202,6 +272,7 @@ export default function MembershipInformation() {
               className={styles.input}
             />
           </div>
+          {errors.phone && <p className={styles.error}>{errors.phone}</p>}
         </div>
 
         {/* Email */}
@@ -228,9 +299,10 @@ export default function MembershipInformation() {
               <option value="daum.net">daum.net</option>
             </select>
           </div>
+          {errors.email && <p className={styles.error}>{errors.email}</p>}
         </div>
 
-        {/* send Verification code */}
+        {/* Send Verification Code */}
         <div className={styles.authButton}>
           <button
             type="button"
@@ -318,6 +390,7 @@ export default function MembershipInformation() {
             placeholder="상세주소"
             className={styles.input}
           />
+          {errors.address && <p className={styles.error}>{errors.address}</p>}
         </div>
 
         {/* Referral Code */}
@@ -337,32 +410,10 @@ export default function MembershipInformation() {
         <button
           type="button"
           className={`${styles.bottomButton} ${
-            formData.name &&
-            formData.username &&
-            formData.password &&
-            formData.confirmPassword &&
-            formData.phone &&
-            formData.email &&
-            formData.emailDomain &&
-            formData.postalCode &&
-            formData.address
-              ? styles.enabled
-              : ''
+            canSubmit ? styles.enabled : ''
           }`}
-          disabled={
-            !(
-              formData.name &&
-              formData.username &&
-              formData.password &&
-              formData.confirmPassword &&
-              formData.phone &&
-              formData.email &&
-              formData.emailDomain &&
-              formData.postalCode &&
-              formData.address
-            )
-          }
           onClick={handleSubmit}
+          disabled={!canSubmit}
         >
           가입 하기
         </button>
@@ -372,7 +423,7 @@ export default function MembershipInformation() {
       <BaseModal open={showModal} onClose={() => setShowModal(false)}>
         <div className={styles.imageWrapper}>
           <Image
-            src="/images/icons/check-circle.png"
+            src="/images/icons/member-check.png"
             alt="Success Icon"
             height={60}
             width={60}
@@ -382,9 +433,7 @@ export default function MembershipInformation() {
 
         <h1 className={styles.modalTitle}>회원가입 완료</h1>
 
-        <p className={styles.successMessage}>
-          회원가입이 성공적으로 완료되었습니다.
-        </p>
+        <p className={styles.successMessage}>정상적으로 회원가입 되었습니다.</p>
         <button
           className={styles.modalButton}
           onClick={() => {
