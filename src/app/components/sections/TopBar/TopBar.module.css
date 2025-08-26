@@ -1,7 +1,6 @@
 .topbar {
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
-  /*  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); */
   margin-left: -1rem;
   margin-right: -1rem;
   padding-bottom: 0.5rem;
@@ -65,13 +64,9 @@
   padding: 0 1rem;
 }
 
-.searchIcon {
-  position: absolute;
-  left: 28px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #888;
-  font-size: 1.4rem;
+.searchForm {
+  position: relative;
+  width: 100%;
 }
 
 .searchInput {
@@ -82,12 +77,182 @@
   font-size: 0.95rem;
   box-sizing: border-box;
 }
+.searchButton {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: transparent !important;
+  border: none;
+}
+
+.searchIcon {
+  color: #888;
+  font-size: 1.4rem;
+}
+
 .searchInput::placeholder {
   color: rgba(0, 0, 0, 0.4);
 }
+
 .searchInput:focus {
   border-color: #66bfa7;
   outline: 1px solid #66bfa7;
+}
+
+/* Search history dropdown */
+.historyDropdown {
+  position: absolute;
+  top: 150%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-radius: 8px;
+  overflow-y: auto;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  animation: fadeSlideDown 0.15s ease-out;
+  height: 100vh;
+}
+.historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 1rem 1rem 1rem;
+}
+.historyTitle {
+  color: #000000;
+  font-weight: normal;
+  font-size: 12px;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.8rem 0rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.historyIcon {
+  color: rgba(0, 0, 0, 0.6);
+}
+.historyTerm {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+.historyContent {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+.searchHistory {
+  position: absolute;
+  top: 110%;
+  left: 1rem;
+  right: 1rem;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 50;
+  padding: 0.5rem 0;
+  animation: fadeSlideDown 0.15s ease-out;
+}
+
+.searchHistoryItem {
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.searchHistoryItem:hover {
+  background: #f2f2f2;
+}
+
+.historyLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.historyRight {
+  display: flex;
+  align-items: center !important;
+}
+
+.historyTime {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+.clearAllBtn {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+  cursor: pointer;
+}
+.historyDelete {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-left: 2px;
+}
+
+.searchHistoryRemove:hover {
+  color: #66bfa7;
+}
+
+.searchHistoryEmpty {
+  padding: 1rem;
+  font-size: 0.9rem;
+  text-align: center;
+  color: #666;
+}
+
+.backButton {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  left: 0;
+}
+.backIcon {
+  font-size: clamp(1.2rem, 2.8vw, 1.4rem);
+  font-weight: 100;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+/* Animation for dropdown */
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .userLocation {

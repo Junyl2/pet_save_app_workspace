@@ -1,8 +1,11 @@
 'use client';
 import { useMemo } from 'react';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
+import { FaRegFrown } from 'react-icons/fa';
 import styles from './ProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
+import { CartModal } from '../../ui/modal/CartModal/CartModal';
 
 type Product = {
   id: number;
@@ -180,17 +183,48 @@ const mockProducts: Product[] = [
   },
 ];
 
-export default function ProductGrid({ category }: { category: string }) {
-  const filteredProducts = useMemo(
-    () => mockProducts.filter((p) => p.category === category),
-    [category]
-  );
-
+export default function ProductGrid({
+  category,
+  searchTerm = '',
+}: {
+  category: string;
+  searchTerm?: string;
+}) {
+  // Cart modal state
+  const [cartOpen, setCartOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { favorites, toggleFavorite } = useFavorites();
 
+  // filter by category first, then by search term
+  const filteredProducts = useMemo(() => {
+    return mockProducts.filter(
+      (p) =>
+        p.category === category &&
+        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [category, searchTerm]);
+
   if (filteredProducts.length === 0) {
-    return <p className={styles.empty}>해당 카테고리의 상품이 없습니다.</p>;
+    return (
+      <div className={styles.emptyContainer}>
+        <div>
+          <Image
+            src={'/images/products/noresult.png'}
+            alt="Result Icon"
+            height={100}
+            width={100}
+            className="object-contain"
+          />
+          <p className={styles.emptyText}>검색어가 없습니다.</p>
+        </div>
+      </div>
+    );
   }
+
+  const handleCartClick = (product: Product) => {
+    setSelectedProduct(product);
+    setCartOpen(true);
+  };
 
   return (
     <section className={styles.mainContainer}>
@@ -213,10 +247,13 @@ export default function ProductGrid({ category }: { category: string }) {
                 <div className={styles.header}>
                   <h3 className={styles.name}>{product.name}</h3>
                   <div className={styles.icons}>
-                    <button className={styles.iconBtn}>
+                    <button
+                      className={styles.iconBtn}
+                      onClick={() => handleCartClick(product)}
+                    >
                       <Image
                         src={'/images/icons/Cart.png'}
-                        alt="Heart Icon"
+                        alt="Cart Icon"
                         width={24}
                         height={22}
                         className="object-contain"
@@ -265,6 +302,19 @@ export default function ProductGrid({ category }: { category: string }) {
           );
         })}
       </div>
+      {/* Cart Modal */}
+      {selectedProduct && (
+        <CartModal
+          open={cartOpen}
+          onClose={() => setCartOpen(false)}
+          productName={selectedProduct.name}
+          productPrice={Number(
+            (selectedProduct.discountPrice || selectedProduct.price)
+              .replace(/,/g, '')
+              .replace('원', '')
+          )}
+        />
+      )}
     </section>
   );
 }
