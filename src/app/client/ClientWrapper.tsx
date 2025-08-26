@@ -22,9 +22,14 @@ export default function ClientWrapper({
     '/client/join-membership',
     '/client/join-membership/membership-information',
     '/client/reset-password',
+    '/products',
   ];
 
-  const showBottomBar = BottomBar && !excludedPages.includes(pathname);
+  const showBottomBar =
+    BottomBar &&
+    !excludedPages.some(
+      (page) => pathname === page || pathname.startsWith(page + '/')
+    );
 
   // Mark hydration complete
   useEffect(() => {

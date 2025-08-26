@@ -1,0 +1,77 @@
+.card {
+  display: flex;
+  background: #f3f4f6;
+  border-radius: 8px;
+  overflow: hidden;
+  animation: pulse 1.2s infinite;
+  align-items: center;
+}
+
+.imageWrapper {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  padding: 1rem 0.5rem 1rem 1rem;
+  position: relative;
+}
+
+.imageSkeleton {
+  width: 100%;
+  height: 100%;
+  background-color: #e5e7eb;
+  border-radius: 5px;
+}
+
+.content {
+  flex: 1;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+}
+
+.nameSkeleton {
+  width: 50%;
+  height: 12px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+}
+
+.iconsSkeleton {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.iconSkeleton {
+  width: 24px;
+  height: 24px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+}
+
+.detailSkeleton,
+.priceSkeleton,
+.infoSkeleton {
+  height: 12px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}

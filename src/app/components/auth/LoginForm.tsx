@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import styles from './LoginForm.module.css';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -117,19 +118,19 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         {/* Links */}
         <div className={styles.loginLinks}>
           <span className={styles.linkItem}>
-            <Link href="/client/find-id" scroll={true}>
+            <Link href={PAGE_URLS.FIND_ID} scroll={true}>
               아이디 찾기
             </Link>
           </span>
           <div className={styles.divider}> | </div>
           <span className={styles.linkItem}>
-            <Link href="/client/reset-password" scroll={true}>
+            <Link href={PAGE_URLS.RESET_PASSWORD} scroll={true}>
               비밀번호 재설정
             </Link>
           </span>
           <div className={styles.divider}> | </div>
           <span className={styles.linkItem}>
-            <Link href="/client/join-membership" scroll={true}>
+            <Link href={PAGE_URLS.JOIN_MEMBERSHIP} scroll={true}>
               회원가입
             </Link>
           </span>

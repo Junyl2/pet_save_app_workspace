@@ -5,7 +5,7 @@
   width: 100vw;
   height: 100vh;
   background-color: #f2f4f7;
-  z-index: 40;
+  z-index: 300;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

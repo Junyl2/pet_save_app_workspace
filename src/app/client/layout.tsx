@@ -24,13 +24,36 @@ export default function RootLayout({
 
         {/* Global toast container */}
         <Toaster
-          position="top-right"
+          position="bottom-center"
           toastOptions={{
-            duration: 3000,
+            // Default style
             style: {
               background: '#333',
               color: '#fff',
-              fontSize: '0.9rem',
+              fontSize: '14px',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              width: '100%',
+              textAlign: 'center',
+              marginBottom: '100px',
+            },
+            // Error specific
+            error: {
+              style: {
+                background: '#2F6F5E',
+                color: '#fff',
+              },
+              iconTheme: {
+                primary: '#2F6F5E',
+                secondary: '#fff',
+              },
+            },
+            // Success specific
+            success: {
+              style: {
+                background: '#48bb78',
+                color: '#fff',
+              },
             },
           }}
         />

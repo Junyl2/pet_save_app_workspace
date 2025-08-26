@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import styles from './BottomBar.module.css';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 type BottomItem = {
   name: string;
@@ -19,13 +20,17 @@ export default function BottomBar() {
   const isLoggedIn = false; // TODO: replace with real auth
 
   const items: BottomItem[] = [
-    { name: 'home', label: '홈', path: '/client/homepage' },
-    { name: 'bag', label: '주변가게', path: '/shops' },
-    { name: 'message', label: '문의하기', path: '/contact' },
+    { name: 'home', label: '홈', path: PAGE_URLS.HOME },
+    { name: 'bag', label: '주변가게', path: PAGE_URLS.SHOPS || '/shops' },
+    {
+      name: 'message',
+      label: '문의하기',
+      path: PAGE_URLS.CONTACT || '/contact',
+    },
     {
       name: 'user',
       label: '마이',
-      path: isLoggedIn ? '/client/mypage' : '/client/login',
+      path: isLoggedIn ? PAGE_URLS.MYPAGE || '/' : PAGE_URLS.LOGIN,
     },
   ];
 

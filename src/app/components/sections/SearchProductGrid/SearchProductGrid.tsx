@@ -1,69 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import styles from './SearchProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
 import { toast } from 'react-hot-toast';
+import { Product } from '@/app/api/types/products/products';
+import { productService } from '@/app/api/services/product-service/productService';
+import SearchProductSkeleton from './SearchProductSkeleton';
 
-type Product = {
-  id: number;
-  name: string;
-  weight: string;
-  quantity: string;
-  price: string;
-  discountPrice?: string;
-  expiration: string;
-  location: string;
-  distance: string;
-  category: string;
-  image: string;
-};
-
-const mockProducts: Product[] = [
-  {
-    id: 1,
-    name: 'Dog Food',
-    weight: '2kg',
-    quantity: '5개',
-    price: '25,000원',
-    discountPrice: '20,000원',
-    expiration: '25.12.01까지',
-    location: '서울특별시 신림동',
-    distance: '2km',
-    category: '강아지',
-    image: '/images/products/dogfood.png',
-  },
-  {
-    id: 2,
-    name: 'Dog Food Premium',
-    weight: '3kg',
-    quantity: '3개',
-    price: '35,000원',
-    discountPrice: '30,000원',
-    expiration: '25.12.10까지',
-    location: '서울특별시 강남',
-    distance: '5km',
-    category: '강아지',
-    image: '/images/products/dogfood.png',
-  },
-  {
-    id: 3,
-    name: 'Cat Toy',
-    weight: '200g',
-    quantity: '10개',
-    price: '5,000원',
-    expiration: '26.01.01까지',
-    location: '부산광역시',
-    distance: '5km',
-    category: '고양이',
-    image: '/images/products/cat-toy.jpg',
-  },
-];
-
-export default function ProductGrid({
+export default function SearchProductGrid({
   searchTerm = '',
   onSearchSubmit,
 }: {
@@ -71,6 +20,8 @@ export default function ProductGrid({
   onSearchSubmit?: () => void;
 }) {
   const { favorites } = useFavorites();
+  const router = useRouter();
+
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [selectedSort, setSelectedSort] = useState('정확도순');
 
@@ -78,49 +29,150 @@ export default function ProductGrid({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const [searchSubmitted, setSearchSubmitted] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Filter products
-  const filteredProducts = useMemo(() => {
-    if (!searchTerm.trim()) return [];
-    return mockProducts.filter((p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  // Full catalog for wrong-term detection
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [catalogReady, setCatalogReady] = useState(false);
+
+  // Load full catalog once
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await productService.getAll();
+        if (!mounted) return;
+        setAllProducts(res?.error ? [] : res?.data || []);
+      } catch {
+        if (!mounted) return;
+        setAllProducts([]);
+      } finally {
+        if (!mounted) return;
+        setCatalogReady(true);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Fetch products based on search term
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchProducts = async () => {
+      setLoading(true);
+      setProducts([]);
+      setError(null);
+
+      try {
+        const res = searchTerm.trim()
+          ? await productService.search(searchTerm)
+          : await productService.getAll();
+
+        if (!isMounted) return;
+
+        if (res?.error) {
+          setError(res.error);
+          setProducts([]);
+        } else {
+          setProducts(res?.data || []);
+        }
+      } catch (err: any) {
+        if (!isMounted) return;
+        setError(err?.message || '알 수 없는 오류가 발생했습니다.');
+        setProducts([]);
+      } finally {
+        if (!isMounted) return;
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+    return () => {
+      isMounted = false;
+    };
   }, [searchTerm]);
 
-  const handleSortToggle = () => setDropdownOpen(!isDropdownOpen);
+  // Sorting
+  const filteredProducts = useMemo(() => {
+    if (selectedSort === '낮은 가격순') {
+      return [...products].sort((a, b) => {
+        const priceA = Number(
+          a.discountPrice?.replace(/,/g, '').replace('원', '') ||
+            a.price.replace(/,/g, '').replace('원', '')
+        );
+        const priceB = Number(
+          b.discountPrice?.replace(/,/g, '').replace('원', '') ||
+            b.price.replace(/,/g, '').replace('원', '')
+        );
+        return priceA - priceB;
+      });
+    }
+    return products;
+  }, [products, selectedSort]);
 
+  // UI handlers
+  const handleSortToggle = () => setDropdownOpen(!isDropdownOpen);
   const handleSelectSort = (option: string) => {
     setSelectedSort(option);
     setDropdownOpen(false);
-    // TODO: Implement sorting logic
   };
-
-  const handleCartClick = (product: Product) => {
+  const handleCartClick = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
     setSelectedProduct(product);
     setCartOpen(true);
   };
-
+  const handleProductClick = (product: Product) => {
+    router.push(`/products/${product.id}`);
+  };
   const handleSearchSubmit = () => {
     setSearchSubmitted(true);
     if (!searchTerm.trim()) {
       toast.error('검색어를 입력해주세요.');
       return;
     }
-    if (onSearchSubmit) onSearchSubmit();
+    onSearchSubmit?.();
   };
 
+  // Empty states
   const isEmptySearch = !searchTerm.trim() && searchSubmitted;
-  const noMatches = searchTerm.trim() && filteredProducts.length === 0;
+  const noMatches = !!searchTerm.trim() && filteredProducts.length === 0;
 
-  // -------------------------
-  // EMPTY INPUT SUBMITTED
-  // -------------------------
+  // Wrong-term detection (only after catalog is ready)
+  const normalizedTerm = searchTerm.trim().toLowerCase();
+  const matchesAnyCatalog = useMemo(() => {
+    if (!normalizedTerm) return false;
+    if (!catalogReady || allProducts.length === 0) return false;
+
+    // 🔑 strip numbers/symbols so "강아지123" still matches "강아지"
+    const cleanTerm = normalizedTerm.replace(/[^가-힣a-zA-Z]/g, '');
+
+    return allProducts.some((p) =>
+      (p.name || '').toLowerCase().includes(cleanTerm)
+    );
+  }, [allProducts, catalogReady, normalizedTerm]);
+
+  // ---- render ----
+  if (loading) {
+    return (
+      <section className={styles.mainContainer}>
+        <SearchProductSkeleton count={6} />
+      </section>
+    );
+  }
+
+  if (error) return <p className={styles.emptyText}>에러: {error}</p>;
+
+  // Empty input submitted
   if (isEmptySearch) {
     return (
       <div className={styles.emptyContainer}>
         <div>
           <Image
-            src="/images/products/noresult-empty.png"
+            src="/images/products/noresult.png"
             alt="검색어 입력 필요"
             height={100}
             width={100}
@@ -132,40 +184,20 @@ export default function ProductGrid({
     );
   }
 
-  // -------------------------
-  // WRONG SEARCH TERM (random text, no product)
-  // -------------------------
-  if (
-    noMatches &&
-    !mockProducts.some((p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase().replace(/s$/, ''))
-    )
-  ) {
-    return (
-      <div className={styles.emptyContainer}>
-        <div>
-          <Image
-            src="/images/products/noresult-wrong-term.svg"
-            alt="검색된 상품 없음"
-            height={100}
-            width={100}
-            className="object-contain"
-          />
-          <p className={styles.emptyText}>검색된 상품이 없습니다.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // -------------------------
-  // NO RESULTS FOR VALID TERM
-  // -------------------------
+  // Unified no-results branch
   if (noMatches) {
+    const isWrongTerm =
+      catalogReady && allProducts.length > 0 && !matchesAnyCatalog;
+
     return (
       <div className={styles.emptyContainer}>
         <div>
           <Image
-            src="/images/products/noresult.png"
+            src={
+              isWrongTerm
+                ? '/images/products/noresult-wrong-term.svg'
+                : '/images/products/noresult.png'
+            }
             alt="검색된 상품 없음"
             height={100}
             width={100}
@@ -177,9 +209,6 @@ export default function ProductGrid({
     );
   }
 
-  // -------------------------
-  // PRODUCT GRID
-  // -------------------------
   return (
     <section className={styles.mainContainer}>
       {filteredProducts.length > 0 && (
@@ -214,7 +243,11 @@ export default function ProductGrid({
 
       <div className={styles.grid}>
         {filteredProducts.map((product) => (
-          <div key={product.id} className={styles.card}>
+          <div
+            key={product.id}
+            className={styles.card}
+            onClick={() => handleProductClick(product)}
+          >
             <div className={styles.imageWrapper}>
               <Image
                 src={product.image}
@@ -226,20 +259,22 @@ export default function ProductGrid({
               <div className={styles.icons}>
                 <button
                   className={styles.iconBtn}
-                  onClick={() => handleCartClick(product)}
+                  onClick={(e) => handleCartClick(e, product)}
                 >
                   <Image
-                    src="/images/products/search-cart.svg"
+                    src="/images/icons/Cart.png"
                     alt="Cart Icon"
-                    width={26}
-                    height={26}
+                    width={24}
+                    height={22}
                     className="object-contain"
                   />
                 </button>
               </div>
             </div>
             <div className={styles.content}>
-              <h3 className={styles.name}>{product.name}</h3>
+              <div className={styles.header}>
+                <h3 className={styles.name}>{product.name}</h3>
+              </div>
               <p className={styles.detail}>
                 {product.weight}, {product.quantity}
               </p>

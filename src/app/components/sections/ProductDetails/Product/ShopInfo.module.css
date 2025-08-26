@@ -1,0 +1,39 @@
+.shopHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+}
+
+.shopDetails {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.shopInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.hospital {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #555;
+  margin: 0;
+}
+
+.location {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.4);
+  margin: 0;
+}
+
+.favoriteWrapper {
+  background: none;
+  border: none;
+}

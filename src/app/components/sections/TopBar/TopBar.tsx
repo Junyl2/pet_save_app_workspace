@@ -4,6 +4,7 @@ import { CiSearch } from 'react-icons/ci';
 import { FaChevronDown, FaHome } from 'react-icons/fa';
 import { CiClock2 } from 'react-icons/ci';
 import { FaChevronLeft } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 
 import { IoClose } from 'react-icons/io5';
 import Image from 'next/image';
@@ -57,12 +58,19 @@ export default function TopBar() {
   };
 
   /** Submit search */
+
   const submitSearch = useCallback(() => {
     const term = inputValue.trim();
-    if (!term) return;
+
+    if (!term) {
+      toast.error('검색어를 입력해주세요.');
+      return;
+    }
 
     saveHistory(term);
-    router.push(`/client/search?query=${encodeURIComponent(term)}`);
+    router.push(
+      `/client/pages/products/search?query=${encodeURIComponent(term)}`
+    );
 
     setInputValue('');
     inputRef.current?.blur();
@@ -94,7 +102,9 @@ export default function TopBar() {
   /** Select from history */
   const handleSelectHistory = (term: string) => {
     setInputValue(term);
-    router.push(`/client/search?query=${encodeURIComponent(term)}`);
+    router.push(
+      `/client/pages/products/search?query=${encodeURIComponent(term)}`
+    );
     inputRef.current?.blur();
     setShowHistory(false);
   };
@@ -121,11 +131,11 @@ export default function TopBar() {
     <header className={styles.topbar}>
       <div className={styles.inner}>
         <div className={styles.logoWrapper}>
-          {pathname === '/client/homepage' ? (
+          {pathname === '/client/pages/homepage' ? (
             isLoggedIn ? (
               <div
                 className={styles.userLocation}
-                onClick={() => router.push('/client/homepage/location')}
+                onClick={() => router.push('/client/pages/homepage/location')}
               >
                 <span>신림동</span>
                 <FaChevronDown className={styles.dropdownIcon} />
@@ -152,10 +162,10 @@ export default function TopBar() {
 
         <div className={styles.icons}>
           {/* Show Home icon only if not on homepage */}
-          {pathname !== '/client/homepage' && (
+          {pathname !== '/client/pages/homepage' && (
             <button
               className={styles.iconBtn}
-              onClick={() => router.push('/client/homepage')}
+              onClick={() => router.push('/client/pages/homepage')}
               aria-label="홈으로 이동"
             >
               <Image
