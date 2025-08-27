@@ -2,7 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-top: 12px;
 }
 
 .loading,
@@ -15,7 +14,7 @@
 /* Review Card */
 .reviewCard {
   position: relative;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.8);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -77,8 +76,8 @@
 }
 
 .reviewImage {
-  width: 80px;
-  height: 80px;
+  width: 96px;
+  height: 96px;
   border-radius: 8px;
   object-fit: cover;
   cursor: pointer;

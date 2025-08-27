@@ -17,6 +17,16 @@ const nextConfig: NextConfig = {
         source: '/products/:id',
         destination: '/client/pages/products/:id',
       },
+      //contact product
+      {
+        source: '/contact-product',
+        destination: '/client/pages/products/contact-product',
+      },
+      //customer reviews
+      {
+        source: '/customer-reviews',
+        destination: '/client/pages/customer-reviews',
+      },
       // Products listing
       {
         source: '/products',

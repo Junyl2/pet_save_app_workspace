@@ -10,6 +10,7 @@ export const PAGE_URLS = {
   // Products
   PRODUCTS: '/client/pages/products',
   PRODUCT_DETAIL: (id: number | string) => `/products/${id}`,
+  CONTACT_PRODUCT: '/client/pages/products/contact-product',
 
   //page to be added
   MYPAGE: '/client/mypage',

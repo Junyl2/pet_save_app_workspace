@@ -29,7 +29,7 @@
 .optionList {
   list-style: none;
   padding: 0;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0rem 0;
   border: 1px solid #ddd;
   overflow: hidden;
   text-align: start;
@@ -37,6 +37,10 @@
 }
 .optionList:last-child {
   border: none;
+}
+.option:last-child:hover {
+  border-bottom-left-radius: 12px !important;
+  border-bottom-right-radius: 12px !important;
 }
 
 .option {
@@ -93,6 +97,7 @@
   padding: 1rem;
   text-align: start;
   border-bottom: 1px solid #eee;
+  border-top: 1px solid #eee;
   font-family: 600;
 }
 .confirmation {

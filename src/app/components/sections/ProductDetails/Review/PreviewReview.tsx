@@ -65,7 +65,7 @@ export const PreviewReview = ({ productId }: CustomerReviewProps) => {
         <h3 className={styles.reviewTitle}>이 상품의 리뷰보기</h3>
         <button
           className={styles.viewAll}
-          onClick={() => router.push(`/client/pages/customer-review`)}
+          onClick={() => router.push(`/customer-reviews`)}
         >
           전체보기
           <BiChevronRight size={22} className={styles.viewIcon} />

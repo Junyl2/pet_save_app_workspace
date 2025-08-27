@@ -14,42 +14,28 @@ import { Product } from '@/app/api/types/products/products';
 import styles from './ProductDetails.module.css';
 
 export default function ProductDetails() {
-  const params = useParams();
-  const productId = Number(params.id);
-  const { favorites, toggleFavorite } = useFavorites();
+  const { id } = useParams();
+  const productId = Number(id);
+  const { toggleFavorite } = useFavorites();
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
 
-  const parsePrice = (price: string | number | undefined): number => {
-    if (!price) return 0;
-    if (typeof price === 'number') return price;
-    return parseFloat(price.replace(/[^\d.]/g, '')) || 0;
-  };
-
   useEffect(() => {
-    const fetchProduct = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await productService.getById(productId);
-        if (res.error) setError(res.error);
-        else setProduct(res.data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+    let isMounted = true;
+
+    productService.getById(productId).then((res) => {
+      if (!isMounted) return;
+      if (!res.error) setProduct(res.data);
+    });
+
+    return () => {
+      isMounted = false;
     };
-    fetchProduct();
   }, [productId]);
 
-  if (loading) return <p className={styles.message}>로딩 중...</p>;
-  if (error) return <p className={styles.message}>에러: {error}</p>;
-  if (!product)
-    return <p className={styles.message}>상품을 찾을 수 없습니다.</p>;
+  // Render nothing until product is ready
+  if (!product) return null;
 
   return (
     <section className={styles.container}>
@@ -75,12 +61,10 @@ export default function ProductDetails() {
         productName={product.name}
         productPrice={product.discountPrice || product.price}
         onAddToCart={(quantity, name) => {
-          //open cart modal and handle add
           setCartOpen(true);
           console.log('Added to cart:', quantity, name);
         }}
         onPurchase={(quantity, name) => {
-          //  direct purchase flow
           console.log('Purchasing:', quantity, name);
         }}
       />

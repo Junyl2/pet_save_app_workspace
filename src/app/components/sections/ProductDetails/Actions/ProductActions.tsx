@@ -1,8 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './ProductActions.module.css';
 import { ProductDrawer } from '@/app/components/ui/drawer/ProductDrawer';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 interface ProductActionsProps {
   productId: number; // add id
@@ -19,8 +20,10 @@ export const ProductActions = ({
   onAddToCart,
   onPurchase,
 }: ProductActionsProps) => {
+  const route = useRouter();
   const [showDrawer, setShowDrawer] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [onMessageProduct, setOnMessageProduct] = useState(false);
   const [activeProduct, setActiveProduct] = useState<{
     id: number;
     name: string;
@@ -33,11 +36,18 @@ export const ProductActions = ({
     setShowDrawer(true);
   };
 
+  /*  useEffect(() => {
+    const onMessage = route.push('/client/pages/products/contact-product');
+  }, []); */
+
   return (
     <div className={styles.actionsContainer}>
       {/* Bottom Actions */}
       <div className={styles.actions}>
-        <button className={styles.messageButton}>
+        <button
+          className={styles.messageButton}
+          onClick={() => route.push('/contact-product')}
+        >
           <Image
             src="/images/icons/bottom-bar/message.svg"
             alt="Message Icon"
