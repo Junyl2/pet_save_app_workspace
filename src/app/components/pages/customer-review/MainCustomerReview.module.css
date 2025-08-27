@@ -1,8 +1,6 @@
 .container {
   background-color: #f2f4f7;
-  min-height: 100vh;
-  z-index: 1500;
   margin-left: -1rem;
   margin-right: -1rem;
-  padding-bottom: 4rem;
+  padding-bottom: 5rem;
 }

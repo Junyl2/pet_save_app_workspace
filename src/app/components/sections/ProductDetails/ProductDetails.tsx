@@ -7,8 +7,7 @@ import { ProductInfo } from './Product/ProductInfo';
 import { ShopInfo } from './Product/ShopInfo';
 import { UsageInstructions } from './Usage/UsageInstructions';
 import { ProductActions } from './Actions/ProductActions';
-import { CustomerReview } from './Review/CustomerReview';
-import { CartModal } from '../../ui/modal/CartModal/CartModal';
+import { PreviewReview } from './Review/PreviewReview';
 import { useFavorites } from '@/app/context/FavoritesContext';
 import { productService } from '@/app/api/services/product-service/productService';
 import { Product } from '@/app/api/types/products/products';
@@ -23,6 +22,12 @@ export default function ProductDetails() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+
+  const parsePrice = (price: string | number | undefined): number => {
+    if (!price) return 0;
+    if (typeof price === 'number') return price;
+    return parseFloat(price.replace(/[^\d.]/g, '')) || 0;
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -64,21 +69,21 @@ export default function ProductDetails() {
         details={product.details}
       />
       <UsageInstructions />
-      <CustomerReview productId={product.id} />
-      <ProductActions onCartOpen={() => setCartOpen(true)} />
-      {/* Cart Modal */}
-      {cartOpen && (
-        <CartModal
-          open={cartOpen}
-          onClose={() => setCartOpen(false)}
-          productName={product.name}
-          productPrice={Number(
-            (product.discountPrice || product.price)
-              .replace(/,/g, '')
-              .replace('원', '')
-          )}
-        />
-      )}
+      <PreviewReview productId={product.id} />
+      <ProductActions
+        productId={product.id}
+        productName={product.name}
+        productPrice={product.discountPrice || product.price}
+        onAddToCart={(quantity, name) => {
+          //open cart modal and handle add
+          setCartOpen(true);
+          console.log('Added to cart:', quantity, name);
+        }}
+        onPurchase={(quantity, name) => {
+          //  direct purchase flow
+          console.log('Purchasing:', quantity, name);
+        }}
+      />
     </section>
   );
 }

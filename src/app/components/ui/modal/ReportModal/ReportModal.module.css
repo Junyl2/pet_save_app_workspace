@@ -1,0 +1,120 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.confirmationModal {
+  padding: 1.5rem;
+}
+
+.title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.optionList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  border: 1px solid #ddd;
+  overflow: hidden;
+  text-align: start;
+  font-weight: normal;
+}
+.optionList:last-child {
+  border: none;
+}
+
+.option {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+.option:last-child {
+  border-bottom: none;
+}
+
+.option:hover {
+  background: #f5f5f5;
+}
+
+.selected {
+  background: #e6f7f1;
+  font-weight: 600;
+}
+
+.headerModal {
+  display: flex;
+  align-items: center;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 0.75rem;
+  background: #66bfa7;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.submitButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.closeButton {
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-self: flex-start;
+  margin-right: 4rem;
+}
+.reportLabel {
+  display: flex;
+  padding: 1rem;
+  text-align: start;
+  border-bottom: 1px solid #eee;
+  font-family: 600;
+}
+.confirmation {
+  text-align: center;
+}
+
+.confirmTitle {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.confirmMessage {
+  margin-bottom: 4rem;
+}
+
+.confirmButton {
+  width: 100%;
+  padding: 0.75rem;
+  background: #66bfa7;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}

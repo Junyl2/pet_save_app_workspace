@@ -1,3 +1,5 @@
+import MainCustomerReview from '@/app/components/pages/customer-review/MainCustomerReview';
+
 export default function CustomerReview() {
-  return <div>Customer Review</div>;
+  return <MainCustomerReview />;
 }

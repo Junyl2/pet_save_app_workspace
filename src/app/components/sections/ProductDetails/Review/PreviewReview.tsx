@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { reviewService } from '@/app/api/services/review-service/reviewService';
 import { IoStarSharp } from 'react-icons/io5';
 import { Review } from '@/app/api/types/review/review';
-import styles from './CustomerReview.module.css';
+import styles from './PreviewReview.module.css';
 import { BiChevronRight } from 'react-icons/bi';
 
 interface CustomerReviewProps {
@@ -31,7 +31,7 @@ const ReviewItem = ({ review }: { review: Review }) => {
   );
 };
 
-export const CustomerReview = ({ productId }: CustomerReviewProps) => {
+export const PreviewReview = ({ productId }: CustomerReviewProps) => {
   const router = useRouter();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);

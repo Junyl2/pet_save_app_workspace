@@ -4,10 +4,72 @@
   height: 281px;
   text-align: center;
   background-color: white;
+  overflow: hidden;
 }
 
 .image {
   border-radius: 12px;
   max-width: 100%;
   object-fit: cover;
+}
+
+/* --- Horizontal dot menu --- */
+.menuWrapper {
+  position: absolute;
+  top: 8px;
+  right: 1rem;
+}
+
+.menuBtn {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.menuBtn:active {
+  background: rgba(240, 240, 240, 0.95);
+}
+
+.dropdown {
+  position: absolute;
+  top: 38px;
+  right: 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.onReportButton {
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.onReportButton:hover {
+  background: #f5f5f5;
+}
+
+/* --- Image index indicator --- */
+.indexIndicator {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  color: rgba(0, 0, 0, 0.6);
+  background: #fff;
+  padding: 2px 10px;
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  font-size: 12px;
 }
