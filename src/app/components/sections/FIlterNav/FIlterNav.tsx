@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { FaChevronDown, FaChevronUp, FaChevronLeft } from 'react-icons/fa';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import styles from './FilterNav.module.css';
 
 type NavItem = {
@@ -32,12 +33,9 @@ const navItems: NavItem[] = [
   { id: 4, label: '유통기한', dropdown: ['최신순', '오래된순'] },
 ];
 
-type FilterNavProps = {
-  onClose: () => void;
-};
-
-export default function FilterNav({ onClose }: FilterNavProps) {
+export default function FilterNav() {
   const [openId, setOpenId] = useState<number | null>(null);
+  const router = useRouter();
 
   const toggleDropdown = (id: number) => {
     setOpenId(openId === id ? null : id);
@@ -48,7 +46,7 @@ export default function FilterNav({ onClose }: FilterNavProps) {
       <div className={styles.sideNav}>
         {/* Back button */}
         <div className={styles.header}>
-          <button className={styles.backBtn} onClick={onClose}>
+          <button className={styles.backBtn} onClick={() => router.back()}>
             <FaChevronLeft className={styles.backIcon} />
           </button>
         </div>

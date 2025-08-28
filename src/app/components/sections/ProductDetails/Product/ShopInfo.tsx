@@ -1,13 +1,16 @@
 'use client';
+
 import Image from 'next/image';
 import styles from './ShopInfo.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
+import { useRouter } from 'next/navigation';
 
 interface ShopInfoProps {
   shopName?: string;
   shopLocation?: string;
   shopImage?: string;
   productId: number;
+  sellerId?: number; // optional, default to 1
 }
 
 export const ShopInfo = ({
@@ -15,13 +18,23 @@ export const ShopInfo = ({
   shopLocation,
   shopImage,
   productId,
+  sellerId = 1,
 }: ShopInfoProps) => {
   const { favorites, toggleFavorite } = useFavorites();
   const isFavorited = favorites.includes(productId);
+  const router = useRouter();
+
+  const handleShopClick = () => {
+    router.push(`/seller-details/${sellerId}`);
+  };
 
   return (
     <div className={styles.shopHeader}>
-      <div className={styles.shopDetails}>
+      <div
+        className={styles.shopDetails}
+        onClick={handleShopClick}
+        style={{ cursor: 'pointer' }}
+      >
         {shopImage && (
           <Image
             src={shopImage}

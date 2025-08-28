@@ -11,6 +11,7 @@ import { PreviewReview } from './Review/PreviewReview';
 import { useFavorites } from '@/app/context/FavoritesContext';
 import { productService } from '@/app/api/services/product-service/productService';
 import { Product } from '@/app/api/types/products/products';
+import Loading from '../../ui/Loading/Loading';
 import styles from './ProductDetails.module.css';
 
 export default function ProductDetails() {
@@ -19,14 +20,17 @@ export default function ProductDetails() {
   const { toggleFavorite } = useFavorites();
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+    setLoading(true);
 
     productService.getById(productId).then((res) => {
       if (!isMounted) return;
       if (!res.error) setProduct(res.data);
+      setLoading(false);
     });
 
     return () => {
@@ -34,8 +38,10 @@ export default function ProductDetails() {
     };
   }, [productId]);
 
-  // Render nothing until product is ready
-  if (!product) return null;
+  if (loading) return <Loading />;
+
+  if (!product)
+    return <p className={styles.error}>상품을 불러올 수 없습니다.</p>;
 
   return (
     <section className={styles.container}>

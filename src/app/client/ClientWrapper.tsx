@@ -25,6 +25,9 @@ export default function ClientWrapper({
     '/products',
     '/customer-reviews',
     '/contact-product',
+    '/seller-details',
+    '/filter',
+    '/client/pages/homepage/location',
   ];
 
   const showBottomBar =
