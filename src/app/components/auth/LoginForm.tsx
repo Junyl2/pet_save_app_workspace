@@ -47,7 +47,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       {/* Top Image */}
       <div className={styles.imageWrapper}>
         <Image
-          src="/loading-screen.png"
+          src="/images/logo/loading-screen.png"
           alt="Pet Saves"
           height={94}
           width={144}

@@ -23,6 +23,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 관악구 신림로 123',
     shopDistance: '10km',
     shopImage: '/images/shops/clinic1.png',
+    phoneNumber: '05049763241',
   },
   {
     id: 2,
@@ -45,6 +46,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 강남구 테헤란로 45',
     shopDistance: '12km',
     shopImage: '/images/shops/clinic2.png',
+    phoneNumber: '05049763241',
   },
   {
     id: 3,
@@ -67,6 +69,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 강남구 테헤란로 45',
     shopDistance: '12km',
     shopImage: '/images/shops/clinic2.png',
+    phoneNumber: '05049763241',
   },
   {
     id: 4,
@@ -89,6 +92,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 강남구 테헤란로 45',
     shopDistance: '12km',
     shopImage: '/images/shops/clinic2.png',
+    phoneNumber: '05049763241',
   },
 
   // 고양이
@@ -113,6 +117,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 신림동 100-1',
     shopDistance: '10km',
     shopImage: '/images/shops/clinic3.png',
+    phoneNumber: '05049763241',
   },
   {
     id: 6,
@@ -135,6 +140,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 마포구 합정로 20',
     shopDistance: '8km',
     shopImage: '/images/shops/clinic4.png',
+    phoneNumber: '05049763241',
   },
 
   // 햄스터
@@ -154,6 +160,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 동작구 사당동 5-2',
     shopDistance: '5km',
     shopImage: '/images/shops/clinic5.png',
+    phoneNumber: '05049763241',
   },
   {
     id: 8,
@@ -171,6 +178,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 서초구 반포대로 30',
     shopDistance: '7km',
     shopImage: '/images/shops/clinic6.png',
+    phoneNumber: '05049763241',
   },
 
   // 새
@@ -190,6 +198,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 용산구 후암로 12',
     shopDistance: '15km',
     shopImage: '/images/shops/clinic7.png',
+    phoneNumber: '05049763241',
   },
   {
     id: 10,
@@ -207,6 +216,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 강서구 화곡로 45',
     shopDistance: '20km',
     shopImage: '/images/shops/clinic8.png',
+    phoneNumber: '05049763241',
   },
 
   // 고슴도치
@@ -226,6 +236,7 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 송파구 잠실로 10',
     shopDistance: '10km',
     shopImage: '/images/shops/clinic9.png',
+    phoneNumber: '05049763241',
   },
   {
     id: 12,
@@ -243,5 +254,6 @@ export const mockProducts: Product[] = [
     shopLocation: '서울특별시 노원구 상계로 20',
     shopDistance: '12km',
     shopImage: '/images/shops/clinic10.png',
+    phoneNumber: '05049763241',
   },
 ];

@@ -23,6 +23,8 @@ export default function ClientWrapper({
     '/client/join-membership/membership-information',
     '/client/reset-password',
     '/products',
+    '/customer-reviews',
+    '/contact-product',
   ];
 
   const showBottomBar =

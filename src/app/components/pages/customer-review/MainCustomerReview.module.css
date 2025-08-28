@@ -1,6 +1,7 @@
 .container {
+  padding-top: 71.6px;
   background-color: #f2f4f7;
   margin-left: -1rem;
   margin-right: -1rem;
-  padding-bottom: 5rem;
+  /*   padding-bottom: 5rem; */
 }

@@ -1,7 +1,8 @@
 .container {
+  padding-top: 71.6px;
   background-color: #ffffff;
   border-radius: 12px;
-  padding-bottom: 5rem;
+  padding-bottom: 1rem;
 }
 
 .sellerProfile {

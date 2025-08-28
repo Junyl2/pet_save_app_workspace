@@ -15,4 +15,5 @@ export interface Product {
   shopLocation?: string;
   shopDistance?: string;
   shopImage?: string;
+  phoneNumber?: string;
 }

@@ -6,6 +6,7 @@ import { IoCallOutline } from 'react-icons/io5';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { CiImageOn } from 'react-icons/ci';
 import { useRouter } from 'next/navigation';
+import { ContactDrawer } from '@/app/components/ui/drawer/ContactDrawer/ContactDrawer';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface ContactProductProps {
@@ -15,6 +16,7 @@ interface ContactProductProps {
 export const ContactProduct = ({ productId }: ContactProductProps) => {
   const router = useRouter();
   const product = productContactService.getProductById(productId);
+  const [showDrawer, setShowDrawer] = useState(false);
 
   const [inquiryType, setInquiryType] = useState('');
   const [content, setContent] = useState('');
@@ -100,7 +102,10 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
           </p>
         </div>
         <div className={styles.contactWrapper}>
-          <button className={styles.contactButton}>
+          <button
+            className={styles.contactButton}
+            onClick={() => setShowDrawer(true)}
+          >
             <IoCallOutline size={16} className={styles.call} />
             전화 문의
           </button>
@@ -195,6 +200,8 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
           {submitting ? '문의 중...' : '문의하기'}
         </button>
       </div>
+
+      {showDrawer && <ContactDrawer onClose={() => setShowDrawer(false)} />}
     </div>
   );
 };

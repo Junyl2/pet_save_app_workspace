@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      {
+        source: '/login',
+        destination: '/client/login',
+      },
       // Product detail
       {
         source: '/products/:id',

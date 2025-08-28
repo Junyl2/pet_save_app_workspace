@@ -5,6 +5,12 @@
   gap: 0.2rem;
   padding: 0.8rem 1rem;
   background-color: #ffffff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 1400;
 }
 
 .backButton {
@@ -41,4 +47,12 @@
 
 .iconBtn:hover {
   background: #f3f4f6;
+}
+
+@media (min-width: 1025px) {
+  .icons {
+    width: 468px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
