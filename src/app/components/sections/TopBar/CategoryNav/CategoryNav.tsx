@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
-import FilterNav from '../../FIlterNav/FIlterNav';
+import { useRouter } from 'next/navigation';
 import styles from './CategoryNav.module.css';
 
 const categories = ['강아지', '고양이', '햄스터', '새', '고슴도치'];
@@ -12,7 +12,7 @@ type CategoryNavProps = {
 
 export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
   const [active, setActive] = useState(categories[0]);
-  const [showFilter, setShowFilter] = useState(false);
+  const router = useRouter();
 
   const handleSelect = (cat: string) => {
     setActive(cat);
@@ -22,10 +22,10 @@ export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
   return (
     <div className={styles.wrapper}>
       <div className={styles.container}>
-        {/* Filter Icon */}
+        {/* Filter Icon → navigates to /filter */}
         <button
           className={styles.filter}
-          onClick={() => setShowFilter(!showFilter)}
+          onClick={() => router.push('/filter')}
         >
           <Image
             src="/images/icons/Filter.svg"
@@ -46,9 +46,6 @@ export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
           </button>
         ))}
       </div>
-
-      {/* Render FilterNav only if showFilter is true */}
-      {showFilter && <FilterNav onClose={() => setShowFilter(false)} />}
     </div>
   );
 }

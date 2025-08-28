@@ -107,11 +107,7 @@
 .confirmTitle {
   font-size: 1.2rem;
   font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-
-.confirmMessage {
-  margin-bottom: 4rem;
+  margin-bottom: 1rem;
 }
 
 .confirmButton {
@@ -122,4 +118,5 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  margin-top: 4rem;
 }

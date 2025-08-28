@@ -16,10 +16,19 @@ const nextConfig: NextConfig = {
         source: '/login',
         destination: '/client/login',
       },
+      {
+        source: '/filter',
+        destination: '/client/pages/filter',
+      },
       // Product detail
       {
         source: '/products/:id',
         destination: '/client/pages/products/:id',
+      },
+      //seller
+      {
+        source: '/seller-details/:id',
+        destination: '/client/pages/seller-details/:id',
       },
       //contact product
       {

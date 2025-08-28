@@ -57,7 +57,7 @@ export const mockProducts: Product[] = [
     discountPrice: '12,000원',
     expiration: '25.12.01까지',
     category: '강아지',
-    image: '/images/products/dog-snack.png',
+    image: '/images/products/dog-snack2.png',
     details: [
       '치즈 풍미 가득, 간식으로 적합',
       '소포장으로 신선도 유지',
