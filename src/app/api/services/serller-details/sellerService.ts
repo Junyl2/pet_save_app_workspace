@@ -16,7 +16,7 @@ const mockSeller: Seller = {
 export const sellerService = {
   getSellerDetails: (): Promise<Seller> => {
     return new Promise((resolve) => {
-      setTimeout(() => resolve(mockSeller), 300); // simulate API delay
+      setTimeout(() => resolve(mockSeller), 300);
     });
   },
 };

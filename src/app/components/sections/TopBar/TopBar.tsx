@@ -1,23 +1,24 @@
 'use client';
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { CiSearch } from 'react-icons/ci';
-import { FaChevronDown, FaHome } from 'react-icons/fa';
-import { CiClock2 } from 'react-icons/ci';
-import { FaChevronLeft } from 'react-icons/fa';
-import { toast } from 'react-hot-toast';
-
+import { CiSearch, CiClock2 } from 'react-icons/ci';
+import { FaChevronDown, FaChevronLeft } from 'react-icons/fa';
 import { IoClose } from 'react-icons/io5';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 import styles from './TopBar.module.css';
 
 type SearchHistoryItem = {
   id: number;
   term: string;
-  time: string; // formatted string
+  time: string;
 };
 
-export default function TopBar() {
+type TopBarProps = {
+  onSearch?: (term: string) => void;
+};
+
+export default function TopBar({ onSearch }: TopBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const isLoggedIn = true;
   const router = useRouter();
@@ -27,22 +28,26 @@ export default function TopBar() {
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  /** Determine storage key based on path */
+  const getStorageKey = () => {
+    if (pathname === '/shops') return 'searchHistoryShops';
+    return 'searchHistoryProducts';
+  };
+
   /** Load history from localStorage */
   useEffect(() => {
-    const stored = localStorage.getItem('searchHistory');
-    if (stored) {
-      setHistory(JSON.parse(stored));
-    }
-  }, []);
+    const stored = localStorage.getItem(getStorageKey());
+    if (stored) setHistory(JSON.parse(stored));
+    else setHistory([]);
+  }, [pathname]);
 
   /** Save search term */
   const saveHistory = (term: string) => {
     if (!term) return;
     const now = new Date();
 
-    // Convert to 12-hour format like "7.20"
     let hours = now.getHours() % 12;
-    if (hours === 0) hours = 12; // 0 becomes 12
+    if (hours === 0) hours = 12;
 
     const formatted = `${hours}.${now
       .getMinutes()
@@ -53,29 +58,38 @@ export default function TopBar() {
       { id: Date.now(), term, time: formatted },
       ...history.filter((h) => h.term !== term),
     ].slice(0, 10);
+
     setHistory(newHistory);
-    localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+    localStorage.setItem(getStorageKey(), JSON.stringify(newHistory));
   };
 
   /** Submit search */
-
   const submitSearch = useCallback(() => {
     const term = inputValue.trim();
-
     if (!term) {
       toast.error('검색어를 입력해주세요.');
       return;
     }
 
     saveHistory(term);
-    router.push(
-      `/client/pages/products/search?query=${encodeURIComponent(term)}`
-    );
+
+    if (onSearch) {
+      onSearch(term); // Filter mock data directly
+    } else {
+      // fallback navigation for other pages
+      if (pathname === '/shops') {
+        router.push(`/shops/search?query=${encodeURIComponent(term)}`);
+      } else {
+        router.push(
+          `/client/pages/products/search?query=${encodeURIComponent(term)}`
+        );
+      }
+    }
 
     setInputValue('');
     inputRef.current?.blur();
     setShowHistory(false);
-  }, [inputValue, history, router]);
+  }, [inputValue, history, pathname, router, onSearch]);
 
   /** Handle Enter safely for Korean/Japanese IME */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -102,9 +116,19 @@ export default function TopBar() {
   /** Select from history */
   const handleSelectHistory = (term: string) => {
     setInputValue(term);
-    router.push(
-      `/client/pages/products/search?query=${encodeURIComponent(term)}`
-    );
+    if (onSearch) {
+      onSearch(term);
+    } else {
+      if (pathname === '/shops') {
+        router.push(
+          `/client/pages/shops/search?query=${encodeURIComponent(term)}`
+        );
+      } else {
+        router.push(
+          `/client/pages/products/search?query=${encodeURIComponent(term)}`
+        );
+      }
+    }
     inputRef.current?.blur();
     setShowHistory(false);
   };
@@ -113,19 +137,17 @@ export default function TopBar() {
   const handleDeleteItem = (id: number) => {
     const newHistory = history.filter((h) => h.id !== id);
     setHistory(newHistory);
-    localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+    localStorage.setItem(getStorageKey(), JSON.stringify(newHistory));
   };
 
   /** Delete all */
   const handleClearAll = () => {
     setHistory([]);
-    localStorage.removeItem('searchHistory');
+    localStorage.removeItem(getStorageKey());
   };
 
   const handleFocus = () => setShowHistory(true);
-  const handleBlur = () => {
-    setTimeout(() => setShowHistory(false), 200);
-  };
+  const handleBlur = () => setTimeout(() => setShowHistory(false), 200);
 
   return (
     <header className={styles.topbar}>
@@ -161,7 +183,6 @@ export default function TopBar() {
         </div>
 
         <div className={styles.icons}>
-          {/* Show Home icon only if not on homepage */}
           {pathname !== '/client/pages/homepage' && (
             <button
               className={styles.iconBtn}
@@ -212,7 +233,11 @@ export default function TopBar() {
           <input
             ref={inputRef}
             type="search"
-            placeholder="검색어를 입력해 주세요"
+            placeholder={
+              pathname === '/shops'
+                ? '동명(읍, 면)으로 검색해주세요'
+                : '검색어를 입력해 주세요'
+            }
             className={styles.searchInput}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -225,7 +250,6 @@ export default function TopBar() {
 
         {showHistory && history.length > 0 && (
           <div className={styles.historyDropdown}>
-            {/* Header row */}
             <div className={styles.historyHeader}>
               <span className={styles.historyTitle}>최근 검색어</span>
               <button
@@ -237,7 +261,6 @@ export default function TopBar() {
               </button>
             </div>
 
-            {/* Items */}
             {history.map((item) => (
               <div key={item.id} className={styles.historyItem}>
                 <div

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { FiX } from 'react-icons/fi';
 import styles from './BaseModal.module.css';
 
 interface BaseModalProps {

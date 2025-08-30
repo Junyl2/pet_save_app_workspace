@@ -1,9 +1,9 @@
 .container {
   padding-top: 71.59px;
   background-color: #f2f4f7;
-  min-height: 100vh;
+  height: 100%;
   z-index: 1500;
   margin-left: -1rem;
   margin-right: -1rem;
-  padding-bottom: 4rem;
+  margin-bottom: 75.59px;
 }

@@ -1,0 +1,90 @@
+.container {
+  padding: 1rem 0rem;
+  box-sizing: border-box;
+  background-color: #f2f4f7;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  margin-bottom: 68.09px;
+}
+
+.searchWrapper {
+  margin-bottom: 1rem;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+  transition: border 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: #4a90e2;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.shopCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.phoneButton {
+  background-color: transparent !important;
+  border: none !important;
+  cursor: pointer;
+}
+
+.phone {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  color: #66bfa7;
+}
+
+.shopCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.shopImage {
+  background-color: gray;
+  border-radius: 5px;
+  height: 95px;
+  width: 95px;
+  object-fit: cover;
+  margin-right: 1rem;
+}
+
+.shopInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.shopName {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: #222;
+}
+
+.shopLocation,
+.shopDistance {
+  font-size: 0.875rem;
+  color: #666;
+  margin: 2px 0 0 0;
+}

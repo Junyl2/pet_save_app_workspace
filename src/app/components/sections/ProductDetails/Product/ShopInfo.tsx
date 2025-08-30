@@ -10,7 +10,7 @@ interface ShopInfoProps {
   shopLocation?: string;
   shopImage?: string;
   productId: number;
-  sellerId?: number; // optional, default to 1
+  sellerId?: number;
 }
 
 export const ShopInfo = ({
