@@ -1,19 +1,18 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import SearchProductGrid from '@/app/components/sections/SearchProductGrid/SearchProductGrid';
 import TopBar from '@/app/components/sections/TopBar/TopBar';
 import styles from './styles.module.css';
-export default function SearchPage() {
-  const [searchTerm, setSearchTerm] = useState('');
 
+export default function SearchPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+
   const query = searchParams.get('query') || '';
 
-  // Called when user submits search in TopBar
   const handleSearch = (term: string) => {
-    setSearchTerm(term);
+    router.push(`/products/search?query=${encodeURIComponent(term)}`);
   };
 
   return (
