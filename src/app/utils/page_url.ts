@@ -15,5 +15,5 @@ export const PAGE_URLS = {
   //page to be added
   MYPAGE: '/client/mypage',
   CONTACT: '/client/contact',
-  SHOPS: '/client/shops',
+  SHOPS: '/shops',
 };

@@ -22,7 +22,7 @@ export const mockProducts: Product[] = [
     shopName: 'ㅇㅇ동물병원',
     shopLocation: '서울특별시 관악구 신림로 123',
     shopDistance: '10km',
-    shopImage: '/images/shops/clinic1.png',
+    shopImage: '/images/shops/shop1.png',
     phoneNumber: '05049763241',
   },
   {
@@ -45,7 +45,7 @@ export const mockProducts: Product[] = [
     shopName: '강남동물병원',
     shopLocation: '서울특별시 강남구 테헤란로 45',
     shopDistance: '12km',
-    shopImage: '/images/shops/clinic2.png',
+    shopImage: '/images/shops/shop2.png',
     phoneNumber: '05049763241',
   },
   {
@@ -68,7 +68,7 @@ export const mockProducts: Product[] = [
     shopName: '강남동물병원',
     shopLocation: '서울특별시 강남구 테헤란로 45',
     shopDistance: '12km',
-    shopImage: '/images/shops/clinic2.png',
+    shopImage: '/images/shops/shop3.png',
     phoneNumber: '05049763241',
   },
   {
@@ -91,7 +91,7 @@ export const mockProducts: Product[] = [
     shopName: '강남동물병원',
     shopLocation: '서울특별시 강남구 테헤란로 45',
     shopDistance: '12km',
-    shopImage: '/images/shops/clinic2.png',
+    shopImage: '/images/shops/shop4.png',
     phoneNumber: '05049763241',
   },
 
@@ -116,7 +116,7 @@ export const mockProducts: Product[] = [
     shopName: '신림동물병원',
     shopLocation: '서울특별시 신림동 100-1',
     shopDistance: '10km',
-    shopImage: '/images/shops/clinic3.png',
+    shopImage: '/images/shops/shop5.png',
     phoneNumber: '05049763241',
   },
   {
@@ -139,7 +139,7 @@ export const mockProducts: Product[] = [
     shopName: '마포동물병원',
     shopLocation: '서울특별시 마포구 합정로 20',
     shopDistance: '8km',
-    shopImage: '/images/shops/clinic4.png',
+    shopImage: '/images/shops/shop4.png',
     phoneNumber: '05049763241',
   },
 
@@ -159,7 +159,7 @@ export const mockProducts: Product[] = [
     shopName: '동작동물병원',
     shopLocation: '서울특별시 동작구 사당동 5-2',
     shopDistance: '5km',
-    shopImage: '/images/shops/clinic5.png',
+    shopImage: '/images/shops/shop5.png',
     phoneNumber: '05049763241',
   },
   {

@@ -6,7 +6,7 @@ import styles from './ProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
 import { Product } from '@/app/api/types/products/products';
 import { productService } from '@/app/api/services/product-service/productService';
-import ProductSkeleton from './ProductSkeleton';
+import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
 
 interface ProductGridProps {
   products?: Product[]; // optional pre-fetched products

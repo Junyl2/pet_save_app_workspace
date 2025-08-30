@@ -11,7 +11,7 @@ import { toast } from 'react-hot-toast';
 import { Product } from '@/app/api/types/products/products';
 import { productService } from '@/app/api/services/product-service/productService';
 import SearchProductSkeleton from './SearchProductSkeleton';
-
+import SearchState from '../../ui/SearchResult/SearchState';
 export default function SearchProductGrid({
   searchTerm = '',
   onSearchSubmit,
@@ -24,16 +24,13 @@ export default function SearchProductGrid({
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [selectedSort, setSelectedSort] = useState('정확도순');
-
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
   const [searchSubmitted, setSearchSubmitted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Full catalog for wrong-term detection
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [catalogReady, setCatalogReady] = useState(false);
 
@@ -61,7 +58,6 @@ export default function SearchProductGrid({
   // Fetch products based on search term
   useEffect(() => {
     let isMounted = true;
-
     const fetchProducts = async () => {
       setLoading(true);
       setProducts([]);
@@ -89,7 +85,6 @@ export default function SearchProductGrid({
         setLoading(false);
       }
     };
-
     fetchProducts();
     return () => {
       isMounted = false;
@@ -114,7 +109,7 @@ export default function SearchProductGrid({
     return products;
   }, [products, selectedSort]);
 
-  // UI handlers
+  // Handlers
   const handleSortToggle = () => setDropdownOpen(!isDropdownOpen);
   const handleSelectSort = (option: string) => {
     setSelectedSort(option);
@@ -137,75 +132,58 @@ export default function SearchProductGrid({
     onSearchSubmit?.();
   };
 
-  // Empty states
+  // States
   const isEmptySearch = !searchTerm.trim() && searchSubmitted;
   const noMatches = !!searchTerm.trim() && filteredProducts.length === 0;
 
-  // Wrong-term detection (only after catalog is ready)
   const normalizedTerm = searchTerm.trim().toLowerCase();
   const matchesAnyCatalog = useMemo(() => {
     if (!normalizedTerm) return false;
     if (!catalogReady || allProducts.length === 0) return false;
-
-    // 🔑 strip numbers/symbols so "강아지123" still matches "강아지"
     const cleanTerm = normalizedTerm.replace(/[^가-힣a-zA-Z]/g, '');
-
     return allProducts.some((p) =>
       (p.name || '').toLowerCase().includes(cleanTerm)
     );
   }, [allProducts, catalogReady, normalizedTerm]);
 
   // ---- render ----
-  if (loading) {
+  if (loading) return <SearchProductSkeleton count={6} />;
+
+  if (error)
     return (
-      <section className={styles.mainContainer}>
-        <SearchProductSkeleton count={6} />
-      </section>
+      <SearchState
+        imageSrc="/images/products/noresult.png"
+        altText="검색 에러"
+        message={`에러: ${error}`}
+      />
     );
-  }
 
-  if (error) return <p className={styles.emptyText}>에러: {error}</p>;
-
-  // Empty input submitted
-  if (isEmptySearch) {
+  if (isEmptySearch)
     return (
-      <div className={styles.emptyContainer}>
-        <div>
-          <Image
-            src="/images/products/noresult.png"
-            alt="검색어 입력 필요"
-            height={100}
-            width={100}
-            className="object-contain"
-          />
-          <p className={styles.emptyText}>검색어를 입력해주세요.</p>
-        </div>
-      </div>
+      <SearchState
+        imageSrc="/images/products/noresult.png"
+        altText="검색어 입력 필요"
+        message="검색어를 입력해주세요."
+      />
     );
-  }
 
-  // Unified no-results branch
   if (noMatches) {
     const isWrongTerm =
       catalogReady && allProducts.length > 0 && !matchesAnyCatalog;
-
     return (
-      <div className={styles.emptyContainer}>
-        <div>
-          <Image
-            src={
-              isWrongTerm
-                ? '/images/products/noresult-wrong-term.svg'
-                : '/images/products/noresult.png'
-            }
-            alt="검색된 상품 없음"
-            height={100}
-            width={100}
-            className="object-contain"
-          />
-          <p className={styles.emptyText}>검색된 상품이 없습니다.</p>
-        </div>
-      </div>
+      <SearchState
+        imageSrc={
+          isWrongTerm
+            ? '/images/products/noresult-wrong-term.svg'
+            : '/images/products/noresult.png'
+        }
+        altText="검색된 상품 없음"
+        message={
+          isWrongTerm
+            ? '검색어가 올바르지 않습니다.'
+            : '검색된 상품이 없습니다.'
+        }
+      />
     );
   }
 
