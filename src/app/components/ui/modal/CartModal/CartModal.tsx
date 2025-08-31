@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { BaseModal } from '../BaseModal';
 import styles from './CartModal.module.css';
 import { FiPlus, FiMinus } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 interface CartModalProps {
   open: boolean;
   onClose: () => void;
@@ -24,8 +25,27 @@ export const CartModal = ({
 
   const totalPrice = productPrice * quantity;
 
+  // Reset quantity whenever modal closes
+  const handleClose = () => {
+    setQuantity(1);
+    onClose();
+  };
+
+  const handleAddToCart = () => {
+    toast.success(`${productName} 장바구니에 담겼습니다`, {
+      style: {
+        background: '#66bfa7',
+      },
+      iconTheme: {
+        primary: '#66bfa7',
+        secondary: '#fff',
+      },
+    });
+    handleClose(); // reset + close
+  };
+
   return (
-    <BaseModal open={open} onClose={onClose} title={productName}>
+    <BaseModal open={open} onClose={handleClose} title={''}>
       <div className={styles.container}>
         <div className={styles.cartWrapper}>
           <div className={styles.quantitySelector}>
@@ -48,19 +68,12 @@ export const CartModal = ({
             <div>
               <p>
                 <span className={styles.priceSpan}>총 금액</span>
-                <strong>{totalPrice.toLocaleString()}원</strong>
+                <strong>{totalPrice.toLocaleString('ko-KR')}원</strong>
               </p>
             </div>
           </div>
         </div>
-
-        <button
-          className={styles.addBtn}
-          onClick={() => {
-            alert('장바구니 담기 완료');
-            onClose();
-          }}
-        >
+        <button className={styles.addBtn} onClick={handleAddToCart}>
           장바구니 담기
         </button>
       </div>

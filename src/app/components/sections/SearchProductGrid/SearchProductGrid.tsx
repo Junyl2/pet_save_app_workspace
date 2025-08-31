@@ -12,6 +12,7 @@ import { Product } from '@/app/api/types/products/products';
 import { productService } from '@/app/api/services/product-service/productService';
 import SearchProductSkeleton from './SearchProductSkeleton';
 import SearchState from '../../ui/SearchResult/SearchState';
+
 export default function SearchProductGrid({
   searchTerm = '',
   onSearchSubmit,
@@ -95,14 +96,8 @@ export default function SearchProductGrid({
   const filteredProducts = useMemo(() => {
     if (selectedSort === '낮은 가격순') {
       return [...products].sort((a, b) => {
-        const priceA = Number(
-          a.discountPrice?.replace(/,/g, '').replace('원', '') ||
-            a.price.replace(/,/g, '').replace('원', '')
-        );
-        const priceB = Number(
-          b.discountPrice?.replace(/,/g, '').replace('원', '') ||
-            b.price.replace(/,/g, '').replace('원', '')
-        );
+        const priceA = a.discountPrice ?? a.price;
+        const priceB = b.discountPrice ?? b.price;
         return priceA - priceB;
       });
     }
@@ -259,15 +254,18 @@ export default function SearchProductGrid({
               <p className={styles.price}>
                 {product.discountPrice ? (
                   <>
-                    <span className={styles.original}>{product.price}</span>
+                    <span className={styles.original}>
+                      {product.price.toLocaleString('ko-KR')}원
+                    </span>
                     <span className={styles.discount}>
-                      {product.discountPrice}
+                      {product.discountPrice.toLocaleString('ko-KR')}원
                     </span>
                   </>
                 ) : (
-                  product.price
+                  `${product.price.toLocaleString('ko-KR')}원`
                 )}
               </p>
+
               <p className={styles.info}>
                 {product.expiration} <br />
                 {product.location} <br />
@@ -283,11 +281,7 @@ export default function SearchProductGrid({
           open={cartOpen}
           onClose={() => setCartOpen(false)}
           productName={selectedProduct.name}
-          productPrice={Number(
-            (selectedProduct.discountPrice || selectedProduct.price)
-              .replace(/,/g, '')
-              .replace('원', '')
-          )}
+          productPrice={selectedProduct.discountPrice ?? selectedProduct.price}
         />
       )}
     </section>

@@ -17,22 +17,16 @@ export default function ClientWrapper({
   const [isDesktop, setIsDesktop] = useState(false);
   const MIN_LOADING_TIME = 3000;
 
-  const excludedPages = [
-    '/client/find-id',
-    '/client/join-membership',
-    '/client/join-membership/membership-information',
-    '/client/reset-password',
-    '/products',
-    '/customer-reviews',
-    '/contact-product',
-    '/seller-details',
-    '/filter',
-    '/client/pages/homepage/location',
+  const includedPages = [
+    '/client/pages/homepage',
+    '/shops',
+    '/contact-us',
+    '/my-page',
   ];
 
   const showBottomBar =
     BottomBar &&
-    !excludedPages.some(
+    includedPages.some(
       (page) => pathname === page || pathname.startsWith(page + '/')
     );
 
@@ -106,7 +100,7 @@ export default function ClientWrapper({
       ) : (
         <main className="app-container">
           <div className="app-content">{children}</div>
-          {/* BottomBar appears only if not excluded page */}
+          {/* BottomBar appears only if included page */}
           {showBottomBar && (
             <div className="bottom-bar-container">{BottomBar}</div>
           )}

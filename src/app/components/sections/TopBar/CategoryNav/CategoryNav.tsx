@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import styles from './CategoryNav.module.css';
@@ -14,9 +14,22 @@ export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
   const [active, setActive] = useState(categories[0]);
   const router = useRouter();
 
-  const handleSelect = (cat: string) => {
+  // Properly typed refs array
+  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const handleSelect = (cat: string, index: number) => {
     setActive(cat);
-    onSelectCategory(cat); // notify parent
+    onSelectCategory(cat);
+
+    // Scroll the clicked button into view
+    const button = buttonRefs.current[index];
+    if (button) {
+      button.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest',
+      });
+    }
   };
 
   return (
@@ -24,6 +37,7 @@ export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
       <div className={styles.container}>
         {/* Filter Icon → navigates to /filter */}
         <button
+          type="button"
           className={styles.filter}
           onClick={() => router.push('/filter')}
         >
@@ -36,10 +50,14 @@ export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
         </button>
 
         {/* Category buttons */}
-        {categories.map((cat) => (
+        {categories.map((cat, idx) => (
           <button
             key={cat}
-            onClick={() => handleSelect(cat)}
+            type="button"
+            ref={(el) => {
+              buttonRefs.current[idx] = el;
+            }}
+            onClick={() => handleSelect(cat, idx)}
             className={`${styles.item} ${active === cat ? styles.active : ''}`}
           >
             {cat}

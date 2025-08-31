@@ -50,11 +50,21 @@ const nextConfig: NextConfig = {
         source: '/',
         destination: '/client/pages/homepage',
       },
+      //contact-us
+      {
+        source: '/contact-us',
+        destination: '/client/pages/contact-us',
+      },
+      {
+        source: '/inquiries/delete/:id',
+        destination: '/client/pages/contact-us/delete/:id',
+      },
       // Login
       {
         source: '/login',
         destination: '/client/pages/login',
       },
+
       // Join Membership
       {
         source: '/join-membership',

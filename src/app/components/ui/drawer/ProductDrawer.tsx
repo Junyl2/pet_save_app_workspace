@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FiPlus, FiMinus, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import styles from './ProductDrawer.module.css';
 import { cartService } from '@/app/api/services/cart-service/cartService';
+import toast from 'react-hot-toast';
 
 interface ProductDrawerProps {
   show: boolean;
@@ -58,6 +59,17 @@ export const ProductDrawer = ({
 
     if (!res.error && res.data?.success) {
       onAddToCart?.(quantity, product.name);
+
+      toast.success(`${product.name} 장바구니에 담겼습니다`, {
+        style: {
+          background: '#66bfa7',
+        },
+        iconTheme: {
+          primary: '#66bfa7',
+          secondary: '#fff',
+        },
+      });
+
       onClose();
     } else {
       alert('장바구니 추가 실패: ' + res.error);

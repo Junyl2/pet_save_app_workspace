@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { shopService } from '@/app/api/services/shops/shopService';
@@ -13,7 +13,8 @@ import SearchState from '../../ui/SearchResult/SearchState';
 import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
 
 export default function ShopList() {
-  const [shops] = useState<Shop[]>(shopService.getAll());
+  const [shops, setShops] = useState<Shop[] | null>(null);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedShopPhone, setSelectedShopPhone] = useState<string | null>(
     null
@@ -22,7 +23,20 @@ export default function ShopList() {
 
   const router = useRouter();
 
+  useEffect(() => {
+    const fetchShops = async () => {
+      setLoading(true);
+      // Simulate async fetch (if shopService.getAll is sync, wrap it in Promise.resolve)
+      const data = await Promise.resolve(shopService.getAll());
+      setShops(data);
+      setLoading(false);
+    };
+
+    fetchShops();
+  }, []);
+
   const filteredShops = useMemo(() => {
+    if (!shops) return [];
     const term = searchTerm.trim().toLowerCase();
     if (!term) return shops;
 
@@ -50,11 +64,21 @@ export default function ShopList() {
   const isEmptySearch = !searchTerm.trim() && searchSubmitted;
   const noMatches = !!searchTerm.trim() && filteredShops.length === 0;
 
-  if (!shops) return <ProductSkeleton count={5} />;
+  if (loading) return <ProductSkeleton count={5} />;
 
   return (
     <>
       <TopBar onSearch={handleSearch} />
+      <button className={styles.currentBtn}>
+        <Image
+          src="/images/icons/mage_location.png"
+          alt="Location Icon"
+          height={16}
+          width={16}
+          className="object-contain"
+        />
+        현재위치로 찾기
+      </button>
 
       <div className={styles.container}>
         {isEmptySearch ? (

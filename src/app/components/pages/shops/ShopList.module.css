@@ -21,6 +21,26 @@
   transition: border 0.2s ease;
 }
 
+/* Current Location Button */
+.currentBtn {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #fff;
+  color: #66bfa7;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: start;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+.currentBtn img {
+  margin-right: 10px;
+}
+
 .searchInput:focus {
   border-color: #4a90e2;
 }
