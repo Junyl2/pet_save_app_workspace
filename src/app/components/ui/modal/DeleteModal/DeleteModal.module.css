@@ -1,0 +1,28 @@
+.submitButton {
+  width: 100%;
+  padding: 1rem;
+  background: #66bfa7;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-weight: 0.975rem;
+}
+.cancelButton {
+  width: 100%;
+  padding: 1rem;
+  background: #fff;
+  color: #66bfa7;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid #66bfa7;
+  font-weight: bold;
+  font-weight: 0.975rem;
+}
+.buttons {
+  margin-top: 4rem;
+  display: flex;
+  gap: 1rem;
+}

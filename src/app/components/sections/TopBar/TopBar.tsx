@@ -150,7 +150,9 @@ export default function TopBar({ onSearch }: TopBarProps) {
   const handleBlur = () => setTimeout(() => setShowHistory(false), 200);
 
   return (
-    <header className={styles.topbar}>
+    <header
+      className={pathname === '/shops' ? styles.shopTopBar : styles.topbar}
+    >
       <div className={styles.inner}>
         <div className={styles.logoWrapper}>
           {pathname === '/client/pages/homepage' ? (
@@ -173,7 +175,15 @@ export default function TopBar({ onSearch }: TopBarProps) {
             )
           ) : (
             <button
-              onClick={() => router.back()}
+              onClick={() => {
+                if (pathname === '/products/search') {
+                  router.push('/client/pages/homepage');
+                } else if (pathname === '/shops') {
+                  router.push('/client/pages/homepage');
+                } else {
+                  router.back();
+                }
+              }}
               className={styles.backButton}
               aria-label="뒤로 가기"
             >
@@ -249,7 +259,13 @@ export default function TopBar({ onSearch }: TopBarProps) {
         </form>
 
         {showHistory && history.length > 0 && (
-          <div className={styles.historyDropdown}>
+          <div
+            className={
+              pathname === '/shops'
+                ? styles.shopHistoryDropdown
+                : styles.historyDropdown
+            }
+          >
             <div className={styles.historyHeader}>
               <span className={styles.historyTitle}>최근 검색어</span>
               <button

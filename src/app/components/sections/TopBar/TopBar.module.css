@@ -6,6 +6,14 @@
   padding-bottom: 0.5rem;
 }
 
+.shopTopBar {
+  background: #fff;
+  border-bottom: none;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding-bottom: 0.5rem;
+}
+
 .inner {
   display: flex;
   align-items: center;
@@ -107,7 +115,21 @@
   left: 0;
   right: 0;
   background: #ffffff;
-  border-radius: 8px;
+  overflow-y: auto;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  animation: fadeSlideDown 0.15s ease-out;
+  height: 100vh;
+}
+.shopHistoryDropdown {
+  position: absolute;
+  top: 185%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
   overflow-y: auto;
   z-index: 1500;
   display: flex;

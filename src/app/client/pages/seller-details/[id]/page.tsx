@@ -108,7 +108,9 @@ export default function SellerDetailsPage() {
             (p) => p.category === selectedCategory
           )}
           onProductClick={(product) => router.push(`/products/${product.id}`)}
-          onAddToCart={(product) => alert(`Added ${product.name} to cart`)}
+          /*  onAddToCart={(product) =>
+            toast.success(`Added ${product.name} to cart`)
+          } */
         />
       </div>
     </>

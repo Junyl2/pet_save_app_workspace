@@ -2,6 +2,8 @@
 export const PAGE_URLS = {
   // Client pages
   HOME: '/client/pages/homepage',
+  CONTACT: '/contact-us',
+  SHOPS: '/shops',
   JOIN_MEMBERSHIP: '/client/join-membership',
   RESET_PASSWORD: '/client/reset-password',
   FIND_ID: '/client/find-id',
@@ -14,6 +16,4 @@ export const PAGE_URLS = {
 
   //page to be added
   MYPAGE: '/client/mypage',
-  CONTACT: '/client/contact',
-  SHOPS: '/shops',
 };

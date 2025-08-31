@@ -1,4 +1,4 @@
-import FindIdForm from '@/app/components/pages/find-id/FindIdForm';
+import FindIdForm from '@/app/components/pages/auth/find-id/FindIdForm';
 export default function FindIdPage() {
   return <FindIdForm />;
 }

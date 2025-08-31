@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { FaChevronLeft } from 'react-icons/fa';
 
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
-import AuthenticationComplete from '@/app/components/pages/find-id/AuthenticationComplete';
+import AuthenticationComplete from '@/app/components/pages/auth/find-id/AuthenticationComplete';
 import styles from './FindIdForm.module.css';
 
 export default function FindIdForm() {
@@ -21,7 +21,6 @@ export default function FindIdForm() {
   const [serverCode, setServerCode] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
-
 
   /** Validation */
   const validate = () => {
