@@ -23,6 +23,61 @@
   align-items: center;
 }
 
+/* Dropdown styles */
+.dropdownContainer {
+  background: #fff;
+  padding: 1rem 1rem 0rem 1rem;
+  margin-top: 71.59px;
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+.dropdownToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.4);
+  transition: background 0.2s ease;
+  margin: 0;
+}
+
+.dropdownToggle.open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.dropdownToggle:hover {
+  background-color: #f9fafb;
+}
+
+.dropdownLabel {
+  flex: 1;
+  text-align: left;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.dropdownArrow {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.dropdownMenu {
+  margin-top: 0;
+  width: 100%;
+  background: #ffffff;
+  list-style: none;
+  padding: 0;
+}
+
 .statusSkeleton,
 .dateSkeleton,
 .hospitalSkeleton,

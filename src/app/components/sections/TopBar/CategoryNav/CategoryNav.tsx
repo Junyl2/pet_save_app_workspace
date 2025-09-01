@@ -1,18 +1,20 @@
 'use client';
 import { useState, useRef } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import styles from './CategoryNav.module.css';
 
 const categories = ['강아지', '고양이', '햄스터', '새', '고슴도치'];
 
 type CategoryNavProps = {
+  categories: string[];
   onSelectCategory: (category: string) => void;
 };
 
 export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
   const [active, setActive] = useState(categories[0]);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Properly typed refs array
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -32,9 +34,13 @@ export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
     }
   };
 
+  const isSellerDetails = pathname.startsWith('/seller-details');
+
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.container}>
+    <div className={isSellerDetails ? styles.sellerNav : styles.wrapper}>
+      <div
+        className={isSellerDetails ? styles.sellerContainer : styles.container}
+      >
         {/* Filter Icon → navigates to /filter */}
         <button
           type="button"

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { FaChevronLeft } from 'react-icons/fa';
 import styles from './ProductHeader.module.css';
 import { useRouter, usePathname } from 'next/navigation';
+import { TopIcons } from '@/app/components/ui/TopIcons/TopIcons';
 
 export const ProductHeader = () => {
   const router = useRouter();
@@ -23,45 +24,16 @@ export const ProductHeader = () => {
   };
 
   return (
-    <div className={styles.icons}>
-      {/* Back Button */}
-      <button className={styles.backButton} onClick={handleBack}>
-        <FaChevronLeft className={styles.backIcon} />
-      </button>
-
-      {/* Top Icons */}
-      <div className={styles.topIcons}>
-        <button
-          className={styles.iconBtn}
-          onClick={() => router.push('/client/pages/homepage')}
-          aria-label="홈으로 이동"
-        >
-          <Image
-            src="/images/icons/bottom-bar/home-active.png"
-            alt="Home"
-            width={27}
-            height={30}
-          />
+    <>
+      <div className={styles.icons}>
+        {/* Back Button */}
+        <button className={styles.backButton} onClick={handleBack}>
+          <FaChevronLeft className={styles.backIcon} />
         </button>
 
-        <button className={styles.iconBtn}>
-          <Image
-            src="/images/icons/Bell.svg"
-            alt="Notification"
-            width={27}
-            height={30}
-          />
-        </button>
-
-        <button className={styles.iconBtn}>
-          <Image
-            src="/images/icons/Cart.png"
-            alt="Cart"
-            width={27}
-            height={30}
-          />
-        </button>
+        {/* Top Icons */}
+        <TopIcons />
       </div>
-    </div>
+    </>
   );
 };

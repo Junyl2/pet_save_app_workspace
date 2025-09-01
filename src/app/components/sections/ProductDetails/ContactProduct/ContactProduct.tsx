@@ -8,6 +8,7 @@ import { CiImageOn } from 'react-icons/ci';
 import { useRouter } from 'next/navigation';
 import { ContactDrawer } from '@/app/components/ui/drawer/ContactDrawer/ContactDrawer';
 import toast, { Toaster } from 'react-hot-toast';
+import Image from 'next/image';
 
 interface ContactProductProps {
   productId: number;
@@ -90,10 +91,12 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
 
       {/* Seller Profile */}
       <div className={styles.sellerProfile}>
-        <img
-          src={product.shopImage}
-          alt={product.shopName}
+        <Image
+          src={product.shopImage || '/fallback-shop.png'}
+          alt={product.shopName || '판매자'}
           className={styles.shopImage}
+          width={50}
+          height={50}
         />
         <div className={styles.shopInfo}>
           <h3>{product.shopName}</h3>
@@ -114,10 +117,12 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
 
       {/* Product Info */}
       <div className={styles.productInfoRow}>
-        <img
+        <Image
           src={product.image}
           alt={product.name}
           className={styles.productThumbnail}
+          width={80}
+          height={80}
         />
         <div className={styles.productDetailsColumn}>
           <p className={styles.productName}>{product.name}</p>

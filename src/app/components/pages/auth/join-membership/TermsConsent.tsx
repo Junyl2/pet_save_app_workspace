@@ -64,7 +64,7 @@ export default function TermsConsent() {
 
   const isAnyChecked = Object.entries(checked)
     .filter(([key]) => key !== 'all')
-    .some(([_, value]) => value);
+    .some(([, value]) => value);
 
   const handleSubmit = async () => {
     const payload: TermsConsentPayload = {

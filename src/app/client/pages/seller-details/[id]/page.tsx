@@ -15,6 +15,7 @@ import { IoCallOutline } from 'react-icons/io5';
 import { FaStar } from 'react-icons/fa6';
 import { BsBoxSeam } from 'react-icons/bs';
 import Loading from '@/app/components/ui/Loading/Loading';
+import Image from 'next/image';
 
 export default function SellerDetailsPage() {
   const [seller, setSeller] = useState<Seller | null>(null);
@@ -46,10 +47,12 @@ export default function SellerDetailsPage() {
 
           {profileImage && (
             <div className={styles.profileWrapper}>
-              <img
+              <Image
                 src={profileImage}
                 alt={seller.name}
                 className={styles.profileImage}
+                height={70}
+                width={70}
               />
               <h1 className={styles.sellerName}>{seller.name}</h1>
             </div>
@@ -99,18 +102,16 @@ export default function SellerDetailsPage() {
 
         <div className={styles.categoryWrapper}>
           <h2 className={styles.categoryLabel}>이 스토의 상품 보기</h2>
-          <CategoryNav onSelectCategory={setSelectedCategory} />
+          <CategoryNav
+            categories={categories}
+            onSelectCategory={setSelectedCategory}
+          />
         </div>
 
         {/* Reusable ProductGrid filtered by selectedCategory */}
         <ProductGrid
-          products={seller.products.filter(
-            (p) => p.category === selectedCategory
-          )}
+          category={selectedCategory}
           onProductClick={(product) => router.push(`/products/${product.id}`)}
-          /*  onAddToCart={(product) =>
-            toast.success(`Added ${product.name} to cart`)
-          } */
         />
       </div>
     </>

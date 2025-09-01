@@ -1,5 +1,5 @@
 'use client';
-import { use, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
@@ -38,8 +38,12 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
       console.log('Login success:', data);
       if (onSuccess) onSuccess();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('로그인 중 알 수 없는 오류가 발생했습니다.');
+      }
     } finally {
       setLoading(false);
     }
@@ -56,7 +60,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         >
           <FaChevronLeft className={styles.arrowLeft} />
         </button>
-        <span className={styles.home}>이전 페이지로</span>
+        <span className={styles.home}>이전 페이지</span>
       </div>
 
       <div className={styles.loginPage}>

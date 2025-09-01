@@ -50,6 +50,11 @@ const nextConfig: NextConfig = {
         source: '/',
         destination: '/client/pages/homepage',
       },
+      //shopping cart
+      {
+        source: '/shopping-cart',
+        destination: '/client/pages/shopping-cart',
+      },
       //contact-us
       {
         source: '/contact-us',

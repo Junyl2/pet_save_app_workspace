@@ -98,7 +98,10 @@ export default function LocationPage() {
     <div className={styles.container}>
       {/* Back button */}
       <div className={styles.header}>
-        <button className={styles.backBtn} onClick={() => router.back()}>
+        <button
+          className={styles.backBtn}
+          onClick={() => router.push('/client/pages/homepage')}
+        >
           <FaChevronLeft className={styles.backIcon} />
         </button>
       </div>

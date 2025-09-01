@@ -1,6 +1,7 @@
 'use client';
 import styles from './ContactInboxSkeleton.module.css';
-import TopBar from '@/app/components/sections/TopBar/TopBar';
+import { FaChevronDown } from 'react-icons/fa';
+import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 
 interface SkeletonProps {
   count?: number;
@@ -9,7 +10,15 @@ interface SkeletonProps {
 export default function ContactInboxSkeleton({ count = 6 }: SkeletonProps) {
   return (
     <>
-      <TopBar />
+      <ProductHeader />
+      {/* Dropdown container */}
+      <div className={styles.dropdownContainer}>
+        <button className={styles.dropdownToggle}>
+          <span className={styles.dropdownLabel}> 1개월</span>
+
+          <FaChevronDown className={styles.dropdownArrow} />
+        </button>
+      </div>
       <div className={styles.container}>
         {Array.from({ length: count }).map((_, idx) => (
           <div key={idx} className={styles.card}>

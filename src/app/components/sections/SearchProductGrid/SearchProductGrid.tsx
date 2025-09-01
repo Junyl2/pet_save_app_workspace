@@ -5,9 +5,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import styles from './SearchProductGrid.module.css';
-import { useFavorites } from '@/app/context/FavoritesContext';
+/* import { useFavorites } from '@/app/context/FavoritesContext'; */
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
-import { toast } from 'react-hot-toast';
 import { Product } from '@/app/api/types/products/products';
 import { productService } from '@/app/api/services/product-service/productService';
 import SearchProductSkeleton from './SearchProductSkeleton';
@@ -15,19 +14,19 @@ import SearchState from '../../ui/SearchResult/SearchState';
 
 export default function SearchProductGrid({
   searchTerm = '',
-  onSearchSubmit,
-}: {
+}: /*  onSearchSubmit, */
+{
   searchTerm?: string;
   onSearchSubmit?: () => void;
 }) {
-  const { favorites } = useFavorites();
+  /*   const { favorites } = useFavorites(); */
   const router = useRouter();
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [selectedSort, setSelectedSort] = useState('정확도순');
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [searchSubmitted, setSearchSubmitted] = useState(false);
+  /*   const [searchSubmitted, setSearchSubmitted] = useState(false); */
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,9 +76,14 @@ export default function SearchProductGrid({
         } else {
           setProducts(res?.data || []);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!isMounted) return;
-        setError(err?.message || '알 수 없는 오류가 발생했습니다.');
+
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('알 수 없는 오류가 발생했습니다.');
+        }
         setProducts([]);
       } finally {
         if (!isMounted) return;
@@ -118,17 +122,18 @@ export default function SearchProductGrid({
   const handleProductClick = (product: Product) => {
     router.push(`/products/${product.id}`);
   };
-  const handleSearchSubmit = () => {
+
+  /* const handleSearchSubmit = () => {
     setSearchSubmitted(true);
     if (!searchTerm.trim()) {
       toast.error('검색어를 입력해주세요.');
       return;
     }
     onSearchSubmit?.();
-  };
+  }; */
 
   // States
-  const isEmptySearch = !searchTerm.trim() && searchSubmitted;
+  const isEmptySearch = !searchTerm.trim(); /* && searchSubmitted; */
   const noMatches = !!searchTerm.trim() && filteredProducts.length === 0;
 
   const normalizedTerm = searchTerm.trim().toLowerCase();
@@ -183,107 +188,115 @@ export default function SearchProductGrid({
   }
 
   return (
-    <section className={styles.mainContainer}>
-      {filteredProducts.length > 0 && (
-        <div className={styles.filterBar}>
-          <span className={styles.totalCount}>
-            총 상품수 {filteredProducts.length}개
-          </span>
-          <div className={styles.sortDropdown}>
-            <button className={styles.sortBtn} onClick={handleSortToggle}>
-              {selectedSort}{' '}
-              {isDropdownOpen ? <FaChevronUp /> : <FaChevronDown />}
-            </button>
-            {isDropdownOpen && (
-              <div className={styles.dropdownContent}>
-                {[
-                  '정확도순',
-                  '판매 인기순',
-                  '최신 등록순',
-                  '낮은 가격순',
-                  '높은 가격순',
-                  '높은 할인율',
-                ].map((option) => (
-                  <button key={option} onClick={() => handleSelectSort(option)}>
-                    {option}
+    <>
+      {/*   <div className={styles.divider}></div> */}
+      <section className={styles.mainContainer}>
+        {filteredProducts.length > 0 && (
+          <div className={styles.filterBar}>
+            <span className={styles.totalCount}>
+              총 상품수 {filteredProducts.length}개
+            </span>
+            <div className={styles.sortDropdown}>
+              <button className={styles.sortBtn} onClick={handleSortToggle}>
+                {selectedSort}{' '}
+                {isDropdownOpen ? <FaChevronUp /> : <FaChevronDown />}
+              </button>
+              {isDropdownOpen && (
+                <div className={styles.dropdownContent}>
+                  {[
+                    '정확도순',
+                    '판매 인기순',
+                    '최신 등록순',
+                    '낮은 가격순',
+                    '높은 가격순',
+                    '높은 할인율',
+                  ].map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => handleSelectSort(option)}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className={styles.grid}>
+          {filteredProducts.map((product) => (
+            <div
+              key={product.id}
+              className={styles.card}
+              onClick={() => handleProductClick(product)}
+            >
+              <div className={styles.imageWrapper}>
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  width={162}
+                  height={147}
+                  className={styles.image}
+                />
+                <div className={styles.icons}>
+                  <button
+                    className={styles.iconBtn}
+                    onClick={(e) => handleCartClick(e, product)}
+                  >
+                    <Image
+                      src="/images/icons/Cart.png"
+                      alt="Cart Icon"
+                      width={24}
+                      height={22}
+                      className="object-contain"
+                    />
                   </button>
-                ))}
+                </div>
               </div>
-            )}
-          </div>
+              <div className={styles.content}>
+                <div className={styles.header}>
+                  <h3 className={styles.name}>{product.name}</h3>
+                </div>
+                <p className={styles.detail}>
+                  {product.weight}, {product.quantity}
+                </p>
+                <p className={styles.price}>
+                  {product.discountPrice ? (
+                    <>
+                      <span className={styles.original}>
+                        {product.price.toLocaleString('ko-KR')}원
+                      </span>
+                      <span className={styles.discount}>
+                        {product.discountPrice.toLocaleString('ko-KR')}원
+                      </span>
+                    </>
+                  ) : (
+                    `${product.price.toLocaleString('ko-KR')}원`
+                  )}
+                </p>
+
+                <p className={styles.info}>
+                  {product.expiration} <br />
+                  {product.location} <br />
+                  {product.distance}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
-      )}
 
-      <div className={styles.grid}>
-        {filteredProducts.map((product) => (
-          <div
-            key={product.id}
-            className={styles.card}
-            onClick={() => handleProductClick(product)}
-          >
-            <div className={styles.imageWrapper}>
-              <Image
-                src={product.image}
-                alt={product.name}
-                width={162}
-                height={147}
-                className={styles.image}
-              />
-              <div className={styles.icons}>
-                <button
-                  className={styles.iconBtn}
-                  onClick={(e) => handleCartClick(e, product)}
-                >
-                  <Image
-                    src="/images/icons/Cart.png"
-                    alt="Cart Icon"
-                    width={24}
-                    height={22}
-                    className="object-contain"
-                  />
-                </button>
-              </div>
-            </div>
-            <div className={styles.content}>
-              <div className={styles.header}>
-                <h3 className={styles.name}>{product.name}</h3>
-              </div>
-              <p className={styles.detail}>
-                {product.weight}, {product.quantity}
-              </p>
-              <p className={styles.price}>
-                {product.discountPrice ? (
-                  <>
-                    <span className={styles.original}>
-                      {product.price.toLocaleString('ko-KR')}원
-                    </span>
-                    <span className={styles.discount}>
-                      {product.discountPrice.toLocaleString('ko-KR')}원
-                    </span>
-                  </>
-                ) : (
-                  `${product.price.toLocaleString('ko-KR')}원`
-                )}
-              </p>
-
-              <p className={styles.info}>
-                {product.expiration} <br />
-                {product.location} <br />
-                {product.distance}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {selectedProduct && (
-        <CartModal
-          open={cartOpen}
-          onClose={() => setCartOpen(false)}
-          productName={selectedProduct.name}
-          productPrice={selectedProduct.discountPrice ?? selectedProduct.price}
-        />
-      )}
-    </section>
+        {selectedProduct && (
+          <CartModal
+            open={cartOpen}
+            onClose={() => setCartOpen(false)}
+            productName={selectedProduct.name}
+            productPrice={
+              selectedProduct.discountPrice ?? selectedProduct.price
+            }
+          />
+        )}
+      </section>
+    </>
   );
 }

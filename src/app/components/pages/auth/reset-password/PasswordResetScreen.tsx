@@ -2,8 +2,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaChevronLeft } from 'react-icons/fa';
-import { BaseModal } from '@/app/components/ui/modal/BaseModal';
-import AuthenticationComplete from '../find-id/AuthenticationComplete';
 import styles from './PasswordResetScreen.module.css';
 import ResetPassword from './ResetPassword';
 
@@ -20,11 +18,11 @@ export default function PasswordResetScreen({
   email,
 }: PasswordResetScreenProps) {
   const router = useRouter();
-  const [showModal, setShowModal] = useState(false);
+  /*  const [showModal, setShowModal] = useState(false); */
   const [showComplete, setShowComplete] = useState(false);
 
   const handleNext = () => {
-    setShowModal(true);
+    /*   setShowModal(true); */
     setShowComplete(true);
   };
 

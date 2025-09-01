@@ -1,17 +1,74 @@
 .topbar {
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
-  margin-left: -1rem;
-  margin-right: -1rem;
+  /* margin-left: -1rem;
+  margin-right: -1rem; */
   padding-bottom: 0.5rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 1500;
+}
+.shoppingCartTopbar {
+  background: #fff;
+  /*  border-bottom: 1px solid #e5e7eb; */
+  /* margin-left: -1rem;
+  margin-right: -1rem; */
+  padding-bottom: 0rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 1500;
 }
 
 .shopTopBar {
   background: #fff;
   border-bottom: none;
+  /*  margin-left: -1rem;
+  margin-right: -1rem; */
+  padding-bottom: 1rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 1500;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Current Location Button */
+.currentBtn {
+  display: flex;
+  align-items: center;
+  padding-top: 1rem;
+  padding-left: 1rem;
+  background-color: #fff;
+  color: #66bfa7;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: start;
+  /*   border-bottom: 1px solid rgba(0, 0, 0, 0.1); */
   margin-left: -1rem;
   margin-right: -1rem;
-  padding-bottom: 0.5rem;
+}
+
+.currentBtn img {
+  margin-right: 10px;
+}
+
+@media (min-width: 1025px) {
+  .topbar,
+  .shopTopBar,
+  .shoppingCartTopbar {
+    max-width: 468px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 
 .inner {
@@ -110,13 +167,13 @@
 
 /* Search history dropdown */
 .historyDropdown {
-  position: absolute;
-  top: 150%;
+  position: fixed;
+  top: 100%;
   left: 0;
   right: 0;
-  background: #ffffff;
+  background: #fff;
   overflow-y: auto;
-  z-index: 1500;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -126,10 +183,10 @@
 }
 .shopHistoryDropdown {
   position: absolute;
-  top: 185%;
+  top: 110%;
   left: 0;
   right: 0;
-  background: #ffffff;
+  background: #fff;
   overflow-y: auto;
   z-index: 1500;
   display: flex;
@@ -293,10 +350,4 @@
   width: 1.2rem;
   height: 1.2rem;
   color: rgba(0, 0, 0, 0.3);
-}
-
-@media (min-width: 1024px) {
-  .topbar {
-    width: 468px;
-  }
 }

@@ -69,7 +69,7 @@ export default function ShopList() {
   return (
     <>
       <TopBar onSearch={handleSearch} />
-      <button className={styles.currentBtn}>
+      {/*   <button className={styles.currentBtn}>
         <Image
           src="/images/icons/mage_location.png"
           alt="Location Icon"
@@ -78,7 +78,7 @@ export default function ShopList() {
           className="object-contain"
         />
         현재위치로 찾기
-      </button>
+      </button> */}
 
       <div className={styles.container}>
         {isEmptySearch ? (

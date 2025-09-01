@@ -8,6 +8,7 @@ interface SkeletonListProps {
 export default function ProductSkeleton({ count = 5 }: SkeletonListProps) {
   return (
     <>
+      <div className={styles.divider}></div>
       <div className={styles.container}>
         {Array.from({ length: count }).map((_, idx) => (
           <div key={idx} className={styles.card}>

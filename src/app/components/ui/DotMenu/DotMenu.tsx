@@ -2,7 +2,7 @@
 import styles from './DotMenu.module.css';
 import { FiMoreHorizontal } from 'react-icons/fi';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { DeleteModal } from '../modal/DeleteModal/DeleteModal';
 
 interface DotMenuProps {
@@ -14,6 +14,9 @@ export const DotMenu = ({ mode = 'default', onDelete }: DotMenuProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isContactUs = pathname.startsWith('/contact-us');
 
   const handleDelete = () => {
     setMenuOpen(false);
@@ -31,7 +34,13 @@ export const DotMenu = ({ mode = 'default', onDelete }: DotMenuProps) => {
 
   return (
     <div
-      className={mode === 'deletePage' ? styles.deletePage : styles.menuWrapper}
+      className={
+        mode === 'deletePage'
+          ? styles.deletePage
+          : styles.menuWrapper && isContactUs
+          ? styles.contactUsWrapper
+          : styles.menuWrapper
+      }
     >
       <button
         className={styles.menuBtn}
