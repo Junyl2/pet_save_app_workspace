@@ -4,6 +4,7 @@ import ClientWrapper from './ClientWrapper';
 import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
 import { FavoritesProvider } from '../context/FavoritesContext';
 import { Toaster } from 'react-hot-toast';
+import { CartProvider } from '../context/cartContext';
 
 export const metadata: Metadata = {
   title: 'Pet Save App',
@@ -19,7 +20,9 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         <ClientWrapper BottomBar={<BottomBar />}>
-          <FavoritesProvider>{children}</FavoritesProvider>
+          <FavoritesProvider>
+            <CartProvider>{children}</CartProvider>
+          </FavoritesProvider>
         </ClientWrapper>
 
         {/* Global toast container */}
