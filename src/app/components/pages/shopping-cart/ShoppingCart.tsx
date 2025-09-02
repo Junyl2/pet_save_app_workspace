@@ -5,11 +5,31 @@ import { useCart } from '@/app/context/cartContext';
 import styles from './ShoppingCart.module.css';
 import Image from 'next/image';
 import { FiPlus, FiMinus } from 'react-icons/fi';
+import { DeleteModal } from '../../ui/modal/DeleteModal/DeleteModal';
+import { useRouter } from 'next/navigation';
 
 export default function ShoppingCartPage() {
+  const router = useRouter();
   const { cart, removeFromCart, increaseQuantity, decreaseQuantity } =
     useCart();
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
+
+  // delete modal state
+  const [deleteTarget, setDeleteTarget] = useState<null | { ids: number[] }>(
+    null
+  );
+  const handleOrder = (items: typeof cart) => {
+    const selected = items.filter(({ product }) =>
+      selectedItems.includes(product.id)
+    );
+
+    if (selected.length === 0) return;
+
+    // Save to localStorage
+    localStorage.setItem('checkoutItems', JSON.stringify(selected));
+
+    router.push('/shopping-cart/delivery-payment');
+  };
 
   if (cart.length === 0) {
     return (
@@ -91,12 +111,10 @@ export default function ShoppingCartPage() {
 
         const toggleSelectAllInStore = () => {
           if (isAllSelected) {
-            // unselect all items in this store
             setSelectedItems((prev) =>
               prev.filter((id) => !storeItemIds.includes(id))
             );
           } else {
-            // select all items in this store
             setSelectedItems((prev) => [
               ...prev,
               ...storeItemIds.filter((id) => !prev.includes(id)),
@@ -108,7 +126,6 @@ export default function ShoppingCartPage() {
           <div key={store} className={styles.storeBlock}>
             <div className={styles.storeHeader}>
               <div className={styles.selectAndStoreName}>
-                {/* Store-level select all */}
                 <div>
                   <input
                     type="checkbox"
@@ -117,14 +134,14 @@ export default function ShoppingCartPage() {
                     className={styles.checkbox}
                   />
                 </div>
-
-                {/* store name */}
                 <h2 className={styles.storeName}>{store}</h2>
               </div>
 
               <button
                 onClick={() =>
-                  items.forEach(({ product }) => removeFromCart(product.id))
+                  setDeleteTarget({
+                    ids: items.map(({ product }) => product.id),
+                  })
                 }
                 className={styles.bulkDeleteButton}
               >
@@ -144,7 +161,6 @@ export default function ShoppingCartPage() {
                   />
                 </div>
                 <div className={styles.left}>
-                  {/* Product image*/}
                   <div className={styles.thumb}>
                     <Image
                       src={product.image}
@@ -158,7 +174,7 @@ export default function ShoppingCartPage() {
                 <div className={styles.right}>
                   <div className={styles.info}>
                     <h3>{product.name}</h3>
-                    <p> {product.shopName}</p>
+                    <p>{product.shopName}</p>
                     <p>{product.expiration}까지</p>
                   </div>
 
@@ -190,7 +206,7 @@ export default function ShoppingCartPage() {
                 </div>
                 <div className={styles.deleteButton}>
                   <button
-                    onClick={() => removeFromCart(product.id)}
+                    onClick={() => setDeleteTarget({ ids: [product.id] })}
                     className={styles.oneDelete}
                   >
                     삭제
@@ -215,8 +231,10 @@ export default function ShoppingCartPage() {
                 <span>주문금액</span>
                 <span>{final.toLocaleString()}원</span>
               </div>
+              {/* store buttons */}
               <button
                 disabled={!hasSelection}
+                onClick={() => handleOrder(items)}
                 className={
                   !hasSelection ? styles.disabledButton : styles.enabledButton
                 }
@@ -240,9 +258,10 @@ export default function ShoppingCartPage() {
           <p>총 {selectedItems.length}건 주문금액 </p>
           <p>{globalSummary.final.toLocaleString()}원</p>
         </div>
-
+        {/* global button */}
         <button
           disabled={selectedItems.length === 0}
+          onClick={() => handleOrder(cart)}
           className={
             selectedItems.length === 0
               ? styles.disabledButton
@@ -252,6 +271,18 @@ export default function ShoppingCartPage() {
           총 {selectedItems.length}건 주문하기
         </button>
       </div>
+
+      {/* Delete Confirm Modal */}
+      <DeleteModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        modalTitle="상품을 삭제하시겠습니까?"
+        onDelete={() => {
+          if (deleteTarget) {
+            deleteTarget.ids.forEach((id) => removeFromCart(id));
+          }
+        }}
+      />
     </div>
   );
 }

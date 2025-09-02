@@ -1,6 +1,12 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { Product } from '@/app/api/types/products/products';
 
 export interface CartItem {
@@ -20,7 +26,27 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  // ✅ initialize from localStorage
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cart');
+        return stored ? JSON.parse(stored) : [];
+      } catch (err) {
+        console.error('Failed to parse cart from localStorage:', err);
+      }
+    }
+    return [];
+  });
+
+  // ✅ persist to localStorage on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    } catch (err) {
+      console.error('Failed to save cart to localStorage:', err);
+    }
+  }, [cart]);
 
   const addToCart = (product: Product, quantity: number) => {
     setCart((prev) => {

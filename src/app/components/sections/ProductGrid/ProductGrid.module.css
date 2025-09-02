@@ -5,12 +5,23 @@
   overflow-x: hidden;
 }
 .grid {
-  display: flex;
-  flex-direction: column;
+  /* display: flex;
+  flex-direction: column; */
+  display: grid;
+  grid-template-columns: repeat(1);
   gap: 1rem;
   padding: 1rem 1rem;
   margin-left: -1rem;
   margin-right: -1rem;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+  }
 }
 
 .card {
