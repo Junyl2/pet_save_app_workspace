@@ -1,0 +1,37 @@
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.pointsInput {
+  flex: 1;
+  padding: 0.5rem 4rem; /* space for left & right labels */
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  -moz-appearance: textfield; /* Firefox remove arrows */
+}
+
+.pointsInput::-webkit-outer-spin-button,
+.pointsInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0; /* Chrome/Safari remove arrows */
+}
+
+.leftLabel {
+  position: absolute;
+  left: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+  pointer-events: none;
+}
+
+.rightLabel {
+  position: absolute;
+  right: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+  pointer-events: none;
+}

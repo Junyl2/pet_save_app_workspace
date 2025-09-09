@@ -1,9 +1,11 @@
 'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import { FiPlus, FiMinus, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import styles from './ProductDrawer.module.css';
 import { cartService } from '@/app/api/services/cart-service/cartService';
 import toast from 'react-hot-toast';
+import { useCart } from '@/app/context/cartContext';
 
 interface ProductDrawerProps {
   show: boolean;
@@ -26,6 +28,8 @@ export const ProductDrawer = ({
   const [loading, setLoading] = useState(false);
   const [deliveryOption, setDeliveryOption] = useState<'배송' | '픽업'>('배송');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const { addToCart } = useCart(); // use context
 
   // Close drawer when clicking outside
   useEffect(() => {
@@ -54,25 +58,31 @@ export const ProductDrawer = ({
 
   const handleAddToCart = async () => {
     setLoading(true);
-    const res = await cartService.addToCart(product.id, quantity);
-    setLoading(false);
 
-    if (!res.error && res.data?.success) {
-      onAddToCart?.(quantity, product.name);
+    try {
+      // update local cart immediately
+      addToCart(product as any, quantity);
 
-      toast.success(`${product.name} 장바구니에 담겼습니다`, {
-        style: {
-          background: '#66bfa7',
-        },
-        iconTheme: {
-          primary: '#66bfa7',
-          secondary: '#fff',
-        },
-      });
+      // optional API call (persistence)
+      const res = await cartService.addToCart(product.id, quantity);
 
-      onClose();
-    } else {
-      alert('장바구니 추가 실패: ' + res.error);
+      if (!res.error && res.data?.success) {
+        onAddToCart?.(quantity, product.name);
+
+        toast.success(`${product.name} 장바구니에 담겼습니다`, {
+          style: { background: '#66bfa7' },
+          iconTheme: { primary: '#66bfa7', secondary: '#fff' },
+        });
+
+        onClose();
+      } else {
+        toast.error('장바구니 추가 실패: ' + res.error);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('네트워크 오류로 장바구니 추가 실패');
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -55,6 +55,10 @@ const nextConfig: NextConfig = {
         source: '/shopping-cart',
         destination: '/client/pages/shopping-cart',
       },
+      {
+        source: '/shopping-cart/delivery-payment',
+        destination: '/client/pages/shopping-cart/delivery-payment',
+      },
       //contact-us
       {
         source: '/contact-us',

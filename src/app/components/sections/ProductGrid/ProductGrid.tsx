@@ -10,7 +10,7 @@ import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSke
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
 
 interface ProductGridProps {
-  products?: Product[]; // optional pre-fetched products
+  products?: Product[];
   category?: string;
   searchTerm?: string;
   onProductClick?: (product: Product) => void;
@@ -28,13 +28,12 @@ export const ProductGrid = ({
 
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
   const [loading, setLoading] = useState(!initialProducts);
-  const [selectedPrice, setSelectedPrice] = useState<number>(0);
-  const [selectedProductName, setSelectedProductName] = useState<string>('');
 
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
-    if (initialProducts) return; // skip fetch if products provided
+    if (initialProducts) return;
 
     let isMounted = true;
 
@@ -113,10 +112,7 @@ export const ProductGrid = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         onAddToCart?.(product);
-                        const priceToUse =
-                          product.discountPrice ?? product.price;
-                        setSelectedPrice(priceToUse);
-                        setSelectedProductName(product.name);
+                        setSelectedProduct(product);
                         setCartOpen(true);
                       }}
                     >
@@ -176,12 +172,13 @@ export const ProductGrid = ({
       </div>
 
       {/* cart modal */}
-      <CartModal
-        open={cartOpen}
-        onClose={() => setCartOpen(!cartOpen)}
-        productName={selectedProductName}
-        productPrice={selectedPrice}
-      />
+      {selectedProduct && (
+        <CartModal
+          open={cartOpen}
+          onClose={() => setCartOpen(false)}
+          product={selectedProduct}
+        />
+      )}
     </div>
   );
 };
