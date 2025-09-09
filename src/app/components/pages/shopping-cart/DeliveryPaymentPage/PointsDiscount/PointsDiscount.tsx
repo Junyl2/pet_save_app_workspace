@@ -1,4 +1,5 @@
 import styles from '../DeliveryPayment.module.css';
+import points from './PointsDiscout.module.css';
 
 interface PointsDiscountProps {
   usePoints: number;
@@ -17,35 +18,39 @@ export default function PointsDiscount({
 }: PointsDiscountProps) {
   const handleUseAllPoints = () => setUsePoints(maxPointUsable);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const numericValue = Math.max(
+      0,
+      Math.floor(Number(e.target.value.replace(/\D/g, '')) || 0)
+    );
+    setUsePoints(numericValue);
+  };
+
   return (
     <section className={styles.card}>
       <h3 className={styles.sectionTitle}>포인트 할인</h3>
       <div className={styles.fieldRow}>
-        <label className={styles.label} htmlFor="points">
-          포인트
-        </label>
-        <div className={styles.pointsRow}>
+        <div className={points.inputWrapper}>
+          <span className={points.leftLabel}>포인트</span>
           <input
             id="points"
-            className={styles.input}
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step={1}
-            value={usePoints}
-            onChange={(e) =>
-              setUsePoints(Math.max(0, Math.floor(Number(e.target.value) || 0)))
-            }
-            placeholder="0원"
+            className={points.pointsInput}
+            type="text"
+            value={usePoints || ''}
+            onChange={handleInputChange}
+            placeholder=""
           />
-          <button
-            type="button"
-            className={styles.secondaryBtn}
-            onClick={handleUseAllPoints}
-          >
-            모두 사용
-          </button>
+          <span className={points.rightLabel}>
+            {usePoints.toLocaleString()}원
+          </span>
         </div>
+        <button
+          type="button"
+          className={styles.secondaryBtn}
+          onClick={handleUseAllPoints}
+        >
+          모두 사용
+        </button>
       </div>
       <p className={styles.pointsHint}>
         사용 가능: {pointsAvailable.toLocaleString()}원 | 보유 포인트:{' '}

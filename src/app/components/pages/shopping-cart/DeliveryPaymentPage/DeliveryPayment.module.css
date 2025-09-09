@@ -1,22 +1,35 @@
 .container {
-  margin-top: 100px;
+  margin-top: 71.59px;
 }
 .pageTitle {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 1rem 1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .card {
   background: #fff;
-  border: 1px solid #eee;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
+  /*  border: 1px solid #eee; */
+  /*   border-radius: 12px; */
+  /*  padding: 16px; */
+  /*   margin-bottom: 12px; */
+  padding: 1rem 0rem;
 }
 .sectionTitle {
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 12px;
+}
+
+.divider {
+  background-color: #f2f4f7;
+  height: 0.8rem;
+  margin: 0rem -1rem;
 }
 .sectionSubTitle {
   font-size: 14px;
@@ -46,6 +59,32 @@
   border-radius: 8px;
   padding: 0 10px;
   width: 180px;
+}
+
+/* direct custom input  */
+.directInput {
+  width: 100%;
+  min-height: 100px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-top: 1rem;
+  background-color: #fafafa;
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: #333;
+  resize: none;
+  transition: border 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.directInput::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+  font-style: italic;
+}
+
+.directInput:focus {
+  border-color: #25d873;
+  outline: none;
 }
 
 .addressBlock {
@@ -199,13 +238,13 @@
 
 /* Dropdown styles */
 .dropdownContainer {
-  position: sticky;
-  top: 71.59px;
+  /*  position: sticky;
+  top: 71.59px; */
   background: #fff;
   padding: 1rem 1rem 0rem 1rem;
   margin-left: -1rem;
   z-index: 600;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  /*  border-bottom: 1px solid rgba(0, 0, 0, 0.1); */
   padding-bottom: 1rem;
 }
 

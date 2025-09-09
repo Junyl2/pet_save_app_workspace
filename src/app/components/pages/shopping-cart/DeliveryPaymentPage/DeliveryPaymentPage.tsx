@@ -116,10 +116,15 @@ export default function DeliveryPaymentPage() {
       />
       {isOpen && <CartItemList orderItems={orderItems} />}
 
+      <div className={styles.divider}></div>
+
       <DeliveryOptions
         deliveryOption={deliveryOption}
         setDeliveryOption={setDeliveryOption}
       />
+
+      <div className={styles.divider}></div>
+
       <AddressBlock />
 
       <DeliveryRequests
@@ -129,6 +134,8 @@ export default function DeliveryPaymentPage() {
         setCustomRequest={setCustomRequest}
       />
 
+      <div className={styles.divider}></div>
+
       <PointsDiscount
         usePoints={usePoints}
         setUsePoints={setUsePoints}
@@ -136,6 +143,8 @@ export default function DeliveryPaymentPage() {
         pointsAvailable={POINTS_AVAILABLE}
         pointsBalance={POINTS_BALANCE}
       />
+
+      <div className={styles.divider}></div>
 
       <PaymentSummary
         subtotal={subtotal}
@@ -145,12 +154,16 @@ export default function DeliveryPaymentPage() {
         shippingFee={SHIPPING_FEE}
       />
 
+      <div className={styles.divider}></div>
+
       <PaymentMethod
         payCategory={payCategory}
         setPayCategory={setPayCategory}
         quickBrand={quickBrand}
         setQuickBrand={setQuickBrand}
       />
+
+      <div className={styles.divider}></div>
 
       <Agreements
         agreeOrderInfo={agreeOrderInfo}
