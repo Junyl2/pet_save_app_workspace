@@ -92,7 +92,7 @@ const nextConfig: NextConfig = {
       // MyPage
       {
         source: '/mypage',
-        destination: '/client/pages/mypage',
+        destination: '/client/pages/my-page',
       },
       // Contact
       {
