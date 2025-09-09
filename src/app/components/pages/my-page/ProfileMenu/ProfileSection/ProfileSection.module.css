@@ -1,0 +1,19 @@
+.profileSection {
+  margin-top: 1.5rem;
+  background-color: #fff;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding: 1rem 1rem;
+}
+
+.sectionTitle {
+  font-size: 0.975rem;
+  color: #000;
+  margin-bottom: 0.5rem;
+  margin-top: 0;
+}
+
+.sectionItems {
+  display: flex;
+  flex-direction: column;
+}

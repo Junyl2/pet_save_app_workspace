@@ -17,7 +17,7 @@ export default function BottomBar() {
   const pathname = usePathname();
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const isLoggedIn = false; // TODO: replace with real auth
+  const isLoggedIn = true; // TODO: replace with real auth
 
   const items: BottomItem[] = [
     { name: 'home', label: '홈', path: PAGE_URLS.HOME },

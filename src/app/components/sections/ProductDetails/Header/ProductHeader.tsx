@@ -1,5 +1,4 @@
 'use client';
-import Image from 'next/image';
 import { FaChevronLeft } from 'react-icons/fa';
 import styles from './ProductHeader.module.css';
 import { useRouter, usePathname } from 'next/navigation';

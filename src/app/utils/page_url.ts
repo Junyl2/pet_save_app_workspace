@@ -3,7 +3,7 @@ export const PAGE_URLS = {
   HOME: '/client/pages/homepage',
   CONTACT: '/contact-us',
   SHOPS: '/shops',
-  MYPAGE: '/client/my-page',
+  MYPAGE: '/client/pages/my-page',
 
   //auth
   JOIN_MEMBERSHIP: '/client/join-membership',
