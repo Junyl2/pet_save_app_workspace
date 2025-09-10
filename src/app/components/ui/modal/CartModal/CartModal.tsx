@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BaseModal } from '../BaseModal';
 import styles from './CartModal.module.css';
 import { FiPlus, FiMinus } from 'react-icons/fi';
@@ -18,10 +18,17 @@ export const CartModal = ({ open, onClose, product }: CartModalProps) => {
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
 
+  // Reset quantity whenever modal opens or product changes
+  useEffect(() => {
+    if (open) setQuantity(1);
+  }, [open, product?.id]);
+
   const handleIncrease = () => setQuantity((q) => q + 1);
   const handleDecrease = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
 
-  const unitPrice = product.discountPrice ?? product.price;
+  const basePrice = product.discountPrice ?? product.price;
+  const unitPrice =
+    typeof basePrice === 'string' ? Number(basePrice) : basePrice;
   const totalPrice = unitPrice * quantity;
 
   const handleClose = () => {
@@ -48,17 +55,25 @@ export const CartModal = ({ open, onClose, product }: CartModalProps) => {
           <div className={styles.quantitySelector}>
             <span>수량 선택</span>
             <div className={styles.controls}>
-              <button onClick={handleDecrease} className={styles.iconBtn}>
+              <button
+                onClick={handleDecrease}
+                className={styles.iconBtn}
+                aria-label="decrease"
+              >
                 <FiMinus size={18} />
               </button>
               <span>{quantity}</span>
-              <button onClick={handleIncrease} className={styles.iconBtn}>
+              <button
+                onClick={handleIncrease}
+                className={styles.iconBtn}
+                aria-label="increase"
+              >
                 <FiPlus size={18} />
               </button>
             </div>
           </div>
 
-          <div className={styles.divider}></div>
+          <div className={styles.divider} />
 
           {/* 총 수량 & 총 금액 */}
           <div className={styles.summary}>

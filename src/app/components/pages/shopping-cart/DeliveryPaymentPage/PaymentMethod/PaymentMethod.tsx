@@ -1,5 +1,4 @@
 import styles from '../DeliveryPayment.module.css';
-import { useState } from 'react';
 
 interface PaymentMethodProps {
   payCategory: 'quick' | 'card' | 'bank' | null;
@@ -17,70 +16,78 @@ export default function PaymentMethod({
   return (
     <section className={styles.card}>
       <h3 className={styles.sectionTitle}>결제 수단</h3>
-      <div className={styles.payCategory}>
+
+      {/* 간편결제 */}
+      <div className={styles.quickSection}>
         <label className={styles.checkRow}>
           <input
-            type="radio"
+            type="checkbox"
             name="payCategory"
             checked={payCategory === 'quick'}
             onChange={() => setPayCategory('quick')}
+            className={styles.checkbox}
           />
           <span>간편결제</span>
         </label>
+
+        {payCategory === 'quick' && (
+          <div className={styles.quickPayments}>
+            {/* Toss */}
+            <button
+              type="button"
+              className={`${styles.quickBtn1} ${
+                quickBrand === 'toss' ? styles.quickSelected : ''
+              }`}
+              onClick={() => setQuickBrand('toss')}
+              aria-pressed={quickBrand === 'toss'}
+            ></button>
+
+            {/* Kakao */}
+            <button
+              type="button"
+              className={`${styles.quickBtn2} ${
+                quickBrand === 'kakao' ? styles.quickSelected : ''
+              }`}
+              onClick={() => setQuickBrand('kakao')}
+              aria-pressed={quickBrand === 'kakao'}
+            ></button>
+
+            {/* Naver */}
+            <button
+              type="button"
+              className={`${styles.quickBtn3} ${
+                quickBrand === 'naver' ? styles.quickSelected : ''
+              }`}
+              onClick={() => setQuickBrand('naver')}
+              aria-pressed={quickBrand === 'naver'}
+            ></button>
+          </div>
+        )}
+      </div>
+
+      {/* Flex column for other payment methods */}
+      <div className={styles.payCategoryColumn}>
         <label className={styles.checkRow}>
           <input
-            type="radio"
+            type="checkbox"
             name="payCategory"
             checked={payCategory === 'card'}
+            className={styles.checkbox}
             onChange={() => setPayCategory('card')}
           />
           <span>신용/체크카드</span>
         </label>
         <label className={styles.checkRow}>
           <input
-            type="radio"
+            type="checkbox"
             name="payCategory"
             checked={payCategory === 'bank'}
+            className={styles.checkbox}
             onChange={() => setPayCategory('bank')}
           />
           <span>무통장입금</span>
         </label>
       </div>
-
-      {payCategory === 'quick' && (
-        <div className={styles.quickPayments}>
-          <button
-            type="button"
-            className={`${styles.quickBtn} ${
-              quickBrand === 'toss' ? styles.quickSelected : ''
-            }`}
-            onClick={() => setQuickBrand('toss')}
-            aria-pressed={quickBrand === 'toss'}
-          >
-            <span className={styles.tossLogo} /> payments
-          </button>
-          <button
-            type="button"
-            className={`${styles.quickBtn} ${styles.kakao} ${
-              quickBrand === 'kakao' ? styles.quickSelected : ''
-            }`}
-            onClick={() => setQuickBrand('kakao')}
-            aria-pressed={quickBrand === 'kakao'}
-          >
-            <span className={styles.kakaoBubble} /> pay
-          </button>
-          <button
-            type="button"
-            className={`${styles.quickBtn} ${
-              quickBrand === 'naver' ? styles.quickSelected : ''
-            }`}
-            onClick={() => setQuickBrand('naver')}
-            aria-pressed={quickBrand === 'naver'}
-          >
-            <span className={styles.nBadge}>N</span> pay
-          </button>
-        </div>
-      )}
     </section>
   );
 }

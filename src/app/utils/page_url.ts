@@ -15,4 +15,10 @@ export const PAGE_URLS = {
   PRODUCTS: '/client/pages/products',
   PRODUCT_DETAIL: (id: number | string) => `/products/${id}`,
   CONTACT_PRODUCT: '/client/pages/products/contact-product',
+
+  //delivery paments / shopping cart
+  SHOPPING_CART: '/shopping-cart',
+  DELIVERY_PAYMENT: '/client/pages/shopping-cart/delivery-payment',
+  ORDER_CONFIRMATION:
+    '/client/pages/shopping-cart/delivery-payment/order-confirmation',
 };

@@ -2,6 +2,7 @@
 import Image from 'next/image';
 import styles from './TopIcons.module.css';
 import { useRouter, usePathname } from 'next/navigation';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 export const TopIcons = () => {
   const router = useRouter();
@@ -37,19 +38,22 @@ export const TopIcons = () => {
       </button>
 
       {/* go to cart page */}
-      {pathname !== '/shopping-cart' && (
-        <button
-          className={styles.iconBtn}
-          onClick={() => router.push('/shopping-cart')}
-        >
-          <Image
-            src="/images/icons/Cart.png"
-            alt="Cart"
-            width={27}
-            height={30}
-          />
-        </button>
-      )}
+      {pathname !== PAGE_URLS.DELIVERY_PAYMENT &&
+        pathname !== PAGE_URLS.ORDER_CONFIRMATION &&
+        pathname !== PAGE_URLS.SHOPPING_CART &&
+        pathname !== '/shopping-cart/delivery-payment' && (
+          <button
+            className={styles.iconBtn}
+            onClick={() => router.push('/shopping-cart')}
+          >
+            <Image
+              src="/images/icons/Cart.png"
+              alt="Cart"
+              width={27}
+              height={30}
+            />
+          </button>
+        )}
     </div>
   );
 };

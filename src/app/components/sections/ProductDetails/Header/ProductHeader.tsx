@@ -11,12 +11,17 @@ export const ProductHeader = () => {
   // Determine if we are on inquiries page or its subpages
   const isInquiryPage = pathname.startsWith('/client/pages/inquiries');
   const isContactUs = pathname.startsWith('/contact-us');
+  const isOrderConfirmation = pathname.startsWith(
+    '/client/pages/shopping-cart/delivery-payment/order-confirmation'
+  );
 
   const handleBack = () => {
     if (isInquiryPage) {
       router.push('/client/pages/inquiries'); // go to inbox
     } else if (isContactUs) {
       router.push('/client/pages/homepage');
+    } else if (isOrderConfirmation) {
+      router.push('/shopping-cart');
     } else {
       window.history.back(); // default behavior
     }

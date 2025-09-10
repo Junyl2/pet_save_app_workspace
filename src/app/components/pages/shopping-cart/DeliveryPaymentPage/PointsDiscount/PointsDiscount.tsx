@@ -44,17 +44,21 @@ export default function PointsDiscount({
             {usePoints.toLocaleString()}원
           </span>
         </div>
-        <button
-          type="button"
-          className={styles.secondaryBtn}
-          onClick={handleUseAllPoints}
-        >
-          모두 사용
-        </button>
+        <div>
+          <button
+            type="button"
+            className={points.secondaryBtn}
+            onClick={handleUseAllPoints}
+          >
+            모두 사용
+          </button>
+        </div>
       </div>
       <p className={styles.pointsHint}>
-        사용 가능: {pointsAvailable.toLocaleString()}원 | 보유 포인트:{' '}
-        {pointsBalance.toLocaleString()}원
+        사용 가능: {pointsAvailable.toLocaleString()}원
+        <span className="text-muted">
+          | 보유 포인트: {pointsBalance.toLocaleString()}원
+        </span>
       </p>
     </section>
   );
