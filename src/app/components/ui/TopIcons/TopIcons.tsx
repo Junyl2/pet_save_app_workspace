@@ -2,6 +2,7 @@
 import Image from 'next/image';
 import styles from './TopIcons.module.css';
 import { useRouter, usePathname } from 'next/navigation';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 export const TopIcons = () => {
   const router = useRouter();
@@ -26,8 +27,12 @@ export const TopIcons = () => {
         </button>
       )}
 
-      {/* go to notifcations */}
-      <button className={styles.iconBtn}>
+      {/* go to notifications */}
+      <button 
+        className={styles.iconBtn}
+        onClick={() => router.push(PAGE_URLS.NOTIFICATIONS)}
+        aria-label="알림으로 이동"
+      >
         <Image
           src="/images/icons/Bell.svg"
           alt="Notification"
