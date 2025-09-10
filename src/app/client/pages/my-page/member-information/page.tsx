@@ -5,6 +5,7 @@ import { FaChevronRight } from 'react-icons/fa';
 import { IoCalendarOutline } from 'react-icons/io5';
 import Image from 'next/image';
 import { MyPageHeader } from '@/app/components/sections/MyPageHeader/MyPageHeader';
+import { PAGE_URLS } from '@/app/utils/page_url';
 import styles from './MemberInformation.module.css';
 
 export default function MemberInformation() {
@@ -31,10 +32,11 @@ export default function MemberInformation() {
   };
 
   const handlePasswordClick = () => {
-    router.push('/client/pages/my-page/member-information/password');
+    router.push(PAGE_URLS.MEMBER_INFO_PASSWORD);
   };
 
   const handleAddressClick = () => {
+    // TODO: Create address page route when needed
     router.push('/client/pages/my-page/member-information/address');
   };
 
