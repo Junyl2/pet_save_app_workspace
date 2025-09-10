@@ -5,6 +5,7 @@ import ProfileItem from './ProfileItem/ProfileItem';
 import styles from './ProfileMenu.module.css';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 const ProfileMenu = () => {
   return (
@@ -15,7 +16,10 @@ const ProfileMenu = () => {
         {/* Customer Service */}
         <ProfileSection title="고객센터">
           <ProfileItem label="문의내역" route="/my-page/inquiries" />
-          <ProfileItem label="사업자등록" route="/my-page/business" />
+          <ProfileItem
+            label="사업자등록"
+            route={PAGE_URLS.SELLER_REGISTRATION}
+          />
           <ProfileItem label="약관 및 정책" route="/my-page/terms" />
         </ProfileSection>
 

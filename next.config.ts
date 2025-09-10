@@ -77,7 +77,7 @@ const nextConfig: NextConfig = {
       // Join Membership
       {
         source: '/join-membership',
-        destination: '/client/pages/join-membership',
+        destination: '/client/join-membership',
       },
       // Reset Password
       {

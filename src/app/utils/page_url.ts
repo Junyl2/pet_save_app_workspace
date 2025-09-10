@@ -15,4 +15,7 @@ export const PAGE_URLS = {
   PRODUCTS: '/client/pages/products',
   PRODUCT_DETAIL: (id: number | string) => `/products/${id}`,
   CONTACT_PRODUCT: '/client/pages/products/contact-product',
+
+  //Seller page
+  SELLER_REGISTRATION: '/client/seller/registration',
 };
