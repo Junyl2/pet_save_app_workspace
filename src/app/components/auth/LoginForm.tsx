@@ -7,13 +7,12 @@ import { FaChevronLeft } from 'react-icons/fa';
 import styles from './LoginForm.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/app/context/userContext';
 
-interface LoginFormProps {
-  onSuccess?: () => void;
-}
-
-export default function LoginForm({ onSuccess }: LoginFormProps) {
+export default function LoginForm() {
   const router = useRouter();
+  const { login } = useUser();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -27,17 +26,19 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, remember }),
-      });
+      // 🔹 Temporary login logic with automatic role detection
+      if (username === 'user' && password === 'user123') {
+        login({ username, role: 'client' });
+        router.push('/'); // redirect to homepage
+        return;
+      }
+      if (username === 'seller' && password === 'seller123') {
+        login({ username, role: 'seller' });
+        router.push('/');
+        return;
+      }
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Login failed');
-
-      console.log('Login success:', data);
-      if (onSuccess) onSuccess();
+      throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -51,7 +52,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
   return (
     <>
-      {/* Top Bar with Chevron Back */}
+      {/* Top Bar */}
       <div className={styles.topBar}>
         <button
           type="button"
@@ -64,7 +65,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       </div>
 
       <div className={styles.loginPage}>
-        {/* Top Image */}
+        {/* Logo */}
         <div className={styles.imageWrapper}>
           <Image
             src="/images/logo/loading-screen.png"
@@ -75,7 +76,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           />
         </div>
 
-        {/* Form */}
+        {/* Login Form */}
         <div className={styles.loginFormContainer}>
           <form className={styles.loginForm} onSubmit={handleSubmit}>
             <div className={styles.inputWrapper}>
@@ -138,26 +139,20 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           {/* Links */}
           <div className={styles.loginLinks}>
             <span className={styles.linkItem}>
-              <Link href={PAGE_URLS.FIND_ID} scroll={true}>
-                아이디 찾기
-              </Link>
+              <Link href={PAGE_URLS.FIND_ID}>아이디 찾기</Link>
             </span>
             <div className={styles.divider}> | </div>
             <span className={styles.linkItem}>
-              <Link href={PAGE_URLS.RESET_PASSWORD} scroll={true}>
-                비밀번호 재설정
-              </Link>
+              <Link href={PAGE_URLS.RESET_PASSWORD}>비밀번호 재설정</Link>
             </span>
             <div className={styles.divider}> | </div>
             <span className={styles.linkItem}>
-              <Link href={PAGE_URLS.JOIN_MEMBERSHIP} scroll={true}>
-                회원가입
-              </Link>
+              <Link href={PAGE_URLS.JOIN_MEMBERSHIP}>회원가입</Link>
             </span>
           </div>
         </div>
 
-        {/* Logos */}
+        {/* Social Logos */}
         <div className={styles.logoWrapper}>
           <Image
             src="/images/icons/n.png"

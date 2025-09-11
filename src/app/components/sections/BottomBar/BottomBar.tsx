@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import styles from './BottomBar.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
+import { useUser } from '@/app/context/userContext';
 
 type BottomItem = {
   name: string;
@@ -17,7 +18,8 @@ export default function BottomBar() {
   const pathname = usePathname();
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const isLoggedIn = true; // TODO: replace with real auth
+  const { user } = useUser();
+  const isLoggedIn = !!user;
 
   const items: BottomItem[] = [
     { name: 'home', label: '홈', path: PAGE_URLS.HOME },
@@ -44,13 +46,14 @@ export default function BottomBar() {
       <ul className={styles.list}>
         {items.map((item) => {
           const itemPath = normalizePath(item.path);
-          const isActive = currentPath === itemPath;
-          /* item.name === 'home'
-              ? currentPath.startsWith('/client')
-              : currentPath === itemPath; */
 
+          // Highlight active for current page
+          const isActive = currentPath === itemPath;
+
+          // Show hover state
           const showActive = isActive || hovered === item.name;
 
+          // Image src dynamically
           const imgSrc = `/images/icons/bottom-bar/${item.name}-${
             showActive ? 'active' : 'default'
           }.png`;

@@ -17,5 +17,6 @@ export const PAGE_URLS = {
   CONTACT_PRODUCT: '/client/pages/products/contact-product',
 
   //Seller page
-  SELLER_REGISTRATION: '/client/seller/registration',
+  SELLER_REGISTRATION: '/client/seller/pages/registration',
+  REGISTER_PRODUCT: '/client/seller/pages/register-product',
 };
