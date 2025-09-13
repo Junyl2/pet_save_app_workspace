@@ -2,7 +2,7 @@
 import styles from './TopIcons.module.css';
 import { useRouter, usePathname } from 'next/navigation';
 import { PAGE_URLS } from '@/app/utils/page_url';
-import { PAGE_URLS } from '@/app/utils/page_url';
+import Image from 'next/image';
 
 export const TopIcons = () => {
   const router = useRouter();

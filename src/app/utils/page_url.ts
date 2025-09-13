@@ -27,4 +27,5 @@ export const PAGE_URLS = {
   POINTS_GUIDE: '/client/pages/my-page/points/guide', // mypage - points guide page
   ORDER_HISTORY: '/client/pages/my-page/order-history', // mypage - order history page
   TERMS_CONDITIONS: '/client/pages/my-page/terms-and-conditions', // mypage - terms and conditions page
+  MYPAGE_POINTS: '/client/pages/my-page/points',
 };
