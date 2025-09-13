@@ -2,6 +2,7 @@
 import styles from './TopIcons.module.css';
 import { useRouter, usePathname } from 'next/navigation';
 import { PAGE_URLS } from '@/app/utils/page_url';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 export const TopIcons = () => {
   const router = useRouter();
@@ -27,12 +28,12 @@ export const TopIcons = () => {
       )}
 
       {/* go to notifications */}
-      <button 
+      <button
         className={styles.iconBtn}
         onClick={() => router.push(PAGE_URLS.NOTIFICATIONS)}
         aria-label="알림으로 이동"
       >
-        <img
+        <Image
           src="/images/icons/Bell.svg"
           alt="Notification"
           width={27}
@@ -46,12 +47,7 @@ export const TopIcons = () => {
           className={styles.iconBtn}
           onClick={() => router.push('/shopping-cart')}
         >
-          <img
-            src="/images/icons/Cart.png"
-            alt="Cart"
-            width={27}
-            height={30}
-          />
+          <img src="/images/icons/Cart.png" alt="Cart" width={27} height={30} />
         </button>
       )}
     </div>
