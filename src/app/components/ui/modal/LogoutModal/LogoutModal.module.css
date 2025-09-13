@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 15000;
   padding: 20px;
 }
 
@@ -19,7 +19,8 @@
   width: 100%;
   max-width: 320px;
   text-align: center;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .iconContainer {
@@ -62,7 +63,7 @@
 .confirmButton {
   width: 100%;
   padding: 16px;
-  background-color: #7DB59A;
+  background-color: #66bfa7;
   color: white;
   border: none;
   border-radius: 8px;
@@ -73,11 +74,11 @@
 }
 
 .confirmButton:hover {
-  background-color: #6BA085;
+  background-color: #6ba085;
 }
 
 .confirmButton:active {
-  background-color: #5A8B73;
+  background-color: #65a085;
 }
 
 .cancelButton {
@@ -107,23 +108,23 @@
   .overlay {
     padding: 16px;
   }
-  
+
   .modal {
     max-width: 100%;
     padding: 32px 20px 20px;
   }
-  
+
   .lockIcon {
     width: 70px;
     height: 70px;
   }
-  
+
   .title {
     font-size: 18px;
   }
-  
+
   .message {
     font-size: 15px;
     margin-bottom: 28px;
   }
-} 
+}

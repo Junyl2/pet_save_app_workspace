@@ -7,15 +7,24 @@ import styles from './ProfileItem.module.css';
 
 type Props = {
   label: string;
-  route: string;
-  showChevron?: boolean; // new prop
+  route?: string; // make optional
+  onClick?: () => void; // new optional handler
+  showChevron?: boolean;
 };
 
-const ProfileItem = ({ label, route, showChevron = true }: Props) => {
+const ProfileItem = ({ label, route, onClick, showChevron = true }: Props) => {
   const router = useRouter();
 
+  const handleClick = () => {
+    if (onClick) {
+      onClick(); // run custom handler (e.g., logout modal)
+    } else if (route) {
+      router.push(route);
+    }
+  };
+
   return (
-    <button className={styles.profileItem} onClick={() => router.push(route)}>
+    <button className={styles.profileItem} onClick={handleClick}>
       <span className={styles.label}>{label}</span>
       {showChevron && <FaChevronRight className={styles.icon} />}
     </button>

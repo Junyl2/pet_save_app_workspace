@@ -1,17 +1,23 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import ProfileHeader from './ProfileHeader/ProfileHeader';
 import ProfileSection from './ProfileSection/ProfileSection';
 import ProfileItem from './ProfileItem/ProfileItem';
 import styles from './ProfileMenu.module.css';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
+import LogoutModal from '@/app/components/ui/modal/LogoutModal/LogoutModal';
 
 const ProfileMenu = () => {
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   return (
     <>
       <ProductHeader />
       <div className={styles.profileMenu}>
         <ProfileHeader />
+
         {/* Customer Service */}
         <ProfileSection title="고객센터">
           <ProfileItem label="문의내역" route="/my-page/inquiries" />
@@ -38,7 +44,11 @@ const ProfileMenu = () => {
             route="/mypage/referral"
             showChevron={false}
           />
-          <ProfileItem label="로그아웃" route="/logout" showChevron={false} />
+          <ProfileItem
+            label="로그아웃"
+            onClick={() => setShowLogoutModal(true)} // open modal
+            showChevron={false}
+          />
           <ProfileItem
             label="탈퇴하기"
             route="/mypage/delete-account"
@@ -48,6 +58,12 @@ const ProfileMenu = () => {
       </div>
 
       <BottomBar />
+
+      {/* Logout Modal */}
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+      />
     </>
   );
 };
