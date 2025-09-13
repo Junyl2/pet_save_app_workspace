@@ -1,0 +1,122 @@
+.icons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+  padding: 0.8rem 1rem;
+  background-color: #ffffff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 1400;
+}
+
+.backButton {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  left: 0;
+}
+
+.backIcon {
+  font-size: clamp(1.2rem, 2.8vw, 1.4rem);
+  font-weight: 100;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.topIcons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 9999px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.iconBtn:hover {
+  background: #f3f4f6;
+}
+
+/* === Dropdown Styles === */
+.dropdown {
+  position: relative;
+  margin-left: 0.5rem; /* keeps it close to back button or adjust as needed */
+}
+
+.dropdownToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* label left, arrow right */
+  min-width: 110px;
+  padding: 0.4rem 0.6rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #111827;
+  transition: background 0.2s ease;
+}
+
+.dropdownToggle:hover {
+  background-color: #f9fafb;
+}
+
+.dropdownLabel {
+  flex: 1;
+  text-align: left;
+}
+
+.dropdownArrow {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  list-style: none;
+  padding: 0.25rem 0;
+  margin: 0.25rem 0 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  z-index: 1500;
+}
+
+.dropdownItem {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.dropdownItem:hover {
+  background-color: #f3f4f6;
+}
+
+/* === Desktop Adjustment === */
+@media (min-width: 1025px) {
+  .icons {
+    width: 468px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}

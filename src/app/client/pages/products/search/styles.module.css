@@ -1,0 +1,15 @@
+.container {
+  height: 100%;
+  width: 100%;
+}
+.divider {
+  position: sticky;
+  top: 140px;
+  background-color: #f2f4f7;
+  height: 14px;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  box-sizing: border-box;
+  margin-top: 140px;
+  z-index: 500;
+}

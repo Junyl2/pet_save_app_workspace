@@ -1,0 +1,71 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+:root {
+  --app-max-width: 420px;
+  --app-bg: #ffffff;
+  --app-border: #e5e5e5;
+
+  --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', sans-serif;
+}
+
+html,
+body {
+  font-family: var(--font-family) !important;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  height: 100%;
+  background-color: #ffffff;
+  font-family: system-ui, sans-serif;
+  max-width: 100%;
+}
+
+.app-container {
+  max-width: 100%;
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--app-bg);
+  /*   border-left: 1px solid var(--app-border);
+  border-right: 1px solid var(--app-border); */
+  display: flex;
+  flex-direction: column;
+}
+.app-content {
+  flex: 1;
+  padding: 0px 16px;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+}
+
+.object-contain {
+  object-fit: contain;
+}
+@media (max-width: 1024px) {
+  .app-container {
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  html,
+  body {
+    background: #f5f5f5;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  .app-container {
+    max-width: 468px !important;
+    width: 468px;
+    border-radius: 8px;
+  }
+  .app-content {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    background-color: #ffffff;
+  }
+}

@@ -1,0 +1,137 @@
+.loginPage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 69px;
+  min-height: 100vh;
+  background: #ffffff;
+  width: 100%;
+}
+
+.imageWrapper {
+  /* optional wrapper styles */
+}
+
+.objectContain {
+  object-fit: contain;
+}
+
+.loginFormContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-bottom: 1px solid #bcbcbc;
+  gap: 1.9rem;
+  padding-bottom: 1.9rem;
+}
+
+.loginForm {
+  width: 100%;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  text-align: start;
+  justify-content: space-between;
+}
+
+.inputLabel {
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+}
+
+.inputField {
+  padding: 14px 12px;
+  margin-bottom: 16px;
+  border: 1px solid #bcbcbc;
+  border-radius: 4px;
+  font-size: 1rem;
+  color: #333;
+}
+.inputField::placeholder {
+  font-size: 13px;
+  color: #bcbcbc;
+}
+.inputField:focus {
+  border-color: #66bfa7;
+  outline: 1px solid #66bfa7;
+}
+
+.rememberLogin {
+  margin-bottom: 16px;
+  font-size: 13px;
+  align-self: flex-end;
+  color: #bcbcbc;
+}
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+}
+.checkbox {
+  accent-color: #66bfa7;
+  background-color: transparent;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #bcbcbc;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.checkbox:checked {
+  border-color: #66bfa7;
+}
+.loginButton {
+  padding: 10px 0;
+  background-color: #66bfa7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 1.5rem;
+}
+
+.loginButton:hover {
+  background-color: #51b59a;
+}
+
+.loginLinks {
+  display: flex;
+  justify-content: center;
+  gap: 1.8rem;
+  font-size: 13px;
+  text-align: center;
+}
+
+.linkItem {
+  position: relative;
+}
+
+.divider {
+  color: #bcbcbc;
+}
+
+.linkItem a {
+  color: #bcbcbc;
+  text-decoration: none;
+}
+
+.linkItem a:hover {
+  text-decoration: underline;
+}
+
+.logoWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 45px;
+  margin-top: -1.5rem;
+}
+
+.logo {
+  object-fit: contain;
+  border-radius: 1000px;
+}

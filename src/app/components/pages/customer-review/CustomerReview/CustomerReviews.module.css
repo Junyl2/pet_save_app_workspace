@@ -1,0 +1,169 @@
+.reviewList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loading,
+.noReviews {
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Review Card */
+.reviewCard {
+  position: relative;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Header with avatar and author info */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.headerDetails {
+  display: flex;
+  gap: 0.6rem;
+}
+.right {
+  display: flex;
+  flex-direction: column;
+}
+
+.avatar {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+}
+
+.author {
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  margin: 0;
+}
+.divide {
+  color: rgba(0, 0, 0, 0.2);
+}
+.rating {
+  font-size: 12px;
+  color: #f5a623; /* star color */
+  margin: 0;
+}
+
+/* Review content */
+.content {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+}
+/* images */
+.images {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+.reviewImages {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.reviewImage {
+  width: 96px;
+  height: 96px;
+  border-radius: 8px;
+  object-fit: cover;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Hover effect for images */
+.reviewImage:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+/* Divider between reviews */
+.reviewCard + .reviewCard {
+  border-top: 1px solid #f2f2f2;
+  padding-top: 16px;
+}
+
+.date {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+}
+
+.authorDate {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.rating {
+  margin-top: 4px;
+}
+
+.ratingComment {
+  font-weight: 600;
+  margin-right: 6px;
+  font-size: 0.9rem;
+  color: #000000;
+}
+
+/* --- Horizontal dot menu --- */
+.menuWrapper {
+  position: absolute;
+  top: 8px;
+  right: 1rem;
+}
+
+.menuBtn {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.menuBtn:active {
+  background: rgba(240, 240, 240, 0.95);
+}
+
+.dropdown {
+  position: absolute;
+  top: 38px;
+  right: 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.onReportButton {
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.onReportButton:hover {
+  background: #f5f5f5;
+}
