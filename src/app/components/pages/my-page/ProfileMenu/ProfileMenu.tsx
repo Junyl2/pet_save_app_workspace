@@ -4,6 +4,7 @@ import ProfileSection from './ProfileSection/ProfileSection';
 import ProfileItem from './ProfileItem/ProfileItem';
 import styles from './ProfileMenu.module.css';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
+import { PAGE_URLS } from '@/app/utils/page_url';
 import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
 
 const ProfileMenu = () => {
@@ -21,7 +22,10 @@ const ProfileMenu = () => {
 
         {/* Settings */}
         <ProfileSection title="설정">
-          <ProfileItem label="회원 정보 수정" route="/my-page/edit-profile" />
+          <ProfileItem
+            label="회원 정보 수정"
+            route={PAGE_URLS.MEMBER_INFORMATION}
+          />
           <ProfileItem label="알림 설정" route="/my-page/notifications" />
           <ProfileItem label="차단 리스트" route="/my-page/block-list" />
         </ProfileSection>
