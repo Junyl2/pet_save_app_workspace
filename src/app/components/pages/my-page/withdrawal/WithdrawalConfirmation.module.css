@@ -1,0 +1,255 @@
+.container {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.content {
+  margin-top: 1.5rem;
+  flex: 1;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.iconContainer {
+  background-color: #ffffff;
+  padding: 3rem 1.5rem 2rem 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.trashIcon {
+  width: 80px;
+  height: 80px;
+  
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  text-align: center;
+}
+
+.separator {
+  border: none;
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 0 -1rem;
+}
+
+.formSection {
+  background-color: #ffffff;
+  padding: 1.5rem;
+}
+
+.formGroup {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.customDropdown {
+  position: relative;
+  width: 100%;
+}
+
+.dropdownButton {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #ffffff;
+  font-size: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.dropdownButton:hover {
+  border-color: #8bc4a8;
+}
+
+.dropdownButtonOpen {
+  border-radius: 8px 8px 0 0 !important;
+  border-bottom-color: transparent !important;
+}
+
+.dropdownText {
+  color: #9ca3af;
+  flex: 1;
+}
+
+.dropdownText:not(:empty) {
+  color: #1f2937;
+}
+
+.dropdownArrow {
+  transition: transform 0.2s ease;
+}
+
+.dropdownArrowOpen {
+  transform: rotate(180deg);
+}
+
+.dropdownOptions {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.dropdownOption {
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #1f2937;
+  transition: background-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.dropdownOption:last-child {
+  border-bottom: none;
+}
+
+.dropdownOption:hover {
+  background-color: #f9fafb;
+}
+
+.passwordSection {
+  background-color: #ffffff;
+  padding: 1.5rem;
+}
+
+.label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.passwordInput {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.passwordInput:focus {
+  outline: none;
+  border-color: #8bc4a8;
+}
+
+.infoSection {
+  background-color: #ffffff;
+  padding: 1.5rem;
+}
+
+.infoTitle {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #9ca3af;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.infoList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.infoList li {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+  padding-left: 0.75rem;
+  position: relative;
+  line-height: 1.5;
+}
+
+.infoList li::before {
+  content: '•';
+  color: #6b7280;
+  font-weight: normal;
+  position: absolute;
+  left: 0;
+}
+
+.spacer {
+  flex: 1;
+  background-color: #f8f9fa;
+  min-height: 2rem;
+  margin: 0 -1rem;
+}
+
+.buttonContainer {
+  background-color: #ffffff;
+  padding: 1.5rem;
+}
+
+.withdrawButton {
+  width: 100%;
+  padding: 1rem;
+  background-color: #d1d5db;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: not-allowed;
+  transition: background-color 0.2s ease;
+}
+
+.withdrawButton:not(:disabled) {
+  background-color: #8bc4a8;
+  cursor: pointer;
+}
+
+.withdrawButton:not(:disabled):hover {
+  background-color: #7bb397;
+}
+
+.withdrawButton:not(:disabled):active {
+  background-color: #6ba085;
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 1.5rem 1rem;
+  }
+  
+  .title {
+    font-size: 1.25rem;
+  }
+  
+  .iconContainer {
+    margin-bottom: 1.5rem;
+    margin-top: 1rem;
+  }
+  
+  .trashIcon {
+    width: 60px;
+    height: 60px;
+  }
+} 

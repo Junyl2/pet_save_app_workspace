@@ -16,6 +16,9 @@ export const PAGE_URLS = {
   PRODUCT_DETAIL: (id: number | string) => `/products/${id}`,
   CONTACT_PRODUCT: '/client/pages/products/contact-product',
 
+  // withdrawal
+  MYPAGE_WITHDRAWAL: '/client/pages/my-page/withdrawal',
+
   // Notifications
   NOTIFICATIONS: '/client/pages/notifications',
 
@@ -37,4 +40,5 @@ export const PAGE_URLS = {
   TERMS_REFUND: '/client/pages/my-page/terms-and-conditions/marketing-policy',
   TERMS_LOCATION: '/client/pages/my-page/terms-and-conditions/location-service',
   TERMS_MARKETING: '/client/pages/my-page/terms-and-conditions/marketing-consent',
+
 };
