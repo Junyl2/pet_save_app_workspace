@@ -1,0 +1,142 @@
+.container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding: 0;
+  margin: 0 -16px;
+  width: calc(100% + 32px);
+  box-sizing: border-box;
+  padding-top: 60px;
+}
+
+.content {
+  padding: 0;
+  width: 100%;
+  margin: 0;
+}
+
+.section {
+  background-color: #ffffff;
+  margin-bottom: 8px;
+  border-radius: 0;
+  width: 100%;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+  padding: 20px 16px 0 16px;
+}
+
+.sectionDescription {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 20px 0;
+  padding: 0 16px;
+  line-height: 1.4;
+}
+
+.settingsList {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  gap: 1rem;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.settingItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 16px;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.settingItem:last-child {
+  border-bottom: none;
+}
+
+.settingLabel {
+  font-size: 16px;
+  color: #333;
+  font-weight: 400;
+}
+
+.toggle {
+  position: relative;
+  width: 50px;
+  height: 30px;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  padding: 0;
+  outline: none;
+}
+
+.toggleOff {
+  background-color: #e5e7eb;
+}
+
+.toggleOn {
+  background-color: #8bc4a8;
+}
+
+.toggleSlider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 26px;
+  height: 26px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggleOn .toggleSlider {
+  transform: translateX(20px);
+}
+
+.toggle:focus {
+  outline: 2px solid #8bc4a8;
+  outline-offset: 2px;
+}
+
+.toggle:hover {
+  opacity: 0.8;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .container {
+    padding-top: 50px;
+  }
+
+  .sectionTitle {
+    font-size: 16px;
+    padding: 16px 16px 0 16px;
+  }
+
+  .sectionDescription {
+    font-size: 13px;
+    padding: 0 16px;
+  }
+
+  .settingItem {
+    padding: 14px 16px;
+  }
+
+  .settingLabel {
+    font-size: 15px;
+  }
+}

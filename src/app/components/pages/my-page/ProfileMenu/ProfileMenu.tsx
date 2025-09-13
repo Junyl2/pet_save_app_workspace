@@ -35,7 +35,10 @@ const ProfileMenu = () => {
             label="회원 정보 수정"
             route={PAGE_URLS.MEMBER_INFORMATION}
           />
-          <ProfileItem label="알림 설정" route="/my-page/notifications" />
+          <ProfileItem
+            label="알림 설정"
+            route={PAGE_URLS.NOTIFICATION_SETTINGS}
+          />
           <ProfileItem label="차단 리스트" route="/my-page/block-list" />
         </ProfileSection>
 
