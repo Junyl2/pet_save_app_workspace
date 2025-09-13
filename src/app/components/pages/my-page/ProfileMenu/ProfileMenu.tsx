@@ -6,7 +6,6 @@ import ProfileSection from './ProfileSection/ProfileSection';
 import ProfileItem from './ProfileItem/ProfileItem';
 import styles from './ProfileMenu.module.css';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
-import { PAGE_URLS } from '@/app/utils/page_url';
 import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import LogoutModal from '@/app/components/ui/modal/LogoutModal/LogoutModal';

@@ -26,8 +26,7 @@
 .trashIcon {
   width: 80px;
   height: 80px;
-  
-  
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -211,7 +210,7 @@
 .withdrawButton {
   width: 100%;
   padding: 1rem;
-  background-color: #d1d5db;
+  background-color: #d9d9d9;
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -222,34 +221,34 @@
 }
 
 .withdrawButton:not(:disabled) {
-  background-color: #8bc4a8;
+  background-color: #66bfa7;
   cursor: pointer;
 }
 
 .withdrawButton:not(:disabled):hover {
-  background-color: #7bb397;
+  background-color: #56bfa7;
 }
 
 .withdrawButton:not(:disabled):active {
-  background-color: #6ba085;
+  background-color: #66bfa7;
 }
 
 @media (max-width: 768px) {
   .content {
     padding: 1.5rem 1rem;
   }
-  
+
   .title {
     font-size: 1.25rem;
   }
-  
+
   .iconContainer {
     margin-bottom: 1.5rem;
     margin-top: 1rem;
   }
-  
+
   .trashIcon {
     width: 60px;
     height: 60px;
   }
-} 
+}
