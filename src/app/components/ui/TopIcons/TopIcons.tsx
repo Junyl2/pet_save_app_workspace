@@ -1,7 +1,7 @@
 'use client';
-import Image from 'next/image';
 import styles from './TopIcons.module.css';
 import { useRouter, usePathname } from 'next/navigation';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 export const TopIcons = () => {
   const router = useRouter();
@@ -16,9 +16,9 @@ export const TopIcons = () => {
           aria-label="홈으로 이동"
         >
           {/* go to homepage */}
-          <Image
+          <img
             src="/images/icons/bottom-bar/home-active.png"
-            alt="Notification"
+            alt="Home"
             width={27}
             height={30}
             className={styles.logo}
@@ -26,9 +26,13 @@ export const TopIcons = () => {
         </button>
       )}
 
-      {/* go to notifcations */}
-      <button className={styles.iconBtn}>
-        <Image
+      {/* go to notifications */}
+      <button 
+        className={styles.iconBtn}
+        onClick={() => router.push(PAGE_URLS.NOTIFICATIONS)}
+        aria-label="알림으로 이동"
+      >
+        <img
           src="/images/icons/Bell.svg"
           alt="Notification"
           width={27}
@@ -42,7 +46,7 @@ export const TopIcons = () => {
           className={styles.iconBtn}
           onClick={() => router.push('/shopping-cart')}
         >
-          <Image
+          <img
             src="/images/icons/Cart.png"
             alt="Cart"
             width={27}

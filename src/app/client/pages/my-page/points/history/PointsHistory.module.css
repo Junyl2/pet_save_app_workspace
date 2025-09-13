@@ -1,0 +1,115 @@
+.container {
+  min-height: 100vh;
+  padding-bottom: 20px;
+}
+
+.filterSection {
+  background-color: #f2f4f7;
+  padding: 16px;
+  margin: 0 -16px 0px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: none;
+}
+
+.divider {
+  height: 14px;
+  background-color: #f2f4f7;
+  margin: 0 -16px;
+}
+
+.filterLabel {
+  font-size: 14px;
+  color: #666;
+}
+
+.filterValue {
+  font-size: 14px;
+  font-weight: 400;
+  color: #333;
+}
+
+.historySection {
+  background-color: white;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+
+.historyItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.historyItem:last-child {
+  border-bottom: none;
+}
+
+.historyLeft {
+  flex: 1;
+}
+
+.historyDate {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.historyDescription {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.historySubtitle {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 0;
+}
+
+.historyRight {
+  text-align: right;
+}
+
+.historyAmount {
+  font-size: 16px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.historyAmount.positive {
+  color: #7DB59A;
+}
+
+.historyAmount.negative {
+  color: #333;
+}
+
+.expiryDate {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .filterSection {
+    padding: 14px 16px;
+  }
+  
+  .historyItem {
+    padding: 18px 0;
+  }
+  
+  .historyDescription {
+    font-size: 15px;
+  }
+  
+  .historySubtitle {
+    font-size: 13px;
+  }
+} 

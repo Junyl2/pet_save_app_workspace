@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './ProfileHeader.module.css';
 import Image from 'next/image';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 const ProfileHeader = () => {
   const router = useRouter();
@@ -26,7 +27,7 @@ const ProfileHeader = () => {
     },
     {
       label: '포인트',
-      route: '/mypage/points',
+      route: PAGE_URLS.MYPAGE_POINTS,
       icon: '/images/icons/mypage-star.svg',
     },
   ];
