@@ -1,7 +1,7 @@
 .container {
   min-height: 100vh;
   background-color: #f8f9fa;
-  padding-bottom: 20px;
+  margin-top: 71.59px;
 }
 
 .notificationsList {
@@ -64,7 +64,7 @@
 }
 
 .actionButton:hover {
-  color: #7DB59A;
+  color: #7db59a;
 }
 
 .arrowIcon {
@@ -81,12 +81,12 @@
   .notificationItem {
     padding: 20px 16px;
   }
-  
+
   .title {
     font-size: 15px;
   }
-  
+
   .actionButton {
     font-size: 13px;
   }
-} 
+}
