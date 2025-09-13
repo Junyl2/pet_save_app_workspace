@@ -57,7 +57,7 @@
 .pointAmount {
   font-size: 32px;
   font-weight: 700;
-  color: #7DB59A;
+  color: #7db59a;
   line-height: 1;
 }
 
@@ -197,7 +197,7 @@
 }
 
 .historyAmount.positive {
-  color: #7DB59A;
+  color: #7db59a;
 }
 
 .historyAmount.negative {
@@ -277,7 +277,7 @@
 }
 
 .reviewButton {
-  background-color: #7DB59A;
+  background-color: #7db59a;
   color: white;
   border: none;
   border-radius: 6px;
@@ -289,7 +289,7 @@
 }
 
 .reviewButton:hover {
-  background-color: #6BA085;
+  background-color: #6ba085;
 }
 
 /* Mobile responsive */
@@ -297,21 +297,21 @@
   .pointsSection {
     padding: 20px 16px;
   }
-  
+
   .currentPoints {
     margin-bottom: 20px;
   }
-  
+
   .pointAmount {
     font-size: 24px;
   }
-  
+
   .tabButton {
     font-size: 15px;
     padding: 14px 12px;
   }
-  
+
   .productName {
     font-size: 13px;
   }
-} 
+}
