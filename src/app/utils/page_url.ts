@@ -22,10 +22,18 @@ export const PAGE_URLS = {
   // My Page sections
   MEMBER_INFORMATION: '/client/pages/my-page/member-information', // mypage - member information page
   MEMBER_INFO_PASSWORD: '/client/pages/my-page/member-information/password', // mypage - password change page
-  POINTS: '/client/pages/my-page/points', // mypage - points page
+  MYPAGE_POINTS: '/client/pages/my-page/points', // mypage - points page
   POINTS_HISTORY: '/client/pages/my-page/points/history', // mypage - points history page
   POINTS_GUIDE: '/client/pages/my-page/points/guide', // mypage - points guide page
   ORDER_HISTORY: '/client/pages/my-page/order-history', // mypage - order history page
   TERMS_CONDITIONS: '/client/pages/my-page/terms-and-conditions', // mypage - terms and conditions page
-  MYPAGE_POINTS: '/client/pages/my-page/points',
+
+  // Terms and Conditions
+  TERMS_AND_CONDITIONS: '/client/pages/my-page/terms-and-conditions',
+  TERMS_SERVICE: '/client/pages/my-page/terms-and-conditions/service-terms',
+  TERMS_PRIVACY: '/client/pages/my-page/terms-and-conditions/privacy-policy',
+  TERMS_FINANCIAL: '/client/pages/my-page/terms-and-conditions/location-terms',
+  TERMS_REFUND: '/client/pages/my-page/terms-and-conditions/marketing-policy',
+  TERMS_LOCATION: '/client/pages/my-page/terms-and-conditions/location-service',
+  TERMS_MARKETING: '/client/pages/my-page/terms-and-conditions/marketing-consent',
 };

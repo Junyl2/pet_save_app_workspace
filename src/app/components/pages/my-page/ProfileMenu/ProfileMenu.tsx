@@ -23,7 +23,10 @@ const ProfileMenu = () => {
         <ProfileSection title="고객센터">
           <ProfileItem label="문의내역" route="/my-page/inquiries" />
           <ProfileItem label="사업자등록" route="/my-page/business" />
-          <ProfileItem label="약관 및 정책" route="/my-page/terms" />
+          <ProfileItem
+            label="약관 및 정책"
+            route={PAGE_URLS.TERMS_AND_CONDITIONS}
+          />
         </ProfileSection>
 
         {/* Settings */}
