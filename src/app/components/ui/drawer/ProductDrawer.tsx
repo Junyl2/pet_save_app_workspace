@@ -7,14 +7,22 @@ import { cartService } from '@/app/api/services/cart-service/cartService';
 import toast from 'react-hot-toast';
 import { useCart } from '@/app/context/cartContext';
 
+interface SimpleProduct {
+  id: number;
+  name: string;
+  price: string | number;
+}
+
 interface ProductDrawerProps {
   show: boolean;
-  product: { id: number; name: string; price: string | number } | null;
+  product: SimpleProduct | null;
   quantity: number;
   setQuantity: (q: number) => void;
   onClose: () => void;
   onAddToCart?: (quantity: number, productName: string) => void;
 }
+
+type DeliveryOption = '배송' | '픽업';
 
 export const ProductDrawer = ({
   show,
@@ -26,10 +34,10 @@ export const ProductDrawer = ({
 }: ProductDrawerProps) => {
   const drawerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
-  const [deliveryOption, setDeliveryOption] = useState<'배송' | '픽업'>('배송');
+  const [deliveryOption, setDeliveryOption] = useState<DeliveryOption>('배송');
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const { addToCart } = useCart(); // use context
+  const { addToCart } = useCart(); // context
 
   // Close drawer when clicking outside
   useEffect(() => {
@@ -58,22 +66,19 @@ export const ProductDrawer = ({
 
   const handleAddToCart = async () => {
     setLoading(true);
-
     try {
-      // update local cart immediately
-      addToCart(product as any, quantity);
+      // Type the arg from addToCart’s own signature to avoid `any`
+      addToCart(product as Parameters<typeof addToCart>[0], quantity);
 
-      // optional API call (persistence)
+      // Optional API persistence
       const res = await cartService.addToCart(product.id, quantity);
 
       if (!res.error && res.data?.success) {
         onAddToCart?.(quantity, product.name);
-
         toast.success(`${product.name} 장바구니에 담겼습니다`, {
           style: { background: '#66bfa7' },
           iconTheme: { primary: '#66bfa7', secondary: '#fff' },
         });
-
         onClose();
       } else {
         toast.error('장바구니 추가 실패: ' + res.error);
@@ -141,14 +146,12 @@ export const ProductDrawer = ({
 
           {dropdownOpen && (
             <div className={styles.dropdownList}>
-              {['배송', '픽업'].map((option) => (
+              {(['배송', '픽업'] as DeliveryOption[]).map((option) => (
                 <label key={option} className={styles.dropdownItem}>
                   <input
                     type="checkbox"
                     checked={deliveryOption === option}
-                    onChange={() =>
-                      setDeliveryOption(option as '배송' | '픽업')
-                    }
+                    onChange={() => setDeliveryOption(option)}
                     className={styles.checkbox}
                   />
                   <span className={styles.checkboxLabel}>{option}</span>

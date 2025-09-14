@@ -5,7 +5,7 @@ export type Product = {
   discountPrice?: number | null;
   brand?: string;
   image?: string;
-  deliveryType: "pickup" | "delivery";
+  deliveryType: 'pickup' | 'delivery';
 };
 
 export type OrderItem = {

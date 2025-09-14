@@ -1,22 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+/* import { useRouter } from 'next/navigation'; */
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import styles from './WithdrawalConfirmation.module.css';
-import { PAGE_URLS } from '@/app/utils/page_url';
+/* import { PAGE_URLS } from '@/app/utils/page_url'; */
 
 const WithdrawalConfirmation = () => {
   const [reason, setReason] = useState('');
   const [password, setPassword] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const router = useRouter();
+  /*  const router = useRouter(); */
 
   const handleWithdrawal = () => {
     // Handle withdrawal logic here
     console.log('Withdrawal requested with reason:', reason);
     console.log('Password confirmation:', password);
-    
+
     // Add API call here for actual withdrawal
     // Add your withdrawal API logic here
   };
@@ -28,7 +28,7 @@ const WithdrawalConfirmation = () => {
     '교환/반품 과정이 번거로워요',
     '앱 사용이 불편하고 오류가 많아요',
     '다른 쇼핑몰을 이용하고 있어요',
-    '기타 (직접 입력)'
+    '기타 (직접 입력)',
   ];
 
   const handleDropdownToggle = () => {
@@ -48,34 +48,44 @@ const WithdrawalConfirmation = () => {
           {/* Header section with icon and title */}
           <div className={styles.iconContainer}>
             <div className={styles.trashIcon}>
-            <img 
-              src="/images/icons/trash.svg" 
-              alt="Trash" 
-              width={60} 
-              height={60} 
-            />            </div>
+              <img
+                src="/images/icons/trash.svg"
+                alt="Trash"
+                width={60}
+                height={60}
+              />{' '}
+            </div>
             <h1 className={styles.title}>정말 탈퇴하시겠어요?</h1>
           </div>
-
 
           {/* Reason dropdown section */}
           <div className={styles.formSection}>
             <div className={styles.formGroup}>
               <div className={styles.customDropdown}>
-                <div 
-                  className={`${styles.dropdownButton} ${isDropdownOpen ? styles.dropdownButtonOpen : ''}`}
+                <div
+                  className={`${styles.dropdownButton} ${
+                    isDropdownOpen ? styles.dropdownButtonOpen : ''
+                  }`}
                   onClick={handleDropdownToggle}
                 >
                   <span className={styles.dropdownText}>
                     {reason || '탈퇴 사유 선택'}
                   </span>
-                  <svg 
-                    className={`${styles.dropdownArrow} ${isDropdownOpen ? styles.dropdownArrowOpen : ''}`}
-                    width="12" 
-                    height="12" 
+                  <svg
+                    className={`${styles.dropdownArrow} ${
+                      isDropdownOpen ? styles.dropdownArrowOpen : ''
+                    }`}
+                    width="12"
+                    height="12"
                     viewBox="0 0 12 12"
                   >
-                    <path d="M3 4.5L6 7.5L9 4.5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path
+                      d="M3 4.5L6 7.5L9 4.5"
+                      stroke="#9CA3AF"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </div>
                 {isDropdownOpen && (
@@ -118,8 +128,11 @@ const WithdrawalConfirmation = () => {
             <h3 className={styles.infoTitle}>탈퇴 전 유의사항</h3>
             <ul className={styles.infoList}>
               <li>탈퇴 후 7일간 재가입이 불가능합니다.</li>
-              <li>탈퇴 시 계정의 모든 정보는 삭제되며 재가입 시에도 복구되지 않습니다.</li>
-                    </ul>
+              <li>
+                탈퇴 시 계정의 모든 정보는 삭제되며 재가입 시에도 복구되지
+                않습니다.
+              </li>
+            </ul>
           </div>
 
           {/* Spacer to push button to bottom */}
@@ -127,7 +140,7 @@ const WithdrawalConfirmation = () => {
 
           {/* Withdrawal button */}
           <div className={styles.buttonContainer}>
-            <button 
+            <button
               className={styles.withdrawButton}
               onClick={handleWithdrawal}
               disabled={!reason || !password}
@@ -141,4 +154,4 @@ const WithdrawalConfirmation = () => {
   );
 };
 
-export default WithdrawalConfirmation; 
+export default WithdrawalConfirmation;

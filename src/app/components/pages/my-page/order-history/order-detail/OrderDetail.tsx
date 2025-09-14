@@ -1,28 +1,28 @@
 // app/components/pages/my-page/order-history/[orderId]/OrderDetail.tsx
-"use client";
-import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import DateRange from "@/app/components/ui/DateRange/DateRange";
-import styles from "./OrderDetail.module.css";
-import { mockOrders } from "@/app/components/data/mockOrders";
-import { useRouter } from "next/navigation";
-import { PAGE_URLS } from "@/app/utils/page_url";
-import { ExchangeRefundModal } from "../exchange-refund-modal/ExchangeRefundModal";
+'use client';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import DateRange from '@/app/components/ui/DateRange/DateRange';
+import styles from './OrderDetail.module.css';
+import { mockOrders } from '@/app/components/data/mockOrders';
+import { useRouter } from 'next/navigation';
+import { PAGE_URLS } from '@/app/utils/page_url';
+import { ExchangeRefundModal } from '../exchange-refund-modal/ExchangeRefundModal';
 
 export enum OrderStatus {
-  ORDERED = "주문 완료",
-  CANCELLED = "주문 취소",
-  PREPARING_SHIPMENT = "배송 준비중",
-  SHIPPING = "배송중",
-  DELIVERED = "배송 완료",
-  PREPARING_PRODUCT = "상품 준비중",
-  PRODUCT_READY = "상품 준비완료",
-  PICKUP_IN_PROGRESS = "픽업중",
-  PICKUP_COMPLETED = "픽업 완료",
-  EXCHANGE_REQUESTED = "교환 신청",
-  EXCHANGE_COMPLETED = "교환 완료",
-  REFUND_REQUESTED = "환불 신청",
-  REFUND_COMPLETED = "환불 완료",
+  ORDERED = '주문 완료',
+  CANCELLED = '주문 취소',
+  PREPARING_SHIPMENT = '배송 준비중',
+  SHIPPING = '배송중',
+  DELIVERED = '배송 완료',
+  PREPARING_PRODUCT = '상품 준비중',
+  PRODUCT_READY = '상품 준비완료',
+  PICKUP_IN_PROGRESS = '픽업중',
+  PICKUP_COMPLETED = '픽업 완료',
+  EXCHANGE_REQUESTED = '교환 신청',
+  EXCHANGE_COMPLETED = '교환 완료',
+  REFUND_REQUESTED = '환불 신청',
+  REFUND_COMPLETED = '환불 완료',
 }
 
 export default function OrderDetail() {
@@ -35,11 +35,11 @@ export default function OrderDetail() {
 
   // ✅ Find order from shared mockOrders
   const order = mockOrders.find((o) => o.orderNumber === orderId);
-  const recipientName = order?.recipientName || "홍길동";
+  const recipientName = order?.recipientName || '홍길동';
 
   useEffect(() => {
     if (orderId) {
-      console.log("OrderDetail loaded for orderId:", orderId, order);
+      console.log('OrderDetail loaded for orderId:', orderId, order);
     }
   }, [orderId, order]);
 
@@ -60,28 +60,28 @@ export default function OrderDetail() {
   const total = subtotal * item.quantity + deliveryFee;
 
   const deliveryAddress = {
-    zipCode: "04580",
-    address: "서울특별시 중구 양화대교 407 5층",
-    detailAddress: "",
+    zipCode: '04580',
+    address: '서울특별시 중구 양화대교 407 5층',
+    detailAddress: '',
   };
 
   const formatPrice = (price: number) => price.toLocaleString();
 
   const getStatusText = (status: string) => {
     const statusMap: Record<string, string> = {
-      [OrderStatus.ORDERED]: "주문 완료",
-      [OrderStatus.CANCELLED]: "주문 취소",
-      [OrderStatus.PREPARING_SHIPMENT]: "배송 준비중",
-      [OrderStatus.SHIPPING]: "배송중",
-      [OrderStatus.DELIVERED]: "배송 완료",
-      [OrderStatus.PREPARING_PRODUCT]: "상품 준비중",
-      [OrderStatus.PRODUCT_READY]: "상품 준비완료",
-      [OrderStatus.PICKUP_IN_PROGRESS]: "픽업중",
-      [OrderStatus.PICKUP_COMPLETED]: "픽업 완료",
-      [OrderStatus.EXCHANGE_REQUESTED]: "교환 신청",
-      [OrderStatus.EXCHANGE_COMPLETED]: "교환 완료",
-      [OrderStatus.REFUND_REQUESTED]: "환불 신청",
-      [OrderStatus.REFUND_COMPLETED]: "환불 완료",
+      [OrderStatus.ORDERED]: '주문 완료',
+      [OrderStatus.CANCELLED]: '주문 취소',
+      [OrderStatus.PREPARING_SHIPMENT]: '배송 준비중',
+      [OrderStatus.SHIPPING]: '배송중',
+      [OrderStatus.DELIVERED]: '배송 완료',
+      [OrderStatus.PREPARING_PRODUCT]: '상품 준비중',
+      [OrderStatus.PRODUCT_READY]: '상품 준비완료',
+      [OrderStatus.PICKUP_IN_PROGRESS]: '픽업중',
+      [OrderStatus.PICKUP_COMPLETED]: '픽업 완료',
+      [OrderStatus.EXCHANGE_REQUESTED]: '교환 신청',
+      [OrderStatus.EXCHANGE_COMPLETED]: '교환 완료',
+      [OrderStatus.REFUND_REQUESTED]: '환불 신청',
+      [OrderStatus.REFUND_COMPLETED]: '환불 완료',
     };
     return statusMap[status] || status;
   };
@@ -106,7 +106,7 @@ export default function OrderDetail() {
         return styles.statusBlue;
 
       default:
-        return "";
+        return '';
     }
   };
 
@@ -229,7 +229,7 @@ export default function OrderDetail() {
 
         <div className={styles.pickupAddress}>
           <p>
-            (픽업 장소) {deliveryAddress.address}{" "}
+            (픽업 장소) {deliveryAddress.address}{' '}
             {deliveryAddress.detailAddress}
           </p>
         </div>
@@ -296,8 +296,8 @@ export default function OrderDetail() {
         orderId={orderId}
         product={item.product} // ✅ passing full product
         onSelect={(choice) => {
-          console.log("User selected:", choice);
-          if (choice === "exchange") {
+          console.log('User selected:', choice);
+          if (choice === 'exchange') {
             router.push(`/exchange/${orderId}`);
           } else {
             router.push(`/refund/${orderId}`);

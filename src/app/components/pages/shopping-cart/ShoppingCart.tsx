@@ -13,39 +13,21 @@ export default function ShoppingCartPage() {
   const { cart, removeFromCart, increaseQuantity, decreaseQuantity } =
     useCart();
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
-
-  // delete modal state
   const [deleteTarget, setDeleteTarget] = useState<null | { ids: number[] }>(
     null
   );
-  const handleOrder = (items: typeof cart) => {
-    const selected = items.filter(({ product }) =>
-      selectedItems.includes(product.id)
-    );
 
-    if (selected.length === 0) return;
-
-    // Save to localStorage
-    localStorage.setItem('checkoutItems', JSON.stringify(selected));
-
-    router.push('/shopping-cart/delivery-payment');
+  // ✅ safe number helper
+  const num = (v: unknown): number => {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string') {
+      const parsed = parseFloat(v.replace(/[^\d.]/g, ''));
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
   };
 
-  if (cart.length === 0) {
-    return (
-      <div className={styles.emptyContainer}>
-        <Image
-          src="/images/icons/cart-result.svg"
-          alt="Cart is Empty"
-          height={64}
-          width={64}
-        />
-        <p className={styles.emptyMessage}>장바구니에 담긴 상품이 없습니다.</p>
-      </div>
-    );
-  }
-
-  // group by shopName (fallback to "기타")
+  // group by shop
   const grouped = useMemo(() => {
     const map: Record<string, typeof cart> = {};
     cart.forEach((item) => {
@@ -56,14 +38,16 @@ export default function ShoppingCartPage() {
     return map;
   }, [cart]);
 
-  // toggle single product selection
-  const toggleSelectItem = (id: number) => {
-    setSelectedItems((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+  const handleOrder = (items: typeof cart) => {
+    const selected = items.filter(({ product }) =>
+      selectedItems.includes(product.id)
     );
+    if (selected.length === 0) return;
+    localStorage.setItem('checkoutItems', JSON.stringify(selected));
+    router.push('/shopping-cart/delivery-payment');
   };
 
-  // calculate per-store summary
+  // calculate per-store summary safely
   const calcStoreSummary = (items: typeof cart) => {
     let original = 0;
     let discount = 0;
@@ -72,10 +56,13 @@ export default function ShoppingCartPage() {
     items.forEach(({ product, quantity }) => {
       if (!selectedItems.includes(product.id)) return;
 
-      const unitOriginal = product.price * quantity;
-      const unitDiscount =
-        (product.price - (product.discountPrice ?? product.price)) * quantity;
-      const unitFinal = (product.discountPrice ?? product.price) * quantity;
+      const base = num(product.price);
+      const disc =
+        product.discountPrice != null ? num(product.discountPrice) : null;
+
+      const unitOriginal = base * quantity;
+      const unitFinal = (disc ?? base) * quantity;
+      const unitDiscount = (base - (disc ?? base)) * quantity;
 
       original += unitOriginal;
       discount += unitDiscount;
@@ -97,13 +84,27 @@ export default function ShoppingCartPage() {
     { original: 0, discount: 0, final: 0 }
   );
 
+  // empty state
+  if (cart.length === 0) {
+    return (
+      <div className={styles.emptyContainer}>
+        <Image
+          src="/images/icons/cart-result.svg"
+          alt="Cart is Empty"
+          height={64}
+          width={64}
+        />
+        <p className={styles.emptyMessage}>장바구니에 담긴 상품이 없습니다.</p>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       {Object.entries(grouped).map(([store, items]) => {
         const { original, discount, final } = calcStoreSummary(items);
         const hasSelection = final > 0;
 
-        // collect product ids for this store
         const storeItemIds = items.map(({ product }) => product.id);
         const isAllSelected = storeItemIds.every((id) =>
           selectedItems.includes(id)
@@ -120,6 +121,12 @@ export default function ShoppingCartPage() {
               ...storeItemIds.filter((id) => !prev.includes(id)),
             ]);
           }
+        };
+
+        const toggleSelectItem = (id: number) => {
+          setSelectedItems((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+          );
         };
 
         return (
@@ -150,70 +157,80 @@ export default function ShoppingCartPage() {
             </div>
             <div className={styles.separator}></div>
 
-            {items.map(({ product, quantity }) => (
-              <div key={product.id} className={styles.item}>
-                <div>
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.includes(product.id)}
-                    onChange={() => toggleSelectItem(product.id)}
-                    className={styles.checkbox}
-                  />
-                </div>
-                <div className={styles.left}>
-                  <div className={styles.thumb}>
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      width={80}
-                      height={80}
+            {items.map(({ product, quantity }) => {
+              const basePrice = num(product.price);
+              const discounted =
+                product.discountPrice != null
+                  ? num(product.discountPrice)
+                  : null;
+
+              return (
+                <div key={product.id} className={styles.item}>
+                  <div>
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(product.id)}
+                      onChange={() => toggleSelectItem(product.id)}
+                      className={styles.checkbox}
                     />
                   </div>
-                </div>
-
-                <div className={styles.right}>
-                  <div className={styles.info}>
-                    <h3>{product.name}</h3>
-                    <p>{product.shopName}</p>
-                    <p>{product.expiration}까지</p>
-                  </div>
-
-                  <div className={styles.priceSection}>
-                    {product.discountPrice ? (
-                      <>
-                        <span className={styles.original}>
-                          {product.price.toLocaleString()}원
-                        </span>
-                        <span className={styles.discount}>
-                          할인가 {product.discountPrice.toLocaleString()}원
-                        </span>
-                      </>
-                    ) : (
-                      <span>{product.price.toLocaleString()}원</span>
-                    )}
-                    <div className={styles.quantityControls}>
-                      <button onClick={() => decreaseQuantity(product.id)}>
-                        <FiMinus size={18} color="rgba(0,0,0,0.4)" />
-                      </button>
-                      <span style={{ color: 'rgba(0,0,0,0.8)' }}>
-                        {quantity}
-                      </span>
-                      <button onClick={() => increaseQuantity(product.id)}>
-                        <FiPlus size={18} color="rgba(0,0,0,0.4)" />
-                      </button>
+                  <div className={styles.left}>
+                    <div className={styles.thumb}>
+                      <Image
+                        src={
+                          product.image ?? '/images/products/placeholder.png'
+                        }
+                        alt={product.name}
+                        width={80}
+                        height={80}
+                      />
                     </div>
                   </div>
+
+                  <div className={styles.right}>
+                    <div className={styles.info}>
+                      <h3>{product.name}</h3>
+                      <p>{product.shopName}</p>
+                      {product.expiration && <p>{product.expiration}까지</p>}
+                    </div>
+
+                    <div className={styles.priceSection}>
+                      {discounted !== null ? (
+                        <>
+                          <span className={styles.original}>
+                            {basePrice.toLocaleString()}원
+                          </span>
+                          <span className={styles.discount}>
+                            할인가 {discounted.toLocaleString()}원
+                          </span>
+                        </>
+                      ) : (
+                        <span>{basePrice.toLocaleString()}원</span>
+                      )}
+                      <div className={styles.quantityControls}>
+                        <button onClick={() => decreaseQuantity(product.id)}>
+                          <FiMinus size={18} color="rgba(0,0,0,0.4)" />
+                        </button>
+                        <span style={{ color: 'rgba(0,0,0,0.8)' }}>
+                          {quantity}
+                        </span>
+                        <button onClick={() => increaseQuantity(product.id)}>
+                          <FiPlus size={18} color="rgba(0,0,0,0.4)" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={styles.deleteButton}>
+                    <button
+                      onClick={() => setDeleteTarget({ ids: [product.id] })}
+                      className={styles.oneDelete}
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
-                <div className={styles.deleteButton}>
-                  <button
-                    onClick={() => setDeleteTarget({ ids: [product.id] })}
-                    className={styles.oneDelete}
-                  >
-                    삭제
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Store Summary */}
             <div className={styles.summaryBox}>
@@ -231,7 +248,6 @@ export default function ShoppingCartPage() {
                 <span>주문금액</span>
                 <span>{final.toLocaleString()}원</span>
               </div>
-              {/* store buttons */}
               <button
                 disabled={!hasSelection}
                 onClick={() => handleOrder(items)}
@@ -258,7 +274,6 @@ export default function ShoppingCartPage() {
           <p>총 {selectedItems.length}건 주문금액 </p>
           <p>{globalSummary.final.toLocaleString()}원</p>
         </div>
-        {/* global button */}
         <button
           disabled={selectedItems.length === 0}
           onClick={() => handleOrder(cart)}

@@ -1,5 +1,6 @@
+import React from 'react';
 import styles from '../DeliveryPayment.module.css';
-import { useState } from 'react';
+/* import { useState } from 'react'; */
 
 interface PaymentMethodProps {
   payCategory: 'quick' | 'card' | 'bank' | null;
