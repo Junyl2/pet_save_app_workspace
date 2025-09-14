@@ -17,7 +17,7 @@ export const PAGE_URLS = {
   CONTACT_PRODUCT: "/client/pages/products/contact-product",
 
   // withdrawal
-  MYPAGE_WITHDRAWAL: '/client/pages/my-page/withdrawal',
+  MYPAGE_WITHDRAWAL: "/client/pages/my-page/withdrawal",
 
   // Notifications
   NOTIFICATIONS: "/client/pages/notifications",
@@ -30,10 +30,13 @@ export const PAGE_URLS = {
   POINTS_GUIDE: "/client/pages/my-page/points/guide", // mypage - points guide page
   ORDER_HISTORY: "/client/pages/my-page/order-history", // mypage - order history page
   TERMS_CONDITIONS: "/client/pages/my-page/terms-and-conditions", // mypage - terms and conditions page
+
+  STEAMED_PRODUCTS: "/client/pages/my-page/steamed-products",
   NOTIFICATION_SETTINGS: '/client/pages/my-page/notification-settings', // mypage - notification settings page
   NOTICE_PAGE: "/client/pages/my-page/notice-list",
   NOTICE_DETAIL: (noticeId: string) =>
     `/client/pages/my-page/notice-list/${noticeId}`,
+
 
   // Terms and Conditions
   TERMS_AND_CONDITIONS: "/client/pages/my-page/terms-and-conditions",

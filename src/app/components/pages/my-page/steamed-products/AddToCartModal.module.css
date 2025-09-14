@@ -1,0 +1,238 @@
+/* AddToCartModal.module.css */
+
+.modalContent {
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 4px;
+}
+
+.closeButton:hover {
+  color: #333;
+}
+
+/* Main content container with green border */
+.contentContainer {
+  border: 2px solid #66bfa7;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+/* Quantity Section */
+.quantitySection {
+  padding: 0;
+  border-bottom: 1px solid #66bfa7;
+}
+
+.quantityRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+}
+
+.quantityLabel {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.quantityControls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #ccc;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.quantityButton {
+  width: 25px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 30px;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.quantityButton:hover:not(:disabled) {
+  border-color: #4caf50;
+  color: #4caf50;
+}
+
+.quantityButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quantityDisplay {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  min-width: 30px;
+  text-align: center;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #66bfa7;
+}
+
+.summaryLabel {
+  font-size: 16px;
+  color: #333;
+}
+
+.summaryValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Shipping Section */
+.shippingSection {
+  padding: 0;
+}
+
+.shippingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 16px 20px;
+}
+
+.shippingLabel {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.dropdownArrow {
+  font-size: 12px;
+  color: #666;
+  transition: transform 0.3s ease;
+}
+
+.dropdownArrow.expanded {
+  transform: rotate(180deg);
+}
+
+.shippingOptions {
+  margin-top: 16px;
+  display: none;
+  padding: 16px 20px;
+}
+
+.shippingOptions.expanded {
+  display: block;
+  padding: 0;
+}
+
+.shippingOption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #66bfa7;
+  cursor: pointer;
+}
+
+.shippingCheckbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.shippingCheckbox.checked {
+  background-color: #66bfa7;
+  border-color: #66bfa7;
+}
+
+.checkIcon {
+  color: white;
+  font-size: 12px;
+  display: none;
+}
+
+.shippingCheckbox.checked .checkIcon {
+  display: block;
+}
+
+.optionLabel {
+  font-size: 14px;
+  color: #333;
+  flex: 1;
+}
+
+/* Action Buttons */
+.actionButtons {
+  display: flex;
+  gap: 12px;
+}
+
+.actionButton {
+  flex: 1;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.addToCartButton {
+  background-color: #ffffff;
+  color: black;
+  border: 2px solid #66bfa7;
+}
+
+.addToCartButton:hover {
+  background-color: #66bfa7;
+}
+
+.purchaseButton {
+  background-color: #66bfa7;
+  color: white;
+  border: none;
+}
+
+.purchaseButton:hover {
+  background-color: #66bfa7;
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionButton:disabled:hover {
+  background-color: initial;
+}
