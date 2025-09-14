@@ -1,0 +1,284 @@
+/* app/components/pages/my-page/order-history/[orderId]/OrderDetail.module.css */
+
+.container {
+  background-color: #f9fafb;
+  min-height: 100vh;
+  margin: 60px -16px 0;
+}
+
+.content {
+  background-color: white;
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.orderNumber {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #6b7280;
+  margin: 0;
+  text-decoration: underline;
+}
+
+.dateRangeWrapper {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+}
+
+.section {
+  padding: 16px;
+  border-bottom: 1px solid #f3f4f6;
+
+  padding: 12px 16px; /* top/bottom 0, left/right 16px */
+}
+
+.sectionTitle {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+  margin-top: 0;
+  font-size: 16px;
+  padding: 0;
+}
+
+.priceList {
+  font-size: 14px;
+}
+
+.priceItem {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.paymentMethod {
+  border-top: 1px solid #f3f4f6;
+  padding-top: 8px;
+}
+
+.priceLabel {
+  color: #6b7280;
+}
+
+.priceValue {
+  color: #111827;
+}
+
+.discountValue {
+  color: #ef4444;
+}
+
+.totalPrice {
+  display: flex;
+  justify-content: space-between;
+}
+
+.totalLabel {
+  font-weight: 600;
+  color: #111827;
+}
+
+.totalValue {
+  font-weight: 600;
+  color: #111827;
+}
+
+.addressInfo {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.addressLine {
+  margin-bottom: 4px;
+  margin-top: 0;
+}
+.deliverySection {
+  background-color: white;
+  padding: 6px 16px;
+  margin-top: 16px;
+}
+
+.itemsHeader {
+  margin-bottom: 12px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.recipientInfo p {
+  font-size: 14px;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.pickupAddress p {
+  font-size: 14px;
+  color: #4b5563; /* gray-700 */
+  margin: 12px 0;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #e5e7eb; /* gray-200 */
+  margin: 12px 0;
+}
+
+.pickupNote p {
+  font-size: 13px;
+  color: #6b7280; /* gray-500 */
+}
+
+.itemsSection {
+  background-color: white;
+  padding: 6 16px;
+  margin-top: 16px;
+}
+
+.itemsHeader {
+  padding-top: 12px;
+}
+
+.orderItem {
+  padding: 16px;
+}
+
+.itemContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.itemImage {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  background-color: #f3f4f6;
+}
+
+.itemDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 4px;
+  margin-top: 0;
+}
+
+.itemPricing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.originalPrice {
+  font-size: 12px;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.itemPrice {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.itemQuantity {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.actionsSection {
+  margin-top: 16px;
+  background-color: white;
+  padding: 16px 16px;
+}
+
+.primaryActions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.secondaryButton {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  background-color: white;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+}
+
+.primaryButton {
+  flex: 1;
+  padding: 12px 16px;
+  background-color: #10b981;
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.additionalActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.actionButton {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  border: none;
+  cursor: pointer;
+}
+
+.secondaryButton:hover,
+.actionButton:hover {
+  background-color: #f3f4f6;
+}
+
+.primaryButton:hover {
+  background-color: #059669;
+}
+
+.status {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* 🔴 Red statuses */
+.statusRed {
+  color: #f44336; /* red */
+}

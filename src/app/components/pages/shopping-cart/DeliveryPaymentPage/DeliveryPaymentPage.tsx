@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import styles from './DeliveryPayment.module.css';
+import { useEffect, useMemo, useState } from "react";
+import styles from "./DeliveryPayment.module.css";
 
-import CartSummary from './CartSummary/CartSummary';
-import CartItemList from './CartItemList/CartItemList';
-import DeliveryOptions from './DevlieryOptions/DeliveryOptions';
-import AddressBlock from './AddressBlock/AddressBlock';
-import DeliveryRequests from './DeliveryRequests/DeliveryRequests';
-import PointsDiscount from './PointsDiscount/PointsDiscount';
-import PaymentSummary from './PaymentSummary/PaymentSummary';
-import PaymentMethod from './PaymentMethod/PaymentMethod';
-import Agreements from './Agreements/Agreements';
-import PayButton from './PayButton/PayButton';
+import CartSummary from "./CartSummary/CartSummary";
+import CartItemList from "./CartItemList/CartItemList";
+import DeliveryOptions from "./DevlieryOptions/DeliveryOptions";
+import AddressBlock from "./AddressBlock/AddressBlock";
+import DeliveryRequests from "./DeliveryRequests/DeliveryRequests";
+import PointsDiscount from "./PointsDiscount/PointsDiscount";
+import PaymentSummary from "./PaymentSummary/PaymentSummary";
+import PaymentMethod from "./PaymentMethod/PaymentMethod";
+import Agreements from "./Agreements/Agreements";
+import PayButton from "./PayButton/PayButton";
 
 export type Product = {
   id: number;
@@ -37,26 +37,26 @@ export default function DeliveryPaymentPage() {
   const [isOpen, setIsOpen] = useState(false);
 
   const [deliveryOption, setDeliveryOption] = useState<
-    'delivery' | 'pickup' | null
+    "delivery" | "pickup" | null
   >(null);
 
-  const [requestNote, setRequestNote] = useState('');
-  const [customRequest, setCustomRequest] = useState('');
+  const [requestNote, setRequestNote] = useState("");
+  const [customRequest, setCustomRequest] = useState("");
   const [usePoints, setUsePoints] = useState(0);
 
   const [payCategory, setPayCategory] = useState<
-    'quick' | 'card' | 'bank' | null
-  >('quick');
+    "quick" | "card" | "bank" | null
+  >("quick");
   const [quickBrand, setQuickBrand] = useState<
-    'toss' | 'kakao' | 'naver' | null
-  >('kakao');
+    "toss" | "kakao" | "naver" | null
+  >("kakao");
 
   const [agreeOrderInfo, setAgreeOrderInfo] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeFinal, setAgreeFinal] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('checkoutItems');
+    const saved = localStorage.getItem("checkoutItems");
     if (saved) setOrderItems(JSON.parse(saved));
   }, []);
 
@@ -93,7 +93,7 @@ export default function DeliveryPaymentPage() {
   const totalDue = Math.max(0, subtotal - usePoints) + SHIPPING_FEE;
   const canPay =
     !!payCategory &&
-    (payCategory !== 'quick' || !!quickBrand) &&
+    (payCategory !== "quick" || !!quickBrand) &&
     agreeOrderInfo &&
     agreePrivacy &&
     agreeFinal;
@@ -102,7 +102,7 @@ export default function DeliveryPaymentPage() {
     if (!canPay) return;
     alert(
       `[결제 시뮬레이션]\n방식: ${payCategory}${
-        payCategory === 'quick' ? ` (${quickBrand})` : ''
+        payCategory === "quick" ? ` (${quickBrand})` : ""
       }\n결제 금액: ${totalDue.toLocaleString()}원`
     );
   };

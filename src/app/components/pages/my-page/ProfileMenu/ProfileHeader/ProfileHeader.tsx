@@ -12,7 +12,8 @@ const ProfileHeader = () => {
   const actions = [
     {
       label: "주문 내역",
-      route: "/mypage/orders",
+      route: PAGE_URLS.ORDER_HISTORY,
+
       icon: "/images/icons/mypage-note.svg",
     },
     {
