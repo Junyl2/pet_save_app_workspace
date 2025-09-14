@@ -21,7 +21,10 @@ const ProfileMenu = () => {
 
         {/* Customer Service */}
         <ProfileSection title="고객센터">
-          <ProfileItem label="문의내역" route="/my-page/inquiries" />
+          <ProfileItem
+            label="문의내역"
+            route="/client/pages/my-page/history-inquiry"
+          />
           <ProfileItem label="사업자등록" route="/my-page/business" />
           <ProfileItem
             label="약관 및 정책"

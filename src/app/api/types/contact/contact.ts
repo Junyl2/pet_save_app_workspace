@@ -9,3 +9,9 @@ export type ContactInquiry = {
   responseMessage: string;
   status: '답변 대기 중' | '답변 완료';
 };
+
+export type CreateInquiryPayload = {
+  category: string;
+  message: string;
+  images?: File[] | string[];
+};

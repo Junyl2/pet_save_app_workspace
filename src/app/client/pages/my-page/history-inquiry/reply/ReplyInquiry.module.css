@@ -1,0 +1,134 @@
+.page {
+  background: #f2f4f7;
+  min-height: 100dvh;
+  padding: 64px 0 24px; /* leave space for header */
+}
+
+/* Tabs (Frame 1575) */
+.tabsBar {
+  position: sticky;
+  top: 64px; /* under ProductHeader */
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tab {
+  font-size: 14px;
+  line-height: 16px;
+}
+
+.tabActive {
+  color: rgb(102, 191, 167); /* #66BFA7 approx to Figma fill */
+  font-weight: 600;
+}
+
+.tabInactive {
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 500;
+}
+
+/* Section spacing like itemSpacing in Figma */
+.block {
+  padding: 16px;
+}
+
+/* Meta line "거래/결제 관련 문의 | 25.07.30" */
+.meta {
+  margin-bottom: 15px; /* Figma itemSpacing: 15 */
+}
+
+.category {
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 14px;
+}
+
+/* White card with thin border and radius 10 */
+.card {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.cardTall {
+  min-height: 200px; /* just to reflect taller reply area; Figma shows 488 height incl. paddings */
+}
+
+.cardInner {
+  padding: 16px 14px; /* Figma shows offsets around 14–16 */
+}
+
+/* Question text (Frame 1740 -> text) */
+.question {
+  color: #000;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* Reply title "답변드립니다." */
+.replyTitle {
+  margin: 17px 16px 10px 16px; /* match Figma y:17 and spacing */
+  font-size: 16px;
+  font-weight: 700;
+  color: #000;
+}
+
+/* Reply long content */
+.replyText {
+  color: #000;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* Skeletons (simple) */
+.skelCard,
+.skelCardTall {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skelCard {
+  height: 140px;
+}
+.skelCardTall {
+  height: 280px;
+}
+
+.skelCard::after,
+.skelCardTall::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.04) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  animation: shimmer 1.2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Empty state */
+.empty {
+  padding: 24px 16px;
+  color: rgba(0, 0, 0, 0.6);
+  text-align: center;
+}

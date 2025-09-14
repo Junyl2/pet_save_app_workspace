@@ -179,3 +179,14 @@
   margin-top: 1rem;
   background-color: #f9f9f9;
 }
+
+/* history inquiry */
+/* === Frame 1575 (Top Tabs) === */
+/* make completed cards feel interactive */
+.clickable {
+  cursor: pointer;
+}
+.clickable:hover {
+  transform: translateY(-1px);
+  transition: transform 120ms ease;
+}
