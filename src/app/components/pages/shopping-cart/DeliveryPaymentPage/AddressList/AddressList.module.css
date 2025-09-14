@@ -1,5 +1,3 @@
-@import url('../../../../../client/globals.css');
-
 .container {
   display: grid;
   gap: 1rem;
@@ -74,8 +72,8 @@
 }
 
 .radioWrapper input[type='radio']:checked + .customRadio {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
+  background-color: #66bfa7;
+  border-color: #66bfa7;
 }
 .radioWrapper input[type='radio']:checked + .customRadio::before {
   content: '';
@@ -104,7 +102,7 @@
 
 .labelSelected {
   color: #fff;
-  background-color: var(--primary-color);
+  background-color: #66bfa7;
   margin-top: 0;
   width: fit-content;
   padding: 0.4rem 0.6rem;
@@ -173,7 +171,7 @@
   height: 48px;
   border-radius: 5px;
   background: transparent;
-  border: 1px solid var(--primary-color);
+  border: 1px solid #66bfa7;
   color: #111827;
   font-weight: 600;
   cursor: pointer;
@@ -183,7 +181,7 @@
   flex: 1 1 50%;
   height: 48px;
   border-radius: 5px;
-  background: var(--primary-color); /* filled */
+  background: #66bfa7;
   color: #ffffff;
   border: none;
   font-weight: 700;
@@ -193,4 +191,13 @@
 .btnPrimary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (min-width: 1025px) {
+  .topBar,
+  .bottomBar {
+    width: 436px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }

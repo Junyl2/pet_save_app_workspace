@@ -1,7 +1,7 @@
 'use client';
 
 import styles from './AddressList.module.css';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { FiArrowLeft } from 'react-icons/fi';
@@ -59,10 +59,10 @@ export default function AddressList() {
 
   const router = useRouter();
 
-  const selectedLabel = useMemo(
+  /*  const selectedLabel = useMemo(
     () => addresses.find((a) => a.id === selectedId)?.label ?? '',
     [addresses, selectedId]
-  );
+  ); */
 
   // Custom toast with 확인 button
   const showConfirmToast = (message: string) => {

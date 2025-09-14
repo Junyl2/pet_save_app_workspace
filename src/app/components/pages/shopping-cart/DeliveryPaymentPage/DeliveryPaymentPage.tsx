@@ -14,7 +14,7 @@ import PaymentSummary from './PaymentSummary/PaymentSummary';
 import PaymentMethod from './PaymentMethod/PaymentMethod';
 import Agreements from './Agreements/Agreements';
 import PayButton from './PayButton/PayButton';
-import OrderConfirmation from './OrderConfirmation/OrderConfirmation';
+/* import OrderConfirmation from './OrderConfirmation/OrderConfirmation'; */
 import { PAGE_URLS } from '@/app/utils/page_url';
 
 export type Product = {

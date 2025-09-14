@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { FaCheck } from "react-icons/fa";
-import styles from "./SuccessMessage.module.css";
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { FaCheck } from 'react-icons/fa';
+import styles from './SuccessMessage.module.css';
 
 interface SuccessMessageProps {
   isVisible: boolean;
@@ -13,65 +13,61 @@ interface SuccessMessageProps {
   onAction?: () => void;
   onHide: () => void;
   duration?: number;
-  type?: "success" | "warning" | "error" | "info";
+  type?: 'success' | 'warning' | 'error' | 'info';
 }
 
 export function SuccessMessage({
   isVisible,
   message,
-  actionText = "이동",
+  actionText = '이동',
   actionRoute,
   onAction,
   onHide,
   duration = 4000,
-  type = "success",
+  type = 'success',
 }: SuccessMessageProps) {
   const router = useRouter();
   const [isAnimationVisible, setIsAnimationVisible] = useState(false);
 
-  useEffect(() => {
-    if (isVisible) {
-      setIsAnimationVisible(true);
-
-      const hideTimer = setTimeout(() => {
-        handleHide();
-      }, duration);
-
-      return () => {
-        clearTimeout(hideTimer);
-      };
-    } else {
-      setIsAnimationVisible(false);
-    }
-  }, [isVisible, duration]);
-
-  const handleHide = () => {
+  const handleHide = useCallback(() => {
     setIsAnimationVisible(false);
-    setTimeout(() => {
-      onHide();
-    }, 300); // Wait for animation to complete
-  };
+    // wait for hide animation to finish
+    const t = setTimeout(() => onHide(), 300);
+    return () => clearTimeout(t);
+  }, [onHide]);
 
-  const handleAction = () => {
+  const handleAction = useCallback(() => {
     if (onAction) {
       onAction();
     } else if (actionRoute) {
       router.push(actionRoute);
     }
     handleHide();
-  };
+  }, [onAction, actionRoute, router, handleHide]);
 
-  if (!isVisible) {
-    return null;
-  }
+  useEffect(() => {
+    if (!isVisible) {
+      setIsAnimationVisible(false);
+      return;
+    }
+
+    setIsAnimationVisible(true);
+    const hideTimer = setTimeout(() => {
+      handleHide();
+    }, duration);
+
+    return () => clearTimeout(hideTimer);
+  }, [isVisible, duration, handleHide]);
+
+  if (!isVisible) return null;
 
   const messageClassNames = [
     styles.successMessage,
-    isAnimationVisible ? styles.visible : "",
+    isAnimationVisible ? styles.visible : '',
     styles[type],
   ]
     .filter(Boolean)
-    .join(" ");
+    .join(' ');
 
   return (
     <div className={messageClassNames}>

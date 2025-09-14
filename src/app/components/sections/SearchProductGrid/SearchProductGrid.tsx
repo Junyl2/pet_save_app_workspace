@@ -286,11 +286,21 @@ export default function SearchProductGrid({
           ))}
         </div>
 
-        {selectedProduct && (
+        {/*  {selectedProduct && (
           <CartModal
             open={cartOpen}
             onClose={() => setCartOpen(false)}
             product={selectedProduct}
+          />
+        )} */}
+        {selectedProduct && (
+          <CartModal
+            open={cartOpen}
+            onClose={() => setCartOpen(false)}
+            productName={selectedProduct.name}
+            productPrice={
+              selectedProduct.discountPrice ?? selectedProduct.price ?? 0
+            }
           />
         )}
       </section>

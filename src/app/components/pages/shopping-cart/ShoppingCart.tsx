@@ -180,7 +180,7 @@ export default function ShoppingCartPage() {
                         src={
                           product.image ?? '/images/products/placeholder.png'
                         }
-                        alt={product.name}
+                        alt={product.name || 'Product Image'}
                         width={80}
                         height={80}
                       />
