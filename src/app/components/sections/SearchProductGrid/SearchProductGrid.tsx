@@ -290,10 +290,7 @@ export default function SearchProductGrid({
           <CartModal
             open={cartOpen}
             onClose={() => setCartOpen(false)}
-            productName={selectedProduct.name}
-            productPrice={
-              selectedProduct.discountPrice ?? selectedProduct.price
-            }
+            product={selectedProduct}
           />
         )}
       </section>
