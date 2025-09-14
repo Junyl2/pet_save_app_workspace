@@ -46,7 +46,7 @@ const ProfileMenu = () => {
         <ProfileSection title="기타">
           <ProfileItem
             label="공지사항"
-            route="/mypage/notices"
+            route={PAGE_URLS.NOTICE_PAGE}
             showChevron={false}
           />
           <ProfileItem
