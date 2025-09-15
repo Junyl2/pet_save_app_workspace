@@ -1,15 +1,22 @@
 .container {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  margin-top: 71.59px;
+  background-color: #ffffff;
   padding-bottom: 20px;
 }
 
 .pointsSection {
   background-color: white;
   padding: 24px 0;
-  margin: 0 -16px 20px;
+  margin: 0 -16px 0px;
   padding-left: 16px;
   padding-right: 16px;
+}
+
+.divider {
+  height: 14px;
+  background-color: #f2f4f7;
+  margin: 0 -16px;
 }
 
 .sectionTitle {
@@ -22,27 +29,36 @@
 .currentPoints {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 24px;
 }
 
-.pointIcon {
-  width: 32px;
-  height: 32px;
-  background-color: #7DB59A;
-  color: white;
+/* Circular wrapper to ensure perfect circle */
+.pointIconWrap {
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  display: flex;
+  overflow: hidden;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
+}
+
+/* Show the provided PNG clean and crisp */
+.pointIconImage {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .pointAmount {
-  font-size: 24px;
-  font-weight: 600;
-  color: #7DB59A;
+  font-size: 32px;
+  font-weight: 700;
+  color: #7db59a;
+  line-height: 1;
 }
 
 .pointsInfoButton {
@@ -125,7 +141,7 @@
 
 .historySection {
   background-color: white;
-  margin: 0 -16px 20px;
+  margin: 0 -16px 0px;
   padding: 0 16px;
 }
 
@@ -181,7 +197,7 @@
 }
 
 .historyAmount.positive {
-  color: #7DB59A;
+  color: #7db59a;
 }
 
 .historyAmount.negative {
@@ -261,7 +277,7 @@
 }
 
 .reviewButton {
-  background-color: #7DB59A;
+  background-color: #7db59a;
   color: white;
   border: none;
   border-radius: 6px;
@@ -273,7 +289,7 @@
 }
 
 .reviewButton:hover {
-  background-color: #6BA085;
+  background-color: #6ba085;
 }
 
 /* Mobile responsive */
@@ -281,21 +297,21 @@
   .pointsSection {
     padding: 20px 16px;
   }
-  
+
   .currentPoints {
     margin-bottom: 20px;
   }
-  
+
   .pointAmount {
-    font-size: 22px;
+    font-size: 24px;
   }
-  
+
   .tabButton {
     font-size: 15px;
     padding: 14px 12px;
   }
-  
+
   .productName {
     font-size: 13px;
   }
-} 
+}

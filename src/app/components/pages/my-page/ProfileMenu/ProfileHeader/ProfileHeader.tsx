@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './ProfileHeader.module.css';
 import Image from 'next/image';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 const ProfileHeader = () => {
   const router = useRouter();
@@ -11,22 +12,23 @@ const ProfileHeader = () => {
   const actions = [
     {
       label: '주문 내역',
-      route: '/mypage/orders',
+      route: PAGE_URLS.ORDER_HISTORY,
+
       icon: '/images/icons/mypage-note.svg',
     },
     {
       label: '리뷰',
-      route: '/mypage/reviews',
+      route: PAGE_URLS.REVIEWS,
       icon: '/images/icons/mypage-take-note.svg',
     },
     {
       label: '찜한 상품',
-      route: '/mypage/wishlist',
+      route: PAGE_URLS.STEAMED_PRODUCTS,
       icon: '/images/icons/mypage-heart.svg',
     },
     {
       label: '포인트',
-      route: '/mypage/points',
+      route: PAGE_URLS.MYPAGE_POINTS,
       icon: '/images/icons/mypage-star.svg',
     },
   ];

@@ -1,0 +1,129 @@
+/* SuccessScreen.module.css */
+
+/* Container and Layout */
+.container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f5f5f5; /* Gray background that will be visible between sections */
+  padding-top: 90px;
+  padding-bottom: 80px;
+  box-sizing: border-box;
+  margin: 0;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  width: 100vw;
+}
+
+/* Success Section */
+.successDetails {
+  padding: 24px 16px;
+  margin-bottom: 24px;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.successIcon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 8px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.successImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.successTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: #000;
+}
+
+.successMessage {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+  padding: 6px 24px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: white;
+}
+
+.highlight {
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* Order Number Section */
+.orderNumberSection {
+  background-color: #ffffff;
+  margin-bottom: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.orderNumber {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #000;
+  padding: 16px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Order Details Section */
+.orderDetailsSection {
+  background-color: #ffffff;
+  padding: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.orderDetails {
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.orderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.orderRow:last-child {
+  margin-bottom: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ccc;
+}
+
+.orderLabel {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.orderValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000;
+}
+
+@media (min-width: 1024px) {
+  .container {
+    width: 470px;
+    left: 50%;
+    right: 50%;
+    margin-left: -235px; /* half of 450px */
+    margin-right: -235px; /* half of 450px */
+  }
+}

@@ -1,19 +1,24 @@
 .container {
   min-height: 100vh;
-  background-color: #f8f9fa;
   padding-bottom: 20px;
+  margin-top: 71.59px;
 }
 
 .filterSection {
-  background-color: white;
+  background-color: #f2f4f7;
   padding: 16px;
-  margin: 0 -16px 20px;
+  margin: 0 -16px 0px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #f1f3f4;
+  border-bottom: none;
 }
 
+/* .divider {
+  height: 14px;
+  background-color: #f2f4f7;
+}
+ */
 .filterLabel {
   font-size: 14px;
   color: #666;
@@ -21,7 +26,7 @@
 
 .filterValue {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
   color: #333;
 }
 
@@ -77,7 +82,7 @@
 }
 
 .historyAmount.positive {
-  color: #7DB59A;
+  color: #7db59a;
 }
 
 .historyAmount.negative {
@@ -95,16 +100,16 @@
   .filterSection {
     padding: 14px 16px;
   }
-  
+
   .historyItem {
     padding: 18px 0;
   }
-  
+
   .historyDescription {
     font-size: 15px;
   }
-  
+
   .historySubtitle {
     font-size: 13px;
   }
-} 
+}

@@ -2,7 +2,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  justify-content: start;
+  justify-content: flex-start;
   padding: 1rem 0rem;
   height: 100%;
   box-sizing: border-box;
@@ -56,7 +56,6 @@
   font-weight: 500;
   margin-bottom: 0.5rem;
   color: black;
-
 }
 .description {
   font-size: clamp(12px, 2vw, 14px);
@@ -166,7 +165,6 @@
   background-color: #51b59a;
 }
 
-
 @media (min-width: 768px) and (max-width: 1024px) {
   .title {
     text-align: center;
@@ -175,4 +173,3 @@
     text-align: center;
   }
 }
-

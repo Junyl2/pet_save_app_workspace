@@ -1,0 +1,93 @@
+/* SuccessMessage.module.css */
+
+.successMessage {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  width: 85%;
+  max-width: 400px; /* prevent it from being too wide */
+  background-color: #2f6f5e;
+  color: white;
+  border-radius: 8px;
+  padding: 16px 20px; /* restore padding */
+  display: flex; /* restore flexbox */
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 999;
+  transition: transform 0.3s ease-in-out;
+}
+
+.successMessage.visible {
+  transform: translate(-50%, 0);
+}
+
+.messageContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.successIcon {
+  font-size: 18px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.messageText {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.actionButton {
+  padding: 8px 16px;
+  background: none; /* remove background */
+  border: none; /* remove border */
+  color: white; /* keep text white */
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.actionButton:hover {
+  color: #e0e0e0; /* subtle hover effect */
+}
+
+.actionButton:active {
+  transform: scale(0.98);
+}
+
+/* Different message types */
+.successMessage.warning {
+  background-color: #ff9800;
+}
+
+.successMessage.error {
+  background-color: #f44336;
+}
+
+.successMessage.info {
+  background-color: #2196f3;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .successMessage {
+    padding: 12px 16px;
+  }
+
+  .messageText {
+    font-size: 13px;
+  }
+
+  .actionButton {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}

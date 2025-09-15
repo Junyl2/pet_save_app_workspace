@@ -1,0 +1,108 @@
+.stepsContainer {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.progressTrack {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background-color: #e5e7eb;
+  z-index: 1;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: #10b981;
+  transition: width 0.3s ease;
+  border-radius: 3px;
+}
+
+.stepsList {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.stepDot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid;
+  background-color: white;
+  z-index: 3;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.stepDotActive {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+.stepDotInactive {
+  background-color: #e5e7eb;
+  border-color: #e5e7eb;
+}
+
+.stepNumber {
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.stepLabel {
+  font-size: 14px;
+  margin-top: 16px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.stepLabelActive {
+  color: #059669;
+}
+
+.stepLabelInactive {
+  color: #9ca3af;
+}
+
+.stepDotInactive {
+  background-color: #e5e7eb;
+  border-color: #e5e7eb;
+}
+/* Mobile */
+@media (max-width: 480px) {
+  .stepsContainer {
+    max-width: 100%;
+  }
+
+  .stepLabel {
+    font-size: 12px;
+    margin-top: 12px;
+  }
+
+  .stepDot {
+    width: 16px;
+    height: 16px;
+  }
+
+  .progressTrack {
+    top: 8px;
+    left: 16px;
+    right: 16px;
+  }
+}

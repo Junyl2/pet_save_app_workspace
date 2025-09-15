@@ -11,6 +11,7 @@ import { ContactDrawer } from '../../ui/drawer/ContactDrawer/ContactDrawer';
 import TopBar from '../../sections/TopBar/TopBar';
 import SearchState from '../../ui/SearchResult/SearchState';
 import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
+import SellerPanel from '../../seller-components/SellerPanel/SellerPanel';
 
 export default function ShopList() {
   const [shops, setShops] = useState<Shop[] | null>(null);
@@ -124,6 +125,7 @@ export default function ShopList() {
             ))}
           </div>
         )}
+        <SellerPanel />
 
         {selectedShopPhone && <ContactDrawer onClose={handleCloseDrawer} />}
       </div>

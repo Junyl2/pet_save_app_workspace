@@ -1,0 +1,65 @@
+/* DeliveryPayment.module.css */
+.confirmation {
+  background: #fff;
+  width: 100%;
+  margin-top: 5rem;
+}
+
+.noteIcon {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.confirmationTitle {
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+.confirmationSub {
+  text-align: center;
+  color: #555;
+  margin: 0 0 16px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0.8rem;
+  border-radius: 5px;
+  font-size: 0.875rem;
+}
+.date {
+  color: #66bfa7 !important;
+}
+.confirmationRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.divider {
+  height: 2px;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+.orderNumber {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  margin-top: 2.5rem;
+}
+.label {
+  color: rgba(0, 0, 0, 0.7);
+}
+.value {
+  color: #000;
+}
+
+.orderLabel {
+  color: #000;
+}
+.orderValue {
+  color: #000;
+}

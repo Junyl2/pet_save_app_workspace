@@ -1,0 +1,461 @@
+/* Add this to your existing RefundPage.module.css or update the existing styles */
+
+.container {
+  margin: 80px -16px 0;
+  background: #f5f5f5;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  position: relative;
+}
+
+.content {
+  background: white;
+  padding-bottom: 0 1rem 80px;
+}
+
+.section {
+  padding: 6px 1rem;
+  margin: 1rem 0;
+  background: white;
+}
+
+/* Updated steps section */
+.section--steps {
+  margin-top: 0;
+  padding: 20px 16px; /* More consistent padding */
+  background: white;
+  position: relative;
+}
+
+/* Ensure steps container takes full width */
+.section--steps > * {
+  width: 100%;
+  max-width: none;
+}
+
+.stepContent {
+  padding: 20px 16px;
+  background: white;
+}
+
+.stepTitle {
+  font-size: 18px;
+  font-weight: 600;
+  padding: 0 0 8px 0;
+  color: #333;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Product Selection Styles */
+.selectAllContainer {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.selectAllText {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.productInfo {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.productContent {
+  display: flex;
+  gap: 24px;
+}
+
+.productImage {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f0f0f0;
+}
+
+.productDetails {
+  flex: 1;
+}
+
+.productName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.priceContainer {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.originalPrice {
+  font-size: 12px;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.currentPrice {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e74c3c;
+}
+
+.brand {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Form Elements */
+.checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #4caf50;
+}
+
+.radio {
+  margin-right: 8px;
+  height: 24px;
+  width: 24px;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  cursor: pointer;
+  box-sizing: border-box;
+  background-color: transparent;
+}
+
+.radio::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.2s ease;
+}
+
+.radio:checked {
+  border-width: 6px;
+  border-style: solid;
+  border-color: #5ea693;
+  background-color: transparent;
+}
+
+.radio:checked::before {
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+}
+
+/* Reason Selection Styles */
+.reasonCategory {
+  margin-bottom: 24px;
+}
+
+.categoryTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.reasonOption {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  border: 1px solid #ddd;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+.reasonOption:hover {
+  background: #f9f9f9;
+}
+
+.detailReasonSection {
+  margin-top: 24px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.textareaWrapper {
+  margin: 0 -1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.textarea {
+  width: calc(100% - 60px);
+  min-height: 80px;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
+  display: block;
+  margin: 0 auto;
+  margin-bottom: 90px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+/* Return Method Styles */
+.courierInfo {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.courierInfo h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.courierInfo p {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.methodOptions {
+  margin-bottom: 24px;
+}
+
+.methodOption {
+  display: flex;
+  align-items: center;
+  padding: 16px 0;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+  color: #333;
+}
+
+.contactInfo {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.contactInfo h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.contactInfo p {
+  font-size: 14px;
+  margin: 0 0 4px 0;
+  color: #333;
+}
+
+.contactInfo small {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Warning Box */
+.warningBox {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+}
+.headerWrapper {
+  display: flex;
+  align-items: center; /* ✅ vertical centering */
+  gap: 8px;
+  padding-bottom: 12px;
+}
+.warningIcon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.warningContent p {
+  margin: 0;
+  font-size: 12px; /* maybe increase a bit from 10px for readability */
+  color: #856404;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.warningContent ul {
+  margin: 0;
+  padding-left: 2rem;
+  font-size: 12px;
+  color: #856404;
+  font-weight: 600;
+}
+
+.warningContent li {
+  margin-bottom: 4px;
+}
+
+/* Refund Breakdown */
+.refundBreakdown {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 20px -16px 0;
+}
+
+.refundBreakdown h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: #333;
+}
+
+.breakdownItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.divider {
+  height: 1px;
+  background-color: #66bfa7;
+  opacity: 0.6;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  box-sizing: border-box;
+}
+
+/* Completion Screen */
+.completionScreen {
+  padding: 40px 20px;
+  text-align: center;
+  background: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.successIcon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin: 0 auto 20px;
+}
+
+.successTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 16px 0;
+}
+
+.successMessage {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 32px 0;
+  line-height: 1.5;
+}
+
+.orderInfo {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  width: 100%;
+}
+
+.orderInfo h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: #333;
+  text-align: center;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #333;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+  font-weight: 600;
+}
+
+/* Button Styles */
+.buttonContainer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  background: white;
+  border-top: 1px solid #e0e0e0;
+}
+
+.nextButton {
+  width: 100%;
+  padding: 16px;
+  background: #66bfa7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.nextButton:hover:not(:disabled) {
+  background: #66bfa7;
+}
+
+.nextButton:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}

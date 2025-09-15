@@ -96,7 +96,7 @@ export const ProductGrid = ({
             >
               <div className={styles.imageWrapper}>
                 <Image
-                  src={product.image}
+                  src={product.image ?? '/images/products/placeholder.png'}
                   alt={product.name}
                   width={120}
                   height={120}
@@ -151,13 +151,15 @@ export const ProductGrid = ({
                 <p className={styles.price}>
                   {product.discountPrice ? (
                     <>
-                      <span className={styles.original}>{product.price}</span>
+                      <span className={styles.original}>
+                        {product.price.toLocaleString('ko-KR')}원
+                      </span>
                       <span className={styles.discount}>
-                        {product.discountPrice}
+                        {product.discountPrice.toLocaleString('ko-KR')}원
                       </span>
                     </>
                   ) : (
-                    product.price
+                    `${product.price.toLocaleString('ko-KR')}원`
                   )}
                 </p>
                 <p className={styles.info}>
@@ -176,7 +178,8 @@ export const ProductGrid = ({
         <CartModal
           open={cartOpen}
           onClose={() => setCartOpen(false)}
-          product={selectedProduct}
+          productName={selectedProduct.name}
+          productPrice={selectedProduct.discountPrice ?? selectedProduct.price}
         />
       )}
     </div>

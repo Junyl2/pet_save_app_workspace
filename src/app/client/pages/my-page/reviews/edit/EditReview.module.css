@@ -1,0 +1,323 @@
+.container {
+  min-height: 100vh;
+  background-color: #ffffff;
+  padding-top: 60px;
+}
+
+.content {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Product Section */
+.productSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.productImage {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.productImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.productInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.productName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.4;
+}
+
+.productStore {
+  font-size: 14px;
+  color: #666;
+}
+
+.purchaseDate {
+  font-size: 12px;
+  color: #999;
+}
+
+/* Rating Section */
+.ratingSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  text-align: center;
+}
+
+.ratingTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.starsContainer {
+  display: flex;
+  gap: 8px;
+}
+
+.starButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  transition: transform 0.2s ease;
+}
+
+.starButton:hover {
+  transform: scale(1.1);
+}
+
+.star {
+  font-size: 32px;
+  transition: color 0.2s ease;
+}
+
+.starFilled {
+  color: #ffc107;
+}
+
+.starEmpty {
+  color: #e5e5e5;
+}
+
+/* Review Section */
+.reviewSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reviewTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.reviewTextarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.reviewTextarea::placeholder {
+  color: #999;
+}
+
+.reviewTextarea:focus {
+  outline: none;
+  border-color: #8bc4a8;
+}
+
+.charCount {
+  text-align: right;
+  font-size: 12px;
+  color: #999;
+}
+
+/* Photo Section */
+.photoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.existingImagesContainer,
+.newImagesContainer {
+  margin-bottom: 16px;
+}
+
+.imageGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.imagePreview {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.imagePreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.removeImageButton {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.photoButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #f8f9fa;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.photoButton:hover {
+  border-color: #8bc4a8;
+  color: #8bc4a8;
+}
+
+.cameraIcon {
+  font-size: 16px;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+/* Submit Button */
+.submitButton {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #e5e5e5;
+  color: #999;
+  margin-top: 20px;
+}
+
+.submitButtonActive {
+  background-color: #8bc4a8;
+  color: white;
+}
+
+.submitButtonActive:hover {
+  background-color: #7ab396;
+}
+
+.submitButton:disabled {
+  cursor: not-allowed;
+}
+
+/* Success Message */
+.successMessage {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #8bc4a8;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+  max-width: calc(100vw - 40px);
+  text-align: center;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .container {
+    padding-top: 50px;
+  }
+  
+  .content {
+    padding: 16px;
+    gap: 24px;
+  }
+  
+  .productImage {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .productName {
+    font-size: 15px;
+  }
+  
+  .ratingTitle {
+    font-size: 16px;
+  }
+  
+  .star {
+    font-size: 28px;
+  }
+  
+  .reviewTextarea {
+    min-height: 150px;
+    padding: 12px;
+  }
+  
+  .successMessage {
+    bottom: 16px;
+    padding: 14px 20px;
+    font-size: 13px;
+    max-width: calc(100vw - 32px);
+  }
+}

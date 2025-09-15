@@ -7,11 +7,26 @@
 
 .pointsInput {
   flex: 1;
-  padding: 0.5rem 4rem; /* space for left & right labels */
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  padding: 0.5rem 4rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
   font-size: 1rem;
-  -moz-appearance: textfield; /* Firefox remove arrows */
+  outline: none !important;
+  -moz-appearance: textfield;
+}
+.pointsInput:focus {
+  border: 1px solid rgb(112, 233, 112);
+}
+
+.secondaryBtn {
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  width: 100px;
+  padding: 0.5rem 0rem;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pointsInput::-webkit-outer-spin-button,

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import styles from './BottomBar.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
+import { useUser } from '@/app/context/userContext';
 
 type BottomItem = {
   name: string;
@@ -17,7 +18,9 @@ export default function BottomBar() {
   const pathname = usePathname();
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const isLoggedIn = true; // TODO: replace with real auth
+  const { user } = useUser();
+  const isLoggedIn = !!user;
+  const isSeller = user?.role === 'seller';
 
   const items: BottomItem[] = [
     { name: 'home', label: '홈', path: PAGE_URLS.HOME },
@@ -25,12 +28,18 @@ export default function BottomBar() {
     {
       name: 'message',
       label: '문의하기',
-      path: PAGE_URLS.CONTACT || '/contact',
+      path: isSeller
+        ? '/client/seller/pages/seller-inquiry-details'
+        : PAGE_URLS.CONTACT || '/contact',
     },
     {
       name: 'user',
       label: '마이',
-      path: isLoggedIn ? PAGE_URLS.MYPAGE || '/' : PAGE_URLS.LOGIN,
+      path: isLoggedIn
+        ? isSeller
+          ? PAGE_URLS.SELLER_MYPAGE
+          : PAGE_URLS.MYPAGE || '/'
+        : PAGE_URLS.LOGIN,
     },
   ];
 
@@ -45,10 +54,6 @@ export default function BottomBar() {
         {items.map((item) => {
           const itemPath = normalizePath(item.path);
           const isActive = currentPath === itemPath;
-          /* item.name === 'home'
-              ? currentPath.startsWith('/client')
-              : currentPath === itemPath; */
-
           const showActive = isActive || hovered === item.name;
 
           const imgSrc = `/images/icons/bottom-bar/${item.name}-${

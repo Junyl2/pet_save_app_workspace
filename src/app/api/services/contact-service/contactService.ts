@@ -1,4 +1,7 @@
-import { ContactInquiry } from '../../types/contact/contact';
+import {
+  ContactInquiry,
+  CreateInquiryPayload,
+} from '../../types/contact/contact';
 import { mockContactInquiries } from '@/app/components/data/mockContact';
 
 // Keep an in-memory copy of inquiries for mock operations
@@ -31,5 +34,38 @@ export const contactService = {
         resolve();
       }, 300);
     });
+  },
+  async createInquiry(
+    payload: CreateInquiryPayload
+  ): Promise<{ success: boolean; id?: number }> {
+    // If your backend expects multipart (for images), use FormData. Otherwise JSON is fine.
+    const hasFiles =
+      Array.isArray(payload.images) && payload.images[0] instanceof File;
+
+    if (hasFiles) {
+      const fd = new FormData();
+      fd.append('category', payload.category);
+      fd.append('message', payload.message);
+      (payload.images as File[]).forEach((f) => fd.append('images', f));
+
+      const res = await fetch('/api/contact/inquiries', {
+        method: 'POST',
+        body: fd,
+      });
+      if (!res.ok) throw new Error('Failed to create inquiry');
+      return res.json();
+    } else {
+      const res = await fetch('/api/contact/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: payload.category,
+          message: payload.message,
+          images: payload.images ?? [],
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create inquiry');
+      return res.json();
+    }
   },
 };

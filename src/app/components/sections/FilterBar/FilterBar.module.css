@@ -1,0 +1,16 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%; /* full width of its parent */
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  width: 100%; /* stretch row */
+}
+
+.row > * {
+  flex: 1; /* optional: make dropdowns expand equally */
+}

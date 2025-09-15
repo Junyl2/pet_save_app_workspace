@@ -6,23 +6,27 @@ import styles from './CartModal.module.css';
 import { FiPlus, FiMinus } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useCart } from '@/app/context/cartContext';
-import { Product } from '@/app/api/types/products/products';
 
 interface CartModalProps {
   open: boolean;
   onClose: () => void;
-  product: Product; // pass the full product object
+  productName: string;
+  productPrice: number;
 }
 
-export const CartModal = ({ open, onClose, product }: CartModalProps) => {
+export const CartModal = ({
+  open,
+  onClose,
+  productName,
+  productPrice,
+}: CartModalProps) => {
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
 
   const handleIncrease = () => setQuantity((q) => q + 1);
   const handleDecrease = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
 
-  const unitPrice = product.discountPrice ?? product.price;
-  const totalPrice = unitPrice * quantity;
+  const totalPrice = productPrice * quantity;
 
   const handleClose = () => {
     setQuantity(1);
@@ -30,9 +34,19 @@ export const CartModal = ({ open, onClose, product }: CartModalProps) => {
   };
 
   const handleAddToCart = () => {
-    addToCart(product, quantity);
+    // Use the parameter type of addToCart to stay in sync with your app type
+    type AddToCartProduct = Parameters<typeof addToCart>[0];
 
-    toast.success(`${product.name} 장바구니에 담겼습니다`, {
+    // Minimal product shape that matches your current Product (no deliveryType)
+    const tempProduct = {
+      id: Date.now(), // temporary id
+      name: productName,
+      price: productPrice,
+    } as AddToCartProduct;
+
+    addToCart(tempProduct, quantity);
+
+    toast.success(`${productName} 장바구니에 담겼습니다`, {
       style: { background: '#66bfa7' },
       iconTheme: { primary: '#66bfa7', secondary: '#fff' },
     });

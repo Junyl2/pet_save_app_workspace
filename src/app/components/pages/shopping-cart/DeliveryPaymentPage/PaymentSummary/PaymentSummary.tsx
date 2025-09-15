@@ -19,19 +19,19 @@ export default function PaymentSummary({
     <section className={styles.card}>
       <h3 className={styles.sectionTitle}>결제 금액</h3>
       <div className={styles.summaryRow}>
-        <span>상품 금액</span>
+        <span className={styles.paymentLabel}>상품 금액</span>
         <span>{subtotal.toLocaleString()}원</span>
       </div>
       <div className={styles.summaryRow}>
-        <span>할인 금액</span>
+        <span className={styles.paymentLabel}>할인 금액</span>
         <span>{discountAmount.toLocaleString()}원</span>
       </div>
       <div className={styles.summaryRow}>
-        <span>포인트 사용 금액</span>
+        <span className={styles.paymentLabel}>포인트 사용 금액</span>
         <span>{usePoints.toLocaleString()}원</span>
       </div>
       <div className={styles.summaryRow}>
-        <span>배송비</span>
+        <span className={styles.paymentLabel}>배송비</span>
         <span>{shippingFee.toLocaleString()}원</span>
       </div>
       <div className={styles.totalRow}>

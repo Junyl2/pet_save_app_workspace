@@ -1,19 +1,19 @@
 'use client';
-import { MyPageHeader } from '@/app/components/sections/MyPageHeader/MyPageHeader';
+import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import styles from './PointsGuide.module.css';
 
 export default function PointsGuidePage() {
   return (
     <div className={styles.container}>
       {/* Header */}
-      <MyPageHeader />
+      <ProductHeader />
 
       {/* Title */}
       <div className={styles.titleSection}>
         <span className={styles.icon}>📍</span>
         <h1 className={styles.title}>포인트 이용 안내</h1>
       </div>
-
+      
       {/* Content */}
       <div className={styles.content}>
         <section className={styles.section}>

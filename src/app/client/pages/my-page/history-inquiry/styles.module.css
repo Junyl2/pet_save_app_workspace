@@ -1,0 +1,48 @@
+.topTabsBar {
+  height: 48px;
+  background: #fff;
+  margin-top: 71.59px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: -71.59px;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding: 0 1rem;
+}
+
+/* Text styles */
+.topTab {
+  font-size: 16px;
+  line-height: 16px;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: center;
+}
+
+.topTabActive {
+  color: #66bfa7;
+  font-weight: 500;
+}
+
+.topTabInactive {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.topToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.extraActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

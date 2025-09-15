@@ -1,0 +1,87 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -16px;   /* cancel out .app-content padding */
+  padding: 12px 16px; /* consistent inner spacing */
+  border-bottom: 1px solid #eee;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.status {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.detailButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #666;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.body {
+  display: flex;
+  gap: 12px;
+}
+
+.imageWrapper {
+  flex-shrink: 0;
+}
+
+.image {
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* ✅ align items at the top */
+  flex: 1;
+  gap: 1px; /* optional: small spacing instead of big gap */
+}
+.details p {
+  margin: 0; /* remove browser default margins */
+}
+.orderNumber {
+  font-size: 13px;
+  color: #666;
+}
+
+.name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #111;
+  margin: 2px 0;
+}
+
+.brand {
+  font-size: 13px;
+  color: #888;
+}
+
+.price {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.date {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.icon {
+  font-size: 14px;
+}
