@@ -72,9 +72,16 @@ const mockWrittenReviews = [
     id: 1,
     productName: '탐사 강아지 고구마말랭이 간식',
     rating: 5,
-    reviewText: '우리 강아지가 너무 잘 먹어요! 고구마 말랭이라 건강에도 좋고, 말랑해서 먹기도 편해 보여요.',
+    reviewText: '우리 강아지가 너무 잘 먹어요! 고구마 말랭이라 건강에도 좋고, 말랑해서 먹기도 편해 보여요. 간식 줄 때마다 꼬리를 흔들며 좋아하네요. 재구매 의사 100%입니다!',
+    images: [
+      '/images/products/dog-snack.png',
+      '/images/products/dog-snack2.png',
+      '/images/products/dogfood.png'
+    ],
+    username: '만족해요',
+    userId: 'petsave100000',
     date: '2025.08.10',
-    image: '/images/products/dog-snack.png'
+    profileImage: '/images/icons/apple.png'
   }
 ];
 
@@ -90,8 +97,8 @@ export default function ReviewsPage() {
     router.push(`/client/pages/my-page/reviews/write?productId=${productId}`);
   };
 
-  const handleViewReview = (reviewId: number) => {
-    router.push(`/client/pages/my-page/reviews/view?reviewId=${reviewId}`);
+  const handleEditReview = (reviewId: number) => {
+    router.push(`/client/pages/my-page/reviews/edit?reviewId=${reviewId}`);
   };
 
   const renderStars = (rating: number) => {
@@ -156,38 +163,57 @@ export default function ReviewsPage() {
           </div>
         ) : (
           <div className={styles.myReviewsSection}>
-            <div className={styles.sectionTitle}>
-              등록한 리뷰 {mockWrittenReviews.length}개
-            </div>
-            
             {mockWrittenReviews.length > 0 ? (
-              <div className={styles.reviewsList}>
+              <div className={styles.detailedReviewContainer}>
                 {mockWrittenReviews.map((review) => (
-                  <div 
-                    key={review.id} 
-                    className={styles.reviewItem}
-                    onClick={() => handleViewReview(review.id)}
-                  >
-                    <div className={styles.reviewImage}>
-                      <img src={review.image} alt={review.productName} />
-                    </div>
-                    
-                    <div className={styles.reviewContent}>
-                      <div className={styles.reviewProductName}>{review.productName}</div>
-                      <div className={styles.reviewRating}>
-                        {renderStars(review.rating)}
+                  <div key={review.id} className={styles.detailedReview}>
+                    {/* Review Header */}
+                    <div className={styles.reviewHeader}>
+                      <div className={styles.userInfo}>
+                        <div className={styles.profileImage}>
+                          <img src={review.profileImage} alt="Profile" />
+                        </div>
+                        <div className={styles.userDetails}>
+                          <div className={styles.usernameAndRating}>
+                            <span className={styles.username}>{review.username}</span>
+                            <div className={styles.starsContainer}>
+                              {renderStars(review.rating)}
+                            </div>
+                          </div>
+                          <div className={styles.userIdAndDate}>
+                            {review.userId} | {review.date}
+                          </div>
+                        </div>
                       </div>
-                      <div className={styles.reviewDate}>{review.date}</div>
-                      <div className={styles.reviewPreview}>
-                        {review.reviewText.length > 50 
-                          ? `${review.reviewText.substring(0, 50)}...` 
-                          : review.reviewText}
-                      </div>
+                      
+                      <button 
+                        className={styles.editButton}
+                        onClick={() => handleEditReview(review.id)}
+                      >
+                        수정하기
+                      </button>
                     </div>
-                    
-                    <button className={styles.viewButton}>
-                      보기
-                    </button>
+
+                    {/* Product Name */}
+                    <div className={styles.reviewProductName}>
+                      {review.productName}
+                    </div>
+
+                    {/* Review Images */}
+                    {review.images && review.images.length > 0 && (
+                      <div className={styles.reviewImagesContainer}>
+                        {review.images.map((image, index) => (
+                          <div key={index} className={styles.reviewImageItem}>
+                            <img src={image} alt={`Review image ${index + 1}`} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Review Text */}
+                    <div className={styles.reviewTextContent}>
+                      {review.reviewText}
+                    </div>
                   </div>
                 ))}
               </div>

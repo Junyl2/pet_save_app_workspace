@@ -105,6 +105,7 @@ export default function WriteReviewPage() {
             <div className={styles.purchaseDate}>{product.purchaseDate} 주문</div>
           </div>
         </div>
+        <div className={styles.divider}></div>
 
         {/* Rating Section */}
         <div className={styles.ratingSection}>
@@ -127,6 +128,8 @@ export default function WriteReviewPage() {
             ))}
           </div>
         </div>
+        <div className={styles.divider}></div>
+
 
         {/* Review Text Section */}
         <div className={styles.reviewSection}>
@@ -178,6 +181,7 @@ export default function WriteReviewPage() {
         </div>
 
         {/* Submit Button */}
+        <div className={styles.line}></div>
         <button
           className={`${styles.submitButton} ${isFormValid ? styles.submitButtonActive : ''}`}
           onClick={handleSubmit}

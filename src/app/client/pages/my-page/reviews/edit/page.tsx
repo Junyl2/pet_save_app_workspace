@@ -113,6 +113,8 @@ export default function EditReviewPage() {
             </div>
           </div>
         </div>
+        
+        <div className={styles.divider}></div>
 
         {/* Rating Section */}
         <div className={styles.ratingSection}>
@@ -139,6 +141,8 @@ export default function EditReviewPage() {
             ))}
           </div>
         </div>
+        <div className={styles.divider}></div>
+
 
         {/* Review Text Section */}
         <div className={styles.reviewSection}>
@@ -214,6 +218,8 @@ export default function EditReviewPage() {
         </div>
 
         {/* Submit Button */}
+        <div className={styles.line}></div>
+
         <button
           className={`${styles.submitButton} ${
             isFormValid ? styles.submitButtonActive : ''

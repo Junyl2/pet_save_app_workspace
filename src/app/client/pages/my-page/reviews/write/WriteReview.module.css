@@ -2,6 +2,7 @@
   min-height: 100vh;
   background-color: #ffffff;
   padding-top: 60px;
+  margin-top: 20px;
 }
 
 .content {
@@ -9,6 +10,7 @@
   display: flex;
   flex-direction: column;
   gap: 32px;
+  
 }
 
 /* Product Section */
@@ -17,7 +19,6 @@
   align-items: center;
   gap: 12px;
   padding: 0 16px 20px 16px;
-  border-bottom: 1px solid #f1f3f4;
   margin: 0 -16px;
 }
 
@@ -48,6 +49,17 @@
   color: #333;
   line-height: 1.4;
 }
+.divider {
+  height: 14px;
+  background-color: #f2f4f7;
+  margin: 0 -16px;
+}
+
+.line {
+  height: 3px;
+  background-color: #f2f4f7;
+  margin: 20px -16px -30px -16px;
+}
 
 .productStore {
   font-size: 14px;
@@ -64,20 +76,19 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  align-items: center;
-  text-align: center;
-  padding: 0 16px;
 }
 
 .ratingTitle {
   font-size: 18px;
   font-weight: 600;
   color: #333;
+  text-align: left;
 }
 
 .starsContainer {
   display: flex;
   gap: 8px;
+  justify-content: center;
 }
 
 .starButton {
@@ -224,6 +235,7 @@
 
 /* Submit Button */
 .submitButton {
+  
   width: calc(100% - 32px);
   padding: 16px;
   border: none;
@@ -238,12 +250,12 @@
 }
 
 .submitButtonActive {
-  background-color: #8bc4a8;
+  background-color: #66BFA7;
   color: white;
 }
 
 .submitButtonActive:hover {
-  background-color: #7ab396;
+  background-color: #66BFA7;
 }
 
 .submitButton:disabled {
@@ -290,7 +302,7 @@
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #8bc4a8;
+  background-color: #2F6F5E;
   color: white;
   padding: 16px 24px;
   border-radius: 8px;
