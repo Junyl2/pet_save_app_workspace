@@ -1,16 +1,19 @@
 'use client';
-
-import React, { useState } from 'react';
+import React from 'react';
+import { useState } from 'react';
 import ProfileHeader from './ProfileHeader/ProfileHeader';
 import ProfileSection from './ProfileSection/ProfileSection';
 import ProfileItem from './ProfileItem/ProfileItem';
 import styles from './ProfileMenu.module.css';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
+import { useUser } from '@/app/context/userContext';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import LogoutModal from '@/app/components/ui/modal/LogoutModal/LogoutModal';
 
 const ProfileMenu = () => {
+  const { user } = useUser();
+
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   return (
@@ -25,10 +28,23 @@ const ProfileMenu = () => {
             label="문의내역"
             route="/client/pages/my-page/history-inquiry"
           />
-          <ProfileItem label="사업자등록" route="/my-page/business" />
+
+          {/* Show Business option depending on role */}
+          {user?.role === 'seller' ? (
+            <ProfileItem
+              label="사업자 정보"
+              route={PAGE_URLS.BUSINESS_INFORMATION}
+            />
+          ) : (
+            <ProfileItem
+              label="사업자등록"
+              route={PAGE_URLS.SELLER_REGISTRATION}
+            />
+          )}
+
           <ProfileItem
             label="약관 및 정책"
-            route={PAGE_URLS.TERMS_AND_CONDITIONS}
+            route={PAGE_URLS.TERMS_CONDITIONS}
           />
         </ProfileSection>
 
@@ -54,7 +70,7 @@ const ProfileMenu = () => {
           />
           <ProfileItem
             label="내 추천인 코드"
-            route="/mypage/referral"
+            route={PAGE_URLS.MY_REFFERAL_CODE}
             showChevron={false}
           />
           <ProfileItem

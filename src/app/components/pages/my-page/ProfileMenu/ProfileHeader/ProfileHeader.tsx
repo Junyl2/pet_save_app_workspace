@@ -1,40 +1,40 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import styles from "./ProfileHeader.module.css";
-import Image from "next/image";
-import { PAGE_URLS } from "@/app/utils/page_url";
+import React from 'react';
+import { useRouter } from 'next/navigation';
+import styles from './ProfileHeader.module.css';
+import Image from 'next/image';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 const ProfileHeader = () => {
   const router = useRouter();
 
   const actions = [
     {
-      label: "주문 내역",
+      label: '주문 내역',
       route: PAGE_URLS.ORDER_HISTORY,
 
-      icon: "/images/icons/mypage-note.svg",
+      icon: '/images/icons/mypage-note.svg',
     },
     {
-      label: "리뷰",
-      route: "/mypage/reviews",
-      icon: "/images/icons/mypage-take-note.svg",
+      label: '리뷰',
+      route: PAGE_URLS.REVIEWS,
+      icon: '/images/icons/mypage-take-note.svg',
     },
     {
-      label: "찜한 상품",
+      label: '찜한 상품',
       route: PAGE_URLS.STEAMED_PRODUCTS,
-      icon: "/images/icons/mypage-heart.svg",
+      icon: '/images/icons/mypage-heart.svg',
     },
     {
-      label: "포인트",
+      label: '포인트',
       route: PAGE_URLS.MYPAGE_POINTS,
-      icon: "/images/icons/mypage-star.svg",
+      icon: '/images/icons/mypage-star.svg',
     },
   ];
   const sources = [
-    "https://i.pravatar.cc/100?img=1", // random avatar
-    "https://i.pravatar.cc/100?img=2",
+    'https://i.pravatar.cc/100?img=1', // random avatar
+    'https://i.pravatar.cc/100?img=2',
   ];
   const randomSrc = sources[Math.floor(Math.random() * sources.length)];
 

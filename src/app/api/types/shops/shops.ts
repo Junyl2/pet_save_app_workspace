@@ -1,5 +1,6 @@
 export interface Shop {
   id: number;
+  ownerId?: number;
   name: string;
   category: string;
   location: string;
@@ -9,4 +10,7 @@ export interface Shop {
   shopDistance: string;
   image: string;
   phoneNumber: string;
+
+  workingHours?: string;
+  rating?: number;
 }

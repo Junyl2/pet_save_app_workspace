@@ -2,11 +2,12 @@ import { Product } from '../products/products';
 
 export interface Seller {
   id: number;
+  ownerId?: number;
   name: string;
   phoneNumber: string;
   workingHours: string;
   location: string;
-  products: Product[];
-  reviewCount: number;
   rating: number;
+  reviewCount: number;
+  products: Product[];
 }

@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
@@ -7,13 +8,12 @@ import { FaChevronLeft } from 'react-icons/fa';
 import styles from './LoginForm.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/app/context/userContext';
 
-interface LoginFormProps {
-  onSuccess?: () => void;
-}
-
-export default function LoginForm({ onSuccess }: LoginFormProps) {
+export default function LoginForm() {
   const router = useRouter();
+  const { login } = useUser();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,29 +21,78 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // --- helper: derive sellerId from username for demo ---
+  const deriveSellerId = (u: string): number => {
+    // seller / seller2 / seller-7 / seller_7 → number
+    const m = u.match(/^seller(?:[-_]?(\d+))?$/i);
+    if (!m) return 1; // default if pattern doesn't match
+    return m[1] ? Number(m[1]) : 1;
+  };
+
+  // Prefill username if previously remembered
+  useEffect(() => {
+    try {
+      const remembered = localStorage.getItem('rememberedUsername');
+      if (remembered) {
+        setUsername(remembered);
+        setRemember(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, remember }),
-      });
+      // --- demo: client login ---
+      if (username === 'user' && password === 'user123') {
+        login({ username, role: 'client' });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Login failed');
+        // store/clear remembered username
+        if (remember) {
+          localStorage.setItem('rememberedUsername', username);
+        } else {
+          localStorage.removeItem('rememberedUsername');
+        }
 
-      console.log('Login success:', data);
-      if (onSuccess) onSuccess();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('로그인 중 알 수 없는 오류가 발생했습니다.');
+        // IMPORTANT: clear any previous seller id
+        localStorage.removeItem('sellerId');
+
+        router.push('/');
+        return;
       }
+
+      // --- demo: seller login (sets sellerId for owner checks) ---
+      if (/^seller(?:[-_]?\d+)?$/i.test(username) && password === 'seller123') {
+        const sellerId = deriveSellerId(username);
+
+        login({ username, role: 'seller' });
+
+        // store/clear remembered username
+        if (remember) {
+          localStorage.setItem('rememberedUsername', username);
+        } else {
+          localStorage.removeItem('rememberedUsername');
+        }
+
+        // 🔑 this is what your SellerDetails page reads to show "수정하기"
+        localStorage.setItem('sellerId', String(sellerId));
+
+        router.push('/');
+        return;
+      }
+
+      throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : '로그인 중 알 수 없는 오류가 발생했습니다.'
+      );
     } finally {
       setLoading(false);
     }
@@ -51,12 +100,13 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
   return (
     <>
-      {/* Top Bar with Chevron Back */}
+      {/* Top Bar */}
       <div className={styles.topBar}>
         <button
           type="button"
           onClick={() => router.back()}
           className={styles.backLink}
+          aria-label="이전 페이지로 돌아가기"
         >
           <FaChevronLeft className={styles.arrowLeft} />
         </button>
@@ -64,7 +114,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       </div>
 
       <div className={styles.loginPage}>
-        {/* Top Image */}
+        {/* Logo */}
         <div className={styles.imageWrapper}>
           <Image
             src="/images/logo/loading-screen.png"
@@ -72,12 +122,13 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             height={94}
             width={144}
             className={styles.objectContain}
+            priority
           />
         </div>
 
-        {/* Form */}
+        {/* Login Form */}
         <div className={styles.loginFormContainer}>
-          <form className={styles.loginForm} onSubmit={handleSubmit}>
+          <form className={styles.loginForm} onSubmit={handleSubmit} noValidate>
             <div className={styles.inputWrapper}>
               <input
                 type="text"
@@ -88,6 +139,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                aria-label="아이디"
               />
             </div>
 
@@ -101,12 +153,14 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                aria-label="비밀번호"
               />
               <button
                 type="button"
                 className={styles.eyeButton}
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowPassword((v) => !v)}
                 tabIndex={-1}
+                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
               >
                 {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
               </button>
@@ -118,13 +172,26 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                   type="checkbox"
                   className={styles.checkbox}
                   checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setRemember(checked);
+                    if (checked && username) {
+                      localStorage.setItem('rememberedUsername', username);
+                    }
+                    if (!checked) {
+                      localStorage.removeItem('rememberedUsername');
+                    }
+                  }}
                 />{' '}
                 아이디 저장
               </label>
             </div>
 
-            {error && <div className={styles.error}>{error}</div>}
+            {error && (
+              <div className={styles.error} role="alert">
+                {error}
+              </div>
+            )}
 
             <button
               type="submit"
@@ -138,26 +205,20 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           {/* Links */}
           <div className={styles.loginLinks}>
             <span className={styles.linkItem}>
-              <Link href={PAGE_URLS.FIND_ID} scroll={true}>
-                아이디 찾기
-              </Link>
+              <Link href={PAGE_URLS.FIND_ID}>아이디 찾기</Link>
             </span>
             <div className={styles.divider}> | </div>
             <span className={styles.linkItem}>
-              <Link href={PAGE_URLS.RESET_PASSWORD} scroll={true}>
-                비밀번호 재설정
-              </Link>
+              <Link href={PAGE_URLS.RESET_PASSWORD}>비밀번호 재설정</Link>
             </span>
             <div className={styles.divider}> | </div>
             <span className={styles.linkItem}>
-              <Link href={PAGE_URLS.JOIN_MEMBERSHIP} scroll={true}>
-                회원가입
-              </Link>
+              <Link href={PAGE_URLS.JOIN_MEMBERSHIP}>회원가입</Link>
             </span>
           </div>
         </div>
 
-        {/* Logos */}
+        {/* Social Logos (static) */}
         <div className={styles.logoWrapper}>
           <Image
             src="/images/icons/n.png"

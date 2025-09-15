@@ -30,9 +30,11 @@ export const PAGE_URLS = {
   POINTS_GUIDE: '/client/pages/my-page/points/guide', // mypage - points guide page
   ORDER_HISTORY: '/client/pages/my-page/order-history', // mypage - order history page
   TERMS_CONDITIONS: '/client/pages/my-page/terms-and-conditions', // mypage - terms and conditions page
+  REVIEWS: '/client/pages/my-page/reviews', // mypage - reviews page
+  NOTIFICATION_SETTINGS: '/client/pages/my-page/notification-settings', // mypage - notification settings page
 
   STEAMED_PRODUCTS: '/client/pages/my-page/steamed-products',
-  NOTIFICATION_SETTINGS: '/client/pages/my-page/notification-settings', // mypage - notification settings page
+
   NOTICE_PAGE: '/client/pages/my-page/notice-list',
   NOTICE_DETAIL: (noticeId: string) =>
     `/client/pages/my-page/notice-list/${noticeId}`,
@@ -66,4 +68,11 @@ export const PAGE_URLS = {
   DELIVERY_PAYMENT: '/client/pages/shopping-cart/delivery-payment',
   ORDER_CONFIRMATION:
     '/client/pages/shopping-cart/delivery-payment/order-confirmation',
+
+  //Seller page
+  SELLER_MYPAGE: '/client/seller/pages/my-page',
+  SELLER_REGISTRATION: '/client/seller/pages/registration',
+  BUSINESS_INFORMATION: '/client/seller/pages/my-page/business-information',
+  REGISTER_PRODUCT: '/client/seller/pages/register-product',
+  MY_REFFERAL_CODE: '/client/pages/my-page/referral-code',
 };

@@ -1,0 +1,321 @@
+.pageWrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background-color: #fff;
+  margin-top: 71.59px;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  margin-bottom: 71.59px;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0rem;
+  background: #f2f4f7;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  width: 100% !important;
+}
+.filterControl {
+  position: relative;
+  z-index: 300;
+}
+
+.lengthLabel {
+  padding-left: 1rem;
+}
+
+.filterControl span {
+  font-size: 12px;
+}
+.filterButtonText {
+  font-size: 1rem !important;
+}
+.filterButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: #000;
+  font-size: 12px;
+}
+.smallChevron {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  padding-right: 1rem;
+}
+
+.dropdown {
+  position: absolute;
+  top: 20px;
+  right: 0;
+  width: 92px;
+  height: 48px;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 300;
+}
+.dropdownItem {
+  width: 100%;
+  height: 24px;
+  border: none;
+  background: #fff;
+  text-align: left;
+  padding: 5px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  font-size: 12px;
+  line-height: 13px;
+  display: flex;
+  align-items: center;
+}
+.dropdownItem:last-child {
+  border-bottom: none;
+}
+.dimText {
+  opacity: 0.4;
+}
+.listWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100% !important;
+}
+.card {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 1rem 1rem;
+  border-radius: 0;
+  z-index: auto;
+}
+.thumbWrap {
+  width: 90px;
+  height: 90px;
+  flex: 0 0 auto;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.thumb {
+  object-fit: cover;
+  border-radius: 5px;
+}
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.title {
+  font-size: 12px;
+  line-height: 14px;
+  color: #000;
+  margin: 0;
+}
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+.originalPrice {
+  font-size: 12px;
+  line-height: 14px;
+  color: #000;
+  opacity: 0.5;
+  text-decoration: none;
+}
+.salePrice {
+  font-size: 14px;
+  line-height: 17px;
+  color: #ff3821;
+}
+.statusPillContainer {
+  position: relative;
+  margin-top: 2px;
+  z-index: auto;
+}
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 29px;
+  padding: 0 8px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  width: 78px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 13px;
+}
+.statusPill:hover {
+  background: #f8f9fa;
+}
+.statusDropdown {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  width: 92px;
+  height: 48px;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000 !important;
+}
+.statusDropdownItem {
+  width: 100%;
+  height: 24px;
+  border: none;
+  background: #fff;
+  text-align: left;
+  padding: 5px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  font-size: 12px;
+  line-height: 13px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  z-index: 1000;
+}
+.statusDropdownItem:last-child {
+  border-bottom: none;
+}
+.statusDropdownItem:hover {
+  background: #f8f9fa;
+}
+.downIcon {
+  font-size: 8px;
+  color: rgba(0, 0, 0, 0.6);
+}
+.moreBtn {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+}
+.moreBtn::after {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid rgba(0, 0, 0, 0.6);
+  border-top: 1px solid rgba(0, 0, 0, 0.6);
+  transform: rotate(45deg);
+  position: absolute;
+  top: 7px;
+  right: 7px;
+}
+@media (min-width: 376px) {
+  .pageWrap {
+    align-items: center;
+  }
+  .topBar,
+  .summaryRow,
+  .listWrap {
+    width: 375px;
+  }
+  .bottomBar {
+    width: 375px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+.deleteBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  font-weight: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deleteBtn:hover {
+  color: rgba(255, 0, 0, 0.8);
+}
+
+/* Modal container positioned near the X button */
+.modal {
+  position: absolute;
+  top: 32px;
+  right: 8px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 8px 12px;
+  min-width: 150px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 20;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Modal text */
+.modal p {
+  margin: 0;
+  color: #000;
+  font-size: 12px;
+  line-height: 14px;
+}
+
+/* Modal actions (buttons) */
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Confirm delete button */
+.confirmBtn {
+  background: #66bfa7;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.confirmBtn:hover {
+  opacity: 0.9;
+}
+
+/* Cancel button */
+.cancelBtn {
+  background: #f2f4f7;
+  color: #000;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.cancelBtn:hover {
+  background: #e0e3e8;
+}

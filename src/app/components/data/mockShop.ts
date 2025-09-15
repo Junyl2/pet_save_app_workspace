@@ -12,8 +12,10 @@ mockProducts.forEach((p) => {
   const category = p.category ?? '기타'; // add a default category
 
   if (!shopMap.has(shopName)) {
+    const tempId = shopMap.size + 1;
     shopMap.set(shopName, {
-      id: shopMap.size + 1,
+      id: tempId,
+      ownerId: tempId,
       name: shopName, // display name
       category, //  required by Shop
       location: shopLocation, // required by Shop
@@ -23,7 +25,7 @@ mockProducts.forEach((p) => {
       shopDistance, //  required by Shop
       image: shopImage,
       phoneNumber,
-    });
+    } as Shop & { ownerId: number });
   }
 });
 

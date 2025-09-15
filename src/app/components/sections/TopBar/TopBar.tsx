@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import styles from './TopBar.module.css';
 import { TopIcons } from '../../ui/TopIcons/TopIcons';
 import { PAGE_URLS } from '@/app/utils/page_url';
+import { useUser } from '@/app/context/userContext';
 
 type SearchHistoryItem = {
   id: number;
@@ -22,7 +23,9 @@ type TopBarProps = {
 
 export default function TopBar({ onSearch }: TopBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const isLoggedIn = true;
+  const { user } = useUser();
+  const isLoggedIn = !!user;
+
   const router = useRouter();
   const pathname = usePathname();
 
@@ -32,8 +35,9 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
   /** Determine storage key based on path */
   const getStorageKey = useCallback(() => {
-    if (pathname === '/shops') return 'searchHistoryShops';
-    return 'searchHistoryProducts';
+    return pathname === '/shops'
+      ? 'searchHistoryShops'
+      : 'searchHistoryProducts';
   }, [pathname]);
 
   /** Load history from localStorage */
@@ -48,15 +52,11 @@ export default function TopBar({ onSearch }: TopBarProps) {
     (term: string) => {
       if (!term) return;
       const now = new Date();
-
-      let hours = now.getHours() % 12;
-      if (hours === 0) hours = 12;
-
+      const hours = now.getHours() % 12 || 12;
       const formatted = `${hours}.${now
         .getMinutes()
         .toString()
         .padStart(2, '0')}`;
-
       const newHistory = [
         { id: Date.now(), term, time: formatted },
         ...history.filter((h) => h.term !== term),
@@ -79,24 +79,19 @@ export default function TopBar({ onSearch }: TopBarProps) {
     saveHistory(term);
 
     if (onSearch) {
-      onSearch(term); // Filter mock data directly
+      onSearch(term);
     } else {
-      // fallback navigation for other pages
-      if (pathname === '/shops') {
-        router.push(`/shops/search?query=${encodeURIComponent(term)}`);
-      } else {
-        router.push(
-          `/client/pages/products/search?query=${encodeURIComponent(term)}`
-        );
-      }
+      const searchPath =
+        pathname === '/shops'
+          ? `/shops/search?query=${encodeURIComponent(term)}`
+          : `/client/pages/products/search?query=${encodeURIComponent(term)}`;
+      router.push(searchPath);
     }
 
     setInputValue('');
     inputRef.current?.blur();
     setShowHistory(false);
   }, [inputValue, pathname, router, onSearch, saveHistory]);
-
-  const isShoplist = pathname.startsWith('/shops');
 
   /** Handle Enter safely for Korean/Japanese IME */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -106,7 +101,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
     }
   };
 
-  /** Form submit */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     submitSearch();
@@ -115,18 +109,12 @@ export default function TopBar({ onSearch }: TopBarProps) {
   /** Select from history */
   const handleSelectHistory = (term: string) => {
     setInputValue(term);
-    if (onSearch) {
-      onSearch(term);
-    } else {
-      if (pathname === '/shops') {
-        router.push(
-          `/client/pages/shops/search?query=${encodeURIComponent(term)}`
-        );
-      } else {
-        router.push(
-          `/client/pages/products/search?query=${encodeURIComponent(term)}`
-        );
-      }
+    if (onSearch) onSearch(term);
+    else {
+      const searchPath = `/client/pages/products/search?query=${encodeURIComponent(
+        term
+      )}`;
+      router.push(searchPath);
     }
     inputRef.current?.blur();
     setShowHistory(false);
@@ -148,17 +136,20 @@ export default function TopBar({ onSearch }: TopBarProps) {
   const handleFocus = () => setShowHistory(true);
   const handleBlur = () => setTimeout(() => setShowHistory(false), 200);
 
+  const isShoplist = pathname.startsWith('/shops');
+
   return (
     <header
       className={
         pathname === '/shops'
           ? styles.shopTopBar
-          : styles.topbar && pathname === '/shopping-cart'
+          : pathname === '/shopping-cart'
           ? styles.shoppingCartTopbar
           : styles.topbar
       }
     >
       <div className={styles.inner}>
+        {/* Logo / Back / Location */}
         <div className={styles.logoWrapper}>
           {pathname === '/client/pages/homepage' ? (
             isLoggedIn ? (
@@ -166,7 +157,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
                 className={styles.userLocation}
                 onClick={() => router.push('/client/pages/homepage/location')}
               >
-                <span>신림동</span>
+                <span>{user?.location || '내 위치 선택'}</span>
                 <FaChevronDown className={styles.dropdownIcon} />
               </div>
             ) : (
@@ -180,15 +171,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
             )
           ) : (
             <button
-              onClick={() => {
-                if (pathname === '/products/search') {
-                  router.push('/client/pages/homepage');
-                } else if (pathname === '/shops') {
-                  router.push('/client/pages/homepage');
-                } else {
-                  router.back();
-                }
-              }}
+              onClick={() => router.back()}
               className={styles.backButton}
               aria-label="뒤로 가기"
             >
@@ -198,43 +181,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
         </div>
 
         <TopIcons />
-
-        {/* <div className={styles.icons}>
-          {pathname !== '/client/pages/homepage' && (
-            <button
-              className={styles.iconBtn}
-              onClick={() => router.push('/client/pages/homepage')}
-              aria-label="홈으로 이동"
-            >
-              <Image
-                src="/images/icons/bottom-bar/home-active.png"
-                alt="Notification"
-                width={27}
-                height={30}
-                className={styles.logo}
-              />
-            </button>
-          )}
-
-          <button className={styles.iconBtn}>
-            <Image
-              src="/images/icons/Bell.svg"
-              alt="Notification"
-              width={27}
-              height={30}
-              className={styles.logo}
-            />
-          </button>
-          <button className={styles.iconBtn}>
-            <Image
-              src="/images/icons/Cart.png"
-              alt="Cart"
-              width={27}
-              height={30}
-              className="object-contain"
-            />
-          </button>
-        </div> */}
       </div>
 
       {/* Search */}
