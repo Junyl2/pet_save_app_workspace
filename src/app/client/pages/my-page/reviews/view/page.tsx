@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { FaStar, FaEllipsisV } from 'react-icons/fa';
 import styles from './ViewReview.module.css';
+import Portal from '@/app/components/system/Portal';
 
 // Mock review data
 const mockReviews = [
@@ -12,17 +13,18 @@ const mockReviews = [
     id: 1,
     productName: '탐사 강아지 고구마말랭이 간식',
     rating: 5,
-    reviewText: '우리 강아지가 너무 잘 먹어요! 고구마 말랭이라 건강에도 좋고, 말랑해서 먹기도 편해 보여요. 간식 줄 때마다 꼬리를 흔들며 좋아하네요. 재구매 의사 100%입니다!',
+    reviewText:
+      '우리 강아지가 너무 잘 먹어요! 고구마 말랭이라 건강에도 좋고, 말랑해서 먹기도 편해 보여요. 간식 줄 때마다 꼬리를 흔들며 좋아하네요. 재구매 의사 100%입니다!',
     images: [
       '/images/products/dog-snack.png',
       '/images/products/dog-snack2.png',
-      '/images/products/dogfood.png'
+      '/images/products/dogfood.png',
     ],
     username: '만족해요',
     userId: 'petsave100000',
     date: '2025.08.10',
-    profileImage: '/images/icons/apple.png'
-  }
+    profileImage: '/images/icons/apple.png',
+  },
 ];
 
 export default function ViewReviewPage() {
@@ -30,13 +32,12 @@ export default function ViewReviewPage() {
   const router = useRouter();
   const reviewId = searchParams.get('reviewId');
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-  
-  // Find review by ID (default to first review if not found)
-  const review = mockReviews.find(r => r.id.toString() === reviewId) || mockReviews[0];
 
-  const handleOptionsClick = () => {
-    setShowOptionsMenu(!showOptionsMenu);
-  };
+  // Find review by ID (default to first review if not found)
+  const review =
+    mockReviews.find((r) => r.id.toString() === reviewId) || mockReviews[0];
+
+  const handleOptionsClick = () => setShowOptionsMenu((s) => !s);
 
   const handleEditReview = () => {
     setShowOptionsMenu(false);
@@ -45,10 +46,7 @@ export default function ViewReviewPage() {
 
   const handleDeleteReview = () => {
     setShowOptionsMenu(false);
-    // TODO: Show delete confirmation modal
     if (window.confirm('리뷰를 삭제하시겠습니까?')) {
-      console.log('Delete review:', review.id);
-      // Navigate back to reviews list after deletion
       router.push('/client/pages/my-page/reviews');
     }
   };
@@ -56,8 +54,10 @@ export default function ViewReviewPage() {
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, index) => (
       <FaStar
-        key={index}
-        className={`${styles.star} ${index < rating ? styles.starFilled : styles.starEmpty}`}
+        key={index} // static 1..5
+        className={`${styles.star} ${
+          index < rating ? styles.starFilled : styles.starEmpty
+        }`}
       />
     ));
   };
@@ -65,7 +65,7 @@ export default function ViewReviewPage() {
   return (
     <div className={styles.container}>
       <ProductHeader />
-      
+
       <div className={styles.content}>
         {/* Tab Navigation */}
         <div className={styles.tabContainer}>
@@ -95,71 +95,65 @@ export default function ViewReviewPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className={styles.headerActions}>
-              <button 
+              <button
                 className={styles.optionsButton}
                 onClick={handleOptionsClick}
+                aria-haspopup="menu"
+                aria-expanded={showOptionsMenu}
               >
                 <FaEllipsisV />
               </button>
-              
-              {/* Options Menu */}
-              {showOptionsMenu && (
-                <div className={styles.optionsMenu}>
-                  <button 
-                    className={styles.optionItem}
-                    onClick={handleEditReview}
-                  >
-                    수정하기
-                  </button>
-                  <button 
-                    className={styles.optionItem}
-                    onClick={handleDeleteReview}
-                  >
-                    삭제하기
-                  </button>
-                </div>
-              )}
             </div>
           </div>
 
           {/* Star Rating */}
           <div className={styles.ratingContainer}>
-            <div className={styles.stars}>
-              {renderStars(review.rating)}
-            </div>
+            <div className={styles.stars}>{renderStars(review.rating)}</div>
           </div>
 
           {/* Product Name */}
-          <div className={styles.productName}>
-            {review.productName}
-          </div>
+          <div className={styles.productName}>{review.productName}</div>
 
-          {/* Review Images */}
+          {/* Review Images (stable keys) */}
           {review.images && review.images.length > 0 && (
             <div className={styles.imagesContainer}>
-              {review.images.map((image, index) => (
-                <div key={index} className={styles.reviewImage}>
-                  <img src={image} alt={`Review image ${index + 1}`} />
+              {review.images.map((image) => (
+                <div key={image} className={styles.reviewImage}>
+                  <img src={image} alt="Review image" />
                 </div>
               ))}
             </div>
           )}
 
           {/* Review Text */}
-          <div className={styles.reviewText}>
-            {review.reviewText}
-          </div>
+          <div className={styles.reviewText}>{review.reviewText}</div>
         </div>
       </div>
 
-      {/* Overlay to close options menu */}
+      {/* Menu + overlay rendered in a body-level portal */}
       {showOptionsMenu && (
-        <div 
-          className={styles.overlay}
-          onClick={() => setShowOptionsMenu(false)}
-        />
+        <Portal>
+          <div className={styles.optionsPortalWrap}>
+            <div className={styles.optionsMenu} role="menu">
+              <button className={styles.optionItem} onClick={handleEditReview}>
+                수정하기
+              </button>
+              <button
+                className={styles.optionItem}
+                onClick={handleDeleteReview}
+              >
+                삭제하기
+              </button>
+            </div>
+            <div
+              className={styles.overlay}
+              onClick={() => setShowOptionsMenu(false)}
+              aria-hidden="true"
+            />
+          </div>
+        </Portal>
       )}
     </div>
   );

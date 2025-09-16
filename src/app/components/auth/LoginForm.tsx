@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-import { FaChevronLeft } from 'react-icons/fa';
+/* import { FaChevronLeft } from 'react-icons/fa'; */
 import styles from './LoginForm.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { useRouter } from 'next/navigation';
@@ -101,7 +101,7 @@ export default function LoginForm() {
   return (
     <>
       {/* Top Bar */}
-      <div className={styles.topBar}>
+      {/*  <div className={styles.topBar}>
         <button
           type="button"
           onClick={() => router.back()}
@@ -111,7 +111,7 @@ export default function LoginForm() {
           <FaChevronLeft className={styles.arrowLeft} />
         </button>
         <span className={styles.home}>이전 페이지</span>
-      </div>
+      </div> */}
 
       <div className={styles.loginPage}>
         {/* Logo */}
@@ -123,6 +123,7 @@ export default function LoginForm() {
             width={144}
             className={styles.objectContain}
             priority
+            onClick={() => router.back()}
           />
         </div>
 

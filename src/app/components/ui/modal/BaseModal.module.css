@@ -1,12 +1,25 @@
 .overlay {
   position: fixed;
   inset: 0;
+  z-index: 9999;
   background: rgba(0, 0, 0, 0.8);
   display: flex;
-  align-items: center;
-  padding: 0 1rem;
   justify-content: center;
-  z-index: 2000;
+  align-items: center;
+}
+
+/* Desktop-specific visible scrim */
+.scrim {
+  display: none;
+}
+
+.canvas {
+  width: 100%;
+  max-width: 468px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
 }
 
 .modal {
@@ -14,8 +27,7 @@
   background: #fff;
   border-radius: 16px;
   padding: 24px;
-  max-width: 500px;
-  width: 90%;
+  width: 100%;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   animation: fadeInUp 0.25s ease-out;
 }
@@ -24,19 +36,9 @@
   border-radius: 0;
 }
 
-.closeBtn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #333;
-}
-
 .title {
   font-size: clamp(20px, 2.5vw, 24px);
-  font-weight: bold;
+  font-weight: 700;
   margin-bottom: 16px;
   text-align: center;
   color: #1f1f1f;
@@ -58,11 +60,27 @@
 }
 
 @media (min-width: 1025px) {
+  .canvas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal {
+    width: 80%;
+  }
   .overlay {
+    background: transparent;
+  }
+  .scrim {
+    display: block;
+    position: fixed;
+    top: 0;
+    bottom: 0;
     left: 50%;
-    right: auto;
     width: 468px;
-    padding: 0 1rem;
     transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    z-index: -1;
   }
 }

@@ -2,7 +2,7 @@
 import styles from './DotMenu.module.css';
 import { FiMoreHorizontal } from 'react-icons/fi';
 import { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { DeleteModal } from '../modal/DeleteModal/DeleteModal';
 
 interface DotMenuProps {
@@ -13,7 +13,7 @@ interface DotMenuProps {
 export const DotMenu = ({ mode = 'default', onDelete }: DotMenuProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const router = useRouter();
+  /* const router = useRouter(); */
   const pathname = usePathname();
 
   const isContactUs = pathname.startsWith('/contact-us');
@@ -22,9 +22,9 @@ export const DotMenu = ({ mode = 'default', onDelete }: DotMenuProps) => {
     setMenuOpen(false);
     if (onDelete) {
       onDelete(); // trigger passed callback
-    } else {
-      router.push('/delete'); // fallback if no callback
-    }
+    } /*  else {
+      router.push('/delete');
+    } */
   };
 
   const handlDeleteModal = () => {
@@ -75,12 +75,14 @@ export const DotMenu = ({ mode = 'default', onDelete }: DotMenuProps) => {
       )}
 
       {deleteModalOpen && (
-        <DeleteModal
-          modalTitle="이 글을 삭제하시겠습니까?"
-          open={true}
-          onDelete={handleDelete}
-          onClose={() => setDeleteModalOpen(false)}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <DeleteModal
+            modalTitle="이 글을 삭제하시겠습니까?"
+            open={true}
+            onDelete={handleDelete}
+            onClose={() => setDeleteModalOpen(false)}
+          />
+        </div>
       )}
     </div>
   );

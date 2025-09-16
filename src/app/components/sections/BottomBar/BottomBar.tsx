@@ -22,37 +22,52 @@ export default function BottomBar() {
   const isLoggedIn = !!user;
   const isSeller = user?.role === 'seller';
 
-  const items: BottomItem[] = [
-    { name: 'home', label: '홈', path: PAGE_URLS.HOME },
-    { name: 'bag', label: '주변가게', path: PAGE_URLS.SHOPS || '/shops' },
-    {
-      name: 'message',
-      label: '문의하기',
-      path: isSeller
-        ? '/client/seller/pages/seller-inquiry-details'
-        : PAGE_URLS.CONTACT || '/contact',
-    },
-    {
-      name: 'user',
-      label: '마이',
-      path: isLoggedIn
-        ? isSeller
-          ? PAGE_URLS.SELLER_MYPAGE
-          : PAGE_URLS.MYPAGE || '/'
-        : PAGE_URLS.LOGIN,
-    },
-  ];
-
+  // Helper to normalize paths (ignore trailing slashes)
   const normalizePath = (path: string) =>
     path.endsWith('/') ? path.slice(0, -1) : path;
 
+  // Helper to strip query string for active state comparison
+  const stripQuery = (path: string) => path.split('?')[0];
+
   const currentPath = normalizePath(pathname);
+
+  // Build items
+  const items: BottomItem[] = [
+    { name: 'home', label: '홈', path: PAGE_URLS.HOME },
+    { name: 'bag', label: '주변가게', path: PAGE_URLS.SHOPS || '/shops' },
+  ];
+
+  // Always include "문의하기"
+  const intendedContactPath = isSeller
+    ? '/client/seller/pages/seller-inquiry-details'
+    : PAGE_URLS.CONTACT || '/contact';
+
+  const contactPath = isLoggedIn
+    ? intendedContactPath
+    : `${PAGE_URLS.LOGIN}?next=${encodeURIComponent(intendedContactPath)}`;
+
+  items.push({
+    name: 'message',
+    label: '문의하기',
+    path: contactPath,
+  });
+
+  // Always include My page (routes differ based on state/role)
+  items.push({
+    name: 'user',
+    label: '마이',
+    path: isLoggedIn
+      ? isSeller
+        ? PAGE_URLS.SELLER_MYPAGE
+        : PAGE_URLS.MYPAGE || '/'
+      : PAGE_URLS.LOGIN,
+  });
 
   return (
     <nav className={styles.bottomBar}>
       <ul className={styles.list}>
         {items.map((item) => {
-          const itemPath = normalizePath(item.path);
+          const itemPath = normalizePath(stripQuery(item.path));
           const isActive = currentPath === itemPath;
           const showActive = isActive || hovered === item.name;
 

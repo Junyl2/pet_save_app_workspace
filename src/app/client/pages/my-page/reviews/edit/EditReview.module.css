@@ -2,10 +2,11 @@
   min-height: 100vh;
   background-color: #ffffff;
   padding-top: 60px;
+  margin-top: 20px;
 }
 
 .content {
-  padding: 20px 16px;
+  padding: 20px 0;
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -16,8 +17,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #f1f3f4;
+  padding-bottom: 5px;
 }
 
 .productImage {
@@ -63,19 +63,19 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  align-items: center;
-  text-align: center;
 }
 
 .ratingTitle {
   font-size: 18px;
   font-weight: 600;
   color: #333;
+  text-align: left;
 }
 
 .starsContainer {
   display: flex;
   gap: 8px;
+  justify-content: center;
 }
 
 .starButton {
@@ -159,16 +159,18 @@
 
 .imageGrid {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .imagePreview {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 8px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .imagePreview img {
@@ -239,12 +241,24 @@
 }
 
 .submitButtonActive {
-  background-color: #8bc4a8;
+  background-color: #66BFA7;
   color: white;
 }
 
+.divider {
+  height: 14px;
+  background-color: #f2f4f7;
+  margin: 0 -16px;
+}
+
+.line {
+  height: 3px;
+  background-color: #f2f4f7;
+  margin: 20px -16px -30px -16px;
+}
+
 .submitButtonActive:hover {
-  background-color: #7ab396;
+  background-color: #66BFA7;
 }
 
 .submitButton:disabled {
