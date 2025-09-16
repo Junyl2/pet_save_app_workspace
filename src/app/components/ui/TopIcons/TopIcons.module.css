@@ -4,6 +4,10 @@
   gap: 0.2rem;
 }
 
+.logo {
+  object-fit: contain;
+}
+
 .iconBtn {
   display: flex;
   align-items: center;

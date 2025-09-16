@@ -9,15 +9,13 @@ import styles from './ContactInbox.module.css';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { DotMenu } from '../../ui/DotMenu/DotMenu';
 import { useRouter } from 'next/navigation';
+/* import toast from 'react-hot-toast'; */
 
 type RangeLabel = '1개월' | '6개월' | '1년' | '전체보기';
 
 type ContactInboxProps = {
-  /** Hide the three-dot menu per page needs (history-inquiry wants this hidden) */
   hideMenu?: boolean;
-  /** Render extra controls above the dropdown (e.g., tabs/buttons) */
   extraActionsRender?: React.ReactNode;
-  /** Initial range selection; default 1개월 */
   initialRange?: RangeLabel;
 };
 
@@ -30,7 +28,6 @@ export default function ContactInbox({
   const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ▼ period dropdown
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState<RangeLabel>(initialRange);
   const rangeOptions: RangeLabel[] = ['1개월', '6개월', '1년', '전체보기'];
@@ -50,10 +47,8 @@ export default function ContactInbox({
     setDropdownOpen(false);
   };
 
-  // date-range filtering only
   const filteredInquiries = useMemo(() => {
     const now = new Date();
-
     const byRange = (inq: ContactInquiry) => {
       if (selectedRange === '전체보기') return true;
       const inquiryDate = new Date(inq.date);
@@ -151,38 +146,47 @@ export default function ContactInbox({
               day: '2-digit',
             }).format(new Date(inq.date)); // e.g., 25.07.30
 
-            const openReply = () => {
+            const handleCardClick = () => {
+              if (dropdownOpen) return; // prevent accidental clicks while dropdown open
+              // add a shared state if needed for modal open
               if (isCompleted) {
                 router.push(
                   `/client/pages/my-page/history-inquiry/reply/${inq.id}`
                 );
+              } else {
+                router.push(`/inquiries/waiting-reply/${inq.id}`);
               }
             };
+
+            /*    const handleConfirmDelete = async () => {
+              await contactService.deleteInquiry(inq.id);
+              setInquiries((prev) => prev.filter((i) => i.id !== inq.id));
+            }; */
 
             return (
               <div
                 key={inq.id}
-                className={`${styles.inquiryCard} ${
-                  isCompleted ? styles.clickable : ''
-                }`}
-                role={isCompleted ? 'button' : undefined}
-                tabIndex={isCompleted ? 0 : -1}
-                aria-disabled={!isCompleted}
-                onClick={openReply}
+                className={`${styles.inquiryCard} ${styles.clickable}`}
+                role="button"
+                tabIndex={0}
+                onClick={handleCardClick}
                 onKeyDown={(e) => {
-                  if (!isCompleted) return;
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    openReply();
+                    handleCardClick();
                   }
                 }}
               >
-                {/* hidden when hideMenu=true */}
+                {/* prevent menu click from triggering card click */}
                 {!hideMenu && (
-                  <DotMenu
-                    mode="deleteOnly"
-                    onDelete={() => router.push(`/inquiries/delete/${inq.id}`)}
-                  />
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className={styles.dotMenu}
+                  >
+                    <DotMenu mode="deletePage" />
+                  </div>
                 )}
 
                 <p className={styles.status}>

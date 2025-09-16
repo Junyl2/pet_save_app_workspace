@@ -4,11 +4,9 @@
   align-items: center;
   justify-content: center;
   gap: 69px;
-  height: 100vh;
+  height: 100%;
   background: #ffffff;
   width: 100%;
-  padding-bottom: 2rem;
-  margin-top: 55px;
 }
 .topBar {
   top: 0;
@@ -63,6 +61,7 @@
  */
 .objectContain {
   object-fit: contain;
+  cursor: pointer;
 }
 
 .loginFormContainer {

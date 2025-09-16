@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { FaStar, FaCamera } from 'react-icons/fa';
@@ -13,73 +13,77 @@ const mockProducts = [
     name: '탐사 강아지 고구마말랭이 간식',
     store: '○○ 동물병원',
     purchaseDate: '25.07.30',
-    image: '/images/products/dog-snack.png'
+    image: '/images/products/dog-snack.png',
   },
   {
     id: 2,
     name: '굿데이 건강한 육포 강아지 간식',
     store: '펫프렌즈',
     purchaseDate: '25.07.28',
-    image: '/images/products/dog-snack2.png'
+    image: '/images/products/dog-snack2.png',
   },
   {
     id: 3,
     name: '씨엔앨 고양이 짜먹는 간식',
     store: '강아지대통령',
     purchaseDate: '25.07.25',
-    image: '/images/products/dogfood.png'
-  }
+    image: '/images/products/dogfood.png',
+  },
 ];
+
+type NewImage = { id: string; file: File; url: string };
 
 export default function WriteReviewPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const productId = searchParams.get('productId');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Find product by ID (default to first product if not found)
-  const product = mockProducts.find(p => p.id.toString() === productId) || mockProducts[0];
-  
+  const product =
+    mockProducts.find((p) => p.id.toString() === productId) || mockProducts[0];
+
   const [rating, setRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState<string>('');
-  const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const [attachedImages, setAttachedImages] = useState<NewImage[]>([]);
   const [hoveredStar, setHoveredStar] = useState<number>(0);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
 
-  const handleStarClick = (starIndex: number) => {
-    setRating(starIndex);
-  };
+  const handleStarClick = (starIndex: number) => setRating(starIndex);
+  const handleStarHover = (starIndex: number) => setHoveredStar(starIndex);
+  const handleStarLeave = () => setHoveredStar(0);
 
-  const handleStarHover = (starIndex: number) => {
-    setHoveredStar(starIndex);
-  };
-
-  const handleStarLeave = () => {
-    setHoveredStar(0);
-  };
-
-  const handlePhotoUpload = () => {
-    fileInputRef.current?.click();
-  };
+  const handlePhotoUpload = () => fileInputRef.current?.click();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      const newImages = Array.from(files);
-      setAttachedImages(prev => [...prev, ...newImages]);
-    }
+    if (!files) return;
+    const additions: NewImage[] = Array.from(files).map((f) => ({
+      id: crypto.randomUUID(),
+      file: f,
+      url: URL.createObjectURL(f),
+    }));
+    setAttachedImages((prev) => [...prev, ...additions]);
   };
 
-  const removeImage = (index: number) => {
-    setAttachedImages(prev => prev.filter((_, i) => i !== index));
+  const removeImage = (id: string) => {
+    setAttachedImages((prev) => {
+      const img = prev.find((x) => x.id === id);
+      if (img) URL.revokeObjectURL(img.url);
+      return prev.filter((x) => x.id !== id);
+    });
   };
+
+  // cleanup all object URLs on unmount
+  useEffect(() => {
+    return () => {
+      attachedImages.forEach((x) => URL.revokeObjectURL(x.url));
+    };
+  }, [attachedImages]);
 
   const handleSubmit = () => {
     if (rating > 0 && reviewText.trim()) {
-      // Show success message
       setShowSuccessMessage(true);
-      
-      // Hide message and navigate back after 3 seconds
       setTimeout(() => {
         setShowSuccessMessage(false);
         router.push('/client/pages/my-page/reviews');
@@ -92,7 +96,7 @@ export default function WriteReviewPage() {
   return (
     <div className={styles.container}>
       <ProductHeader />
-      
+
       <div className={styles.content}>
         {/* Product Info */}
         <div className={styles.productSection}>
@@ -102,18 +106,22 @@ export default function WriteReviewPage() {
           <div className={styles.productInfo}>
             <div className={styles.productName}>{product.name}</div>
             <div className={styles.productStore}>{product.store}</div>
-            <div className={styles.purchaseDate}>{product.purchaseDate} 주문</div>
+            <div className={styles.purchaseDate}>
+              {product.purchaseDate} 주문
+            </div>
           </div>
         </div>
         <div className={styles.divider}></div>
 
         {/* Rating Section */}
         <div className={styles.ratingSection}>
-          <div className={styles.ratingTitle}>구매하신 상품은 만족하시나요?</div>
+          <div className={styles.ratingTitle}>
+            구매하신 상품은 만족하시나요?
+          </div>
           <div className={styles.starsContainer}>
             {[1, 2, 3, 4, 5].map((starIndex) => (
               <button
-                key={starIndex}
+                key={starIndex} // static 1..5
                 className={styles.starButton}
                 onClick={() => handleStarClick(starIndex)}
                 onMouseEnter={() => handleStarHover(starIndex)}
@@ -121,7 +129,9 @@ export default function WriteReviewPage() {
               >
                 <FaStar
                   className={`${styles.star} ${
-                    starIndex <= (hoveredStar || rating) ? styles.starFilled : styles.starEmpty
+                    starIndex <= (hoveredStar || rating)
+                      ? styles.starFilled
+                      : styles.starEmpty
                   }`}
                 />
               </button>
@@ -129,7 +139,6 @@ export default function WriteReviewPage() {
           </div>
         </div>
         <div className={styles.divider}></div>
-
 
         {/* Review Text Section */}
         <div className={styles.reviewSection}>
@@ -158,19 +167,16 @@ export default function WriteReviewPage() {
             onChange={handleFileChange}
             className={styles.hiddenInput}
           />
-          
-          {/* Display attached images */}
+
+          {/* Display attached images (stable keys) */}
           {attachedImages.length > 0 && (
             <div className={styles.imagePreviewContainer}>
-              {attachedImages.map((image, index) => (
-                <div key={index} className={styles.imagePreview}>
-                  <img
-                    src={URL.createObjectURL(image)}
-                    alt={`Preview ${index + 1}`}
-                  />
+              {attachedImages.map((img) => (
+                <div key={img.id} className={styles.imagePreview}>
+                  <img src={img.url} alt="Preview" />
                   <button
                     className={styles.removeImageButton}
-                    onClick={() => removeImage(index)}
+                    onClick={() => removeImage(img.id)}
                   >
                     ×
                   </button>
@@ -183,7 +189,9 @@ export default function WriteReviewPage() {
         {/* Submit Button */}
         <div className={styles.line}></div>
         <button
-          className={`${styles.submitButton} ${isFormValid ? styles.submitButtonActive : ''}`}
+          className={`${styles.submitButton} ${
+            isFormValid ? styles.submitButtonActive : ''
+          }`}
           onClick={handleSubmit}
           disabled={!isFormValid}
         >

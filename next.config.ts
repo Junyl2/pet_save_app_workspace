@@ -65,8 +65,8 @@ const nextConfig: NextConfig = {
         destination: '/client/pages/contact-us',
       },
       {
-        source: '/inquiries/delete/:id',
-        destination: '/client/pages/contact-us/delete/:id',
+        source: '/inquiries/waiting-reply/:id',
+        destination: '/client/pages/contact-us/waiting-reply/:id',
       },
       // Login
       {

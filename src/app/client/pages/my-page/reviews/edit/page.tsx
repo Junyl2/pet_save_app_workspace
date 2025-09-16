@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { FaStar, FaCamera } from 'react-icons/fa';
@@ -25,6 +25,8 @@ const mockReviews = [
   },
 ];
 
+type NewImage = { id: string; file: File; url: string };
+
 export default function EditReviewPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -39,54 +41,53 @@ export default function EditReviewPage() {
   const [reviewText, setReviewText] = useState<string>(
     existingReview.reviewText
   );
-  const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const [attachedImages, setAttachedImages] = useState<NewImage[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>(
     existingReview.existingImages || []
   );
   const [hoveredStar, setHoveredStar] = useState<number>(0);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
 
-  const handleStarClick = (starIndex: number) => {
-    setRating(starIndex);
-  };
+  const handleStarClick = (starIndex: number) => setRating(starIndex);
+  const handleStarHover = (starIndex: number) => setHoveredStar(starIndex);
+  const handleStarLeave = () => setHoveredStar(0);
 
-  const handleStarHover = (starIndex: number) => {
-    setHoveredStar(starIndex);
-  };
-
-  const handleStarLeave = () => {
-    setHoveredStar(0);
-  };
-
-  const handlePhotoUpload = () => {
-    fileInputRef.current?.click();
-  };
+  const handlePhotoUpload = () => fileInputRef.current?.click();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      const newImages = Array.from(files);
-      setAttachedImages((prev) => [...prev, ...newImages]);
-    }
+    if (!files) return;
+    const additions: NewImage[] = Array.from(files).map((f) => ({
+      id: crypto.randomUUID(),
+      file: f,
+      url: URL.createObjectURL(f),
+    }));
+    setAttachedImages((prev) => [...prev, ...additions]);
   };
 
-  const removeNewImage = (index: number) => {
-    setAttachedImages((prev) => prev.filter((_, i) => i !== index));
+  const removeNewImage = (id: string) => {
+    setAttachedImages((prev) => {
+      const img = prev.find((x) => x.id === id);
+      if (img) URL.revokeObjectURL(img.url);
+      return prev.filter((x) => x.id !== id);
+    });
   };
 
-  const removeExistingImage = (index: number) => {
-    setExistingImages((prev) => prev.filter((_, i) => i !== index));
-  };
+  // revoke URLs on unmount
+  useEffect(() => {
+    return () => {
+      attachedImages.forEach((x) => URL.revokeObjectURL(x.url));
+    };
+  }, [attachedImages]);
 
   const handleSubmit = () => {
     if (rating > 0 && reviewText.trim()) {
-      // Show success message
       setShowSuccessMessage(true);
-
-      // Hide message and navigate back to review view after 2 seconds
       setTimeout(() => {
         setShowSuccessMessage(false);
-        router.push(`/client/pages/my-page/reviews/view?reviewId=${reviewId}`);
+        router.push(
+          `/client/pages/my-page/reviews/view?reviewId=${existingReview.id}`
+        );
       }, 2000);
     }
   };
@@ -113,7 +114,7 @@ export default function EditReviewPage() {
             </div>
           </div>
         </div>
-        
+
         <div className={styles.divider}></div>
 
         {/* Rating Section */}
@@ -124,7 +125,7 @@ export default function EditReviewPage() {
           <div className={styles.starsContainer}>
             {[1, 2, 3, 4, 5].map((starIndex) => (
               <button
-                key={starIndex}
+                key={starIndex} // static 1..5
                 className={styles.starButton}
                 onClick={() => handleStarClick(starIndex)}
                 onMouseEnter={() => handleStarHover(starIndex)}
@@ -143,7 +144,6 @@ export default function EditReviewPage() {
         </div>
         <div className={styles.divider}></div>
 
-
         {/* Review Text Section */}
         <div className={styles.reviewSection}>
           <div className={styles.reviewTitle}>자세한 리뷰를 작성해주세요</div>
@@ -159,19 +159,20 @@ export default function EditReviewPage() {
 
         {/* Photo Upload Section */}
         <div className={styles.photoSection}>
-          {/* Existing Images */}
+          {/* Existing Images (stable keys by URL) */}
           {existingImages.length > 0 && (
             <div className={styles.existingImagesContainer}>
               <div className={styles.imageGrid}>
-                {existingImages.map((image, index) => (
-                  <div
-                    key={`existing-${index}`}
-                    className={styles.imagePreview}
-                  >
-                    <img src={image} alt={`Existing ${index + 1}`} />
+                {existingImages.map((image) => (
+                  <div key={image} className={styles.imagePreview}>
+                    <img src={image} alt="Existing" />
                     <button
                       className={styles.removeImageButton}
-                      onClick={() => removeExistingImage(index)}
+                      onClick={() =>
+                        setExistingImages((prev) =>
+                          prev.filter((x) => x !== image)
+                        )
+                      }
                     >
                       ×
                     </button>
@@ -181,19 +182,16 @@ export default function EditReviewPage() {
             </div>
           )}
 
-          {/* New Images */}
+          {/* New Images (stable keys by id) */}
           {attachedImages.length > 0 && (
             <div className={styles.newImagesContainer}>
               <div className={styles.imageGrid}>
-                {attachedImages.map((image, index) => (
-                  <div key={`new-${index}`} className={styles.imagePreview}>
-                    <img
-                      src={URL.createObjectURL(image)}
-                      alt={`New Preview ${index + 1}`}
-                    />
+                {attachedImages.map((img) => (
+                  <div key={img.id} className={styles.imagePreview}>
+                    <img src={img.url} alt="New Preview" />
                     <button
                       className={styles.removeImageButton}
-                      onClick={() => removeNewImage(index)}
+                      onClick={() => removeNewImage(img.id)}
                     >
                       ×
                     </button>
