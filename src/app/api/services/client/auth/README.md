@@ -64,12 +64,43 @@ const phoneResponse = await AuthService.verifyCode({
 });
 ```
 
+## User Login
+
+### Login with credentials
+
+```typescript
+const response = await AuthService.loginWithCredentials(
+  'johndoe', // identifier (username, email, or phone)
+  'TestPass123!', // password
+  'GENERAL' // loginType
+);
+
+if (response.error) {
+  console.error('Login failed:', response.error);
+} else {
+  console.log('Login successful:', response.data);
+  // Tokens are automatically stored in localStorage
+}
+```
+
+### Login with login data object
+
+```typescript
+const loginData = {
+  identifier: 'johndoe',
+  password: 'TestPass123!',
+  loginType: 'GENERAL',
+};
+
+const response = await AuthService.login(loginData);
+```
+
 ## User Signup
 
 ```typescript
 const signupData = {
   identifier: 'johndoe',
-  password: 'password123',
+  password: 'TestPass123!',
   loginType: 'GENERAL',
   email: 'john@example.com',
   phoneNumber: '+1234567890',

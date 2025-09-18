@@ -9,6 +9,7 @@ import {
   VerifyCodeRequest,
   VerifyCodeResponse,
 } from '../../../types/auth/EmailVerification';
+import { LoginRequest, LoginResponse } from '../../../types/auth/Login';
 
 /**
  * Authentication service for user signup and login operations
@@ -22,13 +23,22 @@ export class AuthService {
     signupData: MemberSignupDto
   ): Promise<ApiResponse<any>> {
     try {
-      // Ensure loginType is set to GENERAL if not provided
-      const data = {
+      // Normalize identifier to lowercase for case-insensitive handling
+      const normalizedSignupData = {
         ...signupData,
+        identifier: signupData.identifier.toLowerCase().trim(),
         loginType: signupData.loginType || LOGIN_TYPES.GENERAL,
       };
 
-      const response = await apiClient.post('/auth/signup/general', data);
+      console.log('Signup attempt:', {
+        original: signupData.identifier,
+        normalized: normalizedSignupData.identifier,
+      });
+
+      const response = await apiClient.post(
+        '/auth/signup/general',
+        normalizedSignupData
+      );
 
       if (response.error) {
         console.error('Signup failed:', response.error);
@@ -51,28 +61,94 @@ export class AuthService {
    * Endpoint: POST /api/pet-save/auth/login
    */
   static async login(
-    identifier: string,
-    password: string
-  ): Promise<ApiResponse<any>> {
+    loginData: LoginRequest
+  ): Promise<ApiResponse<LoginResponse>> {
     try {
-      const response = await apiClient.post('/auth/login', {
-        identifier,
-        password,
-      });
+      const response = await apiClient.post<LoginResponse>(
+        '/auth/login',
+        loginData
+      );
+
+      // Debug: Log the full response structure
+      console.log('Login API response:', response);
+      console.log('Response data type:', typeof response.data);
+      console.log(
+        'Response data keys:',
+        response.data ? Object.keys(response.data) : 'null'
+      );
 
       if (response.error) {
         console.error('Login failed:', response.error);
         return response;
       }
 
-      // Store auth token if login successful
-      if (
-        response.data &&
-        typeof response.data === 'object' &&
-        'token' in response.data &&
-        typeof window !== 'undefined'
-      ) {
-        localStorage.setItem('authToken', (response.data as any).token);
+      // Store auth tokens if login successful
+      if (response.data && typeof window !== 'undefined') {
+        // Handle different possible response structures
+        let accessToken, refreshToken, user;
+        const responseData = response.data as any; // Type assertion for flexible response handling
+
+        if (responseData.data && responseData.data.accessToken) {
+          // Actual API structure: { success: true, data: { accessToken, refreshToken, identifier, ... } }
+          const userData = responseData.data;
+          console.log('User data from API:', userData);
+
+          accessToken = userData.accessToken;
+          refreshToken = userData.refreshToken;
+          // Create user object from the available data
+          user = {
+            id: userData.uuidMember || userData.identifier,
+            identifier: userData.identifier,
+            email: userData.email || '',
+            name: userData.name || userData.identifier,
+            nickname: userData.nickname || userData.identifier,
+            phoneNumber: userData.phoneNumber || '',
+            loginType: userData.loginType || 'GENERAL',
+          };
+
+          console.log('Created user object:', user);
+        } else if (responseData.accessToken && responseData.user) {
+          // Expected structure
+          ({ accessToken, refreshToken, user } = responseData);
+        } else if (responseData.token && responseData.user) {
+          // Alternative structure with 'token' instead of 'accessToken'
+          accessToken = responseData.token;
+          refreshToken = responseData.refreshToken;
+          user = responseData.user;
+        } else {
+          console.error(
+            'Login response has unexpected structure:',
+            responseData
+          );
+          return {
+            data: null,
+            error: 'Login response has unexpected structure',
+          };
+        }
+
+        // Validate that we have the required data
+        if (accessToken && user && user.identifier) {
+          // Store tokens in localStorage
+          localStorage.setItem('authToken', accessToken);
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+          }
+          localStorage.setItem('userInfo', JSON.stringify(user));
+
+          console.log('Login successful, tokens stored:', {
+            user: user.identifier,
+          });
+        } else {
+          console.error('Login response missing required data:', {
+            accessToken,
+            user,
+          });
+          return {
+            data: null,
+            error:
+              'Login response is missing required data (accessToken or user)',
+          };
+        }
       }
 
       return response;
@@ -83,6 +159,33 @@ export class AuthService {
         error: error instanceof Error ? error.message : 'Login failed',
       };
     }
+  }
+
+  /**
+   * Login user with identifier and password (convenience method)
+   * @param identifier - Username, email, or phone number
+   * @param password - User password
+   * @param loginType - Login type (default: GENERAL)
+   */
+  static async loginWithCredentials(
+    identifier: string,
+    password: string,
+    loginType: string = LOGIN_TYPES.GENERAL
+  ): Promise<ApiResponse<LoginResponse>> {
+    // Normalize identifier to lowercase for case-insensitive login
+    const normalizedIdentifier = identifier.toLowerCase().trim();
+
+    console.log('Login attempt:', {
+      original: identifier,
+      normalized: normalizedIdentifier,
+      loginType,
+    });
+
+    return this.login({
+      identifier: normalizedIdentifier,
+      password,
+      loginType,
+    });
   }
 
   /**
@@ -98,6 +201,8 @@ export class AuthService {
       // Always clear local storage
       if (typeof window !== 'undefined') {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userInfo');
         sessionStorage.clear();
       }
     }

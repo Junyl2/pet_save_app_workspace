@@ -9,6 +9,8 @@ import styles from './LoginForm.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/app/context/userContext';
+import { AuthService } from '@/app/api/services/client/auth/authService';
+import { LOGIN_TYPES } from '@/app/api/types/auth/MemberSignupDto';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -48,46 +50,87 @@ export default function LoginForm() {
     setError('');
 
     try {
-      // --- demo: client login ---
-      if (username === 'user' && password === 'user123') {
-        login({ username, role: 'client' });
-
-        // store/clear remembered username
-        if (remember) {
-          localStorage.setItem('rememberedUsername', username);
-        } else {
-          localStorage.removeItem('rememberedUsername');
-        }
-
-        // IMPORTANT: clear any previous seller id
-        localStorage.removeItem('sellerId');
-
-        router.push('/');
+      // Validate input
+      if (!username.trim() || !password.trim()) {
+        setError('아이디와 비밀번호를 입력해주세요.');
+        setLoading(false);
         return;
       }
 
-      // --- demo: seller login (sets sellerId for owner checks) ---
-      if (/^seller(?:[-_]?\d+)?$/i.test(username) && password === 'seller123') {
-        const sellerId = deriveSellerId(username);
+      console.log('Attempting login with:', {
+        identifier: username,
+        loginType: LOGIN_TYPES.GENERAL,
+      });
 
-        login({ username, role: 'seller' });
+      // Call the real API (username will be normalized in the service)
+      const response = await AuthService.loginWithCredentials(
+        username.trim(),
+        password,
+        LOGIN_TYPES.GENERAL
+      );
 
-        // store/clear remembered username
-        if (remember) {
-          localStorage.setItem('rememberedUsername', username);
-        } else {
-          localStorage.removeItem('rememberedUsername');
-        }
+      // Debug: Log the response structure
+      console.log('Login response in component:', response);
 
-        // 🔑 this is what your SellerDetails page reads to show "수정하기"
-        localStorage.setItem('sellerId', String(sellerId));
-
-        router.push('/');
+      if (response.error) {
+        console.error('Login failed:', response.error);
+        setError(response.error);
+        setLoading(false);
         return;
       }
 
-      throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
+      if (response.data) {
+        console.log('Login successful, response data:', response.data);
+
+        // Handle different response structures
+        let userIdentifier;
+        const responseData = response.data as any; // Type assertion for flexible response handling
+
+        if (responseData.data && responseData.data.identifier) {
+          // New API structure: { data: { data: { identifier, ... } } }
+          userIdentifier = responseData.data.identifier;
+        } else if (responseData.user && responseData.user.identifier) {
+          // Old structure: { data: { user: { identifier, ... } } }
+          userIdentifier = responseData.user.identifier;
+        } else if (responseData.identifier) {
+          // Direct structure: { data: { identifier, ... } }
+          userIdentifier = responseData.identifier;
+        }
+
+        if (userIdentifier) {
+          // Update user context
+          login({
+            username: userIdentifier,
+            role: 'client',
+          });
+
+          // Store/clear remembered username
+          if (remember) {
+            localStorage.setItem('rememberedUsername', username);
+          } else {
+            localStorage.removeItem('rememberedUsername');
+          }
+
+          // Clear any previous seller id (since this is client login)
+          localStorage.removeItem('sellerId');
+
+          // Redirect to home page
+          router.push('/');
+        } else {
+          console.error(
+            'Login response missing user identifier:',
+            response.data
+          );
+          setError('로그인 응답에 사용자 정보가 없습니다. 다시 시도해주세요.');
+          setLoading(false);
+        }
+      } else {
+        console.error('Login response missing data:', response);
+        setError('로그인 응답이 올바르지 않습니다. 다시 시도해주세요.');
+        setLoading(false);
+      }
     } catch (err: unknown) {
+      console.error('Login error:', err);
       setError(
         err instanceof Error
           ? err.message
@@ -136,11 +179,11 @@ export default function LoginForm() {
                 name="username"
                 autoComplete="username"
                 className={styles.inputField}
-                placeholder="아이디를 입력하세요."
+                placeholder="아이디, 이메일 또는 전화번호를 입력하세요."
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                aria-label="아이디"
+                aria-label="아이디, 이메일 또는 전화번호"
               />
             </div>
 

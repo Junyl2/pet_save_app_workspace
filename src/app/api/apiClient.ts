@@ -166,6 +166,7 @@ export const apiClient = {
 
         // Try to extract meaningful error message from API response
         const apiErrorMessage =
+          axiosError.response?.data?.resultMsg || // Korean error message from API
           axiosError.response?.data?.message ||
           axiosError.response?.data?.error ||
           axiosError.response?.statusText ||

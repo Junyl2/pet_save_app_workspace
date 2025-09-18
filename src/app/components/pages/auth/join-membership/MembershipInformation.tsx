@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react';
 import styles from './MembershipInformation.module.css';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { FaChevronLeft } from 'react-icons/fa';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import Image from 'next/image';
+import { PAGE_URLS } from '@/app/utils/page_url';
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import { AuthService } from '@/app/api/services/client/auth/authService';
 import {
@@ -377,10 +379,35 @@ export default function MembershipInformation() {
 
       if (response.error) {
         console.error('Signup failed:', response.error);
-        // Show error in UI instead of alert
+
+        // Extract specific error message from API response
+        let errorMessage = response.error;
+
+        // Check if it's a specific API error message
+        if (typeof response.error === 'string') {
+          // If the error contains Korean text, use it directly
+          if (
+            response.error.includes('이미 사용 중인 이메일') ||
+            response.error.includes('이미 사용 중인') ||
+            response.error.includes('사용 중인')
+          ) {
+            errorMessage =
+              response.error +
+              ' 다른 이메일 주소를 사용하거나 로그인을 시도해보세요.';
+          } else if (response.error.includes('409')) {
+            errorMessage =
+              '이미 사용 중인 이메일 주소입니다. 다른 이메일을 사용해주세요.';
+          } else if (response.error.includes('400')) {
+            errorMessage = '입력 정보를 다시 확인해주세요.';
+          } else {
+            errorMessage = `회원가입 중 오류가 발생했습니다: ${response.error}`;
+          }
+        }
+
+        // Show error in UI
         setErrors((prev) => ({
           ...prev,
-          general: `회원가입 중 오류가 발생했습니다: ${response.error}`,
+          general: errorMessage,
         }));
         setIsSubmitting(false);
         return;
@@ -393,10 +420,46 @@ export default function MembershipInformation() {
       console.log('Modal should now be visible');
     } catch (error) {
       console.error('Sign-up failed:', error);
-      // Show error in UI instead of alert
+
+      // Extract specific error message from caught error
+      let errorMessage = '회원가입 중 오류가 발생했습니다. 다시 시도해주세요.';
+
+      if (error instanceof Error) {
+        const errorString = error.message;
+
+        // Check for specific error patterns
+        if (
+          errorString.includes('이미 사용 중인 이메일') ||
+          errorString.includes('이미 사용 중인') ||
+          errorString.includes('사용 중인')
+        ) {
+          errorMessage =
+            errorString +
+            ' 다른 이메일 주소를 사용하거나 로그인을 시도해보세요.';
+        } else if (errorString.includes('409')) {
+          errorMessage =
+            '이미 사용 중인 이메일 주소입니다. 다른 이메일을 사용해주세요.';
+        } else if (errorString.includes('400')) {
+          errorMessage = '입력 정보를 다시 확인해주세요.';
+        } else if (errorString.includes('Request failed with status code')) {
+          // Extract status code and provide appropriate message
+          const statusMatch = errorString.match(/status code (\d+)/);
+          if (statusMatch) {
+            const statusCode = statusMatch[1];
+            if (statusCode === '409') {
+              errorMessage =
+                '이미 사용 중인 이메일 주소입니다. 다른 이메일을 사용하거나 로그인을 시도해보세요.';
+            } else if (statusCode === '400') {
+              errorMessage = '입력 정보를 다시 확인해주세요.';
+            }
+          }
+        }
+      }
+
+      // Show error in UI
       setErrors((prev) => ({
         ...prev,
-        general: '회원가입 중 오류가 발생했습니다. 다시 시도해주세요.',
+        general: errorMessage,
       }));
       setIsSubmitting(false);
     }
@@ -439,6 +502,14 @@ export default function MembershipInformation() {
         {errors.general && (
           <div className={styles.errorContainer}>
             <p className={styles.error}>{errors.general}</p>
+            {errors.general.includes('이미 사용 중인') && (
+              <p className={styles.errorLink}>
+                이미 계정이 있으신가요?{' '}
+                <Link href={PAGE_URLS.LOGIN} className={styles.link}>
+                  로그인하기
+                </Link>
+              </p>
+            )}
           </div>
         )}
         {/* Name */}
