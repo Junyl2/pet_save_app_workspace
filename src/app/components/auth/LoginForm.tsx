@@ -157,7 +157,7 @@ export default function LoginForm() {
       </div> */}
 
       <div className={styles.loginPage}>
-        {/* Logo */}
+        {/* Logo - Click to go to homepage */}
         <div className={styles.imageWrapper}>
           <Image
             src="/images/logo/loading-screen.png"
@@ -166,7 +166,7 @@ export default function LoginForm() {
             width={144}
             className={styles.objectContain}
             priority
-            onClick={() => router.back()}
+            onClick={() => router.push('/')}
           />
         </div>
 

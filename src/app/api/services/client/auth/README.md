@@ -95,6 +95,19 @@ const loginData = {
 const response = await AuthService.login(loginData);
 ```
 
+## User Logout
+
+```typescript
+const response = await AuthService.logout();
+
+if (response.error) {
+  console.error('Logout failed:', response.error);
+} else {
+  console.log('Logout successful:', response.data);
+  // Tokens are automatically cleared from localStorage
+}
+```
+
 ## User Signup
 
 ```typescript

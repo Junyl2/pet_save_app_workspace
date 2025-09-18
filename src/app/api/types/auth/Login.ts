@@ -80,3 +80,50 @@ export interface LoginErrorResponse {
   /** HTTP status code */
   status: number;
 }
+
+/**
+ * Logout response - success case
+ * Endpoint: POST /api/pet-save/auth/logout
+ */
+export interface LogoutResponse {
+  /** Success status */
+  success: boolean;
+
+  /** HTTP status code */
+  status: number;
+
+  /** Result message */
+  resultMsg: string;
+
+  /** Division code */
+  divisionCode: string;
+
+  /** Empty data object */
+  data: {};
+
+  /** Error ID */
+  errorId: string;
+}
+
+/**
+ * Logout error response
+ */
+export interface LogoutErrorResponse {
+  /** Success status */
+  success: false;
+
+  /** HTTP status code */
+  status: number;
+
+  /** Error message */
+  resultMsg: string;
+
+  /** Division code */
+  divisionCode: string;
+
+  /** Empty data object */
+  data: {};
+
+  /** Error ID */
+  errorId: string;
+}

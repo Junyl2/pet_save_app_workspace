@@ -9,7 +9,11 @@ import {
   VerifyCodeRequest,
   VerifyCodeResponse,
 } from '../../../types/auth/EmailVerification';
-import { LoginRequest, LoginResponse } from '../../../types/auth/Login';
+import {
+  LoginRequest,
+  LoginResponse,
+  LogoutResponse,
+} from '../../../types/auth/Login';
 
 /**
  * Authentication service for user signup and login operations
@@ -190,21 +194,59 @@ export class AuthService {
 
   /**
    * Logout user and clear stored tokens
+   * Endpoint: POST /api/pet-save/auth/logout
    */
-  static async logout(): Promise<void> {
+  static async logout(): Promise<ApiResponse<LogoutResponse>> {
     try {
-      // Call logout endpoint if available
-      await apiClient.post('/auth/logout');
+      console.log('Attempting logout...');
+
+      // Call logout endpoint
+      const response = await apiClient.post<LogoutResponse>('/auth/logout');
+
+      console.log('Logout API response:', response);
+
+      if (response.error) {
+        console.error('Logout API failed:', response.error);
+        // Still clear local storage even if API call fails
+        this.clearLocalStorage();
+        return response;
+      }
+
+      console.log('Logout successful:', response.data);
+
+      // Clear local storage on successful logout
+      this.clearLocalStorage();
+
+      return response;
     } catch (error) {
       console.error('Logout service error:', error);
-    } finally {
-      // Always clear local storage
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('userInfo');
-        sessionStorage.clear();
-      }
+      // Always clear local storage even if there's an error
+      this.clearLocalStorage();
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Logout failed',
+      };
+    }
+  }
+
+  /**
+   * Clear all stored authentication data
+   */
+  private static clearLocalStorage(): void {
+    if (typeof window !== 'undefined') {
+      // Clear all authentication-related localStorage items
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userInfo');
+      localStorage.removeItem('user'); // UserContext data
+      localStorage.removeItem('userName'); // AuthContext data
+      localStorage.removeItem('rememberedUsername');
+      localStorage.removeItem('sellerId');
+
+      // Clear all session storage
+      sessionStorage.clear();
+
+      console.log('All authentication data cleared from storage');
     }
   }
 
