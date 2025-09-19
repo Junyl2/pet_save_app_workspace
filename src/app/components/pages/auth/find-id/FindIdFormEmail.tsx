@@ -7,7 +7,7 @@ import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import AuthenticationComplete from '@/app/components/pages/auth/find-id/AuthenticationComplete';
 import styles from './FindIdForm.module.css';
 
-export default function FindIdForm() {
+export default function FindIdFormEmail() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
