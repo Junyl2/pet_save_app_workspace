@@ -247,3 +247,14 @@
 .eyeButton:hover {
   color: #66bfa7;
 }
+
+.error {
+  color: #e74c3c;
+  font-size: 14px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  border-radius: 4px;
+  text-align: center;
+}

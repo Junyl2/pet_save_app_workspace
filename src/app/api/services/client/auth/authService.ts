@@ -13,7 +13,12 @@ import {
   LoginRequest,
   LoginResponse,
   LogoutResponse,
+  IdentifierValidationResponse,
 } from '../../../types/auth/Login';
+import {
+  SellerMembershipUpgradeRequest,
+  SellerMembershipUpgradeResponse,
+} from '../../../types/auth/SellerMembershipUpgrade';
 
 /**
  * Authentication service for user signup and login operations
@@ -68,6 +73,9 @@ export class AuthService {
     loginData: LoginRequest
   ): Promise<ApiResponse<LoginResponse>> {
     try {
+      // Log the exact request being sent
+      console.log('Login request data:', JSON.stringify(loginData, null, 2));
+
       const response = await apiClient.post<LoginResponse>(
         '/auth/login',
         loginData
@@ -185,11 +193,16 @@ export class AuthService {
       loginType,
     });
 
-    return this.login({
+    // Try different request formats
+    const loginData = {
       identifier: normalizedIdentifier,
       password,
       loginType,
-    });
+    };
+
+    console.log('Sending login data:', loginData);
+
+    return this.login(loginData);
   }
 
   /**
@@ -247,6 +260,179 @@ export class AuthService {
       sessionStorage.clear();
 
       console.log('All authentication data cleared from storage');
+    }
+  }
+
+  /**
+   * Validate if an identifier (username/email/phone) is available
+   * Endpoint: GET /api/pet-save/auth/identifiers/validate
+   * @param identifier - Username, email, or phone number to validate
+   */
+  static async validateIdentifier(
+    identifier: string
+  ): Promise<ApiResponse<IdentifierValidationResponse>> {
+    try {
+      // Normalize identifier to lowercase for case-insensitive validation
+      const normalizedIdentifier = identifier.toLowerCase().trim();
+
+      console.log('Validating identifier:', {
+        original: identifier,
+        normalized: normalizedIdentifier,
+      });
+
+      const response = await apiClient.get<IdentifierValidationResponse>(
+        `/auth/identifiers/validate?identifier=${encodeURIComponent(
+          normalizedIdentifier
+        )}`
+      );
+
+      // Debug: Log the response structure
+      console.log('Identifier validation response:', response);
+      console.log('Response error details:', response.error);
+      console.log('Response data details:', response.data);
+
+      if (response.error) {
+        // 409 Conflict means identifier is taken (this is a valid response, not a failure)
+        if (
+          response.error.includes('409') ||
+          response.error.includes('Conflict')
+        ) {
+          console.log(
+            'Identifier validation: identifier is taken (409 Conflict)'
+          );
+        } else {
+          console.error('Identifier validation failed:', response.error);
+        }
+        return response;
+      }
+
+      console.log('Identifier validation successful:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Identifier validation service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Identifier validation failed',
+      };
+    }
+  }
+
+  /**
+   * Check if an identifier is available (convenience method)
+   * @param identifier - Username, email, or phone number to check
+   * @returns Promise<boolean> - true if available, false if taken or error
+   */
+  static async isIdentifierAvailable(identifier: string): Promise<boolean> {
+    try {
+      const response = await this.validateIdentifier(identifier);
+      return !response.error && response.data?.success === true;
+    } catch (error) {
+      console.error('Error checking identifier availability:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Validate business registration number (similar to identifier validation)
+   * @param businessNumber - Business registration number to validate
+   */
+  static async validateBusinessNumber(
+    businessNumber: string
+  ): Promise<ApiResponse<IdentifierValidationResponse>> {
+    try {
+      const normalizedBusinessNumber = businessNumber.trim();
+      console.log('Validating business number:', normalizedBusinessNumber);
+
+      const response = await apiClient.get<IdentifierValidationResponse>(
+        `/auth/business-number/validate?businessNumber=${encodeURIComponent(
+          normalizedBusinessNumber
+        )}`
+      );
+
+      console.log('Business number validation response:', response);
+
+      if (response.error) {
+        // 409 Conflict means business number is taken (this is a valid response, not a failure)
+        if (
+          response.error.includes('409') ||
+          response.error.includes('Conflict')
+        ) {
+          console.log(
+            'Business number validation: business number is taken (409 Conflict)'
+          );
+        } else {
+          console.error('Business number validation failed:', response.error);
+        }
+        return response;
+      }
+
+      console.log('Business number validation successful:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Business number validation service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Business number validation failed',
+      };
+    }
+  }
+
+  /**
+   * Check if a business number is available (convenience method)
+   * @param businessNumber - Business registration number to check
+   * @returns Promise<boolean> - true if available, false if taken or error
+   */
+  static async isBusinessNumberAvailable(
+    businessNumber: string
+  ): Promise<boolean> {
+    try {
+      const response = await this.validateBusinessNumber(businessNumber);
+      return !response.error && response.data?.success === true;
+    } catch (error) {
+      console.error('Error checking business number availability:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Upgrade user to seller membership
+   * @param upgradeData - Seller membership upgrade data
+   */
+  static async upgradeToSellerMembership(
+    upgradeData: SellerMembershipUpgradeRequest
+  ): Promise<ApiResponse<SellerMembershipUpgradeResponse>> {
+    try {
+      console.log('Upgrading to seller membership:', upgradeData);
+
+      const response = await apiClient.post<SellerMembershipUpgradeResponse>(
+        '/auth/membership/join/seller',
+        upgradeData
+      );
+
+      console.log('Seller membership upgrade response:', response);
+
+      if (response.error) {
+        console.error('Seller membership upgrade failed:', response.error);
+        return response;
+      }
+
+      console.log('Seller membership upgrade successful:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Seller membership upgrade service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Seller membership upgrade failed',
+      };
     }
   }
 

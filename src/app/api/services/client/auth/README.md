@@ -95,6 +95,46 @@ const loginData = {
 const response = await AuthService.login(loginData);
 ```
 
+## Identifier Validation
+
+```typescript
+const response = await AuthService.validateIdentifier('testuser123');
+
+if (response.error) {
+  console.error('Identifier validation failed:', response.error);
+  // Handle error - identifier might be taken or invalid
+} else {
+  console.log('Identifier validation successful:', response.data);
+  // Identifier is available for use
+}
+```
+
+### Validation Examples
+
+```typescript
+// Check username availability
+const usernameResponse = await AuthService.validateIdentifier('johndoe');
+
+// Check email availability
+const emailResponse = await AuthService.validateIdentifier('john@example.com');
+
+// Check phone number availability
+const phoneResponse = await AuthService.validateIdentifier('+1234567890');
+```
+
+### Convenience Method
+
+```typescript
+// Simple boolean check for identifier availability
+const isAvailable = await AuthService.isIdentifierAvailable('testuser123');
+
+if (isAvailable) {
+  console.log('Identifier is available');
+} else {
+  console.log('Identifier is taken or validation failed');
+}
+```
+
 ## User Logout
 
 ```typescript

@@ -127,3 +127,50 @@ export interface LogoutErrorResponse {
   /** Error ID */
   errorId: string;
 }
+
+/**
+ * Identifier validation response - success case
+ * Endpoint: GET /api/pet-save/auth/identifiers/validate
+ */
+export interface IdentifierValidationResponse {
+  /** Success status */
+  success: boolean;
+
+  /** HTTP status code */
+  status: number;
+
+  /** Result message */
+  resultMsg: string;
+
+  /** Division code */
+  divisionCode: string;
+
+  /** Empty data object */
+  data: {};
+
+  /** Error ID */
+  errorId: string | null;
+}
+
+/**
+ * Identifier validation error response
+ */
+export interface IdentifierValidationErrorResponse {
+  /** Success status */
+  success: false;
+
+  /** HTTP status code */
+  status: number;
+
+  /** Error message */
+  resultMsg: string;
+
+  /** Division code */
+  divisionCode: string;
+
+  /** Empty data object */
+  data: {};
+
+  /** Error ID */
+  errorId: string;
+}

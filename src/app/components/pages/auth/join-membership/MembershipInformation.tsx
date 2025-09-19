@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import styles from './MembershipInformation.module.css';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -50,6 +50,18 @@ export default function MembershipInformation() {
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
+  // Username validation states
+  const [isValidatingUsername, setIsValidatingUsername] = useState(false);
+  const [usernameValidationStatus, setUsernameValidationStatus] = useState<
+    'idle' | 'checking' | 'available' | 'taken' | 'error'
+  >('idle');
+  const [usernameValidationMessage, setUsernameValidationMessage] =
+    useState('');
+
+  // Address search states
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [addressSearchError, setAddressSearchError] = useState('');
+
   // Fix hydration issues
   useEffect(() => {
     setIsClient(true);
@@ -60,12 +72,93 @@ export default function MembershipInformation() {
     console.log('showModal state changed:', showModal);
   }, [showModal]);
 
+  // Debounced username validation
+  const validateUsername = useCallback(async (username: string) => {
+    if (!username || username.length < 3) {
+      setUsernameValidationStatus('idle');
+      setUsernameValidationMessage('');
+      return;
+    }
+
+    // Check if username matches the required pattern
+    if (!/^[a-z0-9]+$/.test(username)) {
+      setUsernameValidationStatus('error');
+      setUsernameValidationMessage(
+        '아이디는 영문 소문자와 숫자만 사용할 수 있습니다.'
+      );
+      return;
+    }
+
+    setIsValidatingUsername(true);
+    setUsernameValidationStatus('checking');
+    setUsernameValidationMessage('확인 중...');
+
+    try {
+      const response = await AuthService.validateIdentifier(username);
+
+      if (response.error) {
+        // Check if it's a 409 Conflict (identifier taken) or other error
+        if (
+          response.error.includes('409') ||
+          response.error.includes('Conflict')
+        ) {
+          setUsernameValidationStatus('taken');
+          setUsernameValidationMessage('이미 사용 중인 아이디입니다.');
+        } else if (
+          response.error.includes('400') ||
+          response.error.includes('Bad Request')
+        ) {
+          setUsernameValidationStatus('error');
+          setUsernameValidationMessage('아이디 형식이 올바르지 않습니다.');
+        } else {
+          setUsernameValidationStatus('error');
+          setUsernameValidationMessage('확인 중 오류가 발생했습니다.');
+        }
+      } else if (response.data?.success) {
+        setUsernameValidationStatus('available');
+        setUsernameValidationMessage('사용 가능한 아이디입니다.');
+      } else {
+        // If no error but success is false, treat as taken
+        setUsernameValidationStatus('taken');
+        setUsernameValidationMessage('이미 사용 중인 아이디입니다.');
+      }
+    } catch (error) {
+      console.error('Username validation error:', error);
+      setUsernameValidationStatus('error');
+      setUsernameValidationMessage('확인 중 오류가 발생했습니다.');
+    } finally {
+      setIsValidatingUsername(false);
+    }
+  }, []);
+
+  // Debounce username validation
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.username) {
+        validateUsername(formData.username);
+      }
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.username, validateUsername]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: '', general: '' })); // clear error on typing
+
+    // Reset username validation status when user starts typing
+    if (name === 'username') {
+      setUsernameValidationStatus('idle');
+      setUsernameValidationMessage('');
+    }
+
+    // Clear address search error when postal code changes
+    if (name === 'postalCode') {
+      setAddressSearchError('');
+    }
   };
 
   // Send verification code
@@ -180,6 +273,39 @@ export default function MembershipInformation() {
     }
   };
 
+  // Address search handler
+  const handleAddressSearch = async () => {
+    if (isSearchingAddress) return;
+
+    // Clear previous errors
+    setAddressSearchError('');
+
+    // Check if postal code is empty
+    if (!formData.postalCode.trim()) {
+      setAddressSearchError('우편번호를 입력해주세요.');
+      return;
+    }
+
+    setIsSearchingAddress(true);
+
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // This would typically call a real postal code API
+      // For now, we'll simulate a successful search
+      setFormData((prev) => ({
+        ...prev,
+        address: '서울특별시 강남구 테헤란로 123',
+        detailAddress: '',
+      }));
+    } catch (error) {
+      setAddressSearchError('주소 검색 중 오류가 발생했습니다.');
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
   // Countdown timer
   useEffect(() => {
     if (!showAuthCode || timeLeft <= 0) return;
@@ -204,6 +330,12 @@ export default function MembershipInformation() {
       newErrors.username = '아이디를 입력해주세요.';
     } else if (!/^[a-z0-9]+$/.test(formData.username)) {
       newErrors.username = '아이디는 영문 소문자와 숫자만 사용할 수 있습니다.';
+    } else if (usernameValidationStatus === 'taken') {
+      newErrors.username = '이미 사용 중인 아이디입니다.';
+    } else if (usernameValidationStatus === 'checking') {
+      newErrors.username = '아이디 확인 중입니다. 잠시만 기다려주세요.';
+    } else if (usernameValidationStatus === 'error') {
+      newErrors.username = '아이디 확인 중 오류가 발생했습니다.';
     }
 
     if (!formData.password) {
@@ -467,6 +599,8 @@ export default function MembershipInformation() {
 
   const canSendCode = formData.email && formData.emailDomain;
   const canVerify = !!authCode;
+  const canSearchAddress =
+    formData.postalCode.trim().length > 0 && !isSearchingAddress;
 
   // 가입하기 버튼 활성화 조건
   const canSubmit =
@@ -480,7 +614,10 @@ export default function MembershipInformation() {
     formData.emailDomain &&
     formData.postalCode &&
     formData.address &&
-    isVerified;
+    formData.detailAddress &&
+    isVerified &&
+    usernameValidationStatus === 'available' && // Username must be validated as available
+    !isValidatingUsername; // Not currently validating
 
   return (
     <>
@@ -539,6 +676,21 @@ export default function MembershipInformation() {
             autoComplete="username"
           />
           {errors.username && <p className={styles.error}>{errors.username}</p>}
+          {usernameValidationMessage && (
+            <p
+              className={`${styles.validationMessage} ${
+                usernameValidationStatus === 'available'
+                  ? styles.success
+                  : usernameValidationStatus === 'taken'
+                  ? styles.error
+                  : usernameValidationStatus === 'checking'
+                  ? styles.checking
+                  : styles.error
+              }`}
+            >
+              {usernameValidationMessage}
+            </p>
+          )}
         </div>
 
         {/* Password */}
@@ -715,8 +867,15 @@ export default function MembershipInformation() {
               placeholder="우편번호"
               className={styles.input}
             />
-            <button type="button" className={styles.emailButton}>
-              주소 검색
+            <button
+              type="button"
+              className={`${styles.emailButton} ${
+                canSearchAddress ? styles.enabled : styles.disabled
+              }`}
+              onClick={handleAddressSearch}
+              disabled={!canSearchAddress}
+            >
+              {isSearchingAddress ? '검색 중...' : '주소 검색'}
             </button>
           </div>
           <input
@@ -735,6 +894,9 @@ export default function MembershipInformation() {
             placeholder="상세주소"
             className={styles.input}
           />
+          {addressSearchError && (
+            <p className={styles.error}>{addressSearchError}</p>
+          )}
           {errors.address && <p className={styles.error}>{errors.address}</p>}
         </div>
 

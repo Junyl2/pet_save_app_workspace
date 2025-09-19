@@ -172,7 +172,13 @@ export const apiClient = {
           axiosError.response?.statusText ||
           error.message;
 
-        return { data: null, error: apiErrorMessage };
+        // Include status code in error message for better debugging
+        const statusCode = axiosError.response?.status;
+        const finalErrorMessage = statusCode
+          ? `${statusCode}: ${apiErrorMessage}`
+          : apiErrorMessage;
+
+        return { data: null, error: finalErrorMessage };
       }
       const message =
         error instanceof Error ? error.message : 'An unknown error occurred';

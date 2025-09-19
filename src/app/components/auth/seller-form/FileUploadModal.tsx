@@ -2,19 +2,26 @@
 import { useState, useEffect } from 'react';
 import styles from './FileUploadModal.module.css';
 import Image from 'next/image';
+import { FileUploadService } from '@/app/api/services/fileUploadService';
 
 interface FileUploadModalProps {
   file: File | null;
   setFile: (file: File | null) => void;
+  fileId?: string | null;
+  setFileId?: (fileId: string | null) => void;
 }
 
 export default function FileUploadModal({
   file,
   setFile,
+  fileId,
+  setFileId,
 }: FileUploadModalProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempFile, setTempFile] = useState<File | null>(file);
   const [previewURL, setPreviewURL] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Prevent background scroll when modal is open
   useEffect(() => {
@@ -49,9 +56,59 @@ export default function FileUploadModal({
     }
   };
 
-  const handleConfirm = () => {
-    setFile(tempFile); // commit temporary file to parent state
-    setIsModalOpen(false); // close modal
+  const handleConfirm = async () => {
+    if (!tempFile) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      console.log('Uploading file:', tempFile.name);
+
+      const result = await FileUploadService.uploadFile(tempFile);
+
+      if (result.error) {
+        console.error('File upload failed:', result.error);
+
+        // Check if it's a server error (500) - show clear error message
+        if (
+          result.error.includes('500') ||
+          result.error.includes('Internal Server Error') ||
+          result.error.includes('서버 내부 오류')
+        ) {
+          console.log('Server error - file upload failed');
+          setUploadError(
+            '파일 업로드 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+          );
+          setIsUploading(false);
+          return;
+        }
+
+        setUploadError(result.error);
+        setIsUploading(false);
+        return;
+      }
+
+      if (result.data) {
+        console.log('File uploaded successfully, file ID:', result.data);
+        setFile(tempFile); // commit temporary file to parent state
+        if (setFileId) {
+          setFileId(result.data); // set the file ID
+        }
+        setIsModalOpen(false); // close modal
+      } else {
+        setUploadError('Failed to get file ID from server');
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      // For network/server errors, show clear error message
+      console.log('Network/server error - file upload failed');
+      setUploadError(
+        '파일 업로드 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      );
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const closeModal = () => {
@@ -125,8 +182,23 @@ export default function FileUploadModal({
               </button>
             </div>
 
-            <button className={styles.modalButton} onClick={handleConfirm}>
-              완료
+            {uploadError && (
+              <div
+                style={{
+                  color: 'red',
+                  marginBottom: '1rem',
+                  textAlign: 'center',
+                }}
+              >
+                {uploadError}
+              </div>
+            )}
+            <button
+              className={styles.modalButton}
+              onClick={handleConfirm}
+              disabled={!tempFile || isUploading}
+            >
+              {isUploading ? '업로드 중...' : '완료'}
             </button>
           </div>
         </div>

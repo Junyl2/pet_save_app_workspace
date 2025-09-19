@@ -31,6 +31,12 @@ export default function LoginForm() {
     return m[1] ? Number(m[1]) : 1;
   };
 
+  // Handle username input changes
+  const handleUsernameChange = (value: string) => {
+    setUsername(value);
+    setError('');
+  };
+
   // Prefill username if previously remembered
   useEffect(() => {
     try {
@@ -179,11 +185,11 @@ export default function LoginForm() {
                 name="username"
                 autoComplete="username"
                 className={styles.inputField}
-                placeholder="아이디, 이메일 또는 전화번호를 입력하세요."
+                placeholder="아이디를 입력하세요 (대소문자 구분 없음)"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => handleUsernameChange(e.target.value)}
                 required
-                aria-label="아이디, 이메일 또는 전화번호"
+                aria-label="아이디 (대소문자 구분 없음)"
               />
             </div>
 

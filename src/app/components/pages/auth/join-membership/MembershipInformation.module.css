@@ -137,6 +137,20 @@
   white-space: nowrap;
 }
 
+.emailButton.enabled {
+  background: #66bfa7;
+  border-color: #66bfa7;
+  cursor: pointer;
+  color: #fff;
+}
+
+.emailButton.disabled {
+  background: #d9d9d9;
+  border-color: #d1d5db;
+  cursor: not-allowed;
+  color: #ffffff;
+}
+
 /* .outlineButton:hover,
 .emailButton:hover {
   background: #d8d1d1;
@@ -189,6 +203,18 @@
   color: #66bfa7;
   font-size: clamp(13px, 2.3vw, 14px);
   margin-top: 0.3rem;
+}
+
+.checking {
+  color: #ffa500;
+  font-size: clamp(13px, 2.3vw, 14px);
+  margin-top: 0.3rem;
+}
+
+.validationMessage {
+  font-size: clamp(13px, 2.3vw, 14px);
+  margin-top: 0.3rem;
+  font-weight: 500;
 }
 
 /* Enabled state */
