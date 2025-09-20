@@ -5,6 +5,7 @@ import { FaChevronLeft } from 'react-icons/fa';
 
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import AuthenticationComplete from '@/app/components/pages/auth/find-id/AuthenticationComplete';
+import { AuthService } from '@/app/api/services/client/auth/authService';
 import styles from './FindIdForm.module.css';
 
 export default function FindIdFormEmail() {
@@ -18,9 +19,12 @@ export default function FindIdFormEmail() {
   const [showAuthCode, setShowAuthCode] = useState(false);
   const [timeLeft, setTimeLeft] = useState(179);
   const [isVerified, setIsVerified] = useState(false);
-  const [serverCode, setServerCode] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   /** Validation */
   const validate = () => {
@@ -38,29 +42,76 @@ export default function FindIdFormEmail() {
   /** Send 인증번호 */
   const handleSendCode = async () => {
     if (!validate()) return;
+
+    setIsLoading(true);
+    setSuccessMessage('');
+    setErrorMessage('');
+
     try {
-      const generatedCode = Math.floor(
-        100000 + Math.random() * 900000
-      ).toString();
-      alert(`Hi ${name}! check console log for the dummy code`);
-      console.log('API → 인증번호 전송:', generatedCode, 'to:', email);
-      setServerCode(generatedCode);
+      const response = await AuthService.sendFindIdEmailVerification(
+        name,
+        email
+      );
+
+      if (response.error) {
+        console.error('인증번호 전송 실패:', response.error);
+
+        // Extract the actual error message from the API response
+        let userErrorMessage = '인증번호 전송에 실패했습니다.';
+
+        if (
+          response.error.includes('아직 만료되지 않은 인증 코드가 존재합니다')
+        ) {
+          userErrorMessage =
+            '아직 만료되지 않은 인증 코드가 존재합니다. 잠시 후 다시 시도해주세요.';
+        } else if (response.error.includes('400')) {
+          // Extract the Korean message from the error
+          const match = response.error.match(/400: (.+)/);
+          if (match) {
+            userErrorMessage = match[1];
+          }
+        }
+
+        setErrorMessage(userErrorMessage);
+        return;
+      }
+
       setShowAuthCode(true);
       setTimeLeft(179);
       setIsVerified(false);
+      setSuccessMessage('인증번호가 이메일로 전송되었습니다.');
     } catch (err) {
       console.error('인증번호 전송 실패', err);
+      setErrorMessage('인증번호 전송 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   /** Verify 인증번호 */
   const handleVerifyCode = async () => {
-    if (authCode === serverCode) {
+    if (!authCode) return;
+
+    setIsVerifying(true);
+
+    try {
+      console.log('API → 인증번호 검증 요청:', { email, code: authCode });
+
+      const response = await AuthService.verifyEmailCode(email, authCode);
+
+      if (response.error) {
+        console.error('인증번호 검증 실패:', response.error);
+        setIsVerified(false);
+        return;
+      }
+
       console.log('API → 인증 성공');
       setIsVerified(true);
-    } else {
-      console.log('API → 인증 실패');
+    } catch (err) {
+      console.error('인증번호 검증 실패', err);
       setIsVerified(false);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -87,9 +138,30 @@ export default function FindIdFormEmail() {
     if (!isFormValid) return;
     try {
       console.log('API → 최종 아이디 확인 요청:', { name, email });
+
+      // Call the find ID API
+      const response = await AuthService.findIdByEmail(name, email);
+
+      if (response.error) {
+        console.error('아이디 찾기 실패:', response.error);
+
+        // Extract error message for user
+        let userErrorMessage = '아이디 찾기에 실패했습니다.';
+        if (response.error.includes('400')) {
+          const match = response.error.match(/400: (.+)/);
+          if (match) {
+            userErrorMessage = match[1];
+          }
+        }
+        setErrorMessage(userErrorMessage);
+        return;
+      }
+
+      console.log('아이디 찾기 성공:', response.data);
       setShowModal(true);
     } catch (err) {
       console.error('아이디 확인 실패', err);
+      setErrorMessage('아이디 찾기 중 오류가 발생했습니다.');
     }
   };
 
@@ -155,12 +227,14 @@ export default function FindIdFormEmail() {
             type="button"
             onClick={handleSendCode}
             className={styles.inlineButton}
-            disabled={!email || !!errors.email}
+            disabled={!email || !!errors.email || isLoading}
           >
-            인증번호 전송
+            {isLoading ? '전송 중...' : '인증번호 전송'}
           </button>
         </div>
         {errors.email && <p className={styles.error}>{errors.email}</p>}
+        {errorMessage && <p className={styles.error}>{errorMessage}</p>}
+        {successMessage && <p className={styles.success}>{successMessage}</p>}
       </div>
 
       {/* Authentication Code Section */}
@@ -182,9 +256,9 @@ export default function FindIdFormEmail() {
                 type="button"
                 className={styles.inlineButton}
                 onClick={handleVerifyCode}
-                disabled={!authCode}
+                disabled={!authCode || isVerifying}
               >
-                인증 확인
+                {isVerifying ? '검증 중...' : '인증 확인'}
               </button>
             </div>
           </div>

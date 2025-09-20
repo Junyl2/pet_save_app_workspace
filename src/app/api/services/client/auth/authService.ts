@@ -10,6 +10,20 @@ import {
   VerifyCodeResponse,
 } from '../../../types/auth/EmailVerification';
 import {
+  PhoneVerificationRequest,
+  PhoneVerificationResponse,
+} from '../../../types/auth/PhoneVerification';
+import {
+  PasswordRecoveryEmailRequest,
+  PasswordRecoveryPhoneRequest,
+  PasswordRecoveryVerificationResponse,
+  PasswordRecoveryEmailFinalRequest,
+  PasswordRecoveryPhoneFinalRequest,
+  PasswordRecoveryFinalResponse,
+  PasswordResetRequest,
+  PasswordResetResponse,
+} from '../../../types/auth/PasswordRecovery';
+import {
   LoginRequest,
   LoginResponse,
   LogoutResponse,
@@ -492,6 +506,51 @@ export class AuthService {
   }
 
   /**
+   * Send phone verification code
+   * Endpoint: POST /api/pet-save/verification/phone/send-verification
+   * @param name - User's name
+   * @param phoneNumber - User's phone number
+   */
+  static async sendPhoneVerification(
+    name: string,
+    phoneNumber: string
+  ): Promise<ApiResponse<PhoneVerificationResponse>> {
+    try {
+      console.log('Sending phone verification:', {
+        name,
+        phoneNumber,
+      });
+
+      const verificationData: PhoneVerificationRequest = {
+        name,
+        phoneNumber,
+      };
+
+      const response = await apiClient.post<PhoneVerificationResponse>(
+        '/verification/phone/send-verification',
+        verificationData
+      );
+
+      if (response.error) {
+        console.error('Phone verification failed:', response.error);
+        return response;
+      }
+
+      console.log('Phone verification sent successfully:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Phone verification service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to send phone verification',
+      };
+    }
+  }
+
+  /**
    * Verify email or phone verification code
    * Endpoint: POST /api/pet-save/verification/verify-code
    * @param verificationData - Either email or phone verification data
@@ -543,5 +602,440 @@ export class AuthService {
     code: string
   ): Promise<ApiResponse<VerifyCodeResponse>> {
     return this.verifyCode({ phoneNumber, code });
+  }
+
+  /**
+   * Send find ID verification code via email
+   * Endpoint: POST /api/pet-save/auth/recovery/id/email/send-verification
+   * @param name - User's name
+   * @param email - User's email address
+   */
+  static async sendFindIdEmailVerification(
+    name: string,
+    email: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      console.log('Sending find ID email verification:', {
+        name,
+        email,
+      });
+
+      const response = await apiClient.post(
+        '/auth/recovery/id/email/send-verification',
+        {
+          name,
+          email,
+        }
+      );
+
+      if (response.error) {
+        console.error('Find ID email verification failed:', response.error);
+        return response;
+      }
+
+      console.log(
+        'Find ID email verification sent successfully:',
+        response.data
+      );
+      return response;
+    } catch (error) {
+      console.error('Find ID email verification service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to send find ID email verification',
+      };
+    }
+  }
+
+  /**
+   * Send find ID verification code via SMS
+   * Endpoint: POST /api/pet-save/auth/recovery/id/phone/send-verification
+   * @param name - User's name
+   * @param phoneNumber - User's phone number
+   */
+  static async sendFindIdSmsVerification(
+    name: string,
+    phoneNumber: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      console.log('Sending find ID SMS verification:', {
+        name,
+        phoneNumber,
+      });
+
+      const response = await apiClient.post(
+        '/auth/recovery/id/phone/send-verification',
+        {
+          name,
+          phoneNumber,
+        }
+      );
+
+      if (response.error) {
+        console.error('Find ID SMS verification failed:', response.error);
+        return response;
+      }
+
+      console.log('Find ID SMS verification sent successfully:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Find ID SMS verification service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to send find ID SMS verification',
+      };
+    }
+  }
+
+  /**
+   * Retrieve identifier via email after verification
+   * Endpoint: POST /api/pet-save/auth/recovery/id/email
+   * @param name - User's name
+   * @param email - User's email address
+   */
+  static async findIdByEmail(
+    name: string,
+    email: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      console.log('Finding ID by email:', {
+        name,
+        email,
+      });
+
+      const response = await apiClient.post('/auth/recovery/id/email', {
+        name,
+        email,
+      });
+
+      if (response.error) {
+        console.error('Find ID by email failed:', response.error);
+        return response;
+      }
+
+      console.log('Find ID by email successful:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Find ID by email service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to find ID by email',
+      };
+    }
+  }
+
+  /**
+   * Retrieve identifier via phone after verification
+   * Endpoint: POST /api/pet-save/auth/recovery/id/phone
+   * @param name - User's name
+   * @param phoneNumber - User's phone number
+   */
+  static async findIdByPhone(
+    name: string,
+    phoneNumber: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      console.log('Finding ID by phone:', {
+        name,
+        phoneNumber,
+      });
+
+      const response = await apiClient.post('/auth/recovery/id/phone', {
+        name,
+        phoneNumber,
+      });
+
+      if (response.error) {
+        console.error('Find ID by phone failed:', response.error);
+        return response;
+      }
+
+      console.log('Find ID by phone successful:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Find ID by phone service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to find ID by phone',
+      };
+    }
+  }
+
+  // ==================== PASSWORD RECOVERY METHODS ====================
+
+  /**
+   * Send password recovery email verification code
+   * Endpoint: POST /api/pet-save/auth/recovery/password/email/send-verification
+   * @param name - User's name
+   * @param identifier - User's identifier (username)
+   * @param email - User's email address
+   */
+  static async sendPasswordRecoveryEmailVerification(
+    name: string,
+    identifier: string,
+    email: string
+  ): Promise<ApiResponse<PasswordRecoveryVerificationResponse>> {
+    try {
+      console.log('Sending password recovery email verification:', {
+        name,
+        identifier,
+        email,
+      });
+
+      const verificationData = {
+        name,
+        identifier,
+        email,
+      };
+
+      const response =
+        await apiClient.post<PasswordRecoveryVerificationResponse>(
+          '/auth/recovery/password/email/send-verification',
+          verificationData
+        );
+
+      if (response.error) {
+        console.error(
+          'Password recovery email verification failed:',
+          response.error
+        );
+        return response;
+      }
+
+      console.log(
+        'Password recovery email verification sent successfully:',
+        response.data
+      );
+      return response;
+    } catch (error) {
+      console.error(
+        'Password recovery email verification service error:',
+        error
+      );
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to send password recovery email verification',
+      };
+    }
+  }
+
+  /**
+   * Send password recovery phone verification code
+   * Endpoint: POST /api/pet-save/auth/recovery/password/phone/send-verification
+   * @param name - User's name
+   * @param identifier - User's identifier (username)
+   * @param phoneNumber - User's phone number
+   */
+  static async sendPasswordRecoveryPhoneVerification(
+    name: string,
+    identifier: string,
+    phoneNumber: string
+  ): Promise<ApiResponse<PasswordRecoveryVerificationResponse>> {
+    try {
+      console.log('Sending password recovery phone verification:', {
+        name,
+        identifier,
+        phoneNumber,
+      });
+
+      const verificationData = {
+        name,
+        identifier,
+        phoneNumber,
+      };
+
+      const response =
+        await apiClient.post<PasswordRecoveryVerificationResponse>(
+          '/auth/recovery/password/phone/send-verification',
+          verificationData
+        );
+
+      if (response.error) {
+        console.error(
+          'Password recovery phone verification failed:',
+          response.error
+        );
+        return response;
+      }
+
+      console.log(
+        'Password recovery phone verification sent successfully:',
+        response.data
+      );
+      return response;
+    } catch (error) {
+      console.error(
+        'Password recovery phone verification service error:',
+        error
+      );
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to send password recovery phone verification',
+      };
+    }
+  }
+
+  /**
+   * Get password recovery token via email
+   * Endpoint: POST /api/pet-save/auth/recovery/password/email
+   * @param name - User's name
+   * @param identifier - User's identifier (username)
+   * @param email - User's email address
+   */
+  static async getPasswordRecoveryTokenByEmail(
+    name: string,
+    identifier: string,
+    email: string
+  ): Promise<ApiResponse<PasswordRecoveryFinalResponse>> {
+    try {
+      console.log('Getting password recovery token by email:', {
+        name,
+        identifier,
+        email,
+      });
+
+      const requestData = {
+        name,
+        identifier,
+        email,
+      };
+
+      const response = await apiClient.post<PasswordRecoveryFinalResponse>(
+        '/auth/recovery/password/email',
+        requestData
+      );
+
+      if (response.error) {
+        console.error(
+          'Password recovery token by email failed:',
+          response.error
+        );
+        return response;
+      }
+
+      console.log(
+        'Password recovery token by email successful:',
+        response.data
+      );
+      return response;
+    } catch (error) {
+      console.error('Password recovery token by email service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to get password recovery token by email',
+      };
+    }
+  }
+
+  /**
+   * Get password recovery token via phone
+   * Endpoint: POST /api/pet-save/auth/recovery/password/phone
+   * @param name - User's name
+   * @param identifier - User's identifier (username)
+   * @param phoneNumber - User's phone number
+   */
+  static async getPasswordRecoveryTokenByPhone(
+    name: string,
+    identifier: string,
+    phoneNumber: string
+  ): Promise<ApiResponse<PasswordRecoveryFinalResponse>> {
+    try {
+      console.log('Getting password recovery token by phone:', {
+        name,
+        identifier,
+        phoneNumber,
+      });
+
+      const requestData = {
+        name,
+        identifier,
+        phoneNumber,
+      };
+
+      const response = await apiClient.post<PasswordRecoveryFinalResponse>(
+        '/auth/recovery/password/phone',
+        requestData
+      );
+
+      if (response.error) {
+        console.error(
+          'Password recovery token by phone failed:',
+          response.error
+        );
+        return response;
+      }
+
+      console.log(
+        'Password recovery token by phone successful:',
+        response.data
+      );
+      return response;
+    } catch (error) {
+      console.error('Password recovery token by phone service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to get password recovery token by phone',
+      };
+    }
+  }
+
+  /**
+   * Reset password using reset token
+   * Endpoint: POST /api/pet-save/auth/recovery/password/reset
+   * @param newPassword - New password
+   * @param resetToken - Reset token
+   */
+  static async resetPassword(
+    newPassword: string,
+    resetToken: string
+  ): Promise<ApiResponse<PasswordResetResponse>> {
+    try {
+      console.log('Resetting password with token');
+
+      const requestData: PasswordResetRequest = {
+        newPassword,
+        resetToken,
+      };
+
+      const response = await apiClient.post<PasswordResetResponse>(
+        '/auth/recovery/password/reset',
+        requestData
+      );
+
+      if (response.error) {
+        console.error('Password reset failed:', response.error);
+        return response;
+      }
+
+      console.log('Password reset successful:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Password reset service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to reset password',
+      };
+    }
   }
 }

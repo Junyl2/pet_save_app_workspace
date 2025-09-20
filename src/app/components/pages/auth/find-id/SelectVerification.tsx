@@ -3,9 +3,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaChevronLeft, FaEnvelope, FaMobile } from 'react-icons/fa';
 import styles from './SelectVerification.module.css';
+import { usePathname } from 'next/navigation';
 
 export default function SelectVerification() {
   const router = useRouter();
+  const pathname = usePathname();
   const [selectedMethod, setSelectedMethod] = useState<
     'email' | 'phone' | null
   >(null);
@@ -14,11 +16,21 @@ export default function SelectVerification() {
     setSelectedMethod(method);
   };
 
+  const isFindIdPage = pathname.includes('/client/find-id');
+
   const handleNext = () => {
     if (selectedMethod === 'email') {
-      router.push('/client/find-id/find-id-email');
+      if (isFindIdPage) {
+        router.push('/client/find-id/find-id-email');
+      } else {
+        router.push('/client/reset-password/reset-password-email');
+      }
     } else if (selectedMethod === 'phone') {
-      router.push('/client/find-id/find-id-phone');
+      if (isFindIdPage) {
+        router.push('/client/find-id/find-id-phone');
+      } else {
+        router.push('/client/reset-password/reset-password-phone');
+      }
     }
   };
 

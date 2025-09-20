@@ -185,7 +185,7 @@ export default function LoginForm() {
                 name="username"
                 autoComplete="username"
                 className={styles.inputField}
-                placeholder="아이디를 입력하세요 (대소문자 구분 없음)"
+                placeholder="아이디를 입력하세요"
                 value={username}
                 onChange={(e) => handleUsernameChange(e.target.value)}
                 required

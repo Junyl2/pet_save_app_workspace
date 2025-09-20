@@ -68,7 +68,17 @@ axiosInstance.interceptors.request.use(
       '/auth/signup/general',
       '/auth/login',
       '/verification/email/send-verification',
+      '/verification/phone/send-verification',
       '/verification/verify-code',
+      '/auth/recovery/id/email/send-verification',
+      '/auth/recovery/id/phone/send-verification',
+      '/auth/recovery/id/email',
+      '/auth/recovery/id/phone',
+      '/auth/recovery/password/email/send-verification',
+      '/auth/recovery/password/phone/send-verification',
+      '/auth/recovery/password/email',
+      '/auth/recovery/password/phone',
+      '/auth/recovery/password/reset',
     ];
 
     const isPublicEndpoint = publicEndpoints.some((endpoint) =>
