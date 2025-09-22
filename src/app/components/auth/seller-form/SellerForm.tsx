@@ -6,9 +6,11 @@ import Image from 'next/image';
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import FileUploadModal from './FileUploadModal';
 import { FaChevronDown } from 'react-icons/fa';
-import { AuthService } from '@/app/api/services/client/auth/authService';
-import { SellerMembershipUpgradeRequest } from '@/app/api/types/auth/SellerMembershipUpgrade';
 import { useUser } from '@/app/context/userContext';
+import { AuthService } from '@/app/api/services/client/auth/authService';
+import { FileService } from '@/app/api/services/client/fileService/fileService';
+import { SellerMembershipUpgradeRequest } from '@/app/api/types/auth/SellerMembershipUpgrade';
+import { EmailVerificationRequest } from '@/app/api/types/auth/EmailVerification';
 
 type FormState = {
   businessNumber: string;
@@ -46,7 +48,7 @@ export default function SellerInformation({
   onDone,
 }: SellerInformationProps) {
   const router = useRouter();
-  const { user, login } = useUser();
+  const { updateUserRole } = useUser();
 
   const [formData, setFormData] = useState<FormState>({
     businessNumber: '',
@@ -79,18 +81,24 @@ export default function SellerInformation({
   const [showModal, setShowModal] = useState(false);
   const [isBusinessDup, setIsBusinessDup] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [isCheckingDuplication, setIsCheckingDuplication] = useState(false);
-  const [duplicationSuccess, setDuplicationSuccess] = useState(false);
-  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
-  const [addressSearchError, setAddressSearchError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [businessLicenseFileId, setBusinessLicenseFileId] = useState<
     string | null
   >(null);
+  const [businessLicenseEncryptedId, setBusinessLicenseEncryptedId] = useState<
+    string | null
+  >(null);
   const [bankbookFileId, setBankbookFileId] = useState<string | null>(null);
+  const [bankbookEncryptedId, setBankbookEncryptedId] = useState<string | null>(
+    null
+  );
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [addressSearchError, setAddressSearchError] = useState<string | null>(
+    null
+  );
 
   // Prefill from props.initial
   useEffect(() => {
@@ -132,7 +140,7 @@ export default function SellerInformation({
       const file = target.files[0] ?? null;
       setFormData((prev) => ({
         ...prev,
-        [name]: file as unknown as File | null,
+        [name]: (file as unknown as File) ?? null,
       }));
 
       if (name === 'businessLicenseFile') {
@@ -148,96 +156,123 @@ export default function SellerInformation({
 
     setErrors((prev) => ({ ...prev, [name]: '', businessNumberDup: '' }));
     if (name === 'authCode' && authError) setAuthError('');
-    if (name === 'businessNumber') {
-      setIsBusinessDup(false);
-      setDuplicationSuccess(false);
-    }
-    if (name === 'postalCode') setAddressSearchError('');
+    setIsBusinessDup(false);
   };
 
   // Business number duplication check
   const handleCheckDuplication = async () => {
     if (readOnly) return;
-    if (isCheckingDuplication) return;
-
-    setIsCheckingDuplication(true);
-    setErrors((prev) => ({ ...prev, businessNumberDup: '' }));
-    setDuplicationSuccess(false);
 
     try {
-      console.log(
-        'Checking business number duplication:',
-        formData.businessNumber
-      );
-
-      const response = await AuthService.validateBusinessNumber(
-        formData.businessNumber
-      );
-
-      if (response.error) {
-        console.error('Business number validation failed:', response.error);
-        // Check if it's a 409 Conflict (business number taken)
-        if (
-          response.error.includes('409') ||
-          response.error.includes('Conflict')
-        ) {
-          setErrors((prev) => ({
-            ...prev,
-            businessNumberDup: '이미 등록된 사업자등록번호입니다.',
-          }));
-          setIsBusinessDup(true);
-          setDuplicationSuccess(false);
-        }
-        // Check if it's a server error (500) - treat as available for now
-        else if (
-          response.error.includes('500') ||
-          response.error.includes('Internal Server Error') ||
-          response.error.includes('서버 내부 오류')
-        ) {
-          console.log('Server error - treating business number as available');
-          setErrors((prev) => ({ ...prev, businessNumberDup: '' }));
-          setIsBusinessDup(false);
-          setDuplicationSuccess(true);
-        }
-        // Other errors
-        else {
-          setErrors((prev) => ({
-            ...prev,
-            businessNumberDup: '사업자등록번호 확인 중 오류가 발생했습니다.',
-          }));
-          setIsBusinessDup(true);
-          setDuplicationSuccess(false);
-        }
-      } else if (response.data?.success) {
-        console.log('Business number validation successful');
-        setErrors((prev) => ({ ...prev, businessNumberDup: '' }));
-        setIsBusinessDup(false);
-        setDuplicationSuccess(true);
-      } else {
+      // TODO: Replace with actual API call when available
+      // For now, using dummy logic
+      if (formData.businessNumber === '204-81-12345') {
         setErrors((prev) => ({
           ...prev,
           businessNumberDup: '이미 등록된 사업자등록번호입니다.',
         }));
         setIsBusinessDup(true);
-        setDuplicationSuccess(false);
+      } else {
+        setErrors((prev) => ({ ...prev, businessNumberDup: '' }));
+        setSuccessMessage('사용 가능한 사업자등록번호입니다.');
+        setIsBusinessDup(false);
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (error) {
-      console.error('Business number validation error:', error);
-      // For server errors, treat as available to allow form submission
-      console.log(
-        'Network/server error - treating business number as available'
+      console.error('Business number check error:', error);
+      setErrors((prev) => ({
+        ...prev,
+        businessNumberDup: '사업자등록번호 확인 중 오류가 발생했습니다.',
+      }));
+    }
+  };
+
+  // Send verification code
+  const handleSendCode = async () => {
+    if (readOnly) return;
+
+    setIsSendingCode(true);
+    setAuthError('');
+
+    try {
+      const email = `${formData.email}@${formData.emailDomain}`;
+      console.log('Sending verification code to:', email);
+
+      // Validate that representative name is provided
+      if (!formData.representativeName.trim()) {
+        setAuthError('대표자명을 먼저 입력해주세요.');
+        return;
+      }
+
+      const verificationData: EmailVerificationRequest = {
+        name: formData.representativeName, // Using representative name as the name
+        email: email,
+      };
+
+      const response = await AuthService.sendEmailVerification(
+        verificationData
       );
-      setErrors((prev) => ({ ...prev, businessNumberDup: '' }));
-      setIsBusinessDup(false);
-      setDuplicationSuccess(true);
+
+      if (response.error) {
+        console.error('Email verification failed:', response.error);
+        setAuthError('인증번호 전송에 실패했습니다. 다시 시도해주세요.');
+        return;
+      }
+
+      console.log('Email verification sent successfully:', response.data);
+      setShowAuthCode(true);
+      setTimeLeft(179);
+      setIsVerified(false);
+      setAuthCode('');
+      setSuccessMessage('인증번호가 전송되었습니다.');
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Send verification code error:', error);
+      setAuthError('인증번호 전송 중 오류가 발생했습니다.');
     } finally {
-      setIsCheckingDuplication(false);
+      setIsSendingCode(false);
+    }
+  };
+
+  // Verify code
+  const handleVerifyCode = async () => {
+    if (readOnly) return;
+
+    setIsVerifyingCode(true);
+    setAuthError('');
+
+    try {
+      const email = `${formData.email}@${formData.emailDomain}`;
+      console.log('Verifying code for email:', email, 'with code:', authCode);
+
+      const response = await AuthService.verifyEmailCode(email, authCode);
+
+      if (response.error) {
+        console.error('Email verification failed:', response.error);
+        setAuthError('올바른 인증번호를 입력해주세요.');
+        setIsVerified(false);
+        return;
+      }
+
+      console.log('Email verification successful:', response.data);
+      setIsVerified(true);
+      setSuccessMessage('인증이 완료되었습니다.');
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Verify code error:', error);
+      setAuthError('인증번호 확인 중 오류가 발생했습니다.');
+      setIsVerified(false);
+    } finally {
+      setIsVerifyingCode(false);
     }
   };
 
   // Address search handler
   const handleAddressSearch = async () => {
-    if (readOnly) return;
     if (isSearchingAddress) return;
 
     // Clear previous errors
@@ -262,90 +297,10 @@ export default function SellerInformation({
         address: '서울특별시 강남구 테헤란로 123',
         detailAddress: '',
       }));
-    } catch (error) {
+    } catch {
       setAddressSearchError('주소 검색 중 오류가 발생했습니다.');
     } finally {
       setIsSearchingAddress(false);
-    }
-  };
-
-  // Send verification code
-  const handleSendCode = async () => {
-    if (readOnly) return;
-    if (isSendingCode) return;
-
-    setIsSendingCode(true);
-    setAuthError('');
-
-    try {
-      const email = `${formData.email}@${formData.emailDomain}`;
-      console.log('Sending email verification code to:', email);
-
-      const response = await AuthService.sendEmailVerification({
-        name: formData.representativeName || 'User',
-        email: email,
-      });
-
-      if (response.error) {
-        console.error('Email verification failed:', response.error);
-        setAuthError('이메일 전송에 실패했습니다. 다시 시도해주세요.');
-        return;
-      }
-
-      if (response.data?.success) {
-        console.log('Email verification code sent successfully');
-        setShowAuthCode(true);
-        setTimeLeft(179);
-        setIsVerified(false);
-        setAuthCode('');
-        setAuthError('');
-      } else {
-        setAuthError('이메일 전송에 실패했습니다. 다시 시도해주세요.');
-      }
-    } catch (error) {
-      console.error('Email verification error:', error);
-      setAuthError('이메일 전송 중 오류가 발생했습니다.');
-    } finally {
-      setIsSendingCode(false);
-    }
-  };
-
-  // Verify code
-  const handleVerifyCode = async () => {
-    if (readOnly) return;
-    if (!authCode.trim()) return;
-    if (isVerifyingCode) return;
-
-    setIsVerifyingCode(true);
-    setAuthError('');
-
-    try {
-      const email = `${formData.email}@${formData.emailDomain}`;
-      console.log('Verifying email code for:', email);
-
-      const response = await AuthService.verifyEmailCode(email, authCode);
-
-      if (response.error) {
-        console.error('Email verification failed:', response.error);
-        setIsVerified(false);
-        setAuthError('올바른 인증번호를 입력해주세요.');
-        return;
-      }
-
-      if (response.data?.success) {
-        console.log('Email verification successful');
-        setIsVerified(true);
-        setAuthError('');
-      } else {
-        setIsVerified(false);
-        setAuthError('올바른 인증번호를 입력해주세요.');
-      }
-    } catch (error) {
-      console.error('Email verification error:', error);
-      setIsVerified(false);
-      setAuthError('인증 중 오류가 발생했습니다.');
-    } finally {
-      setIsVerifyingCode(false);
     }
   };
 
@@ -400,81 +355,93 @@ export default function SellerInformation({
   // Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     if (!validateForm()) return;
-    if (isSubmitting) return;
 
     setIsSubmitting(true);
-    setSubmitError('');
 
     try {
-      // Check if file IDs are available
-      if (!businessLicenseFileId || !bankbookFileId) {
-        setSubmitError('파일 업로드를 완료해주세요.');
-        setIsSubmitting(false);
-        return;
-      }
+      console.log('Submitting seller form:', { ...formData, status });
 
-      // Validate that we have real file IDs (not temporary ones)
-      if (
-        businessLicenseFileId.startsWith('temp-') ||
-        bankbookFileId.startsWith('temp-')
-      ) {
-        setSubmitError(
-          '파일 업로드를 완료해주세요. 서버 오류로 인해 파일이 업로드되지 않았습니다.'
+      // Verify files exist on server before submission
+      if (businessLicenseEncryptedId) {
+        const businessLicenseInfo = await FileService.getFileInfo(
+          businessLicenseEncryptedId
         );
-        setIsSubmitting(false);
-        return;
+        if (businessLicenseInfo.error || !businessLicenseInfo.data?.data) {
+          throw new Error(
+            '사업자등록증 파일을 찾을 수 없습니다. 다시 업로드해주세요.'
+          );
+        }
       }
 
-      // Prepare the API request data
+      if (bankbookEncryptedId) {
+        const bankbookInfo = await FileService.getFileInfo(bankbookEncryptedId);
+        if (bankbookInfo.error || !bankbookInfo.data?.data) {
+          throw new Error(
+            '통장 사본 파일을 찾을 수 없습니다. 다시 업로드해주세요.'
+          );
+        }
+      }
+
       const upgradeData: SellerMembershipUpgradeRequest = {
         businessRegistrationNumber: formData.businessNumber,
         representativeName: formData.representativeName,
         businessName: formData.companyName,
-        businessRegistrationCopyFileId: businessLicenseFileId,
+        businessRegistrationCopyFileId:
+          businessLicenseEncryptedId || businessLicenseFileId || '',
         roadAddress: formData.address,
         detailedAddress: formData.detailAddress,
         zipCode: formData.postalCode,
         bankName: formData.bankName,
         accountNumber: formData.accountNumber,
         depositorName: formData.accountHolder,
-        bankbookFileId: bankbookFileId,
+        bankbookFileId: bankbookEncryptedId || bankbookFileId || '',
         businessEmail: `${formData.email}@${formData.emailDomain}`,
+        x: 126.978, // Default longitude for Seoul, Korea
+        y: 37.5665, // Default latitude for Seoul, Korea
       };
 
-      console.log('Submitting seller membership upgrade:', upgradeData);
-
+      console.log('Sending seller membership upgrade request:', upgradeData);
       const response = await AuthService.upgradeToSellerMembership(upgradeData);
 
       if (response.error) {
         console.error('Seller membership upgrade failed:', response.error);
-        setSubmitError(response.error);
-        setIsSubmitting(false);
-        return;
-      }
 
-      if (response.data?.success) {
-        console.log('Seller membership upgrade successful:', response.data);
+        // Handle 409 Conflict (already registered)
+        if (
+          response.error.includes('409') ||
+          response.error.includes('이미 가게를 등록했습니다')
+        ) {
+          console.log('User is already registered as seller, updating role...');
+          updateUserRole('seller');
+          setShowModal(true);
 
-        // Upgrade user role to seller
-        if (user) {
-          const updatedUser = {
-            ...user,
-            role: 'seller' as const,
-          };
-          login(updatedUser);
-          console.log('User role upgraded to seller:', updatedUser);
+          // Force page refresh after 2 seconds to ensure UI updates
+          setTimeout(() => {
+            window.location.href = '/client/pages/homepage';
+          }, 2000);
+          return;
         }
 
-        setShowModal(true);
-      } else {
-        console.error('Unexpected response structure:', response.data);
-        setSubmitError('예상치 못한 응답이 발생했습니다. 다시 시도해주세요.');
+        throw new Error(response.error);
       }
+
+      console.log('Seller membership upgrade successful:', response.data);
+      updateUserRole('seller');
+      setShowModal(true);
+
+      // Force page refresh after 2 seconds to ensure UI updates
+      setTimeout(() => {
+        window.location.href = '/client/pages/homepage';
+      }, 2000);
     } catch (error) {
-      console.error('Seller membership upgrade error:', error);
-      setSubmitError('서버 오류가 발생했습니다. 다시 시도해주세요.');
+      console.error('Form submission error:', error);
+      setErrors({
+        submit:
+          error instanceof Error
+            ? error.message
+            : '등록 중 오류가 발생했습니다.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -485,12 +452,9 @@ export default function SellerInformation({
     formData.email.trim() !== '' && formData.emailDomain.trim() !== '';
   const canSendCode = emailValid && !isVerified && !readOnly && !isSendingCode;
   const canVerify = authCode.trim().length > 0 && !readOnly && !isVerifyingCode;
-  const canCheckDup =
-    formData.businessNumber.trim().length > 0 &&
-    !readOnly &&
-    !isCheckingDuplication;
+  const canCheckDup = formData.businessNumber.trim().length > 0 && !readOnly;
   const canSearchAddress =
-    formData.postalCode.trim().length > 0 && !isSearchingAddress;
+    formData.postalCode.trim().length > 0 && !readOnly && !isSearchingAddress;
   const canSubmit =
     !readOnly &&
     !isSubmitting &&
@@ -498,16 +462,14 @@ export default function SellerInformation({
     !isBusinessDup &&
     formData.representativeName &&
     formData.companyName &&
-    formData.businessLicenseFile &&
-    businessLicenseFileId &&
+    (businessLicenseFileId || businessLicenseEncryptedId) &&
     formData.postalCode &&
     formData.address &&
     formData.detailAddress &&
     formData.bankName &&
     formData.accountNumber &&
     formData.accountHolder &&
-    formData.bankbookFile &&
-    bankbookFileId &&
+    (bankbookFileId || bankbookEncryptedId) &&
     formData.email &&
     formData.emailDomain &&
     isVerified;
@@ -542,7 +504,7 @@ export default function SellerInformation({
               disabled={!canCheckDup}
               onClick={handleCheckDuplication}
             >
-              {isCheckingDuplication ? '확인 중...' : '중복확인'}
+              중복확인
             </button>
           </div>
           {errors.businessNumber && (
@@ -551,9 +513,7 @@ export default function SellerInformation({
           {errors.businessNumberDup && (
             <p className={styles.error}>{errors.businessNumberDup}</p>
           )}
-          {duplicationSuccess && (
-            <p className={styles.success}>사용 가능한 사업자등록번호입니다.</p>
-          )}
+          {successMessage && <p className={styles.success}>{successMessage}</p>}
         </div>
 
         {/* Representative */}
@@ -611,8 +571,10 @@ export default function SellerInformation({
                   businessLicense: file?.name || '',
                 }));
               }}
-              fileId={businessLicenseFileId}
-              setFileId={setBusinessLicenseFileId}
+              onFileUploaded={(fileId, encryptedId) => {
+                setBusinessLicenseFileId(fileId);
+                setBusinessLicenseEncryptedId(encryptedId);
+              }}
             />
           )}
           {errors.businessLicenseFile && (
@@ -646,9 +608,6 @@ export default function SellerInformation({
               {isSearchingAddress ? '검색 중...' : '주소 검색'}
             </button>
           </div>
-          {addressSearchError && (
-            <p className={styles.error}>{addressSearchError}</p>
-          )}
           <input
             type="text"
             name="address"
@@ -671,6 +630,9 @@ export default function SellerInformation({
             }`}
             readOnly={readOnly}
           />
+          {addressSearchError && (
+            <p className={styles.error}>{addressSearchError}</p>
+          )}
           {errors.postalCode && (
             <p className={styles.error}>{errors.postalCode}</p>
           )}
@@ -738,8 +700,10 @@ export default function SellerInformation({
                 setFormData((prev) => ({ ...prev, bankbookFile: file }));
                 setDisplayNames((p) => ({ ...p, bankbook: file?.name || '' }));
               }}
-              fileId={bankbookFileId}
-              setFileId={setBankbookFileId}
+              onFileUploaded={(fileId, encryptedId) => {
+                setBankbookFileId(fileId);
+                setBankbookEncryptedId(encryptedId);
+              }}
             />
           )}
           {errors.bankbookFile && (
@@ -811,6 +775,7 @@ export default function SellerInformation({
               className={`${styles.outlineButton} ${
                 canSendCode ? styles.enabled : styles.disabled
               }`}
+              disabled={!canSendCode}
             >
               {isSendingCode ? '전송 중...' : '인증번호 전송'}
             </button>
@@ -842,6 +807,7 @@ export default function SellerInformation({
                   className={`${styles.inlineButton} ${
                     canVerify ? styles.enabled : styles.disabled
                   }`}
+                  disabled={!canVerify}
                 >
                   {isVerifyingCode ? '확인 중...' : '인증 확인'}
                 </button>
@@ -851,13 +817,6 @@ export default function SellerInformation({
             {isVerified && (
               <p className={styles.success}>인증이 완료되었습니다.</p>
             )}
-          </div>
-        )}
-
-        {/* Submit Error Display */}
-        {submitError && (
-          <div className={styles.errorContainer}>
-            <p className={styles.error}>{submitError}</p>
           </div>
         )}
 
@@ -875,6 +834,13 @@ export default function SellerInformation({
         ) : (
           <div className={styles.readonlyFooter}>{banner || '읽기 전용'}</div>
         )}
+
+        {/* Submit Error */}
+        {errors.submit && (
+          <div className={styles.errorContainer}>
+            <p className={styles.error}>{errors.submit}</p>
+          </div>
+        )}
       </form>
 
       {/* Modal */}
@@ -887,10 +853,8 @@ export default function SellerInformation({
             width={60}
           />
         </div>
-        <h1 className={styles.modalTitle}>판매자 멤버십 업그레이드 완료</h1>
-        <p className={styles.successMessage}>
-          판매자 멤버십으로 성공적으로 업그레이드되었습니다.
-        </p>
+        <h1 className={styles.modalTitle}>사업자 등록 완료</h1>
+        <p className={styles.successMessage}>정상적으로 등록되었습니다.</p>
         <button
           className={styles.modalButton}
           onClick={() => {
@@ -898,7 +862,7 @@ export default function SellerInformation({
             if (onDone) {
               onDone();
             } else {
-              router.push('/');
+              router.push('/client/pages/homepage');
             }
           }}
         >

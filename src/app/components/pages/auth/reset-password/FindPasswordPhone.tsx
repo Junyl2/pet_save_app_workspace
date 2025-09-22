@@ -8,40 +8,45 @@ import PasswordResetScreen from './PasswordResetScreen';
 import { AuthService } from '@/app/api/services/client/auth/authService';
 import styles from './FindPassword.module.css';
 
-export default function FindPasswordPhone() {
+export default function FindPasswordEmail() {
   const router = useRouter();
+
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [userId, setUserId] = useState('');
   const [confirmedName, setConfirmedName] = useState('');
-  const [confirmedPhone, setConfirmedPhone] = useState('');
+  const [confirmedEmail, setConfirmedEmail] = useState('');
   const [confirmedUserId, setConfirmedUserId] = useState('');
   const [authCode, setAuthCode] = useState('');
+
   const [errors, setErrors] = useState<{
     name?: string;
-    phone?: string;
+    email?: string;
     userId?: string;
   }>({});
+
   const [showAuthCode, setShowAuthCode] = useState(false);
   const [timeLeft, setTimeLeft] = useState(179);
   const [isVerified, setIsVerified] = useState(false);
+
   const [showModal, setShowModal] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [resetToken, setResetToken] = useState<string | null>(null);
 
   /** Validation */
-  const validate = () => {
-    const newErrors: { name?: string; phone?: string; userId?: string } = {};
+  const validate = (): boolean => {
+    const newErrors: { name?: string; email?: string; userId?: string } = {};
     if (!name) newErrors.name = '이름을 입력해 주세요.';
     if (!userId) newErrors.userId = '아이디를 입력해 주세요.';
-    if (!phone) {
-      newErrors.phone = '휴대폰 번호를 입력해 주세요.';
-    } else if (!/^010-\d{4}-\d{4}$/.test(phone)) {
-      newErrors.phone = '형식에 맞지 않는 번호입니다';
+    if (!email) {
+      newErrors.email = '이메일을 입력해 주세요.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = '형식에 맞지 않는 이메일입니다.';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -56,15 +61,16 @@ export default function FindPasswordPhone() {
     setErrorMessage('');
 
     try {
-      const response = await AuthService.sendPasswordRecoveryPhoneVerification(
+      const response = await AuthService.sendPasswordRecoveryEmailVerification(
         name,
         userId,
-        phone
+        email
       );
 
       if (response.error) {
         console.error('인증번호 전송 실패:', response.error);
         let userErrorMessage = '인증번호 전송에 실패했습니다.';
+
         if (
           response.error.includes('아직 만료되지 않은 인증 코드가 존재합니다')
         ) {
@@ -79,20 +85,17 @@ export default function FindPasswordPhone() {
             '입력하신 정보와 일치하는 회원을 찾을 수 없습니다.';
         } else if (response.error.includes('400')) {
           const match = response.error.match(/400: (.+)/);
-          if (match) {
-            userErrorMessage = match[1];
-          }
+          if (match) userErrorMessage = match[1];
         } else if (response.error.includes('404')) {
           const match = response.error.match(/404: (.+)/);
-          if (match) {
-            userErrorMessage = match[1];
-          }
+          if (match) userErrorMessage = match[1];
         } else if (
           response.error.includes('identifier') &&
           response.error.includes('must not be blank')
         ) {
           userErrorMessage = '아이디를 입력해 주세요.';
         }
+
         setErrorMessage(userErrorMessage);
         return;
       }
@@ -100,7 +103,7 @@ export default function FindPasswordPhone() {
       setShowAuthCode(true);
       setTimeLeft(179);
       setIsVerified(false);
-      setSuccessMessage('인증번호가 휴대폰으로 전송되었습니다.');
+      setSuccessMessage('인증번호가 이메일로 전송되었습니다.');
     } catch (err) {
       console.error('인증번호 전송 실패', err);
       setErrorMessage('인증번호 전송 중 오류가 발생했습니다.');
@@ -112,16 +115,11 @@ export default function FindPasswordPhone() {
   /** Verify 인증번호 */
   const handleVerifyCode = async () => {
     if (!authCode) return;
-
     setIsVerifying(true);
 
     try {
-      console.log('API → 인증번호 검증 요청:', {
-        phoneNumber: phone,
-        code: authCode,
-      });
-
-      const response = await AuthService.verifyPhoneCode(phone, authCode);
+      console.log('API → 인증번호 검증 요청:', { email, code: authCode });
+      const response = await AuthService.verifyEmailCode(email, authCode);
 
       if (response.error) {
         console.error('인증번호 검증 실패:', response.error);
@@ -142,7 +140,9 @@ export default function FindPasswordPhone() {
   /** Countdown Timer */
   useEffect(() => {
     if (!showAuthCode || timeLeft <= 0) return;
-    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
     return () => clearInterval(timer);
   }, [showAuthCode, timeLeft]);
 
@@ -156,21 +156,26 @@ export default function FindPasswordPhone() {
 
   /** Submit Main Form */
   const isFormValid =
-    name && userId && phone && Object.keys(errors).length === 0 && isVerified;
+    !!name &&
+    !!userId &&
+    !!email &&
+    Object.keys(errors).length === 0 &&
+    isVerified;
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
+
     try {
       console.log('API → 최종 비밀번호 재설정 토큰 요청:', {
         name,
         userId,
-        phone,
+        email,
       });
 
-      const response = await AuthService.getPasswordRecoveryTokenByPhone(
+      const response = await AuthService.getPasswordRecoveryTokenByEmail(
         name,
         userId,
-        phone
+        email
       );
 
       if (response.error) {
@@ -178,20 +183,29 @@ export default function FindPasswordPhone() {
         let userErrorMessage = '비밀번호 재설정에 실패했습니다.';
         if (response.error.includes('400')) {
           const match = response.error.match(/400: (.+)/);
-          if (match) {
-            userErrorMessage = match[1];
-          }
+          if (match) userErrorMessage = match[1];
         }
         setErrorMessage(userErrorMessage);
         return;
       }
 
       console.log('비밀번호 재설정 토큰 요청 성공:', response.data);
-      // Store the reset token for the next step
-      if (response.data?.data?.resetToken) {
-        setResetToken(response.data.data.resetToken);
-        localStorage.setItem('resetToken', response.data.data.resetToken);
+
+      // Safely read and store resetToken if it exists and is a string
+      const token = (
+        response as {
+          data: { data?: { resetToken?: unknown } } | null;
+        }
+      )?.data?.data?.resetToken;
+
+      if (typeof token === 'string' && token.length > 0) {
+        try {
+          localStorage.setItem('resetToken', token);
+        } catch {
+          // ignore storage errors (SSR / privacy mode)
+        }
       }
+
       setShowModal(true);
     } catch (err) {
       console.error('비밀번호 재설정 실패', err);
@@ -199,22 +213,22 @@ export default function FindPasswordPhone() {
     }
   };
 
-  /** Confirm → show AuthenticationComplete */
+  /** Confirm → show PasswordResetScreen */
   const handleConfirm = () => {
     setShowModal(false);
     setShowComplete(true);
     setConfirmedName(name);
     setConfirmedUserId(userId);
-    setConfirmedPhone(phone);
+    setConfirmedEmail(email);
   };
 
-  //  if authentication is complete, render that component instead
+  //  인증 완료 화면
   if (showComplete) {
     return (
       <PasswordResetScreen
         name={confirmedName}
         userId={confirmedUserId}
-        email={confirmedPhone} // Using phone as email parameter for consistency
+        email={confirmedEmail}
       />
     );
   }
@@ -252,7 +266,7 @@ export default function FindPasswordPhone() {
         <label>아이디</label>
         <input
           type="text"
-          placeholder="아이디를 입력해 주세요."
+          placeholder="아이디를 입력해주세요."
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
           onBlur={validate}
@@ -261,31 +275,31 @@ export default function FindPasswordPhone() {
         {errors.userId && <p className={styles.error}>{errors.userId}</p>}
       </div>
 
-      {/* Phone Input with Send Button */}
+      {/* Email Input with Send Button */}
       <div className={styles.inputGroup}>
-        <label>휴대폰 번호</label>
+        <label>이메일</label>
         <div className={styles.inputWithButton}>
           <input
-            type="tel"
-            placeholder="휴대폰번호를 입력해 주세요."
-            value={phone}
+            type="email"
+            placeholder="이메일을 입력해 주세요."
+            value={email}
             onChange={(e) => {
-              setPhone(e.target.value);
+              setEmail(e.target.value);
               validate();
             }}
-            className={errors.phone ? styles.inputError : styles.inputSuccess}
+            className={errors.email ? styles.inputError : styles.inputSuccess}
             onBlur={validate}
           />
           <button
             type="button"
             onClick={handleSendCode}
             className={styles.inlineButton}
-            disabled={!phone || !!errors.phone || isLoading}
+            disabled={!email || !!errors.email || isLoading}
           >
             {isLoading ? '전송 중...' : '인증번호 전송'}
           </button>
         </div>
-        {errors.phone && <p className={styles.error}>{errors.phone}</p>}
+        {errors.email && <p className={styles.error}>{errors.email}</p>}
         {successMessage && <p className={styles.success}>{successMessage}</p>}
         {errorMessage && <p className={styles.error}>{errorMessage}</p>}
       </div>
@@ -317,7 +331,7 @@ export default function FindPasswordPhone() {
           </div>
 
           {!isVerified && (
-            <p className={styles.error}>휴대전화 인증를 완료해주세요.</p>
+            <p className={styles.error}>이메일 인증을 완료해주세요.</p>
           )}
           {isVerified && (
             <p className={styles.success}>인증이 완료되었습니다.</p>
@@ -341,7 +355,7 @@ export default function FindPasswordPhone() {
         onClose={() => setShowModal(false)}
         title="인증 완료"
       >
-        <p className={styles.successMessage}>휴대폰 인증이 완료 되었습니다.</p>
+        <p className={styles.successMessage}>이메일 인증이 완료 되었습니다.</p>
         <button className={styles.modalButton} onClick={handleConfirm}>
           확인
         </button>

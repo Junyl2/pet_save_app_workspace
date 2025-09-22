@@ -37,9 +37,18 @@ export default function PasswordChange() {
       newErrors.currentPassword = '현재 비밀번호가 올바르지 않습니다.';
     }
 
-    // Check new password length
-    if (formData.newPassword.length < 8 || formData.newPassword.length > 16) {
-      newErrors.newPassword = '비밀번호는 8-16자 이내로 입력해주세요.';
+    // New password validation to match MembershipInformation
+    if (formData.newPassword) {
+      if (formData.newPassword.length < 8) {
+        newErrors.newPassword = '비밀번호는 최소 8자 이상이어야 합니다.';
+      } else if (
+        !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(
+          formData.newPassword
+        )
+      ) {
+        newErrors.newPassword =
+          '비밀번호는 대문자, 소문자, 숫자, 특수문자를 포함해야 합니다.';
+      }
     }
 
     // Check if passwords match

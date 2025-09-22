@@ -1,4 +1,9 @@
 /**
+ * Shared utility types
+ */
+export type EmptyObject = Record<string, never>;
+
+/**
  * Login request DTO
  * Endpoint: POST /api/pet-save/auth/login
  */
@@ -59,8 +64,11 @@ export interface LoginResponse {
     /** User phone number */
     phoneNumber?: string;
 
-    /** Additional user fields */
-    [key: string]: any;
+    /**
+     * Additional user fields from backend.
+     * Using `unknown` satisfies no-explicit-any and remains flexible.
+     */
+    [key: string]: unknown;
   };
 }
 
@@ -99,7 +107,7 @@ export interface LogoutResponse {
   divisionCode: string;
 
   /** Empty data object */
-  data: {};
+  data: EmptyObject;
 
   /** Error ID */
   errorId: string;
@@ -122,7 +130,7 @@ export interface LogoutErrorResponse {
   divisionCode: string;
 
   /** Empty data object */
-  data: {};
+  data: EmptyObject;
 
   /** Error ID */
   errorId: string;
@@ -146,7 +154,7 @@ export interface IdentifierValidationResponse {
   divisionCode: string;
 
   /** Empty data object */
-  data: {};
+  data: EmptyObject;
 
   /** Error ID */
   errorId: string | null;
@@ -169,7 +177,7 @@ export interface IdentifierValidationErrorResponse {
   divisionCode: string;
 
   /** Empty data object */
-  data: {};
+  data: EmptyObject;
 
   /** Error ID */
   errorId: string;

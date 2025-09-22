@@ -2,26 +2,25 @@
 import { useState, useEffect } from 'react';
 import styles from './FileUploadModal.module.css';
 import Image from 'next/image';
-import { FileUploadService } from '@/app/api/services/fileUploadService';
+import { FileUploadService } from '@/app/api/services/client/fileService/fileUploadService';
 
 interface FileUploadModalProps {
   file: File | null;
   setFile: (file: File | null) => void;
-  fileId?: string | null;
-  setFileId?: (fileId: string | null) => void;
+  onFileUploaded?: (fileId: string, encryptedId: string) => void;
 }
 
 export default function FileUploadModal({
   file,
   setFile,
-  fileId,
-  setFileId,
+  onFileUploaded,
 }: FileUploadModalProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempFile, setTempFile] = useState<File | null>(file);
   const [previewURL, setPreviewURL] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
 
   // Prevent background scroll when modal is open
   useEffect(() => {
@@ -38,13 +37,20 @@ export default function FileUploadModal({
 
   // Generate preview URL when tempFile changes
   useEffect(() => {
-    if (tempFile && tempFile.type.startsWith('image/')) {
-      const url = URL.createObjectURL(tempFile);
-      setPreviewURL(url);
+    if (tempFile) {
+      if (tempFile.type.startsWith('image/')) {
+        const url = URL.createObjectURL(tempFile);
+        setPreviewURL(url);
 
-      return () => {
-        URL.revokeObjectURL(url);
-      };
+        return () => {
+          URL.revokeObjectURL(url);
+        };
+      } else if (tempFile.type === 'application/pdf') {
+        // For PDF files, we'll show a PDF icon with the filename
+        setPreviewURL('pdf-preview');
+      } else {
+        setPreviewURL(null);
+      }
     } else {
       setPreviewURL(null);
     }
@@ -61,51 +67,36 @@ export default function FileUploadModal({
 
     setIsUploading(true);
     setUploadError(null);
+    setUploadSuccess(null);
 
     try {
       console.log('Uploading file:', tempFile.name);
-
       const result = await FileUploadService.uploadFile(tempFile);
 
       if (result.error) {
         console.error('File upload failed:', result.error);
-
-        // Check if it's a server error (500) - show clear error message
-        if (
-          result.error.includes('500') ||
-          result.error.includes('Internal Server Error') ||
-          result.error.includes('서버 내부 오류')
-        ) {
-          console.log('Server error - file upload failed');
-          setUploadError(
-            '파일 업로드 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
-          );
-          setIsUploading(false);
-          return;
-        }
-
         setUploadError(result.error);
-        setIsUploading(false);
         return;
       }
 
       if (result.data) {
-        console.log('File uploaded successfully, file ID:', result.data);
+        console.log('File uploaded successfully:', result.data);
         setFile(tempFile); // commit temporary file to parent state
-        if (setFileId) {
-          setFileId(result.data); // set the file ID
+
+        // Notify parent component with file IDs
+        if (onFileUploaded) {
+          onFileUploaded(result.data.fileId, result.data.encryptedId);
         }
+
+        setUploadSuccess('파일이 성공적으로 업로드되었습니다.');
         setIsModalOpen(false); // close modal
-      } else {
-        setUploadError('Failed to get file ID from server');
+
+        // Clear success message after 2 seconds
+        setTimeout(() => setUploadSuccess(null), 2000);
       }
     } catch (error) {
       console.error('File upload error:', error);
-      // For network/server errors, show clear error message
-      console.log('Network/server error - file upload failed');
-      setUploadError(
-        '파일 업로드 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
-      );
+      setUploadError('파일 업로드 중 오류가 발생했습니다.');
     } finally {
       setIsUploading(false);
     }
@@ -140,7 +131,27 @@ export default function FileUploadModal({
             onClick={(e) => e.stopPropagation()}
           >
             <div className={styles.centerContent}>
-              {previewURL ? (
+              {previewURL === 'pdf-preview' && tempFile ? (
+                <div className={styles.pdfPreview}>
+                  <div className={styles.pdfIcon}>
+                    <Image
+                      src="/images/icons/mypage-note.svg"
+                      alt="PDF Icon"
+                      height={60}
+                      width={60}
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className={styles.pdfInfo}>
+                    <h3 className={styles.pdfTitle}>PDF 파일</h3>
+                    <p className={styles.pdfFileName}>{tempFile.name}</p>
+                    <p className={styles.pdfFileSize}>
+                      {(tempFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    <p className={styles.pdfType}>문서 파일</p>
+                  </div>
+                </div>
+              ) : previewURL && previewURL !== 'pdf-preview' ? (
                 <img
                   src={previewURL}
                   alt="Preview"
@@ -182,17 +193,6 @@ export default function FileUploadModal({
               </button>
             </div>
 
-            {uploadError && (
-              <div
-                style={{
-                  color: 'red',
-                  marginBottom: '1rem',
-                  textAlign: 'center',
-                }}
-              >
-                {uploadError}
-              </div>
-            )}
             <button
               className={styles.modalButton}
               onClick={handleConfirm}
@@ -200,6 +200,18 @@ export default function FileUploadModal({
             >
               {isUploading ? '업로드 중...' : '완료'}
             </button>
+
+            {/* Upload Status Messages */}
+            {uploadError && (
+              <div className={styles.errorMessage}>
+                <p>{uploadError}</p>
+              </div>
+            )}
+            {uploadSuccess && (
+              <div className={styles.successMessage}>
+                <p>{uploadSuccess}</p>
+              </div>
+            )}
           </div>
         </div>
       )}

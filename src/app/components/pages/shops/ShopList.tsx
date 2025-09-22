@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { shopService } from '@/app/api/services/shops/shopService';
 import { Shop } from '@/app/api/types/shops/shops';
+import { StoreService } from '@/app/api/services/client/storeService/storeService';
 import styles from './ShopList.module.css';
 import { FaPhone } from 'react-icons/fa6';
 import { ContactDrawer } from '../../ui/drawer/ContactDrawer/ContactDrawer';
@@ -21,8 +22,37 @@ export default function ShopList() {
     null
   );
   const [searchSubmitted, setSearchSubmitted] = useState(false);
+  const [testingAPI, setTestingAPI] = useState(false);
+  const [apiTestResult, setApiTestResult] = useState<string | null>(null);
 
   const router = useRouter();
+
+  // Test function for nearby stores API
+  const testNearbyStoresAPI = async () => {
+    setTestingAPI(true);
+    setApiTestResult(null);
+
+    try {
+      console.log('🧪 Testing nearby stores API...');
+      const response = await StoreService.testNearbyStoresAPI();
+
+      if (response.error) {
+        console.error('❌ API Test Failed:', response.error);
+        setApiTestResult(`❌ API Test Failed: ${response.error}`);
+      } else {
+        console.log('✅ API Test Successful:', response.data);
+        const storeCount = response.data?.data?.totalElements || 0;
+        setApiTestResult(
+          `✅ API Test Successful! Found ${storeCount} stores nearby.`
+        );
+      }
+    } catch (error) {
+      console.error('💥 API Test Error:', error);
+      setApiTestResult(`💥 API Test Error: ${error}`);
+    } finally {
+      setTestingAPI(false);
+    }
+  };
 
   useEffect(() => {
     const fetchShops = async () => {
@@ -70,6 +100,7 @@ export default function ShopList() {
   return (
     <>
       <TopBar onSearch={handleSearch} />
+
       {/*   <button className={styles.currentBtn}>
         <Image
           src="/images/icons/mage_location.png"
@@ -82,6 +113,41 @@ export default function ShopList() {
       </button> */}
 
       <div className={styles.container}>
+        {/* API Test Button */}
+        <div style={{ padding: '10px', textAlign: 'center' }}>
+          <button
+            onClick={testNearbyStoresAPI}
+            disabled={testingAPI}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: testingAPI ? '#ccc' : '#66bfa7',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: testingAPI ? 'not-allowed' : 'pointer',
+              marginBottom: '10px',
+            }}
+          >
+            {testingAPI ? 'Testing API...' : 'Test Nearby Stores API'}
+          </button>
+          {apiTestResult && (
+            <div
+              style={{
+                padding: '10px',
+                backgroundColor: apiTestResult.includes('✅')
+                  ? '#d4edda'
+                  : '#f8d7da',
+                color: apiTestResult.includes('✅') ? '#155724' : '#721c24',
+                borderRadius: '5px',
+                marginTop: '10px',
+                fontSize: '14px',
+              }}
+            >
+              {apiTestResult}
+            </div>
+          )}
+        </div>
+
         {isEmptySearch ? (
           <SearchState
             imageSrc="/images/products/noresult.png"

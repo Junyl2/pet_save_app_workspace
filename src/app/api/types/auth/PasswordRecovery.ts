@@ -42,7 +42,7 @@ export interface PasswordRecoveryVerificationResponse {
   divisionCode?: string;
 
   /** Response data */
-  data?: any;
+  data?: Record<string, unknown>;
 
   /** Error ID */
   errorId?: string;
@@ -126,7 +126,7 @@ export interface PasswordResetResponse {
   divisionCode?: string;
 
   /** Response data */
-  data?: any;
+  data?: Record<string, unknown>;
 
   /** Error ID */
   errorId?: string;

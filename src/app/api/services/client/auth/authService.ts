@@ -14,12 +14,7 @@ import {
   PhoneVerificationResponse,
 } from '../../../types/auth/PhoneVerification';
 import {
-  PasswordRecoveryEmailRequest,
-  PasswordRecoveryPhoneRequest,
   PasswordRecoveryVerificationResponse,
-  PasswordRecoveryEmailFinalRequest,
-  PasswordRecoveryPhoneFinalRequest,
-  PasswordRecoveryFinalResponse,
   PasswordResetRequest,
   PasswordResetResponse,
 } from '../../../types/auth/PasswordRecovery';
@@ -34,6 +29,54 @@ import {
   SellerMembershipUpgradeResponse,
 } from '../../../types/auth/SellerMembershipUpgrade';
 
+/** Narrow types used to avoid `any` while preserving behavior */
+type UnknownJson = unknown;
+
+type UserInfo = {
+  id: string;
+  identifier: string;
+  email?: string;
+  name?: string;
+  nickname?: string;
+  phoneNumber?: string;
+  loginType?: string;
+};
+
+type LoginApiData = {
+  accessToken: string;
+  refreshToken?: string;
+  identifier: string;
+  uuidMember?: string;
+  email?: string;
+  name?: string;
+  nickname?: string;
+  phoneNumber?: string;
+  loginType?: string;
+};
+
+type LoginApiEnvelope = { success?: boolean; data: LoginApiData };
+type LoginAlt1 = { accessToken: string; refreshToken?: string; user: UserInfo };
+type LoginAlt2 = { token: string; refreshToken?: string; user: UserInfo };
+
+function isLoginApiEnvelope(x: unknown): x is LoginApiEnvelope {
+  return (
+    typeof x === 'object' &&
+    x !== null &&
+    'data' in x &&
+    typeof (x as { data: unknown }).data === 'object' &&
+    (x as { data: LoginApiData }).data !== null &&
+    'accessToken' in (x as { data: LoginApiData }).data
+  );
+}
+function isLoginAlt1(x: unknown): x is LoginAlt1 {
+  return (
+    typeof x === 'object' && x !== null && 'accessToken' in x && 'user' in x
+  );
+}
+function isLoginAlt2(x: unknown): x is LoginAlt2 {
+  return typeof x === 'object' && x !== null && 'token' in x && 'user' in x;
+}
+
 /**
  * Authentication service for user signup and login operations
  */
@@ -44,7 +87,7 @@ export class AuthService {
    */
   static async signupGeneral(
     signupData: MemberSignupDto
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<UnknownJson>> {
     try {
       // Normalize identifier to lowercase for case-insensitive handling
       const normalizedSignupData = {
@@ -58,7 +101,7 @@ export class AuthService {
         normalized: normalizedSignupData.identifier,
       });
 
-      const response = await apiClient.post(
+      const response = await apiClient.post<UnknownJson>(
         '/auth/signup/general',
         normalizedSignupData
       );
@@ -87,41 +130,39 @@ export class AuthService {
     loginData: LoginRequest
   ): Promise<ApiResponse<LoginResponse>> {
     try {
-      // Log the exact request being sent
       console.log('Login request data:', JSON.stringify(loginData, null, 2));
 
-      const response = await apiClient.post<LoginResponse>(
+      const response = await apiClient.post<UnknownJson>(
         '/auth/login',
         loginData
       );
 
-      // Debug: Log the full response structure
       console.log('Login API response:', response);
       console.log('Response data type:', typeof response.data);
-      console.log(
-        'Response data keys:',
-        response.data ? Object.keys(response.data) : 'null'
-      );
 
       if (response.error) {
         console.error('Login failed:', response.error);
-        return response;
+        return {
+          data: null,
+          error: response.error,
+        };
       }
 
       // Store auth tokens if login successful
       if (response.data && typeof window !== 'undefined') {
-        // Handle different possible response structures
-        let accessToken, refreshToken, user;
-        const responseData = response.data as any; // Type assertion for flexible response handling
+        let accessToken: string | undefined;
+        let refreshToken: string | undefined;
+        let user: UserInfo | undefined;
 
-        if (responseData.data && responseData.data.accessToken) {
-          // Actual API structure: { success: true, data: { accessToken, refreshToken, identifier, ... } }
+        const responseData: unknown = response.data;
+
+        if (isLoginApiEnvelope(responseData)) {
+          // Structure: { success: true, data: { accessToken, refreshToken, identifier, ... } }
           const userData = responseData.data;
           console.log('User data from API:', userData);
 
           accessToken = userData.accessToken;
           refreshToken = userData.refreshToken;
-          // Create user object from the available data
           user = {
             id: userData.uuidMember || userData.identifier,
             identifier: userData.identifier,
@@ -131,13 +172,10 @@ export class AuthService {
             phoneNumber: userData.phoneNumber || '',
             loginType: userData.loginType || 'GENERAL',
           };
-
           console.log('Created user object:', user);
-        } else if (responseData.accessToken && responseData.user) {
-          // Expected structure
+        } else if (isLoginAlt1(responseData)) {
           ({ accessToken, refreshToken, user } = responseData);
-        } else if (responseData.token && responseData.user) {
-          // Alternative structure with 'token' instead of 'accessToken'
+        } else if (isLoginAlt2(responseData)) {
           accessToken = responseData.token;
           refreshToken = responseData.refreshToken;
           user = responseData.user;
@@ -152,15 +190,12 @@ export class AuthService {
           };
         }
 
-        // Validate that we have the required data
         if (accessToken && user && user.identifier) {
-          // Store tokens in localStorage
           localStorage.setItem('authToken', accessToken);
           if (refreshToken) {
             localStorage.setItem('refreshToken', refreshToken);
           }
           localStorage.setItem('userInfo', JSON.stringify(user));
-
           console.log('Login successful, tokens stored:', {
             user: user.identifier,
           });
@@ -177,7 +212,11 @@ export class AuthService {
         }
       }
 
-      return response;
+      // Cast back to the expected ApiResponse<LoginResponse> shape
+      return {
+        data: response.data as LoginResponse,
+        error: response.error,
+      };
     } catch (error) {
       console.error('Login service error:', error);
       return {
@@ -189,16 +228,12 @@ export class AuthService {
 
   /**
    * Login user with identifier and password (convenience method)
-   * @param identifier - Username, email, or phone number
-   * @param password - User password
-   * @param loginType - Login type (default: GENERAL)
    */
   static async loginWithCredentials(
     identifier: string,
     password: string,
     loginType: string = LOGIN_TYPES.GENERAL
   ): Promise<ApiResponse<LoginResponse>> {
-    // Normalize identifier to lowercase for case-insensitive login
     const normalizedIdentifier = identifier.toLowerCase().trim();
 
     console.log('Login attempt:', {
@@ -207,8 +242,7 @@ export class AuthService {
       loginType,
     });
 
-    // Try different request formats
-    const loginData = {
+    const loginData: LoginRequest = {
       identifier: normalizedIdentifier,
       password,
       loginType,
@@ -227,27 +261,23 @@ export class AuthService {
     try {
       console.log('Attempting logout...');
 
-      // Call logout endpoint
       const response = await apiClient.post<LogoutResponse>('/auth/logout');
 
       console.log('Logout API response:', response);
 
       if (response.error) {
         console.error('Logout API failed:', response.error);
-        // Still clear local storage even if API call fails
         this.clearLocalStorage();
         return response;
       }
 
       console.log('Logout successful:', response.data);
 
-      // Clear local storage on successful logout
       this.clearLocalStorage();
 
       return response;
     } catch (error) {
       console.error('Logout service error:', error);
-      // Always clear local storage even if there's an error
       this.clearLocalStorage();
       return {
         data: null,
@@ -261,7 +291,6 @@ export class AuthService {
    */
   private static clearLocalStorage(): void {
     if (typeof window !== 'undefined') {
-      // Clear all authentication-related localStorage items
       localStorage.removeItem('authToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('userInfo');
@@ -270,7 +299,6 @@ export class AuthService {
       localStorage.removeItem('rememberedUsername');
       localStorage.removeItem('sellerId');
 
-      // Clear all session storage
       sessionStorage.clear();
 
       console.log('All authentication data cleared from storage');
@@ -280,13 +308,11 @@ export class AuthService {
   /**
    * Validate if an identifier (username/email/phone) is available
    * Endpoint: GET /api/pet-save/auth/identifiers/validate
-   * @param identifier - Username, email, or phone number to validate
    */
   static async validateIdentifier(
     identifier: string
   ): Promise<ApiResponse<IdentifierValidationResponse>> {
     try {
-      // Normalize identifier to lowercase for case-insensitive validation
       const normalizedIdentifier = identifier.toLowerCase().trim();
 
       console.log('Validating identifier:', {
@@ -300,13 +326,11 @@ export class AuthService {
         )}`
       );
 
-      // Debug: Log the response structure
       console.log('Identifier validation response:', response);
       console.log('Response error details:', response.error);
       console.log('Response data details:', response.data);
 
       if (response.error) {
-        // 409 Conflict means identifier is taken (this is a valid response, not a failure)
         if (
           response.error.includes('409') ||
           response.error.includes('Conflict')
@@ -334,11 +358,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Check if an identifier is available (convenience method)
-   * @param identifier - Username, email, or phone number to check
-   * @returns Promise<boolean> - true if available, false if taken or error
-   */
   static async isIdentifierAvailable(identifier: string): Promise<boolean> {
     try {
       const response = await this.validateIdentifier(identifier);
@@ -349,10 +368,7 @@ export class AuthService {
     }
   }
 
-  /**
-   * Validate business registration number (similar to identifier validation)
-   * @param businessNumber - Business registration number to validate
-   */
+  /** Validate business registration number */
   static async validateBusinessNumber(
     businessNumber: string
   ): Promise<ApiResponse<IdentifierValidationResponse>> {
@@ -369,7 +385,6 @@ export class AuthService {
       console.log('Business number validation response:', response);
 
       if (response.error) {
-        // 409 Conflict means business number is taken (this is a valid response, not a failure)
         if (
           response.error.includes('409') ||
           response.error.includes('Conflict')
@@ -397,11 +412,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Check if a business number is available (convenience method)
-   * @param businessNumber - Business registration number to check
-   * @returns Promise<boolean> - true if available, false if taken or error
-   */
   static async isBusinessNumberAvailable(
     businessNumber: string
   ): Promise<boolean> {
@@ -416,7 +426,6 @@ export class AuthService {
 
   /**
    * Upgrade user to seller membership
-   * @param upgradeData - Seller membership upgrade data
    */
   static async upgradeToSellerMembership(
     upgradeData: SellerMembershipUpgradeRequest
@@ -454,9 +463,9 @@ export class AuthService {
    * Get current user profile
    * Endpoint: GET /api/pet-save/auth/profile
    */
-  static async getProfile(): Promise<ApiResponse<any>> {
+  static async getProfile(): Promise<ApiResponse<UnknownJson>> {
     try {
-      const response = await apiClient.get('/auth/profile');
+      const response = await apiClient.get<UnknownJson>('/auth/profile');
 
       if (response.error) {
         console.error('Get profile failed:', response.error);
@@ -508,8 +517,6 @@ export class AuthService {
   /**
    * Send phone verification code
    * Endpoint: POST /api/pet-save/verification/phone/send-verification
-   * @param name - User's name
-   * @param phoneNumber - User's phone number
    */
   static async sendPhoneVerification(
     name: string,
@@ -553,7 +560,6 @@ export class AuthService {
   /**
    * Verify email or phone verification code
    * Endpoint: POST /api/pet-save/verification/verify-code
-   * @param verificationData - Either email or phone verification data
    */
   static async verifyCode(
     verificationData: VerifyCodeRequest
@@ -580,11 +586,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Verify email verification code (convenience method)
-   * @param email - User's email address
-   * @param code - Verification code
-   */
   static async verifyEmailCode(
     email: string,
     code: string
@@ -592,11 +593,6 @@ export class AuthService {
     return this.verifyCode({ email, code });
   }
 
-  /**
-   * Verify phone verification code (convenience method)
-   * @param phoneNumber - User's phone number
-   * @param code - Verification code
-   */
   static async verifyPhoneCode(
     phoneNumber: string,
     code: string
@@ -607,20 +603,18 @@ export class AuthService {
   /**
    * Send find ID verification code via email
    * Endpoint: POST /api/pet-save/auth/recovery/id/email/send-verification
-   * @param name - User's name
-   * @param email - User's email address
    */
   static async sendFindIdEmailVerification(
     name: string,
     email: string
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<UnknownJson>> {
     try {
       console.log('Sending find ID email verification:', {
         name,
         email,
       });
 
-      const response = await apiClient.post(
+      const response = await apiClient.post<UnknownJson>(
         '/auth/recovery/id/email/send-verification',
         {
           name,
@@ -653,20 +647,18 @@ export class AuthService {
   /**
    * Send find ID verification code via SMS
    * Endpoint: POST /api/pet-save/auth/recovery/id/phone/send-verification
-   * @param name - User's name
-   * @param phoneNumber - User's phone number
    */
   static async sendFindIdSmsVerification(
     name: string,
     phoneNumber: string
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<UnknownJson>> {
     try {
       console.log('Sending find ID SMS verification:', {
         name,
         phoneNumber,
       });
 
-      const response = await apiClient.post(
+      const response = await apiClient.post<UnknownJson>(
         '/auth/recovery/id/phone/send-verification',
         {
           name,
@@ -696,33 +688,64 @@ export class AuthService {
   /**
    * Retrieve identifier via email after verification
    * Endpoint: POST /api/pet-save/auth/recovery/id/email
-   * @param name - User's name
-   * @param email - User's email address
    */
   static async findIdByEmail(
     name: string,
     email: string
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<UnknownJson>> {
     try {
-      console.log('Finding ID by email:', {
+      console.log('🔍 Finding ID by email - Request:', {
         name,
         email,
+        endpoint: '/auth/recovery/id/email',
+        timestamp: new Date().toISOString(),
       });
 
-      const response = await apiClient.post('/auth/recovery/id/email', {
-        name,
-        email,
-      });
+      const response = await apiClient.post<UnknownJson>(
+        '/auth/recovery/id/email',
+        {
+          name,
+          email,
+        }
+      );
 
       if (response.error) {
-        console.error('Find ID by email failed:', response.error);
+        console.error('❌ Find ID by email failed:', {
+          error: response.error,
+          name,
+          email,
+          timestamp: new Date().toISOString(),
+        });
         return response;
       }
 
-      console.log('Find ID by email successful:', response.data);
+      console.log('✅ Find ID by email successful:', {
+        responseData: response.data,
+        name,
+        email,
+        timestamp: new Date().toISOString(),
+        note: 'Email should be sent to user with their ID information',
+      });
+
+      // Optional introspection without assuming structure
+      const responseData: unknown = response.data;
+      if (typeof responseData === 'object' && responseData !== null) {
+        const maybe = responseData as Record<string, unknown>;
+        console.log('📧 Email sending details:', {
+          success: maybe.success,
+          message: (maybe.message ?? (maybe.resultMsg as unknown)) as unknown,
+          data: maybe.data,
+        });
+      }
+
       return response;
     } catch (error) {
-      console.error('Find ID by email service error:', error);
+      console.error('💥 Find ID by email service error:', {
+        error: error instanceof Error ? error.message : error,
+        name,
+        email,
+        timestamp: new Date().toISOString(),
+      });
       return {
         data: null,
         error:
@@ -734,23 +757,24 @@ export class AuthService {
   /**
    * Retrieve identifier via phone after verification
    * Endpoint: POST /api/pet-save/auth/recovery/id/phone
-   * @param name - User's name
-   * @param phoneNumber - User's phone number
    */
   static async findIdByPhone(
     name: string,
     phoneNumber: string
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<UnknownJson>> {
     try {
       console.log('Finding ID by phone:', {
         name,
         phoneNumber,
       });
 
-      const response = await apiClient.post('/auth/recovery/id/phone', {
-        name,
-        phoneNumber,
-      });
+      const response = await apiClient.post<UnknownJson>(
+        '/auth/recovery/id/phone',
+        {
+          name,
+          phoneNumber,
+        }
+      );
 
       if (response.error) {
         console.error('Find ID by phone failed:', response.error);
@@ -774,9 +798,6 @@ export class AuthService {
   /**
    * Send password recovery email verification code
    * Endpoint: POST /api/pet-save/auth/recovery/password/email/send-verification
-   * @param name - User's name
-   * @param identifier - User's identifier (username)
-   * @param email - User's email address
    */
   static async sendPasswordRecoveryEmailVerification(
     name: string,
@@ -833,9 +854,6 @@ export class AuthService {
   /**
    * Send password recovery phone verification code
    * Endpoint: POST /api/pet-save/auth/recovery/password/phone/send-verification
-   * @param name - User's name
-   * @param identifier - User's identifier (username)
-   * @param phoneNumber - User's phone number
    */
   static async sendPasswordRecoveryPhoneVerification(
     name: string,
@@ -892,15 +910,12 @@ export class AuthService {
   /**
    * Get password recovery token via email
    * Endpoint: POST /api/pet-save/auth/recovery/password/email
-   * @param name - User's name
-   * @param identifier - User's identifier (username)
-   * @param email - User's email address
    */
   static async getPasswordRecoveryTokenByEmail(
     name: string,
     identifier: string,
     email: string
-  ): Promise<ApiResponse<PasswordRecoveryFinalResponse>> {
+  ): Promise<ApiResponse<PasswordRecoveryVerificationResponse>> {
     try {
       console.log('Getting password recovery token by email:', {
         name,
@@ -914,10 +929,11 @@ export class AuthService {
         email,
       };
 
-      const response = await apiClient.post<PasswordRecoveryFinalResponse>(
-        '/auth/recovery/password/email',
-        requestData
-      );
+      const response =
+        await apiClient.post<PasswordRecoveryVerificationResponse>(
+          '/auth/recovery/password/email',
+          requestData
+        );
 
       if (response.error) {
         console.error(
@@ -947,15 +963,12 @@ export class AuthService {
   /**
    * Get password recovery token via phone
    * Endpoint: POST /api/pet-save/auth/recovery/password/phone
-   * @param name - User's name
-   * @param identifier - User's identifier (username)
-   * @param phoneNumber - User's phone number
    */
   static async getPasswordRecoveryTokenByPhone(
     name: string,
     identifier: string,
     phoneNumber: string
-  ): Promise<ApiResponse<PasswordRecoveryFinalResponse>> {
+  ): Promise<ApiResponse<PasswordRecoveryVerificationResponse>> {
     try {
       console.log('Getting password recovery token by phone:', {
         name,
@@ -969,10 +982,11 @@ export class AuthService {
         phoneNumber,
       };
 
-      const response = await apiClient.post<PasswordRecoveryFinalResponse>(
-        '/auth/recovery/password/phone',
-        requestData
-      );
+      const response =
+        await apiClient.post<PasswordRecoveryVerificationResponse>(
+          '/auth/recovery/password/phone',
+          requestData
+        );
 
       if (response.error) {
         console.error(
@@ -1002,8 +1016,6 @@ export class AuthService {
   /**
    * Reset password using reset token
    * Endpoint: POST /api/pet-save/auth/recovery/password/reset
-   * @param newPassword - New password
-   * @param resetToken - Reset token
    */
   static async resetPassword(
     newPassword: string,

@@ -12,6 +12,47 @@ import { useUser } from '@/app/context/userContext';
 import { AuthService } from '@/app/api/services/client/auth/authService';
 import { LOGIN_TYPES } from '@/app/api/types/auth/MemberSignupDto';
 
+type WithDataIdentifier = { data: { identifier: string } };
+type WithUserIdentifier = { user: { identifier: string } };
+type DirectIdentifier = { identifier: string };
+
+function extractIdentifier(payload: unknown): string | null {
+  if (payload && typeof payload === 'object') {
+    const p = payload as Record<string, unknown>;
+
+    // { data: { identifier } }
+    if (
+      'data' in p &&
+      p.data &&
+      typeof p.data === 'object' &&
+      'identifier' in (p.data as Record<string, unknown>) &&
+      typeof (p.data as Record<string, unknown>).identifier === 'string'
+    ) {
+      return (p as WithDataIdentifier).data.identifier;
+    }
+
+    // { user: { identifier } }
+    if (
+      'user' in p &&
+      p.user &&
+      typeof p.user === 'object' &&
+      'identifier' in (p.user as Record<string, unknown>) &&
+      typeof (p.user as Record<string, unknown>).identifier === 'string'
+    ) {
+      return (p as WithUserIdentifier).user.identifier;
+    }
+
+    // { identifier }
+    if (
+      'identifier' in p &&
+      typeof (p as DirectIdentifier).identifier === 'string'
+    ) {
+      return (p as DirectIdentifier).identifier;
+    }
+  }
+  return null;
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const { login } = useUser();
@@ -22,14 +63,6 @@ export default function LoginForm() {
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // --- helper: derive sellerId from username for demo ---
-  const deriveSellerId = (u: string): number => {
-    // seller / seller2 / seller-7 / seller_7 → number
-    const m = u.match(/^seller(?:[-_]?(\d+))?$/i);
-    if (!m) return 1; // default if pattern doesn't match
-    return m[1] ? Number(m[1]) : 1;
-  };
 
   // Handle username input changes
   const handleUsernameChange = (value: string) => {
@@ -63,11 +96,6 @@ export default function LoginForm() {
         return;
       }
 
-      console.log('Attempting login with:', {
-        identifier: username,
-        loginType: LOGIN_TYPES.GENERAL,
-      });
-
       // Call the real API (username will be normalized in the service)
       const response = await AuthService.loginWithCredentials(
         username.trim(),
@@ -75,33 +103,14 @@ export default function LoginForm() {
         LOGIN_TYPES.GENERAL
       );
 
-      // Debug: Log the response structure
-      console.log('Login response in component:', response);
-
       if (response.error) {
-        console.error('Login failed:', response.error);
         setError(response.error);
         setLoading(false);
         return;
       }
 
       if (response.data) {
-        console.log('Login successful, response data:', response.data);
-
-        // Handle different response structures
-        let userIdentifier;
-        const responseData = response.data as any; // Type assertion for flexible response handling
-
-        if (responseData.data && responseData.data.identifier) {
-          // New API structure: { data: { data: { identifier, ... } } }
-          userIdentifier = responseData.data.identifier;
-        } else if (responseData.user && responseData.user.identifier) {
-          // Old structure: { data: { user: { identifier, ... } } }
-          userIdentifier = responseData.user.identifier;
-        } else if (responseData.identifier) {
-          // Direct structure: { data: { identifier, ... } }
-          userIdentifier = responseData.identifier;
-        }
+        const userIdentifier = extractIdentifier(response.data);
 
         if (userIdentifier) {
           // Update user context
@@ -123,20 +132,14 @@ export default function LoginForm() {
           // Redirect to home page
           router.push('/');
         } else {
-          console.error(
-            'Login response missing user identifier:',
-            response.data
-          );
           setError('로그인 응답에 사용자 정보가 없습니다. 다시 시도해주세요.');
           setLoading(false);
         }
       } else {
-        console.error('Login response missing data:', response);
         setError('로그인 응답이 올바르지 않습니다. 다시 시도해주세요.');
         setLoading(false);
       }
     } catch (err: unknown) {
-      console.error('Login error:', err);
       setError(
         err instanceof Error
           ? err.message

@@ -7,8 +7,10 @@ import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import PasswordResetScreen from './PasswordResetScreen';
 import { AuthService } from '@/app/api/services/client/auth/authService';
 import styles from './FindPassword.module.css';
+
 export default function FindPasswordEmail() {
   const router = useRouter();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [userId, setUserId] = useState('');
@@ -16,24 +18,28 @@ export default function FindPasswordEmail() {
   const [confirmedEmail, setConfirmedEmail] = useState('');
   const [confirmedUserId, setConfirmedUserId] = useState('');
   const [authCode, setAuthCode] = useState('');
+
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
     userId?: string;
   }>({});
+
   const [showAuthCode, setShowAuthCode] = useState(false);
   const [timeLeft, setTimeLeft] = useState(179);
   const [isVerified, setIsVerified] = useState(false);
+
   const [showModal, setShowModal] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [resetToken, setResetToken] = useState<string | null>(null);
 
   /** Validation */
-  const validate = () => {
+  const validate = (): boolean => {
     const newErrors: { name?: string; email?: string; userId?: string } = {};
     if (!name) newErrors.name = '이름을 입력해 주세요.';
     if (!userId) newErrors.userId = '아이디를 입력해 주세요.';
@@ -64,6 +70,7 @@ export default function FindPasswordEmail() {
       if (response.error) {
         console.error('인증번호 전송 실패:', response.error);
         let userErrorMessage = '인증번호 전송에 실패했습니다.';
+
         if (
           response.error.includes('아직 만료되지 않은 인증 코드가 존재합니다')
         ) {
@@ -78,20 +85,17 @@ export default function FindPasswordEmail() {
             '입력하신 정보와 일치하는 회원을 찾을 수 없습니다.';
         } else if (response.error.includes('400')) {
           const match = response.error.match(/400: (.+)/);
-          if (match) {
-            userErrorMessage = match[1];
-          }
+          if (match) userErrorMessage = match[1];
         } else if (response.error.includes('404')) {
           const match = response.error.match(/404: (.+)/);
-          if (match) {
-            userErrorMessage = match[1];
-          }
+          if (match) userErrorMessage = match[1];
         } else if (
           response.error.includes('identifier') &&
           response.error.includes('must not be blank')
         ) {
           userErrorMessage = '아이디를 입력해 주세요.';
         }
+
         setErrorMessage(userErrorMessage);
         return;
       }
@@ -111,12 +115,10 @@ export default function FindPasswordEmail() {
   /** Verify 인증번호 */
   const handleVerifyCode = async () => {
     if (!authCode) return;
-
     setIsVerifying(true);
 
     try {
       console.log('API → 인증번호 검증 요청:', { email, code: authCode });
-
       const response = await AuthService.verifyEmailCode(email, authCode);
 
       if (response.error) {
@@ -138,7 +140,9 @@ export default function FindPasswordEmail() {
   /** Countdown Timer */
   useEffect(() => {
     if (!showAuthCode || timeLeft <= 0) return;
-    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
     return () => clearInterval(timer);
   }, [showAuthCode, timeLeft]);
 
@@ -152,10 +156,15 @@ export default function FindPasswordEmail() {
 
   /** Submit Main Form */
   const isFormValid =
-    name && userId && email && Object.keys(errors).length === 0 && isVerified;
+    !!name &&
+    !!userId &&
+    !!email &&
+    Object.keys(errors).length === 0 &&
+    isVerified;
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
+
     try {
       console.log('API → 최종 비밀번호 재설정 토큰 요청:', {
         name,
@@ -174,20 +183,29 @@ export default function FindPasswordEmail() {
         let userErrorMessage = '비밀번호 재설정에 실패했습니다.';
         if (response.error.includes('400')) {
           const match = response.error.match(/400: (.+)/);
-          if (match) {
-            userErrorMessage = match[1];
-          }
+          if (match) userErrorMessage = match[1];
         }
         setErrorMessage(userErrorMessage);
         return;
       }
 
       console.log('비밀번호 재설정 토큰 요청 성공:', response.data);
-      // Store the reset token for the next step
-      if (response.data?.data?.resetToken) {
-        setResetToken(response.data.data.resetToken);
-        localStorage.setItem('resetToken', response.data.data.resetToken);
+
+      // Safely extract & store resetToken if it exists and is a string
+      const token = (
+        response as {
+          data: { data?: { resetToken?: unknown } } | null;
+        }
+      )?.data?.data?.resetToken;
+
+      if (typeof token === 'string' && token.length > 0) {
+        try {
+          localStorage.setItem('resetToken', token);
+        } catch {
+          // Ignore storage errors (SSR/Privacy mode)
+        }
       }
+
       setShowModal(true);
     } catch (err) {
       console.error('비밀번호 재설정 실패', err);
@@ -195,7 +213,7 @@ export default function FindPasswordEmail() {
     }
   };
 
-  /** Confirm → show AuthenticationComplete */
+  /** Confirm → show PasswordResetScreen */
   const handleConfirm = () => {
     setShowModal(false);
     setShowComplete(true);
@@ -204,7 +222,7 @@ export default function FindPasswordEmail() {
     setConfirmedEmail(email);
   };
 
-  //  if authentication is complete, render that component instead
+  // 인증 완료 화면
   if (showComplete) {
     return (
       <PasswordResetScreen
@@ -213,6 +231,7 @@ export default function FindPasswordEmail() {
         email={confirmedEmail}
       />
     );
+    // If your PasswordResetScreen needs the token, read it inside that component via localStorage.getItem('resetToken')
   }
 
   return (

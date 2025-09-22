@@ -8,6 +8,14 @@ import AuthenticationComplete from '@/app/components/pages/auth/find-id/Authenti
 import { AuthService } from '@/app/api/services/client/auth/authService';
 import styles from './FindIdForm.module.css';
 
+/** Narrow type for the findIdByEmail payload to avoid `any` */
+interface FindIdByEmailPayload {
+  success?: boolean;
+  message?: string;
+  resultMsg?: string;
+  data?: unknown;
+}
+
 export default function FindIdFormEmail() {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -27,7 +35,7 @@ export default function FindIdFormEmail() {
   const [errorMessage, setErrorMessage] = useState('');
 
   /** Validation */
-  const validate = () => {
+  const validate = (): boolean => {
     const newErrors: { name?: string; email?: string } = {};
     if (!name) newErrors.name = '이름을 입력해 주세요.';
     if (!email) {
@@ -132,18 +140,31 @@ export default function FindIdFormEmail() {
 
   /** Submit Main Form */
   const isFormValid =
-    name && email && Object.keys(errors).length === 0 && isVerified;
+    !!name && !!email && Object.keys(errors).length === 0 && isVerified;
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
+    setIsLoading(true);
+    setErrorMessage('');
+
     try {
-      console.log('API → 최종 아이디 확인 요청:', { name, email });
+      console.log('🚀 API → 최종 아이디 확인 요청:', {
+        name,
+        email,
+        timestamp: new Date().toISOString(),
+        note: 'This should trigger email sending with user ID',
+      });
 
       // Call the find ID API
       const response = await AuthService.findIdByEmail(name, email);
 
       if (response.error) {
-        console.error('아이디 찾기 실패:', response.error);
+        console.error('❌ 아이디 찾기 실패:', {
+          error: response.error,
+          name,
+          email,
+          timestamp: new Date().toISOString(),
+        });
 
         // Extract error message for user
         let userErrorMessage = '아이디 찾기에 실패했습니다.';
@@ -157,11 +178,35 @@ export default function FindIdFormEmail() {
         return;
       }
 
-      console.log('아이디 찾기 성공:', response.data);
+      console.log('✅ 아이디 찾기 성공:', {
+        responseData: response.data,
+        name,
+        email,
+        timestamp: new Date().toISOString(),
+        note: 'Email should now be sent to user with their ID information',
+      });
+
+      // Check if the response indicates email was sent
+      if (response.data && typeof response.data === 'object') {
+        const responseData = response.data as FindIdByEmailPayload;
+        console.log('📧 Email sending status:', {
+          success: responseData.success,
+          message: responseData.message ?? responseData.resultMsg,
+          data: responseData.data,
+        });
+      }
+
       setShowModal(true);
     } catch (err) {
-      console.error('아이디 확인 실패', err);
+      console.error('💥 아이디 확인 실패', {
+        error: err,
+        name,
+        email,
+        timestamp: new Date().toISOString(),
+      });
       setErrorMessage('아이디 찾기 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 

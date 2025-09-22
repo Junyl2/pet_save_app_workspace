@@ -30,12 +30,20 @@ export default function ResetPassword() {
     const trimmedPassword = password.trim();
     const trimmedConfirm = confirmPassword.trim();
 
-    if (trimmedPassword && !/^\d{10}$/.test(trimmedPassword)) {
-      passError = '입력하신 비밀번호가 지정된 형식에 맞지 않습니다.';
+    // New password validation to match MembershipInformation
+    if (trimmedPassword) {
+      if (trimmedPassword.length < 8) {
+        passError = '비밀번호는 최소 8자 이상이어야 합니다.';
+      } else if (
+        !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(trimmedPassword)
+      ) {
+        passError =
+          '비밀번호는 대문자, 소문자, 숫자, 특수문자를 포함해야 합니다.';
+      }
     }
 
     if (trimmedConfirm && trimmedPassword !== trimmedConfirm) {
-      confirmError = '비밀번호 확인 값이 일치하지 않습니다.';
+      confirmError = '비밀번호가 일치하지 않습니다.';
     }
 
     setErrors({ password: passError, confirm: confirmError });

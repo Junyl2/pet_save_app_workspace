@@ -142,7 +142,35 @@ export const apiClient = {
     }
   },
 
-  post: async <T>(url: string, data?: any): Promise<ApiResponse<T>> => {
+  // File download with blob response
+  getFile: async (
+    url: string,
+    options?: {
+      disposition?: string;
+      type?: string;
+      headers?: Record<string, string>;
+    }
+  ): Promise<ApiResponse<Blob>> => {
+    try {
+      const config = {
+        responseType: 'blob' as const,
+        params: {
+          disposition: options?.disposition || 'inline',
+          type: options?.type || 'original',
+        },
+        headers: options?.headers || {},
+      };
+
+      const response = await axiosInstance.get(url, config);
+      return { data: response.data as Blob, error: undefined };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'File download failed';
+      return { data: null, error: message };
+    }
+  },
+
+  post: async <T>(url: string, data?: unknown): Promise<ApiResponse<T>> => {
     try {
       console.log('API Request:', { url, data });
       const response = await axiosInstance.post<T>(url, data);
@@ -150,12 +178,15 @@ export const apiClient = {
       return { data: response.data, error: undefined };
     } catch (error: unknown) {
       if (error instanceof Error && 'response' in error) {
-        const axiosError = error as any;
+        // ✅ Avoid `any`: use AxiosError<unknown, unknown>
+        const axiosError = error as AxiosError<unknown, unknown>;
+        const resp = axiosError.response;
+
         console.error('API Error Details:', {
-          status: axiosError.response?.status,
-          statusText: axiosError.response?.statusText,
-          data: axiosError.response?.data,
-          headers: axiosError.response?.headers,
+          status: resp?.status,
+          statusText: resp?.statusText,
+          data: resp?.data,
+          headers: resp?.headers,
           config: {
             url: axiosError.config?.url,
             method: axiosError.config?.method,
@@ -167,23 +198,36 @@ export const apiClient = {
         // Log the actual response data for debugging
         console.error(
           'API Response Data:',
-          JSON.stringify(axiosError.response?.data, null, 2)
+          JSON.stringify(resp?.data, null, 2)
         );
         console.error(
           'Request Data Sent:',
           JSON.stringify(axiosError.config?.data, null, 2)
         );
 
-        // Try to extract meaningful error message from API response
-        const apiErrorMessage =
-          axiosError.response?.data?.resultMsg || // Korean error message from API
-          axiosError.response?.data?.message ||
-          axiosError.response?.data?.error ||
-          axiosError.response?.statusText ||
-          error.message;
+        // Try to extract meaningful error message from API response (no `any`)
+        let apiErrorMessage: string | undefined;
+        const dataObj =
+          resp?.data && typeof resp.data === 'object'
+            ? (resp.data as {
+                resultMsg?: unknown;
+                message?: unknown;
+                error?: unknown;
+              })
+            : undefined;
+
+        if (dataObj) {
+          apiErrorMessage =
+            (typeof dataObj.resultMsg === 'string' && dataObj.resultMsg) ||
+            (typeof dataObj.message === 'string' && dataObj.message) ||
+            (typeof dataObj.error === 'string' && dataObj.error) ||
+            undefined;
+        }
+
+        apiErrorMessage = apiErrorMessage || resp?.statusText || error.message;
 
         // Include status code in error message for better debugging
-        const statusCode = axiosError.response?.status;
+        const statusCode = resp?.status;
         const finalErrorMessage = statusCode
           ? `${statusCode}: ${apiErrorMessage}`
           : apiErrorMessage;
@@ -196,7 +240,8 @@ export const apiClient = {
     }
   },
 
-  put: async <T>(url: string, data?: any): Promise<ApiResponse<T>> => {
+  // ✅ Avoid `any` here by using `unknown`
+  put: async <T>(url: string, data?: unknown): Promise<ApiResponse<T>> => {
     try {
       const response = await axiosInstance.put<T>(url, data);
       return { data: response.data, error: undefined };

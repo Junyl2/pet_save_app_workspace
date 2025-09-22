@@ -33,7 +33,7 @@ export default function MembershipInformation() {
     address: '',
     detailAddress: '',
     referral: '',
-    birthDate: '', // Add birth date field
+    birthDate: '',
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -41,7 +41,6 @@ export default function MembershipInformation() {
   // Email verification states
   const [showAuthCode, setShowAuthCode] = useState(false);
   const [authCode, setAuthCode] = useState('');
-  const [serverCode, setServerCode] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(179);
   const [isVerified, setIsVerified] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -80,7 +79,6 @@ export default function MembershipInformation() {
       return;
     }
 
-    // Check if username matches the required pattern
     if (!/^[a-z0-9]+$/.test(username)) {
       setUsernameValidationStatus('error');
       setUsernameValidationMessage(
@@ -97,7 +95,6 @@ export default function MembershipInformation() {
       const response = await AuthService.validateIdentifier(username);
 
       if (response.error) {
-        // Check if it's a 409 Conflict (identifier taken) or other error
         if (
           response.error.includes('409') ||
           response.error.includes('Conflict')
@@ -118,12 +115,11 @@ export default function MembershipInformation() {
         setUsernameValidationStatus('available');
         setUsernameValidationMessage('사용 가능한 아이디입니다.');
       } else {
-        // If no error but success is false, treat as taken
         setUsernameValidationStatus('taken');
         setUsernameValidationMessage('이미 사용 중인 아이디입니다.');
       }
-    } catch (error) {
-      console.error('Username validation error:', error);
+    } catch (err) {
+      console.error('Username validation error:', err);
       setUsernameValidationStatus('error');
       setUsernameValidationMessage('확인 중 오류가 발생했습니다.');
     } finally {
@@ -137,8 +133,7 @@ export default function MembershipInformation() {
       if (formData.username) {
         validateUsername(formData.username);
       }
-    }, 500); // 500ms delay
-
+    }, 500);
     return () => clearTimeout(timeoutId);
   }, [formData.username, validateUsername]);
 
@@ -147,15 +142,13 @@ export default function MembershipInformation() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: '', general: '' })); // clear error on typing
+    setErrors((prev) => ({ ...prev, [name]: '', general: '' }));
 
-    // Reset username validation status when user starts typing
     if (name === 'username') {
       setUsernameValidationStatus('idle');
       setUsernameValidationMessage('');
     }
 
-    // Clear address search error when postal code changes
     if (name === 'postalCode') {
       setAddressSearchError('');
     }
@@ -163,7 +156,7 @@ export default function MembershipInformation() {
 
   // Send verification code
   const handleSendCode = async () => {
-    if (isSendingCode) return; // Prevent multiple requests
+    if (isSendingCode) return;
 
     setIsSendingCode(true);
 
@@ -171,7 +164,7 @@ export default function MembershipInformation() {
       const emailAddress = `${formData.email}@${formData.emailDomain}`;
 
       const verificationData: EmailVerificationRequest = {
-        name: formData.name || 'User', // Use name if available, otherwise default
+        name: formData.name || 'User',
         email: emailAddress,
       };
 
@@ -193,18 +186,12 @@ export default function MembershipInformation() {
 
       console.log('Email verification sent successfully:', response.data);
 
-      // If the API returns a verification code, use it; otherwise generate a dummy one for testing
-      const verificationCode =
-        response.data?.verificationCode ||
-        Math.floor(100000 + Math.random() * 900000).toString();
-
-      setServerCode(verificationCode);
+      // We no longer store a local serverCode (it was unused). Just proceed to show the code field & timer.
       setShowAuthCode(true);
       setTimeLeft(179);
       setIsVerified(false);
-      setErrors((prev) => ({ ...prev, email: '' })); // Clear any previous errors
+      setErrors((prev) => ({ ...prev, email: '' }));
 
-      // Show success message (removed alert)
       console.log('인증번호가 이메일로 전송되었습니다.');
       setIsSendingCode(false);
     } catch (err) {
@@ -219,7 +206,7 @@ export default function MembershipInformation() {
 
   // Verify code
   const handleVerifyCode = async () => {
-    if (isVerifyingCode) return; // Prevent multiple requests
+    if (isVerifyingCode) return;
 
     if (!authCode.trim()) {
       setErrors((prev) => ({
@@ -259,7 +246,6 @@ export default function MembershipInformation() {
       setIsVerified(true);
       setErrors((prev) => ({ ...prev, email: '' }));
 
-      // Show success message (removed alert)
       console.log('이메일 인증이 완료되었습니다.');
       setIsVerifyingCode(false);
     } catch (error) {
@@ -277,10 +263,8 @@ export default function MembershipInformation() {
   const handleAddressSearch = async () => {
     if (isSearchingAddress) return;
 
-    // Clear previous errors
     setAddressSearchError('');
 
-    // Check if postal code is empty
     if (!formData.postalCode.trim()) {
       setAddressSearchError('우편번호를 입력해주세요.');
       return;
@@ -292,14 +276,14 @@ export default function MembershipInformation() {
       // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // This would typically call a real postal code API
-      // For now, we'll simulate a successful search
+      // Simulated successful lookup
       setFormData((prev) => ({
         ...prev,
         address: '서울특별시 강남구 테헤란로 123',
         detailAddress: '',
       }));
-    } catch (error) {
+    } catch (err) {
+      console.error('Address search error:', err);
       setAddressSearchError('주소 검색 중 오류가 발생했습니다.');
     } finally {
       setIsSearchingAddress(false);
@@ -371,16 +355,14 @@ export default function MembershipInformation() {
   // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     console.log('Form submit triggered');
-    e.preventDefault(); // Always prevent default form submission
-    e.stopPropagation(); // Stop event bubbling
+    e.preventDefault();
+    e.stopPropagation();
 
-    // Prevent multiple submissions
     if (isSubmitting) {
       console.log('Already submitting, please wait...');
       return;
     }
 
-    // Clear any previous general errors
     setErrors((prev) => ({ ...prev, general: '' }));
 
     if (!validateForm()) {
@@ -393,7 +375,6 @@ export default function MembershipInformation() {
     setIsSubmitting(true);
 
     try {
-      // Prepare data for API call
       const signupData: MemberSignupDto = {
         identifier: formData.username.trim(),
         password: formData.password,
@@ -403,12 +384,9 @@ export default function MembershipInformation() {
         zipCode: formData.postalCode.trim(),
         roadAddress: formData.address.trim(),
         detailedAddress: formData.detailAddress.trim(),
-        // Optional fields - only include if they have values
         ...(formData.name?.trim() && { name: formData.name.trim() }),
-        ...(formData.name?.trim() && { nickname: formData.name.trim() }), // Using name as nickname if no separate nickname field
-        ...(formData.birthDate && {
-          birthDate: formData.birthDate, // Send as-is first, might need different format
-        }),
+        ...(formData.name?.trim() && { nickname: formData.name.trim() }),
+        ...(formData.birthDate && { birthDate: formData.birthDate }),
         ...(formData.referral?.trim() && {
           referralCode: formData.referral.trim(),
         }),
@@ -417,7 +395,6 @@ export default function MembershipInformation() {
       console.log('Form data before mapping:', formData);
       console.log('Mapped signup data:', signupData);
 
-      // Validate required fields before sending
       const requiredFields = [
         'identifier',
         'password',
@@ -442,7 +419,6 @@ export default function MembershipInformation() {
         return;
       }
 
-      // Check for empty strings
       const emptyFields = requiredFields.filter((field) => {
         const value = signupData[field as keyof MemberSignupDto];
         return typeof value === 'string' && value.trim() === '';
@@ -458,7 +434,6 @@ export default function MembershipInformation() {
         return;
       }
 
-      // Validate phone number format
       if (
         signupData.phoneNumber &&
         !/^[0-9+\-]+$/.test(signupData.phoneNumber)
@@ -472,7 +447,6 @@ export default function MembershipInformation() {
         return;
       }
 
-      // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (signupData.email && !emailRegex.test(signupData.email)) {
         console.error('Invalid email format:', signupData.email);
@@ -484,7 +458,6 @@ export default function MembershipInformation() {
         return;
       }
 
-      // Validate password format
       if (
         signupData.password &&
         !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(
@@ -501,7 +474,6 @@ export default function MembershipInformation() {
         return;
       }
 
-      // Log the final data being sent
       console.log(
         'Final signup data being sent to API:',
         JSON.stringify(signupData, null, 2)
@@ -512,12 +484,9 @@ export default function MembershipInformation() {
       if (response.error) {
         console.error('Signup failed:', response.error);
 
-        // Extract specific error message from API response
         let errorMessage = response.error;
 
-        // Check if it's a specific API error message
         if (typeof response.error === 'string') {
-          // If the error contains Korean text, use it directly
           if (
             response.error.includes('이미 사용 중인 이메일') ||
             response.error.includes('이미 사용 중인') ||
@@ -536,7 +505,6 @@ export default function MembershipInformation() {
           }
         }
 
-        // Show error in UI
         setErrors((prev) => ({
           ...prev,
           general: errorMessage,
@@ -553,13 +521,11 @@ export default function MembershipInformation() {
     } catch (error) {
       console.error('Sign-up failed:', error);
 
-      // Extract specific error message from caught error
       let errorMessage = '회원가입 중 오류가 발생했습니다. 다시 시도해주세요.';
 
       if (error instanceof Error) {
         const errorString = error.message;
 
-        // Check for specific error patterns
         if (
           errorString.includes('이미 사용 중인 이메일') ||
           errorString.includes('이미 사용 중인') ||
@@ -574,7 +540,6 @@ export default function MembershipInformation() {
         } else if (errorString.includes('400')) {
           errorMessage = '입력 정보를 다시 확인해주세요.';
         } else if (errorString.includes('Request failed with status code')) {
-          // Extract status code and provide appropriate message
           const statusMatch = errorString.match(/status code (\d+)/);
           if (statusMatch) {
             const statusCode = statusMatch[1];
@@ -588,7 +553,6 @@ export default function MembershipInformation() {
         }
       }
 
-      // Show error in UI
       setErrors((prev) => ({
         ...prev,
         general: errorMessage,
@@ -616,8 +580,8 @@ export default function MembershipInformation() {
     formData.address &&
     formData.detailAddress &&
     isVerified &&
-    usernameValidationStatus === 'available' && // Username must be validated as available
-    !isValidatingUsername; // Not currently validating
+    usernameValidationStatus === 'available' &&
+    !isValidatingUsername;
 
   return (
     <>
@@ -948,7 +912,6 @@ export default function MembershipInformation() {
             onClick={() => {
               console.log('Modal close button clicked');
               setShowModal(false);
-              // Add a small delay before redirect to ensure modal closes
               setTimeout(() => {
                 router.push('/client/login');
               }, 100);

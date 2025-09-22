@@ -34,6 +34,19 @@
   font-size: 1.1rem;
 }
 
+.roleBadge {
+  display: inline-block;
+  background-color: #66bfa7;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .editButton {
   font-size: 0.9rem;
   color: rgba(0, 0, 0, 0.6);
