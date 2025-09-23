@@ -5,7 +5,7 @@ export interface AddressSearchRequest {
   countPerPage?: number;
 }
 
-// Address search response types
+// Address search response types - Updated to match Kakao API response structure
 export interface AddressSearchResult {
   address_name: string;
   y: string;
@@ -36,6 +36,44 @@ export interface AddressSearchResult {
     sub_building_no: string;
     building_name: string;
     zone_no: string;
+    x: string;
+    y: string;
+  };
+}
+
+// Alternative response structure that might come from the backend API
+export interface AddressSearchResultAlternative {
+  addressName: string;
+  y: string;
+  x: string;
+  addressType: string;
+  postalCode?: string;
+  zoneNo?: string;
+  address: {
+    addressName: string;
+    region1depthName: string;
+    region2depthName: string;
+    region3depthName: string;
+    region3depthHName: string;
+    hCode: string;
+    bCode: string;
+    mountainYn: string;
+    mainAddressNo: string;
+    subAddressNo: string;
+    x: string;
+    y: string;
+  };
+  roadAddress: {
+    addressName: string;
+    region1depthName: string;
+    region2depthName: string;
+    region3depthName: string;
+    roadName: string;
+    undergroundYn: string;
+    mainBuildingNo: string;
+    subBuildingNo: string;
+    buildingName: string;
+    zoneNo: string;
     x: string;
     y: string;
   };

@@ -87,8 +87,18 @@ axiosInstance.interceptors.request.use(
       config.url?.includes(endpoint)
     );
 
-    if (token && !isPublicEndpoint) {
+    // For public endpoints, explicitly remove any existing Authorization header
+    if (isPublicEndpoint) {
+      delete config.headers.Authorization;
+      // Also disable credentials for public endpoints
+      config.withCredentials = false;
+      console.log(
+        'Public endpoint detected, removing auth headers:',
+        config.url
+      );
+    } else if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Adding auth token for protected endpoint:', config.url);
     }
 
     return config;
@@ -108,13 +118,15 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    // Handle 401/403 authentication errors (but not for signup endpoint)
+    // Handle 401/403 authentication errors (but not for signup endpoint or address search)
     if (error.response?.status === 401 || error.response?.status === 403) {
       const isSignupEndpoint = error.config?.url?.includes(
         '/auth/signup/general'
       );
+      const isAddressSearchEndpoint =
+        error.config?.url?.includes('/address/search');
 
-      if (!isSignupEndpoint) {
+      if (!isSignupEndpoint && !isAddressSearchEndpoint) {
         clearAllStorage();
 
         // Redirect to login page

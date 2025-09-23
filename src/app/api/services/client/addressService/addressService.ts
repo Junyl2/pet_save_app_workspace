@@ -75,16 +75,176 @@ export class AddressService {
       }
 
       // Transform the response to match expected structure
-      const transformedData: AddressSearchResponse = {
-        meta: {
-          total_count: apiResponse.data.totalCount || 0,
-          pageable_count: apiResponse.data.countPerPage || 10,
-          is_end:
-            apiResponse.data.currentPage * apiResponse.data.countPerPage >=
-            (apiResponse.data.totalCount || 0),
-        },
-        documents: apiResponse.data.results || [],
-      };
+      // Handle the actual server response format
+      let transformedData: AddressSearchResponse;
+
+      if (apiResponse.data?.roadAddress && apiResponse.data?.zipCode) {
+        // Server returns single address result (zip code search format)
+        transformedData = {
+          meta: {
+            total_count: apiResponse.data?.totalCount || 1,
+            pageable_count: 1,
+            is_end: true,
+          },
+          documents: [
+            {
+              address_name: apiResponse.data.roadAddress,
+              y: '', // Not provided by server
+              x: '', // Not provided by server
+              address_type: 'ROAD',
+              address: {
+                address_name: apiResponse.data.roadAddress,
+                region_1depth_name: '',
+                region_2depth_name: '',
+                region_3depth_name: '',
+                region_3depth_h_name: '',
+                h_code: '',
+                b_code: '',
+                mountain_yn: '',
+                main_address_no: '',
+                sub_address_no: '',
+                x: '',
+                y: '',
+              },
+              road_address: {
+                address_name: apiResponse.data.roadAddress,
+                region_1depth_name: '',
+                region_2depth_name: '',
+                region_3depth_name: '',
+                road_name: '',
+                underground_yn: '',
+                main_building_no: '',
+                sub_building_no: '',
+                building_name: '',
+                zone_no: apiResponse.data.zipCode,
+                x: '',
+                y: '',
+              },
+            },
+          ],
+        };
+      } else if (
+        apiResponse.data?.results &&
+        Array.isArray(apiResponse.data.results)
+      ) {
+        // Server returns array of results (place/POI search format)
+        // For each result, get zip code using coordinates
+        console.log('Processing place search results and getting zip codes...');
+
+        const transformedDocuments = await Promise.all(
+          apiResponse.data.results.map(async (result: any) => {
+            let zipCode = result.zipCode || result.zone_no || '';
+            let roadAddress = result.addressName || result.address_name || '';
+
+            // If we have coordinates but no zip code, try to get it
+            const x = result.x || result.longitude;
+            const y = result.y || result.latitude;
+
+            if (x && y && !zipCode) {
+              try {
+                console.log(`Getting zip code for coordinates: ${x}, ${y}`);
+                const zipResponse = await this.searchZipCodeByCoordinates(
+                  parseFloat(x),
+                  parseFloat(y)
+                );
+                if (
+                  zipResponse.data &&
+                  zipResponse.data.documents &&
+                  zipResponse.data.documents.length > 0
+                ) {
+                  const zipResult = zipResponse.data.documents[0];
+                  zipCode = this.extractPostalCode(zipResult);
+                  // Use the road address from zip code search if available
+                  if (
+                    zipResult.road_address &&
+                    zipResult.road_address.address_name
+                  ) {
+                    roadAddress = zipResult.road_address.address_name;
+                  }
+                  console.log(
+                    `Found zip code: ${zipCode} for address: ${roadAddress}`
+                  );
+                }
+              } catch (error) {
+                console.warn('Failed to get zip code for coordinates:', error);
+              }
+            }
+
+            return {
+              address_name: roadAddress,
+              y: y || '',
+              x: x || '',
+              address_type: 'ROAD',
+              address: {
+                address_name: roadAddress,
+                region_1depth_name: '',
+                region_2depth_name: '',
+                region_3depth_name: '',
+                region_3depth_h_name: '',
+                h_code: '',
+                b_code: '',
+                mountain_yn: '',
+                main_address_no: '',
+                sub_address_no: '',
+                x: x || '',
+                y: y || '',
+              },
+              road_address: {
+                address_name: roadAddress,
+                region_1depth_name: '',
+                region_2depth_name: '',
+                region_3depth_name: '',
+                road_name: '',
+                underground_yn: '',
+                main_building_no: '',
+                sub_building_no: '',
+                building_name: '',
+                zone_no: zipCode,
+                x: x || '',
+                y: y || '',
+              },
+            };
+          })
+        );
+
+        transformedData = {
+          meta: {
+            total_count: apiResponse.data?.totalCount || 0,
+            pageable_count: apiResponse.data?.countPerPage || 10,
+            is_end:
+              (apiResponse.data?.currentPage || 1) *
+                (apiResponse.data?.countPerPage || 10) >=
+              (apiResponse.data?.totalCount || 0),
+          },
+          documents: transformedDocuments,
+        };
+      } else {
+        // Fallback to original format
+        transformedData = {
+          meta: {
+            total_count:
+              apiResponse.data?.totalCount ||
+              apiResponse.data?.total_count ||
+              0,
+            pageable_count:
+              apiResponse.data?.countPerPage ||
+              apiResponse.data?.count_per_page ||
+              10,
+            is_end:
+              (apiResponse.data?.currentPage ||
+                apiResponse.data?.current_page ||
+                1) *
+                (apiResponse.data?.countPerPage ||
+                  apiResponse.data?.count_per_page ||
+                  10) >=
+              (apiResponse.data?.totalCount ||
+                apiResponse.data?.total_count ||
+                0),
+          },
+          documents:
+            apiResponse.data?.results || apiResponse.data?.documents || [],
+        };
+      }
 
       return {
         data: transformedData,
@@ -157,16 +317,176 @@ export class AddressService {
       }
 
       // Transform the response to match expected structure
-      const transformedData: AddressSearchResponse = {
-        meta: {
-          total_count: apiResponse.data.totalCount || 0,
-          pageable_count: apiResponse.data.countPerPage || 10,
-          is_end:
-            apiResponse.data.currentPage * apiResponse.data.countPerPage >=
-            (apiResponse.data.totalCount || 0),
-        },
-        documents: apiResponse.data.results || [],
-      };
+      // Handle the actual server response format
+      let transformedData: AddressSearchResponse;
+
+      if (apiResponse.data?.roadAddress && apiResponse.data?.zipCode) {
+        // Server returns single address result (zip code search format)
+        transformedData = {
+          meta: {
+            total_count: apiResponse.data?.totalCount || 1,
+            pageable_count: 1,
+            is_end: true,
+          },
+          documents: [
+            {
+              address_name: apiResponse.data.roadAddress,
+              y: '', // Not provided by server
+              x: '', // Not provided by server
+              address_type: 'ROAD',
+              address: {
+                address_name: apiResponse.data.roadAddress,
+                region_1depth_name: '',
+                region_2depth_name: '',
+                region_3depth_name: '',
+                region_3depth_h_name: '',
+                h_code: '',
+                b_code: '',
+                mountain_yn: '',
+                main_address_no: '',
+                sub_address_no: '',
+                x: '',
+                y: '',
+              },
+              road_address: {
+                address_name: apiResponse.data.roadAddress,
+                region_1depth_name: '',
+                region_2depth_name: '',
+                region_3depth_name: '',
+                road_name: '',
+                underground_yn: '',
+                main_building_no: '',
+                sub_building_no: '',
+                building_name: '',
+                zone_no: apiResponse.data.zipCode,
+                x: '',
+                y: '',
+              },
+            },
+          ],
+        };
+      } else if (
+        apiResponse.data?.results &&
+        Array.isArray(apiResponse.data.results)
+      ) {
+        // Server returns array of results (place/POI search format)
+        // For each result, get zip code using coordinates
+        console.log('Processing place search results and getting zip codes...');
+
+        const transformedDocuments = await Promise.all(
+          apiResponse.data.results.map(async (result: any) => {
+            let zipCode = result.zipCode || result.zone_no || '';
+            let roadAddress = result.addressName || result.address_name || '';
+
+            // If we have coordinates but no zip code, try to get it
+            const x = result.x || result.longitude;
+            const y = result.y || result.latitude;
+
+            if (x && y && !zipCode) {
+              try {
+                console.log(`Getting zip code for coordinates: ${x}, ${y}`);
+                const zipResponse = await this.searchZipCodeByCoordinates(
+                  parseFloat(x),
+                  parseFloat(y)
+                );
+                if (
+                  zipResponse.data &&
+                  zipResponse.data.documents &&
+                  zipResponse.data.documents.length > 0
+                ) {
+                  const zipResult = zipResponse.data.documents[0];
+                  zipCode = this.extractPostalCode(zipResult);
+                  // Use the road address from zip code search if available
+                  if (
+                    zipResult.road_address &&
+                    zipResult.road_address.address_name
+                  ) {
+                    roadAddress = zipResult.road_address.address_name;
+                  }
+                  console.log(
+                    `Found zip code: ${zipCode} for address: ${roadAddress}`
+                  );
+                }
+              } catch (error) {
+                console.warn('Failed to get zip code for coordinates:', error);
+              }
+            }
+
+            return {
+              address_name: roadAddress,
+              y: y || '',
+              x: x || '',
+              address_type: 'ROAD',
+              address: {
+                address_name: roadAddress,
+                region_1depth_name: '',
+                region_2depth_name: '',
+                region_3depth_name: '',
+                region_3depth_h_name: '',
+                h_code: '',
+                b_code: '',
+                mountain_yn: '',
+                main_address_no: '',
+                sub_address_no: '',
+                x: x || '',
+                y: y || '',
+              },
+              road_address: {
+                address_name: roadAddress,
+                region_1depth_name: '',
+                region_2depth_name: '',
+                region_3depth_name: '',
+                road_name: '',
+                underground_yn: '',
+                main_building_no: '',
+                sub_building_no: '',
+                building_name: '',
+                zone_no: zipCode,
+                x: x || '',
+                y: y || '',
+              },
+            };
+          })
+        );
+
+        transformedData = {
+          meta: {
+            total_count: apiResponse.data?.totalCount || 0,
+            pageable_count: apiResponse.data?.countPerPage || 10,
+            is_end:
+              (apiResponse.data?.currentPage || 1) *
+                (apiResponse.data?.countPerPage || 10) >=
+              (apiResponse.data?.totalCount || 0),
+          },
+          documents: transformedDocuments,
+        };
+      } else {
+        // Fallback to original format
+        transformedData = {
+          meta: {
+            total_count:
+              apiResponse.data?.totalCount ||
+              apiResponse.data?.total_count ||
+              0,
+            pageable_count:
+              apiResponse.data?.countPerPage ||
+              apiResponse.data?.count_per_page ||
+              10,
+            is_end:
+              (apiResponse.data?.currentPage ||
+                apiResponse.data?.current_page ||
+                1) *
+                (apiResponse.data?.countPerPage ||
+                  apiResponse.data?.count_per_page ||
+                  10) >=
+              (apiResponse.data?.totalCount ||
+                apiResponse.data?.total_count ||
+                0),
+          },
+          documents:
+            apiResponse.data?.results || apiResponse.data?.documents || [],
+        };
+      }
 
       return {
         data: transformedData,
@@ -202,6 +522,15 @@ export class AddressService {
       return addressResult.address.address_name;
     }
 
+    // Handle alternative camelCase format
+    if (addressResult.roadAddress && addressResult.roadAddress.addressName) {
+      return addressResult.roadAddress.addressName;
+    }
+
+    if (addressResult.address && addressResult.address.addressName) {
+      return addressResult.address.addressName;
+    }
+
     // Last resort
     return addressResult.address_name || '';
   }
@@ -229,9 +558,19 @@ export class AddressService {
       return addressResult.road_address.zone_no;
     }
 
+    // Check roadAddress for zoneNo (camelCase format)
+    if (addressResult.roadAddress && addressResult.roadAddress.zoneNo) {
+      return addressResult.roadAddress.zoneNo;
+    }
+
     // Check address for zone_no (fallback)
     if (addressResult.address && addressResult.address.zone_no) {
       return addressResult.address.zone_no;
+    }
+
+    // Check address for zoneNo (camelCase fallback)
+    if (addressResult.address && addressResult.address.zoneNo) {
+      return addressResult.address.zoneNo;
     }
 
     // Check direct zone_no field
@@ -319,12 +658,61 @@ export class AddressService {
       }
 
       // Transform the response to match expected structure
-      const transformedData: ZipCodeSearchResponse = {
-        meta: {
-          total_count: apiResponse.data.totalCount || 0,
-        },
-        documents: apiResponse.data.results || [],
-      };
+      // Handle the actual server response format
+      let transformedData: ZipCodeSearchResponse;
+
+      if (apiResponse.data?.roadAddress && apiResponse.data?.zipCode) {
+        // Server returns single address result
+        transformedData = {
+          meta: {
+            total_count: apiResponse.data?.totalCount || 1,
+          },
+          documents: [
+            {
+              address: {
+                address_name: apiResponse.data.roadAddress,
+                region_1depth_name: '',
+                region_2depth_name: '',
+                region_3depth_name: '',
+                region_3depth_h_name: '',
+                h_code: '',
+                b_code: '',
+                mountain_yn: '',
+                main_address_no: '',
+                sub_address_no: '',
+                x: '',
+                y: '',
+              },
+              road_address: {
+                address_name: apiResponse.data.roadAddress,
+                region_1depth_name: '',
+                region_2depth_name: '',
+                region_3depth_name: '',
+                road_name: '',
+                underground_yn: '',
+                main_building_no: '',
+                sub_building_no: '',
+                building_name: '',
+                zone_no: apiResponse.data.zipCode,
+                x: '',
+                y: '',
+              },
+            },
+          ],
+        };
+      } else {
+        // Fallback to original format
+        transformedData = {
+          meta: {
+            total_count:
+              apiResponse.data?.totalCount ||
+              apiResponse.data?.total_count ||
+              0,
+          },
+          documents:
+            apiResponse.data?.results || apiResponse.data?.documents || [],
+        };
+      }
 
       return {
         data: transformedData,

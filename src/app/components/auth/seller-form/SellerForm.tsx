@@ -302,6 +302,7 @@ export default function SellerInformation({
 
   // Address search handler
   const handleAddressSearch = async () => {
+    console.log('handleAddressSearch called');
     if (isSearchingAddress) return;
 
     // Clear previous errors and results
@@ -315,6 +316,7 @@ export default function SellerInformation({
       return;
     }
 
+    console.log('Starting address search for:', formData.postalCode);
     setIsSearchingAddress(true);
 
     try {
@@ -328,6 +330,7 @@ export default function SellerInformation({
       console.log('Address search response in form:', response);
 
       if (response.error) {
+        console.log('Address search error:', response.error);
         setAddressSearchError(response.error);
         return;
       }
@@ -337,9 +340,15 @@ export default function SellerInformation({
         response.data.documents &&
         response.data.documents.length > 0
       ) {
+        console.log(
+          'Address search successful, found',
+          response.data.documents.length,
+          'results'
+        );
         setAddressSearchResults(response.data.documents);
         setShowAddressResults(true);
       } else {
+        console.log('No address search results found');
         setAddressSearchError(
           '검색 결과가 없습니다. 다른 키워드로 검색해보세요.'
         );
@@ -349,6 +358,18 @@ export default function SellerInformation({
       setAddressSearchError('주소 검색 중 오류가 발생했습니다.');
     } finally {
       setIsSearchingAddress(false);
+    }
+  };
+
+  // Handle Enter key press in address input
+  const handleAddressKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log(
+        'Enter key pressed in address input, preventing form submission'
+      );
+      handleAddressSearch();
     }
   };
 
@@ -713,6 +734,7 @@ export default function SellerInformation({
               name="postalCode"
               value={formData.postalCode}
               onChange={handleChange}
+              onKeyDown={handleAddressKeyDown}
               placeholder="주소 키워드 (예: 서울특별시 동대문구)"
               className={`${styles.input} ${
                 errors.postalCode ? styles.errorInput : ''
