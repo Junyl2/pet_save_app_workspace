@@ -2,14 +2,17 @@
  * Member information interface
  */
 export interface MemberInfo {
-  id: string;
-  username: string;
+  memberId: string; // Changed from 'id' to 'memberId' to match API response
+  username?: string;
   email?: string;
   name?: string;
   nickname?: string;
   phoneNumber?: string;
-  role: 'client' | 'seller';
+  role?: 'client' | 'seller';
   location?: string;
+  deliveryAddress?: string;
+  birthDate?: string;
+  profileFileId?: string;
   loginType?: string;
   storeId?: string | null; // Store ID if user is a seller
   createdAt?: string;
@@ -32,10 +35,12 @@ export interface MemberApiResponse {
  * Member update request interface
  */
 export interface MemberUpdateRequest {
+  profileFileId?: string;
+  email?: string;
   name?: string;
-  nickname?: string;
   phoneNumber?: string;
-  location?: string;
+  birthDate?: string;
+  deliveryAddress?: string;
 }
 
 /**

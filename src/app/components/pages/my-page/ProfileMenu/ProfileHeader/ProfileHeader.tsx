@@ -109,7 +109,12 @@ const ProfileHeader = () => {
             </div>
           )}
         </div>
-        <button className={styles.editButton}>수정하기</button>
+        <button
+          onClick={() => router.push(PAGE_URLS.MEMBER_INFORMATION)}
+          className={styles.editButton}
+        >
+          수정하기
+        </button>
       </div>
 
       {/* Quick Actions */}
