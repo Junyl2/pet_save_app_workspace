@@ -8,6 +8,9 @@ import { usePathname } from 'next/navigation';
 export default function SelectVerification() {
   const router = useRouter();
   const pathname = usePathname();
+
+  const isResetPasswordPage = pathname.includes('/client/reset-password');
+
   const [selectedMethod, setSelectedMethod] = useState<
     'email' | 'phone' | null
   >(null);
@@ -45,7 +48,12 @@ export default function SelectVerification() {
         >
           <FaChevronLeft className={styles.backIcon} />
         </button>
-        <h1 className={styles.title}>아이디 찾기</h1>
+
+        {isResetPasswordPage ? (
+          <h1 className={styles.title}>비밀번호 찾기</h1>
+        ) : (
+          <h1 className={styles.title}>아이디 찾기</h1>
+        )}
       </div>
 
       {/* Verification Options */}

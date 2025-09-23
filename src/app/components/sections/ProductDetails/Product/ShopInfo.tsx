@@ -20,8 +20,8 @@ export const ShopInfo = ({
   productId,
   sellerId = 1,
 }: ShopInfoProps) => {
-  const { favorites, toggleFavorite } = useFavorites();
-  const isFavorited = favorites.includes(productId);
+  const { toggleFavorite, isFavorited } = useFavorites();
+  const isProductFavorited = isFavorited(productId.toString());
   const router = useRouter();
 
   const handleShopClick = () => {
@@ -53,12 +53,12 @@ export const ShopInfo = ({
       </div>
 
       <button
-        onClick={() => toggleFavorite(productId)}
+        onClick={async () => await toggleFavorite(productId.toString())}
         className={styles.favoriteWrapper}
       >
         <Image
           src={
-            isFavorited
+            isProductFavorited
               ? '/images/products/heart-active.png'
               : '/images/products/heart-default.png'
           }

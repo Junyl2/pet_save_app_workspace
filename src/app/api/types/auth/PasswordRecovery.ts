@@ -38,6 +38,9 @@ export interface PasswordRecoveryVerificationResponse {
   /** Response message */
   resultMsg?: string;
 
+  /** Response message (alternative field) */
+  message?: string;
+
   /** Division code */
   divisionCode?: string;
 
@@ -46,6 +49,9 @@ export interface PasswordRecoveryVerificationResponse {
 
   /** Error ID */
   errorId?: string;
+
+  /** Verification ID (if returned by API) */
+  verificationId?: string;
 }
 
 /**
@@ -88,6 +94,9 @@ export interface PasswordRecoveryFinalResponse {
   /** Response message */
   resultMsg?: string;
 
+  /** Response message (alternative field) */
+  message?: string;
+
   /** Division code */
   divisionCode?: string;
 
@@ -98,6 +107,23 @@ export interface PasswordRecoveryFinalResponse {
 
   /** Error ID */
   errorId?: string;
+}
+
+/**
+ * Password recovery final request payload
+ */
+export interface PasswordRecoveryFinalPayload {
+  /** Success status */
+  success?: boolean;
+
+  /** Response message */
+  message?: string;
+
+  /** Response message (alternative field) */
+  resultMsg?: string;
+
+  /** Additional data */
+  data?: unknown;
 }
 
 /**

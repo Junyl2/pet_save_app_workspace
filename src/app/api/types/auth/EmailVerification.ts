@@ -64,6 +64,29 @@ export interface VerifyCodeResponse {
   /** Response message */
   message?: string;
 
+  /** Response message (alternative field) */
+  resultMsg?: string;
+
   /** Verification token (if returned by API) */
   verificationToken?: string;
+
+  /** Verification ID (if returned by API) */
+  verificationId?: string;
+}
+
+/**
+ * Find ID by email payload response
+ */
+export interface FindIdByEmailPayload {
+  /** Success status */
+  success?: boolean;
+
+  /** Response message */
+  message?: string;
+
+  /** Response message (alternative field) */
+  resultMsg?: string;
+
+  /** Additional data */
+  data?: unknown;
 }

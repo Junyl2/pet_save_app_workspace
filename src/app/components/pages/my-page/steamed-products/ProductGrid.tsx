@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { FaHeart } from "react-icons/fa";
-import { ProductCard, Product } from "./ProductCard";
-import styles from "./ProductGrid.module.css";
-import { useRouter } from "next/navigation";
+import { FaHeart } from 'react-icons/fa';
+import { ProductCard, Product } from './ProductCard';
+import styles from './ProductGrid.module.css';
+import { useRouter } from 'next/navigation';
 
 interface ProductGridProps {
   products: Product[];
@@ -59,7 +59,7 @@ function EmptyState() {
   const router = useRouter();
 
   const handleExplore = () => {
-    router.push("/products");
+    router.push('/');
   };
 
   return (

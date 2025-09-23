@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaChevronLeft } from 'react-icons/fa';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiCamera } from 'react-icons/fi';
 import Image from 'next/image';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import { AuthService } from '@/app/api/services/client/auth/authService';
+import { AddressService } from '@/app/api/services/client/addressService/addressService';
 import {
   MemberSignupDto,
   LOGIN_TYPES,
@@ -60,6 +62,8 @@ export default function MembershipInformation() {
   // Address search states
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [addressSearchError, setAddressSearchError] = useState('');
+  const [addressSearchResults, setAddressSearchResults] = useState<any[]>([]);
+  const [showAddressResults, setShowAddressResults] = useState(false);
 
   // Fix hydration issues
   useEffect(() => {
@@ -263,31 +267,67 @@ export default function MembershipInformation() {
   const handleAddressSearch = async () => {
     if (isSearchingAddress) return;
 
+    // Clear previous errors and results
     setAddressSearchError('');
+    setAddressSearchResults([]);
+    setShowAddressResults(false);
 
     if (!formData.postalCode.trim()) {
-      setAddressSearchError('우편번호를 입력해주세요.');
+      setAddressSearchError('주소 키워드를 입력해주세요.');
       return;
     }
 
     setIsSearchingAddress(true);
 
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Use the new AddressService to search for addresses
+      const response = await AddressService.searchAddressByKeyword(
+        formData.postalCode,
+        1,
+        10
+      );
 
-      // Simulated successful lookup
-      setFormData((prev) => ({
-        ...prev,
-        address: '서울특별시 강남구 테헤란로 123',
-        detailAddress: '',
-      }));
-    } catch (err) {
-      console.error('Address search error:', err);
+      if (response.error) {
+        setAddressSearchError(response.error);
+        return;
+      }
+
+      if (
+        response.data &&
+        response.data.documents &&
+        response.data.documents.length > 0
+      ) {
+        setAddressSearchResults(response.data.documents);
+        setShowAddressResults(true);
+      } else {
+        setAddressSearchError(
+          '검색 결과가 없습니다. 다른 키워드로 검색해보세요.'
+        );
+      }
+    } catch (error) {
+      console.error('Address search error:', error);
       setAddressSearchError('주소 검색 중 오류가 발생했습니다.');
     } finally {
       setIsSearchingAddress(false);
     }
+  };
+
+  // Handle address selection from search results
+  const handleAddressSelect = (selectedAddress: any) => {
+    const formattedAddress = AddressService.formatAddress(selectedAddress);
+    const postalCode = AddressService.extractPostalCode(selectedAddress);
+    const coordinates = AddressService.extractCoordinates(selectedAddress);
+
+    setFormData((prev) => ({
+      ...prev,
+      address: formattedAddress,
+      postalCode: postalCode || '', // Clear postal code if no zip code found
+      detailAddress: '',
+    }));
+
+    setShowAddressResults(false);
+    setAddressSearchResults([]);
+    setAddressSearchError('');
   };
 
   // Countdown timer
@@ -828,7 +868,7 @@ export default function MembershipInformation() {
               name="postalCode"
               value={formData.postalCode}
               onChange={handleChange}
-              placeholder="우편번호"
+              placeholder="주소 키워드 (예: 서울특별시 동대문구)"
               className={styles.input}
             />
             <button
@@ -842,6 +882,35 @@ export default function MembershipInformation() {
               {isSearchingAddress ? '검색 중...' : '주소 검색'}
             </button>
           </div>
+
+          {/* Address Search Results */}
+          {showAddressResults && addressSearchResults.length > 0 && (
+            <div className={styles.addressResults}>
+              <div className={styles.addressResultsHeader}>
+                검색 결과 ({addressSearchResults.length}개)
+              </div>
+              {addressSearchResults.map((result, index) => (
+                <div
+                  key={index}
+                  className={styles.addressResultItem}
+                  onClick={() => handleAddressSelect(result)}
+                >
+                  <div className={styles.addressResultMain}>
+                    {AddressService.formatAddress(result)}
+                  </div>
+                  {(() => {
+                    const zipCode = AddressService.extractPostalCode(result);
+                    return zipCode ? (
+                      <div className={styles.addressResultPostal}>
+                        우편번호: {zipCode}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              ))}
+            </div>
+          )}
+
           <input
             type="text"
             name="address"
@@ -864,17 +933,29 @@ export default function MembershipInformation() {
           {errors.address && <p className={styles.error}>{errors.address}</p>}
         </div>
 
-        {/* Referral Code */}
+        {/* Seller ID Input */}
         <div className={styles.formGroup}>
           <label className={styles.label}>추천인 코드</label>
-          <input
-            type="text"
-            name="referral"
-            value={formData.referral}
-            onChange={handleChange}
-            placeholder="추천인 아이디를 입력해 주세요."
-            className={styles.input}
-          />
+          <div className={styles.sellerIdInputWrapper}>
+            <input
+              type="text"
+              name="referral"
+              value={formData.referral}
+              onChange={handleChange}
+              placeholder="판매자ID 입력 혹은 QR코드를 스캔해 주세요"
+              className={styles.sellerIdInput}
+            />
+            <button
+              type="button"
+              className={styles.qrScanButton}
+              onClick={() => {
+                // TODO: Implement QR code scanning functionality
+                console.log('QR code scan clicked');
+              }}
+            >
+              <FiCamera className={styles.qrScanIcon} />
+            </button>
+          </div>
         </div>
 
         {/* Submit Button */}

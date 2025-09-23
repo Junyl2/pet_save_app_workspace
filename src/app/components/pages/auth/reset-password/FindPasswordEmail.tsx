@@ -6,6 +6,7 @@ import { FaChevronLeft } from 'react-icons/fa';
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import PasswordResetScreen from './PasswordResetScreen';
 import { AuthService } from '@/app/api/services/client/auth/authService';
+import { PasswordRecoveryFinalPayload } from '@/app/api/types/auth/PasswordRecovery';
 import styles from './FindPassword.module.css';
 
 export default function FindPasswordEmail() {
@@ -28,6 +29,9 @@ export default function FindPasswordEmail() {
   const [showAuthCode, setShowAuthCode] = useState(false);
   const [timeLeft, setTimeLeft] = useState(179);
   const [isVerified, setIsVerified] = useState(false);
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
+  const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
+  const [verificationId, setVerificationId] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
@@ -50,6 +54,13 @@ export default function FindPasswordEmail() {
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  /** Helper function to extract error messages */
+  const extractMessage = (err?: string): string | null => {
+    if (!err) return null;
+    const m = err.match(/400:\s*(.+)$/);
+    return m ? m[1] : null;
   };
 
   /** Send 인증번호 */
@@ -83,17 +94,16 @@ export default function FindPasswordEmail() {
         ) {
           userErrorMessage =
             '입력하신 정보와 일치하는 회원을 찾을 수 없습니다.';
-        } else if (response.error.includes('400')) {
-          const match = response.error.match(/400: (.+)/);
-          if (match) userErrorMessage = match[1];
-        } else if (response.error.includes('404')) {
-          const match = response.error.match(/404: (.+)/);
-          if (match) userErrorMessage = match[1];
         } else if (
           response.error.includes('identifier') &&
           response.error.includes('must not be blank')
         ) {
           userErrorMessage = '아이디를 입력해 주세요.';
+        } else {
+          const extractedMsg = extractMessage(response.error);
+          if (extractedMsg) {
+            userErrorMessage = extractedMsg;
+          }
         }
 
         setErrorMessage(userErrorMessage);
@@ -103,6 +113,9 @@ export default function FindPasswordEmail() {
       setShowAuthCode(true);
       setTimeLeft(179);
       setIsVerified(false);
+      setVerifiedEmail(null);
+      setVerifiedUserId(null);
+      setVerificationId(null);
       setSuccessMessage('인증번호가 이메일로 전송되었습니다.');
     } catch (err) {
       console.error('인증번호 전송 실패', err);
@@ -116,6 +129,7 @@ export default function FindPasswordEmail() {
   const handleVerifyCode = async () => {
     if (!authCode) return;
     setIsVerifying(true);
+    setErrorMessage('');
 
     try {
       console.log('API → 인증번호 검증 요청:', { email, code: authCode });
@@ -124,14 +138,37 @@ export default function FindPasswordEmail() {
       if (response.error) {
         console.error('인증번호 검증 실패:', response.error);
         setIsVerified(false);
+        setVerifiedEmail(null);
+        setVerifiedUserId(null);
+        setVerificationId(null);
+        const extractedMsg = extractMessage(response.error);
+        if (extractedMsg) {
+          setErrorMessage(extractedMsg);
+        }
         return;
       }
 
-      console.log('API → 인증 성공');
-      setIsVerified(true);
+      if (!response.error && response.data?.success) {
+        console.log('API → 인증 성공');
+        setIsVerified(true);
+        setVerifiedEmail(email);
+        setVerifiedUserId(userId);
+        if (response.data?.verificationId) {
+          setVerificationId(response.data.verificationId);
+        }
+        setErrorMessage('');
+      } else {
+        setIsVerified(false);
+        setVerifiedEmail(null);
+        setVerifiedUserId(null);
+        setVerificationId(null);
+      }
     } catch (err) {
       console.error('인증번호 검증 실패', err);
       setIsVerified(false);
+      setVerifiedEmail(null);
+      setVerifiedUserId(null);
+      setVerificationId(null);
     } finally {
       setIsVerifying(false);
     }
@@ -145,6 +182,17 @@ export default function FindPasswordEmail() {
     }, 1000);
     return () => clearInterval(timer);
   }, [showAuthCode, timeLeft]);
+
+  /** Handle timer expiration */
+  useEffect(() => {
+    if (timeLeft === 0 && showAuthCode) {
+      setIsVerified(false);
+      setVerifiedEmail(null);
+      setVerifiedUserId(null);
+      setVerificationId(null);
+      setErrorMessage('인증 시간이 만료되었습니다. 다시 시도해 주세요.');
+    }
+  }, [timeLeft, showAuthCode]);
 
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60)
@@ -160,43 +208,54 @@ export default function FindPasswordEmail() {
     !!userId &&
     !!email &&
     Object.keys(errors).length === 0 &&
-    isVerified;
+    isVerified &&
+    verifiedEmail === email &&
+    verifiedUserId === userId;
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
+    setIsLoading(true);
+    setErrorMessage('');
 
     try {
       console.log('API → 최종 비밀번호 재설정 토큰 요청:', {
         name,
         userId,
         email,
+        verificationId,
       });
 
       const response = await AuthService.getPasswordRecoveryTokenByEmail(
         name,
         userId,
-        email
+        email,
+        verificationId || undefined
       );
 
       if (response.error) {
         console.error('비밀번호 재설정 토큰 요청 실패:', response.error);
-        let userErrorMessage = '비밀번호 재설정에 실패했습니다.';
-        if (response.error.includes('400')) {
-          const match = response.error.match(/400: (.+)/);
-          if (match) userErrorMessage = match[1];
-        }
-        setErrorMessage(userErrorMessage);
+        const extractedMsg = extractMessage(response.error);
+        setErrorMessage(extractedMsg ?? '비밀번호 재설정에 실패했습니다.');
         return;
       }
 
       console.log('비밀번호 재설정 토큰 요청 성공:', response.data);
 
+      // Only show modal if backend confirms success
+      const ok = response.data?.success === true;
+      if (!ok) {
+        const msg =
+          response.data?.message ||
+          response.data?.resultMsg ||
+          '비밀번호 재설정 요청이 서버에서 거절되었습니다.';
+        setErrorMessage(msg);
+        return;
+      }
+
       // Safely extract & store resetToken if it exists and is a string
-      const token = (
-        response as {
-          data: { data?: { resetToken?: unknown } } | null;
-        }
-      )?.data?.data?.resetToken;
+      const responseData = response.data as PasswordRecoveryFinalPayload;
+      const token = (responseData.data as { resetToken?: unknown } | undefined)
+        ?.resetToken;
 
       if (typeof token === 'string' && token.length > 0) {
         try {
@@ -210,6 +269,8 @@ export default function FindPasswordEmail() {
     } catch (err) {
       console.error('비밀번호 재설정 실패', err);
       setErrorMessage('비밀번호 재설정 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -269,9 +330,22 @@ export default function FindPasswordEmail() {
           type="text"
           placeholder="아이디를 입력해주세요."
           value={userId}
-          onChange={(e) => setUserId(e.target.value)}
+          onChange={(e) => {
+            const next = e.target.value;
+            setUserId(next);
+            if (verifiedUserId && verifiedUserId !== next) {
+              setIsVerified(false);
+              setVerifiedEmail(null);
+              setVerifiedUserId(null);
+              setVerificationId(null);
+              setErrorMessage('');
+              setSuccessMessage('');
+            }
+            validate();
+          }}
           onBlur={validate}
           className={errors.userId ? styles.inputError : styles.inputSuccess}
+          disabled={isVerified}
         />
         {errors.userId && <p className={styles.error}>{errors.userId}</p>}
       </div>
@@ -285,11 +359,21 @@ export default function FindPasswordEmail() {
             placeholder="이메일을 입력해 주세요."
             value={email}
             onChange={(e) => {
-              setEmail(e.target.value);
+              const next = e.target.value;
+              setEmail(next);
+              if (verifiedEmail && verifiedEmail !== next) {
+                setIsVerified(false);
+                setVerifiedEmail(null);
+                setVerifiedUserId(null);
+                setVerificationId(null);
+                setErrorMessage('');
+                setSuccessMessage('');
+              }
               validate();
             }}
             className={errors.email ? styles.inputError : styles.inputSuccess}
             onBlur={validate}
+            disabled={isVerified}
           />
           <button
             type="button"
@@ -324,11 +408,16 @@ export default function FindPasswordEmail() {
                 type="button"
                 className={styles.inlineButton}
                 onClick={handleVerifyCode}
-                disabled={!authCode || isVerifying}
+                disabled={!authCode || isVerifying || timeLeft === 0}
               >
                 {isVerifying ? '검증 중...' : '인증 확인'}
               </button>
             </div>
+            {timeLeft === 0 && (
+              <p className={styles.error}>
+                인증 시간이 만료되었습니다. 다시 시도해 주세요.
+              </p>
+            )}
           </div>
 
           {!isVerified && (
@@ -344,10 +433,10 @@ export default function FindPasswordEmail() {
       <button
         type="button"
         className={`${styles.mainButton} ${isFormValid ? styles.enabled : ''}`}
-        disabled={!isFormValid}
+        disabled={!isFormValid || isLoading}
         onClick={handleSubmit}
       >
-        다음
+        {isLoading ? '처리 중...' : '다음'}
       </button>
 
       {/* Success Modal */}

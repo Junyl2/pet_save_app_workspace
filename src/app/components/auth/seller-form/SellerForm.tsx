@@ -8,8 +8,10 @@ import FileUploadModal from './FileUploadModal';
 import { FaChevronDown } from 'react-icons/fa';
 import { useUser } from '@/app/context/userContext';
 import { AuthService } from '@/app/api/services/client/auth/authService';
+import { BusinessRegistrationService } from '@/app/api/services/client/auth/businessRegistrationService';
 import { FileService } from '@/app/api/services/client/fileService/fileService';
-import { SellerMembershipUpgradeRequest } from '@/app/api/types/auth/SellerMembershipUpgrade';
+import { AddressService } from '@/app/api/services/client/addressService/addressService';
+import { BusinessRegistrationRequest } from '@/app/api/types/auth/BusinessRegistration';
 import { EmailVerificationRequest } from '@/app/api/types/auth/EmailVerification';
 
 type FormState = {
@@ -99,6 +101,8 @@ export default function SellerInformation({
   const [addressSearchError, setAddressSearchError] = useState<string | null>(
     null
   );
+  const [addressSearchResults, setAddressSearchResults] = useState<any[]>([]);
+  const [showAddressResults, setShowAddressResults] = useState(false);
 
   // Prefill from props.initial
   useEffect(() => {
@@ -164,15 +168,38 @@ export default function SellerInformation({
     if (readOnly) return;
 
     try {
-      // TODO: Replace with actual API call when available
-      // For now, using dummy logic
-      if (formData.businessNumber === '204-81-12345') {
-        setErrors((prev) => ({
-          ...prev,
-          businessNumberDup: '이미 등록된 사업자등록번호입니다.',
-        }));
-        setIsBusinessDup(true);
+      console.log(
+        'Checking business number availability:',
+        formData.businessNumber
+      );
+
+      const response = await AuthService.validateBusinessNumber(
+        formData.businessNumber
+      );
+
+      if (response.error) {
+        // Check if it's a 409 conflict (already taken) or other error
+        if (
+          response.error.includes('409') ||
+          response.error.includes('Conflict') ||
+          response.error.includes('이미 등록된')
+        ) {
+          setErrors((prev) => ({
+            ...prev,
+            businessNumberDup: '이미 등록된 사업자등록번호입니다.',
+          }));
+          setIsBusinessDup(true);
+        } else {
+          // Server error or other issue
+          setErrors((prev) => ({
+            ...prev,
+            businessNumberDup:
+              '사업자등록번호 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+          }));
+          setIsBusinessDup(true);
+        }
       } else {
+        // Business number is available
         setErrors((prev) => ({ ...prev, businessNumberDup: '' }));
         setSuccessMessage('사용 가능한 사업자등록번호입니다.');
         setIsBusinessDup(false);
@@ -183,8 +210,10 @@ export default function SellerInformation({
       console.error('Business number check error:', error);
       setErrors((prev) => ({
         ...prev,
-        businessNumberDup: '사업자등록번호 확인 중 오류가 발생했습니다.',
+        businessNumberDup:
+          '사업자등록번호 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
       }));
+      setIsBusinessDup(true);
     }
   };
 
@@ -275,8 +304,10 @@ export default function SellerInformation({
   const handleAddressSearch = async () => {
     if (isSearchingAddress) return;
 
-    // Clear previous errors
+    // Clear previous errors and results
     setAddressSearchError('');
+    setAddressSearchResults([]);
+    setShowAddressResults(false);
 
     // Check if postal code is empty
     if (!formData.postalCode.trim()) {
@@ -287,21 +318,56 @@ export default function SellerInformation({
     setIsSearchingAddress(true);
 
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Use the new AddressService to search for addresses
+      const response = await AddressService.searchAddressByKeyword(
+        formData.postalCode,
+        1,
+        10
+      );
 
-      // This would typically call a real postal code API
-      // For now, we'll simulate a successful search
-      setFormData((prev) => ({
-        ...prev,
-        address: '서울특별시 강남구 테헤란로 123',
-        detailAddress: '',
-      }));
-    } catch {
+      console.log('Address search response in form:', response);
+
+      if (response.error) {
+        setAddressSearchError(response.error);
+        return;
+      }
+
+      if (
+        response.data &&
+        response.data.documents &&
+        response.data.documents.length > 0
+      ) {
+        setAddressSearchResults(response.data.documents);
+        setShowAddressResults(true);
+      } else {
+        setAddressSearchError(
+          '검색 결과가 없습니다. 다른 키워드로 검색해보세요.'
+        );
+      }
+    } catch (error) {
+      console.error('Address search error:', error);
       setAddressSearchError('주소 검색 중 오류가 발생했습니다.');
     } finally {
       setIsSearchingAddress(false);
     }
+  };
+
+  // Handle address selection from search results
+  const handleAddressSelect = (selectedAddress: any) => {
+    const formattedAddress = AddressService.formatAddress(selectedAddress);
+    const postalCode = AddressService.extractPostalCode(selectedAddress);
+    const coordinates = AddressService.extractCoordinates(selectedAddress);
+
+    setFormData((prev) => ({
+      ...prev,
+      address: formattedAddress,
+      postalCode: postalCode || '', // Clear postal code if no zip code found
+      detailAddress: '',
+    }));
+
+    setShowAddressResults(false);
+    setAddressSearchResults([]);
+    setAddressSearchError('');
   };
 
   // Countdown
@@ -322,31 +388,84 @@ export default function SellerInformation({
   // Validation (skipped for readOnly)
   const validateForm = () => {
     if (readOnly) return false;
-    const newErrors: { [key: string]: string } = {};
 
-    if (!formData.businessNumber)
-      newErrors.businessNumber = '사업자등록번호를 입력해주세요.';
-    if (isBusinessDup)
+    // Prepare data for validation
+    const registrationData = {
+      businessRegistrationNumber: formData.businessNumber,
+      representativeName: formData.representativeName,
+      businessName: formData.companyName,
+      businessRegistrationCopyFileId:
+        businessLicenseEncryptedId || businessLicenseFileId || '',
+      roadAddress: formData.address,
+      detailedAddress: formData.detailAddress,
+      zipCode: formData.postalCode,
+      bankName: formData.bankName,
+      accountNumber: formData.accountNumber,
+      depositorName: formData.accountHolder,
+      bankbookFileId: bankbookEncryptedId || bankbookFileId || '',
+      businessEmail: `${formData.email}@${formData.emailDomain}`,
+      x: 126.978,
+      y: 37.5665,
+    };
+
+    // Use the service validation
+    const validation =
+      BusinessRegistrationService.validateBusinessRegistrationData(
+        registrationData
+      );
+
+    if (!validation.isValid) {
+      const newErrors: { [key: string]: string } = {};
+
+      // Map validation errors to form field errors
+      validation.errors.forEach((error) => {
+        if (error.includes('Business registration number')) {
+          newErrors.businessNumber = '사업자등록번호를 입력해주세요.';
+        } else if (error.includes('Representative name')) {
+          newErrors.representativeName = '대표자명을 입력해주세요.';
+        } else if (error.includes('Business name')) {
+          newErrors.companyName = '상호명을 입력해주세요.';
+        } else if (error.includes('Business registration copy file')) {
+          newErrors.businessLicenseFile = '사업자등록증 사본을 첨부해주세요.';
+        } else if (error.includes('Road address')) {
+          newErrors.address = '도로명 주소를 입력해주세요.';
+        } else if (error.includes('Detailed address')) {
+          newErrors.detailAddress = '상세주소를 입력해주세요.';
+        } else if (error.includes('ZIP code')) {
+          newErrors.postalCode = '우편번호를 입력해주세요.';
+        } else if (error.includes('Bank name')) {
+          newErrors.bankName = '은행명을 입력해주세요.';
+        } else if (error.includes('Account number')) {
+          newErrors.accountNumber = '계좌번호를 입력해주세요.';
+        } else if (error.includes('Depositor name')) {
+          newErrors.accountHolder = '예금주명을 입력해주세요.';
+        } else if (error.includes('Bankbook file')) {
+          newErrors.bankbookFile = '통장 사본을 첨부해주세요.';
+        } else if (error.includes('Business email')) {
+          newErrors.email = '이메일을 입력해주세요.';
+        }
+      });
+
+      // Additional form-specific validations
+      if (isBusinessDup) {
+        newErrors.businessNumberDup = '이미 등록된 사업자등록번호입니다.';
+      }
+      if (!isVerified) {
+        newErrors.email = '이메일 인증을 완료해주세요.';
+      }
+
+      setErrors(newErrors);
+      return false;
+    }
+
+    // Additional form-specific validations
+    const newErrors: { [key: string]: string } = {};
+    if (isBusinessDup) {
       newErrors.businessNumberDup = '이미 등록된 사업자등록번호입니다.';
-    if (!formData.representativeName)
-      newErrors.representativeName = '대표자명을 입력해주세요.';
-    if (!formData.companyName) newErrors.companyName = '상호명을 입력해주세요.';
-    if (!formData.businessLicenseFile)
-      newErrors.businessLicenseFile = '사업자등록증 사본을 첨부해주세요.';
-    if (!formData.postalCode) newErrors.postalCode = '우편번호를 입력해주세요.';
-    if (!formData.address) newErrors.address = '도로명 주소를 입력해주세요.';
-    if (!formData.detailAddress)
-      newErrors.detailAddress = '상세주소를 입력해주세요.';
-    if (!formData.bankName) newErrors.bankName = '은행명을 입력해주세요.';
-    if (!formData.accountNumber)
-      newErrors.accountNumber = '계좌번호를 입력해주세요.';
-    if (!formData.accountHolder)
-      newErrors.accountHolder = '예금주명을 입력해주세요.';
-    if (!formData.bankbookFile)
-      newErrors.bankbookFile = '통장 사본을 첨부해주세요.';
-    if (!formData.email || !formData.emailDomain)
-      newErrors.email = '이메일을 입력해주세요.';
-    if (!isVerified) newErrors.email = '이메일 인증을 완료해주세요.';
+    }
+    if (!isVerified) {
+      newErrors.email = '이메일 인증을 완료해주세요.';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -383,7 +502,7 @@ export default function SellerInformation({
         }
       }
 
-      const upgradeData: SellerMembershipUpgradeRequest = {
+      const registrationData: BusinessRegistrationRequest = {
         businessRegistrationNumber: formData.businessNumber,
         representativeName: formData.representativeName,
         businessName: formData.companyName,
@@ -401,11 +520,14 @@ export default function SellerInformation({
         y: 37.5665, // Default latitude for Seoul, Korea
       };
 
-      console.log('Sending seller membership upgrade request:', upgradeData);
-      const response = await AuthService.upgradeToSellerMembership(upgradeData);
+      console.log('Sending business registration request:', registrationData);
+      const response =
+        await BusinessRegistrationService.submitBusinessRegistration(
+          registrationData
+        );
 
       if (response.error) {
-        console.error('Seller membership upgrade failed:', response.error);
+        console.error('Business registration failed:', response.error);
 
         // Handle 409 Conflict (already registered)
         if (
@@ -426,7 +548,7 @@ export default function SellerInformation({
         throw new Error(response.error);
       }
 
-      console.log('Seller membership upgrade successful:', response.data);
+      console.log('Business registration successful:', response.data);
       updateUserRole('seller');
       setShowModal(true);
 
@@ -591,7 +713,7 @@ export default function SellerInformation({
               name="postalCode"
               value={formData.postalCode}
               onChange={handleChange}
-              placeholder="우편번호"
+              placeholder="주소 키워드 (예: 서울특별시 동대문구)"
               className={`${styles.input} ${
                 errors.postalCode ? styles.errorInput : ''
               }`}
@@ -608,6 +730,35 @@ export default function SellerInformation({
               {isSearchingAddress ? '검색 중...' : '주소 검색'}
             </button>
           </div>
+
+          {/* Address Search Results */}
+          {showAddressResults && addressSearchResults.length > 0 && (
+            <div className={styles.addressResults}>
+              <div className={styles.addressResultsHeader}>
+                검색 결과 ({addressSearchResults.length}개)
+              </div>
+              {addressSearchResults.map((result, index) => (
+                <div
+                  key={index}
+                  className={styles.addressResultItem}
+                  onClick={() => handleAddressSelect(result)}
+                >
+                  <div className={styles.addressResultMain}>
+                    {AddressService.formatAddress(result)}
+                  </div>
+                  {(() => {
+                    const zipCode = AddressService.extractPostalCode(result);
+                    return zipCode ? (
+                      <div className={styles.addressResultPostal}>
+                        우편번호: {zipCode}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              ))}
+            </div>
+          )}
+
           <input
             type="text"
             name="address"

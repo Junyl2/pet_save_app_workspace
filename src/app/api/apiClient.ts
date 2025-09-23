@@ -79,6 +79,8 @@ axiosInstance.interceptors.request.use(
       '/auth/recovery/password/email',
       '/auth/recovery/password/phone',
       '/auth/recovery/password/reset',
+      '/address/search',
+      '/address/search/zip-code',
     ];
 
     const isPublicEndpoint = publicEndpoints.some((endpoint) =>

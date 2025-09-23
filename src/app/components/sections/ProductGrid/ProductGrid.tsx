@@ -24,7 +24,7 @@ export const ProductGrid = ({
   onProductClick,
   onAddToCart,
 }: ProductGridProps) => {
-  const { favorites, toggleFavorite } = useFavorites();
+  const { favorites, toggleFavorite, isFavorited } = useFavorites();
 
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
   const [loading, setLoading] = useState(!initialProducts);
@@ -85,7 +85,7 @@ export const ProductGrid = ({
     <div className={styles.mainContainer}>
       <div className={styles.grid}>
         {products.map((product) => {
-          const isFavorited = favorites.includes(product.id);
+          const isProductFavorited = isFavorited(product.id);
 
           return (
             <div
@@ -125,15 +125,15 @@ export const ProductGrid = ({
                       />
                     </button>
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        toggleFavorite(product.id);
+                        await toggleFavorite(product.id);
                       }}
                       className={styles.iconBtn}
                     >
                       <Image
                         src={
-                          isFavorited
+                          isProductFavorited
                             ? '/images/products/heart-active.png'
                             : '/images/products/heart-default.png'
                         }

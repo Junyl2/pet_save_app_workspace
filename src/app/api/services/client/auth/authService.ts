@@ -8,6 +8,7 @@ import {
   EmailVerificationResponse,
   VerifyCodeRequest,
   VerifyCodeResponse,
+  FindIdByEmailPayload,
 } from '../../../types/auth/EmailVerification';
 import {
   PhoneVerificationRequest,
@@ -15,6 +16,7 @@ import {
 } from '../../../types/auth/PhoneVerification';
 import {
   PasswordRecoveryVerificationResponse,
+  PasswordRecoveryFinalPayload,
   PasswordResetRequest,
   PasswordResetResponse,
 } from '../../../types/auth/PasswordRecovery';
@@ -24,10 +26,6 @@ import {
   LogoutResponse,
   IdentifierValidationResponse,
 } from '../../../types/auth/Login';
-import {
-  SellerMembershipUpgradeRequest,
-  SellerMembershipUpgradeResponse,
-} from '../../../types/auth/SellerMembershipUpgrade';
 
 /** Narrow types used to avoid `any` while preserving behavior */
 type UnknownJson = unknown;
@@ -425,41 +423,6 @@ export class AuthService {
   }
 
   /**
-   * Upgrade user to seller membership
-   */
-  static async upgradeToSellerMembership(
-    upgradeData: SellerMembershipUpgradeRequest
-  ): Promise<ApiResponse<SellerMembershipUpgradeResponse>> {
-    try {
-      console.log('Upgrading to seller membership:', upgradeData);
-
-      const response = await apiClient.post<SellerMembershipUpgradeResponse>(
-        '/auth/membership/join/seller',
-        upgradeData
-      );
-
-      console.log('Seller membership upgrade response:', response);
-
-      if (response.error) {
-        console.error('Seller membership upgrade failed:', response.error);
-        return response;
-      }
-
-      console.log('Seller membership upgrade successful:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Seller membership upgrade service error:', error);
-      return {
-        data: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Seller membership upgrade failed',
-      };
-    }
-  }
-
-  /**
    * Get current user profile
    * Endpoint: GET /api/pet-save/auth/profile
    */
@@ -691,22 +654,25 @@ export class AuthService {
    */
   static async findIdByEmail(
     name: string,
-    email: string
-  ): Promise<ApiResponse<UnknownJson>> {
+    email: string,
+    verificationId?: string
+  ): Promise<ApiResponse<FindIdByEmailPayload>> {
     try {
       console.log('🔍 Finding ID by email - Request:', {
         name,
         email,
+        verificationId,
         endpoint: '/auth/recovery/id/email',
         timestamp: new Date().toISOString(),
       });
 
-      const response = await apiClient.post<UnknownJson>(
+      const requestBody = verificationId
+        ? { name, email, verificationId }
+        : { name, email };
+
+      const response = await apiClient.post<FindIdByEmailPayload>(
         '/auth/recovery/id/email',
-        {
-          name,
-          email,
-        }
+        requestBody
       );
 
       if (response.error) {
@@ -714,6 +680,7 @@ export class AuthService {
           error: response.error,
           name,
           email,
+          verificationId,
           timestamp: new Date().toISOString(),
         });
         return response;
@@ -723,6 +690,7 @@ export class AuthService {
         responseData: response.data,
         name,
         email,
+        verificationId,
         timestamp: new Date().toISOString(),
         note: 'Email should be sent to user with their ID information',
       });
@@ -744,6 +712,7 @@ export class AuthService {
         error: error instanceof Error ? error.message : error,
         name,
         email,
+        verificationId,
         timestamp: new Date().toISOString(),
       });
       return {
@@ -914,26 +883,25 @@ export class AuthService {
   static async getPasswordRecoveryTokenByEmail(
     name: string,
     identifier: string,
-    email: string
-  ): Promise<ApiResponse<PasswordRecoveryVerificationResponse>> {
+    email: string,
+    verificationId?: string
+  ): Promise<ApiResponse<PasswordRecoveryFinalPayload>> {
     try {
       console.log('Getting password recovery token by email:', {
         name,
         identifier,
         email,
+        verificationId,
       });
 
-      const requestData = {
-        name,
-        identifier,
-        email,
-      };
+      const requestData = verificationId
+        ? { name, identifier, email, verificationId }
+        : { name, identifier, email };
 
-      const response =
-        await apiClient.post<PasswordRecoveryVerificationResponse>(
-          '/auth/recovery/password/email',
-          requestData
-        );
+      const response = await apiClient.post<PasswordRecoveryFinalPayload>(
+        '/auth/recovery/password/email',
+        requestData
+      );
 
       if (response.error) {
         console.error(

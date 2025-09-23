@@ -6,6 +6,8 @@ import { Product } from './ProductCard';
 import { ProductGrid } from './ProductGrid';
 import { AddToCartModal } from './AddToCartModal';
 import { SuccessMessage } from './SuccessMessage';
+import { useFavorites } from '@/app/context/FavoritesContext';
+import { WishlistItem } from '@/app/api/types/my-page/wishlist';
 import styles from './SteamedProducts.module.css';
 
 // Mock data - in a real app, this would come from an API
@@ -61,6 +63,14 @@ const MOCK_PRODUCTS: Product[] = [
 ];
 
 export function SteamedProducts() {
+  const {
+    favorites,
+    wishlistItems,
+    isLoading: favoritesLoading,
+    error: favoritesError,
+    toggleFavorite,
+    loadWishlist,
+  } = useFavorites();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,44 +83,90 @@ export function SteamedProducts() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Simulate loading products
+  // Load wishlist on component mount
   useEffect(() => {
     const loadProducts = async () => {
       try {
         setIsLoading(true);
-        // Simulate API call delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setProducts(MOCK_PRODUCTS);
-        setError(null);
-      } catch {
-        setError('찜한 상품을 불러오는데 실패했습니다.');
+
+        // Load wishlist from API
+        await loadWishlist();
+      } catch (err) {
+        console.error('Error loading wishlist:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadProducts();
-  }, []);
+  }, []); // Only run once on mount
+
+  // Convert wishlist items to Product format when wishlistItems change
+  useEffect(() => {
+    let convertedProducts: Product[] = [];
+
+    if (wishlistItems.length > 0) {
+      // Use real wishlist data from API
+      convertedProducts = wishlistItems.map((item: WishlistItem) => ({
+        id: item.id,
+        name: item.name,
+        image: item.image,
+        originalPrice: item.originalPrice,
+        salePrice: item.salePrice,
+        isFavorited: item.isFavorited,
+      }));
+    } else {
+      // If no wishlist items from API, check localStorage favorites and show mock data for those
+      const storedFavorites = localStorage.getItem('favorites');
+      if (storedFavorites) {
+        try {
+          const favoriteIds = JSON.parse(storedFavorites);
+          console.log('Using localStorage favorites:', favoriteIds);
+          // Filter mock products to only show favorited ones
+          convertedProducts = MOCK_PRODUCTS.filter((product) =>
+            favoriteIds.includes(product.id)
+          );
+        } catch (error) {
+          console.error('Error parsing stored favorites:', error);
+          convertedProducts = [];
+        }
+      } else {
+        convertedProducts = [];
+      }
+    }
+
+    console.log('Setting products:', convertedProducts);
+    setProducts(convertedProducts);
+    setError(null);
+  }, [wishlistItems, favorites]); // Depend on both wishlistItems and favorites
+
+  // Update error state when favorites context has an error
+  useEffect(() => {
+    if (favoritesError) {
+      setError(favoritesError);
+    }
+  }, [favoritesError]);
 
   const handleAddToCart = (product: Product) => {
     setSelectedProduct(product);
     setIsModalOpen(true);
   };
 
-  const handleToggleFavorite = (productId: string) => {
-    setProducts(
-      (prevProducts) =>
-        prevProducts
-          .map((product) =>
-            product.id === productId
-              ? { ...product, isFavorited: !product.isFavorited }
-              : product
-          )
-          .filter((product) => product.isFavorited) // Remove unfavorited items from wishlist
-    );
+  const handleToggleFavorite = async (productId: string) => {
+    try {
+      await toggleFavorite(productId);
 
-    setSuccessMessage('상품이 찜목록에서 제거되었습니다.');
-    setShowSuccessMessage(true);
+      // Update local products state to reflect the change
+      setProducts((prevProducts) =>
+        prevProducts.filter((product) => product.id !== productId)
+      );
+
+      setSuccessMessage('상품이 찜목록에서 제거되었습니다.');
+      setShowSuccessMessage(true);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      setError('찜목록 업데이트에 실패했습니다.');
+    }
   };
 
   const handleModalAddToCart = async (product: Product, quantity: number) => {
@@ -169,7 +225,7 @@ export function SteamedProducts() {
       <div className={styles.productsSection}>
         <ProductGrid
           products={products}
-          isLoading={isLoading}
+          isLoading={isLoading || favoritesLoading}
           onAddToCart={handleAddToCart}
           onToggleFavorite={handleToggleFavorite}
         />
