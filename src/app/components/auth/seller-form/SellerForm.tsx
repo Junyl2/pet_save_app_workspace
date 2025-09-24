@@ -28,6 +28,8 @@ type FormState = {
   bankbookFile: File | null;
   email: string;
   emailDomain: string;
+  x: number;
+  y: number;
 };
 
 type SellerInformationProps = {
@@ -66,6 +68,8 @@ export default function SellerInformation({
     bankbookFile: null,
     email: '',
     emailDomain: '',
+    x: 0,
+    y: 0,
   });
 
   // display-only names for files when readOnly
@@ -379,11 +383,23 @@ export default function SellerInformation({
     const postalCode = AddressService.extractPostalCode(selectedAddress);
     const coordinates = AddressService.extractCoordinates(selectedAddress);
 
+    const x = parseFloat(coordinates.x) || 0;
+    const y = parseFloat(coordinates.y) || 0;
+
+    console.log('Address selected with coordinates:', {
+      address: formattedAddress,
+      postalCode,
+      x,
+      y,
+    });
+
     setFormData((prev) => ({
       ...prev,
       address: formattedAddress,
       postalCode: postalCode || '', // Clear postal code if no zip code found
       detailAddress: '',
+      x,
+      y,
     }));
 
     setShowAddressResults(false);
@@ -425,8 +441,8 @@ export default function SellerInformation({
       depositorName: formData.accountHolder,
       bankbookFileId: bankbookEncryptedId || bankbookFileId || '',
       businessEmail: `${formData.email}@${formData.emailDomain}`,
-      x: 126.978,
-      y: 37.5665,
+      x: formData.x,
+      y: formData.y,
     };
 
     // Use the service validation
@@ -537,8 +553,8 @@ export default function SellerInformation({
         depositorName: formData.accountHolder,
         bankbookFileId: bankbookEncryptedId || bankbookFileId || '',
         businessEmail: `${formData.email}@${formData.emailDomain}`,
-        x: 126.978, // Default longitude for Seoul, Korea
-        y: 37.5665, // Default latitude for Seoul, Korea
+        x: formData.x,
+        y: formData.y,
       };
 
       console.log('Sending business registration request:', registrationData);

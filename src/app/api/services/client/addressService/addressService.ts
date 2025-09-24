@@ -3,10 +3,109 @@ import {
   AddressSearchRequest,
   AddressSearchServiceResponse,
   ZipCodeSearchServiceResponse,
-  ApiResponse,
   AddressSearchResponse,
   ZipCodeSearchResponse,
 } from '@/app/api/types/address/addressSearch';
+
+// Flexible type that includes all possible properties from different response formats
+type FlexibleAddressResult = {
+  // Common properties
+  address_name?: string;
+  addressName?: string;
+  y?: string;
+  x?: string;
+  longitude?: string;
+  latitude?: string;
+  lng?: string;
+  lat?: string;
+  address_type?: string;
+  addressType?: string;
+  zipCode?: string;
+  zip_code?: string;
+  postalCode?: string;
+  zone_no?: string;
+  zoneNo?: string;
+
+  // Address object properties
+  address?: {
+    address_name?: string;
+    addressName?: string;
+    region_1depth_name?: string;
+    region1depthName?: string;
+    region_2depth_name?: string;
+    region2depthName?: string;
+    region_3depth_name?: string;
+    region3depthName?: string;
+    region_3depth_h_name?: string;
+    region3depthHName?: string;
+    h_code?: string;
+    hCode?: string;
+    b_code?: string;
+    bCode?: string;
+    mountain_yn?: string;
+    mountainYn?: string;
+    main_address_no?: string;
+    mainAddressNo?: string;
+    sub_address_no?: string;
+    subAddressNo?: string;
+    x?: string;
+    y?: string;
+    zone_no?: string;
+    zoneNo?: string;
+  };
+
+  // Road address object properties
+  road_address?: {
+    address_name?: string;
+    addressName?: string;
+    region_1depth_name?: string;
+    region1depthName?: string;
+    region_2depth_name?: string;
+    region2depthName?: string;
+    region_3depth_name?: string;
+    region3depthName?: string;
+    road_name?: string;
+    roadName?: string;
+    underground_yn?: string;
+    undergroundYn?: string;
+    main_building_no?: string;
+    mainBuildingNo?: string;
+    sub_building_no?: string;
+    subBuildingNo?: string;
+    building_name?: string;
+    buildingName?: string;
+    zone_no?: string;
+    zoneNo?: string;
+    x?: string;
+    y?: string;
+  };
+
+  // Alternative road address object properties
+  roadAddress?: {
+    address_name?: string;
+    addressName?: string;
+    region_1depth_name?: string;
+    region1depthName?: string;
+    region_2depth_name?: string;
+    region2depthName?: string;
+    region_3depth_name?: string;
+    region3depthName?: string;
+    road_name?: string;
+    roadName?: string;
+    underground_yn?: string;
+    undergroundYn?: string;
+    main_building_no?: string;
+    mainBuildingNo?: string;
+    sub_building_no?: string;
+    subBuildingNo?: string;
+    building_name?: string;
+    buildingName?: string;
+    zone_no?: string;
+    zoneNo?: string;
+    x?: string;
+    y?: string;
+  };
+};
 
 /**
  * Address Service for handling address search operations
@@ -53,9 +152,22 @@ export class AddressService {
         countPerPage: countPerPage.toString(),
       });
 
-      const response = await apiClient.get<any>(
-        `${this.BASE_URL}/search?${params.toString()}`
-      );
+      const response = await apiClient.get<{
+        success: boolean;
+        resultMsg?: string;
+        data: {
+          roadAddress?: string;
+          zipCode?: string;
+          totalCount?: number;
+          results?: FlexibleAddressResult[];
+          documents?: FlexibleAddressResult[];
+          currentPage?: number;
+          countPerPage?: number;
+          total_count?: number;
+          count_per_page?: number;
+          current_page?: number;
+        };
+      }>(`${this.BASE_URL}/search?${params.toString()}`);
 
       console.log('Address search API response:', response);
 
@@ -66,7 +178,7 @@ export class AddressService {
       }
 
       // The apiClient wraps the response, so response.data is the actual API response
-      const apiResponse = response.data as any;
+      const apiResponse = response.data;
 
       if (!apiResponse?.success) {
         return {
@@ -132,79 +244,84 @@ export class AddressService {
         console.log('Processing place search results and getting zip codes...');
 
         const transformedDocuments = await Promise.all(
-          apiResponse.data.results.map(async (result: any) => {
-            let zipCode = result.zipCode || result.zone_no || '';
-            let roadAddress = result.addressName || result.address_name || '';
+          apiResponse.data.results.map(
+            async (result: FlexibleAddressResult) => {
+              let zipCode = result.zipCode || result.zone_no || '';
+              let roadAddress = result.addressName || result.address_name || '';
 
-            // If we have coordinates but no zip code, try to get it
-            const x = result.x || result.longitude;
-            const y = result.y || result.latitude;
+              // If we have coordinates but no zip code, try to get it
+              const x = result.x || result.longitude;
+              const y = result.y || result.latitude;
 
-            if (x && y && !zipCode) {
-              try {
-                console.log(`Getting zip code for coordinates: ${x}, ${y}`);
-                const zipResponse = await this.searchZipCodeByCoordinates(
-                  parseFloat(x),
-                  parseFloat(y)
-                );
-                if (
-                  zipResponse.data &&
-                  zipResponse.data.documents &&
-                  zipResponse.data.documents.length > 0
-                ) {
-                  const zipResult = zipResponse.data.documents[0];
-                  zipCode = this.extractPostalCode(zipResult);
-                  // Use the road address from zip code search if available
+              if (x && y && !zipCode) {
+                try {
+                  console.log(`Getting zip code for coordinates: ${x}, ${y}`);
+                  const zipResponse = await this.searchZipCodeByCoordinates(
+                    parseFloat(x),
+                    parseFloat(y)
+                  );
                   if (
-                    zipResult.road_address &&
-                    zipResult.road_address.address_name
+                    zipResponse.data &&
+                    zipResponse.data.documents &&
+                    zipResponse.data.documents.length > 0
                   ) {
-                    roadAddress = zipResult.road_address.address_name;
+                    const zipResult = zipResponse.data.documents[0];
+                    zipCode = this.extractPostalCode(zipResult);
+                    // Use the road address from zip code search if available
+                    if (
+                      zipResult.road_address &&
+                      zipResult.road_address.address_name
+                    ) {
+                      roadAddress = zipResult.road_address.address_name;
+                    }
+                    console.log(
+                      `Found zip code: ${zipCode} for address: ${roadAddress}`
+                    );
                   }
-                  console.log(
-                    `Found zip code: ${zipCode} for address: ${roadAddress}`
+                } catch (error) {
+                  console.warn(
+                    'Failed to get zip code for coordinates:',
+                    error
                   );
                 }
-              } catch (error) {
-                console.warn('Failed to get zip code for coordinates:', error);
               }
-            }
 
-            return {
-              address_name: roadAddress,
-              y: y || '',
-              x: x || '',
-              address_type: 'ROAD',
-              address: {
+              return {
                 address_name: roadAddress,
-                region_1depth_name: '',
-                region_2depth_name: '',
-                region_3depth_name: '',
-                region_3depth_h_name: '',
-                h_code: '',
-                b_code: '',
-                mountain_yn: '',
-                main_address_no: '',
-                sub_address_no: '',
-                x: x || '',
                 y: y || '',
-              },
-              road_address: {
-                address_name: roadAddress,
-                region_1depth_name: '',
-                region_2depth_name: '',
-                region_3depth_name: '',
-                road_name: '',
-                underground_yn: '',
-                main_building_no: '',
-                sub_building_no: '',
-                building_name: '',
-                zone_no: zipCode,
                 x: x || '',
-                y: y || '',
-              },
-            };
-          })
+                address_type: 'ROAD',
+                address: {
+                  address_name: roadAddress,
+                  region_1depth_name: '',
+                  region_2depth_name: '',
+                  region_3depth_name: '',
+                  region_3depth_h_name: '',
+                  h_code: '',
+                  b_code: '',
+                  mountain_yn: '',
+                  main_address_no: '',
+                  sub_address_no: '',
+                  x: x || '',
+                  y: y || '',
+                },
+                road_address: {
+                  address_name: roadAddress,
+                  region_1depth_name: '',
+                  region_2depth_name: '',
+                  region_3depth_name: '',
+                  road_name: '',
+                  underground_yn: '',
+                  main_building_no: '',
+                  sub_building_no: '',
+                  building_name: '',
+                  zone_no: zipCode,
+                  x: x || '',
+                  y: y || '',
+                },
+              };
+            }
+          )
         );
 
         transformedData = {
@@ -241,8 +358,117 @@ export class AddressService {
                 apiResponse.data?.total_count ||
                 0),
           },
-          documents:
-            apiResponse.data?.results || apiResponse.data?.documents || [],
+          documents: (
+            apiResponse.data?.results ||
+            apiResponse.data?.documents ||
+            []
+          ).map((doc: FlexibleAddressResult) => ({
+            address_name: doc.address_name || doc.addressName || '',
+            y: doc.y || '',
+            x: doc.x || '',
+            address_type: doc.address_type || doc.addressType || 'ROAD',
+            address: {
+              address_name:
+                doc.address?.address_name || doc.address?.addressName || '',
+              region_1depth_name:
+                doc.address?.region_1depth_name ||
+                doc.address?.region1depthName ||
+                '',
+              region_2depth_name:
+                doc.address?.region_2depth_name ||
+                doc.address?.region2depthName ||
+                '',
+              region_3depth_name:
+                doc.address?.region_3depth_name ||
+                doc.address?.region3depthName ||
+                '',
+              region_3depth_h_name:
+                doc.address?.region_3depth_h_name ||
+                doc.address?.region3depthHName ||
+                '',
+              h_code: doc.address?.h_code || doc.address?.hCode || '',
+              b_code: doc.address?.b_code || doc.address?.bCode || '',
+              mountain_yn:
+                doc.address?.mountain_yn || doc.address?.mountainYn || '',
+              main_address_no:
+                doc.address?.main_address_no ||
+                doc.address?.mainAddressNo ||
+                '',
+              sub_address_no:
+                doc.address?.sub_address_no || doc.address?.subAddressNo || '',
+              x: doc.address?.x || '',
+              y: doc.address?.y || '',
+            },
+            road_address: {
+              address_name:
+                doc.road_address?.address_name ||
+                doc.road_address?.addressName ||
+                doc.roadAddress?.address_name ||
+                doc.roadAddress?.addressName ||
+                '',
+              region_1depth_name:
+                doc.road_address?.region_1depth_name ||
+                doc.road_address?.region1depthName ||
+                doc.roadAddress?.region_1depth_name ||
+                doc.roadAddress?.region1depthName ||
+                '',
+              region_2depth_name:
+                doc.road_address?.region_2depth_name ||
+                doc.road_address?.region2depthName ||
+                doc.roadAddress?.region_2depth_name ||
+                doc.roadAddress?.region2depthName ||
+                '',
+              region_3depth_name:
+                doc.road_address?.region_3depth_name ||
+                doc.road_address?.region3depthName ||
+                doc.roadAddress?.region_3depth_name ||
+                doc.roadAddress?.region3depthName ||
+                '',
+              road_name:
+                doc.road_address?.road_name ||
+                doc.road_address?.roadName ||
+                doc.roadAddress?.road_name ||
+                doc.roadAddress?.roadName ||
+                '',
+              underground_yn:
+                doc.road_address?.underground_yn ||
+                doc.road_address?.undergroundYn ||
+                doc.roadAddress?.underground_yn ||
+                doc.roadAddress?.undergroundYn ||
+                '',
+              main_building_no:
+                doc.road_address?.main_building_no ||
+                doc.road_address?.mainBuildingNo ||
+                doc.roadAddress?.main_building_no ||
+                doc.roadAddress?.mainBuildingNo ||
+                '',
+              sub_building_no:
+                doc.road_address?.sub_building_no ||
+                doc.road_address?.subBuildingNo ||
+                doc.roadAddress?.sub_building_no ||
+                doc.roadAddress?.subBuildingNo ||
+                '',
+              building_name:
+                doc.road_address?.building_name ||
+                doc.road_address?.buildingName ||
+                doc.roadAddress?.building_name ||
+                doc.roadAddress?.buildingName ||
+                '',
+              zone_no:
+                doc.road_address?.zone_no ||
+                doc.road_address?.zoneNo ||
+                doc.roadAddress?.zone_no ||
+                doc.roadAddress?.zoneNo ||
+                doc.zipCode ||
+                doc.zip_code ||
+                doc.postalCode ||
+                doc.zone_no ||
+                doc.zoneNo ||
+                '',
+              x: doc.road_address?.x || doc.roadAddress?.x || '',
+              y: doc.road_address?.y || doc.roadAddress?.y || '',
+            },
+          })),
         };
       }
 
@@ -294,10 +520,22 @@ export class AddressService {
         countPerPage,
       };
 
-      const response = await apiClient.post<any>(
-        `${this.BASE_URL}/search`,
-        requestBody
-      );
+      const response = await apiClient.post<{
+        success: boolean;
+        resultMsg?: string;
+        data: {
+          roadAddress?: string;
+          zipCode?: string;
+          totalCount?: number;
+          results?: FlexibleAddressResult[];
+          documents?: FlexibleAddressResult[];
+          currentPage?: number;
+          countPerPage?: number;
+          total_count?: number;
+          count_per_page?: number;
+          current_page?: number;
+        };
+      }>(`${this.BASE_URL}/search`, requestBody);
 
       console.log('Address search POST API response:', response);
 
@@ -308,7 +546,7 @@ export class AddressService {
       }
 
       // The apiClient wraps the response, so response.data is the actual API response
-      const apiResponse = response.data as any;
+      const apiResponse = response.data;
 
       if (!apiResponse?.success) {
         return {
@@ -374,79 +612,84 @@ export class AddressService {
         console.log('Processing place search results and getting zip codes...');
 
         const transformedDocuments = await Promise.all(
-          apiResponse.data.results.map(async (result: any) => {
-            let zipCode = result.zipCode || result.zone_no || '';
-            let roadAddress = result.addressName || result.address_name || '';
+          apiResponse.data.results.map(
+            async (result: FlexibleAddressResult) => {
+              let zipCode = result.zipCode || result.zone_no || '';
+              let roadAddress = result.addressName || result.address_name || '';
 
-            // If we have coordinates but no zip code, try to get it
-            const x = result.x || result.longitude;
-            const y = result.y || result.latitude;
+              // If we have coordinates but no zip code, try to get it
+              const x = result.x || result.longitude;
+              const y = result.y || result.latitude;
 
-            if (x && y && !zipCode) {
-              try {
-                console.log(`Getting zip code for coordinates: ${x}, ${y}`);
-                const zipResponse = await this.searchZipCodeByCoordinates(
-                  parseFloat(x),
-                  parseFloat(y)
-                );
-                if (
-                  zipResponse.data &&
-                  zipResponse.data.documents &&
-                  zipResponse.data.documents.length > 0
-                ) {
-                  const zipResult = zipResponse.data.documents[0];
-                  zipCode = this.extractPostalCode(zipResult);
-                  // Use the road address from zip code search if available
+              if (x && y && !zipCode) {
+                try {
+                  console.log(`Getting zip code for coordinates: ${x}, ${y}`);
+                  const zipResponse = await this.searchZipCodeByCoordinates(
+                    parseFloat(x),
+                    parseFloat(y)
+                  );
                   if (
-                    zipResult.road_address &&
-                    zipResult.road_address.address_name
+                    zipResponse.data &&
+                    zipResponse.data.documents &&
+                    zipResponse.data.documents.length > 0
                   ) {
-                    roadAddress = zipResult.road_address.address_name;
+                    const zipResult = zipResponse.data.documents[0];
+                    zipCode = this.extractPostalCode(zipResult);
+                    // Use the road address from zip code search if available
+                    if (
+                      zipResult.road_address &&
+                      zipResult.road_address.address_name
+                    ) {
+                      roadAddress = zipResult.road_address.address_name;
+                    }
+                    console.log(
+                      `Found zip code: ${zipCode} for address: ${roadAddress}`
+                    );
                   }
-                  console.log(
-                    `Found zip code: ${zipCode} for address: ${roadAddress}`
+                } catch (error) {
+                  console.warn(
+                    'Failed to get zip code for coordinates:',
+                    error
                   );
                 }
-              } catch (error) {
-                console.warn('Failed to get zip code for coordinates:', error);
               }
-            }
 
-            return {
-              address_name: roadAddress,
-              y: y || '',
-              x: x || '',
-              address_type: 'ROAD',
-              address: {
+              return {
                 address_name: roadAddress,
-                region_1depth_name: '',
-                region_2depth_name: '',
-                region_3depth_name: '',
-                region_3depth_h_name: '',
-                h_code: '',
-                b_code: '',
-                mountain_yn: '',
-                main_address_no: '',
-                sub_address_no: '',
-                x: x || '',
                 y: y || '',
-              },
-              road_address: {
-                address_name: roadAddress,
-                region_1depth_name: '',
-                region_2depth_name: '',
-                region_3depth_name: '',
-                road_name: '',
-                underground_yn: '',
-                main_building_no: '',
-                sub_building_no: '',
-                building_name: '',
-                zone_no: zipCode,
                 x: x || '',
-                y: y || '',
-              },
-            };
-          })
+                address_type: 'ROAD',
+                address: {
+                  address_name: roadAddress,
+                  region_1depth_name: '',
+                  region_2depth_name: '',
+                  region_3depth_name: '',
+                  region_3depth_h_name: '',
+                  h_code: '',
+                  b_code: '',
+                  mountain_yn: '',
+                  main_address_no: '',
+                  sub_address_no: '',
+                  x: x || '',
+                  y: y || '',
+                },
+                road_address: {
+                  address_name: roadAddress,
+                  region_1depth_name: '',
+                  region_2depth_name: '',
+                  region_3depth_name: '',
+                  road_name: '',
+                  underground_yn: '',
+                  main_building_no: '',
+                  sub_building_no: '',
+                  building_name: '',
+                  zone_no: zipCode,
+                  x: x || '',
+                  y: y || '',
+                },
+              };
+            }
+          )
         );
 
         transformedData = {
@@ -483,8 +726,117 @@ export class AddressService {
                 apiResponse.data?.total_count ||
                 0),
           },
-          documents:
-            apiResponse.data?.results || apiResponse.data?.documents || [],
+          documents: (
+            apiResponse.data?.results ||
+            apiResponse.data?.documents ||
+            []
+          ).map((doc: FlexibleAddressResult) => ({
+            address_name: doc.address_name || doc.addressName || '',
+            y: doc.y || '',
+            x: doc.x || '',
+            address_type: doc.address_type || doc.addressType || 'ROAD',
+            address: {
+              address_name:
+                doc.address?.address_name || doc.address?.addressName || '',
+              region_1depth_name:
+                doc.address?.region_1depth_name ||
+                doc.address?.region1depthName ||
+                '',
+              region_2depth_name:
+                doc.address?.region_2depth_name ||
+                doc.address?.region2depthName ||
+                '',
+              region_3depth_name:
+                doc.address?.region_3depth_name ||
+                doc.address?.region3depthName ||
+                '',
+              region_3depth_h_name:
+                doc.address?.region_3depth_h_name ||
+                doc.address?.region3depthHName ||
+                '',
+              h_code: doc.address?.h_code || doc.address?.hCode || '',
+              b_code: doc.address?.b_code || doc.address?.bCode || '',
+              mountain_yn:
+                doc.address?.mountain_yn || doc.address?.mountainYn || '',
+              main_address_no:
+                doc.address?.main_address_no ||
+                doc.address?.mainAddressNo ||
+                '',
+              sub_address_no:
+                doc.address?.sub_address_no || doc.address?.subAddressNo || '',
+              x: doc.address?.x || '',
+              y: doc.address?.y || '',
+            },
+            road_address: {
+              address_name:
+                doc.road_address?.address_name ||
+                doc.road_address?.addressName ||
+                doc.roadAddress?.address_name ||
+                doc.roadAddress?.addressName ||
+                '',
+              region_1depth_name:
+                doc.road_address?.region_1depth_name ||
+                doc.road_address?.region1depthName ||
+                doc.roadAddress?.region_1depth_name ||
+                doc.roadAddress?.region1depthName ||
+                '',
+              region_2depth_name:
+                doc.road_address?.region_2depth_name ||
+                doc.road_address?.region2depthName ||
+                doc.roadAddress?.region_2depth_name ||
+                doc.roadAddress?.region2depthName ||
+                '',
+              region_3depth_name:
+                doc.road_address?.region_3depth_name ||
+                doc.road_address?.region3depthName ||
+                doc.roadAddress?.region_3depth_name ||
+                doc.roadAddress?.region3depthName ||
+                '',
+              road_name:
+                doc.road_address?.road_name ||
+                doc.road_address?.roadName ||
+                doc.roadAddress?.road_name ||
+                doc.roadAddress?.roadName ||
+                '',
+              underground_yn:
+                doc.road_address?.underground_yn ||
+                doc.road_address?.undergroundYn ||
+                doc.roadAddress?.underground_yn ||
+                doc.roadAddress?.undergroundYn ||
+                '',
+              main_building_no:
+                doc.road_address?.main_building_no ||
+                doc.road_address?.mainBuildingNo ||
+                doc.roadAddress?.main_building_no ||
+                doc.roadAddress?.mainBuildingNo ||
+                '',
+              sub_building_no:
+                doc.road_address?.sub_building_no ||
+                doc.road_address?.subBuildingNo ||
+                doc.roadAddress?.sub_building_no ||
+                doc.roadAddress?.subBuildingNo ||
+                '',
+              building_name:
+                doc.road_address?.building_name ||
+                doc.road_address?.buildingName ||
+                doc.roadAddress?.building_name ||
+                doc.roadAddress?.buildingName ||
+                '',
+              zone_no:
+                doc.road_address?.zone_no ||
+                doc.road_address?.zoneNo ||
+                doc.roadAddress?.zone_no ||
+                doc.roadAddress?.zoneNo ||
+                doc.zipCode ||
+                doc.zip_code ||
+                doc.postalCode ||
+                doc.zone_no ||
+                doc.zoneNo ||
+                '',
+              x: doc.road_address?.x || doc.roadAddress?.x || '',
+              y: doc.road_address?.y || doc.roadAddress?.y || '',
+            },
+          })),
         };
       }
 
@@ -504,7 +856,9 @@ export class AddressService {
    * @param addressResult - Address search result
    * @returns Formatted address string
    */
-  static formatAddress(addressResult: any): string {
+  static formatAddress(
+    addressResult: FlexibleAddressResult | null | undefined
+  ): string {
     if (!addressResult) return '';
 
     // Handle the actual API response structure
@@ -540,7 +894,9 @@ export class AddressService {
    * @param addressResult - Address search result
    * @returns Postal code string
    */
-  static extractPostalCode(addressResult: any): string {
+  static extractPostalCode(
+    addressResult: FlexibleAddressResult | null | undefined
+  ): string {
     if (!addressResult) return '';
 
     // Handle the actual API response structure
@@ -595,7 +951,9 @@ export class AddressService {
    * @param addressResult - Address search result
    * @returns Object with x (longitude) and y (latitude)
    */
-  static extractCoordinates(addressResult: any): { x: string; y: string } {
+  static extractCoordinates(
+    addressResult: FlexibleAddressResult | null | undefined
+  ): { x: string; y: string } {
     if (!addressResult) return { x: '', y: '' };
 
     // Handle the actual API response structure
@@ -635,9 +993,18 @@ export class AddressService {
         y: y.toString(),
       });
 
-      const response = await apiClient.get<any>(
-        `${this.BASE_URL}/search/zip-code?${params.toString()}`
-      );
+      const response = await apiClient.get<{
+        success: boolean;
+        resultMsg?: string;
+        data: {
+          roadAddress?: string;
+          zipCode?: string;
+          totalCount?: number;
+          results?: FlexibleAddressResult[];
+          documents?: FlexibleAddressResult[];
+          total_count?: number;
+        };
+      }>(`${this.BASE_URL}/search/zip-code?${params.toString()}`);
 
       console.log('Zip code search API response:', response);
 
@@ -648,7 +1015,7 @@ export class AddressService {
       }
 
       // The apiClient wraps the response, so response.data is the actual API response
-      const apiResponse = response.data as any;
+      const apiResponse = response.data;
 
       if (!apiResponse?.success) {
         return {
@@ -709,8 +1076,113 @@ export class AddressService {
               apiResponse.data?.total_count ||
               0,
           },
-          documents:
-            apiResponse.data?.results || apiResponse.data?.documents || [],
+          documents: (
+            apiResponse.data?.results ||
+            apiResponse.data?.documents ||
+            []
+          ).map((doc: FlexibleAddressResult) => ({
+            address: {
+              address_name:
+                doc.address?.address_name || doc.address?.addressName || '',
+              region_1depth_name:
+                doc.address?.region_1depth_name ||
+                doc.address?.region1depthName ||
+                '',
+              region_2depth_name:
+                doc.address?.region_2depth_name ||
+                doc.address?.region2depthName ||
+                '',
+              region_3depth_name:
+                doc.address?.region_3depth_name ||
+                doc.address?.region3depthName ||
+                '',
+              region_3depth_h_name:
+                doc.address?.region_3depth_h_name ||
+                doc.address?.region3depthHName ||
+                '',
+              h_code: doc.address?.h_code || doc.address?.hCode || '',
+              b_code: doc.address?.b_code || doc.address?.bCode || '',
+              mountain_yn:
+                doc.address?.mountain_yn || doc.address?.mountainYn || '',
+              main_address_no:
+                doc.address?.main_address_no ||
+                doc.address?.mainAddressNo ||
+                '',
+              sub_address_no:
+                doc.address?.sub_address_no || doc.address?.subAddressNo || '',
+              x: doc.address?.x || '',
+              y: doc.address?.y || '',
+            },
+            road_address: {
+              address_name:
+                doc.road_address?.address_name ||
+                doc.road_address?.addressName ||
+                doc.roadAddress?.address_name ||
+                doc.roadAddress?.addressName ||
+                '',
+              region_1depth_name:
+                doc.road_address?.region_1depth_name ||
+                doc.road_address?.region1depthName ||
+                doc.roadAddress?.region_1depth_name ||
+                doc.roadAddress?.region1depthName ||
+                '',
+              region_2depth_name:
+                doc.road_address?.region_2depth_name ||
+                doc.road_address?.region2depthName ||
+                doc.roadAddress?.region_2depth_name ||
+                doc.roadAddress?.region2depthName ||
+                '',
+              region_3depth_name:
+                doc.road_address?.region_3depth_name ||
+                doc.road_address?.region3depthName ||
+                doc.roadAddress?.region_3depth_name ||
+                doc.roadAddress?.region3depthName ||
+                '',
+              road_name:
+                doc.road_address?.road_name ||
+                doc.road_address?.roadName ||
+                doc.roadAddress?.road_name ||
+                doc.roadAddress?.roadName ||
+                '',
+              underground_yn:
+                doc.road_address?.underground_yn ||
+                doc.road_address?.undergroundYn ||
+                doc.roadAddress?.underground_yn ||
+                doc.roadAddress?.undergroundYn ||
+                '',
+              main_building_no:
+                doc.road_address?.main_building_no ||
+                doc.road_address?.mainBuildingNo ||
+                doc.roadAddress?.main_building_no ||
+                doc.roadAddress?.mainBuildingNo ||
+                '',
+              sub_building_no:
+                doc.road_address?.sub_building_no ||
+                doc.road_address?.subBuildingNo ||
+                doc.roadAddress?.sub_building_no ||
+                doc.roadAddress?.subBuildingNo ||
+                '',
+              building_name:
+                doc.road_address?.building_name ||
+                doc.road_address?.buildingName ||
+                doc.roadAddress?.building_name ||
+                doc.roadAddress?.buildingName ||
+                '',
+              zone_no:
+                doc.road_address?.zone_no ||
+                doc.road_address?.zoneNo ||
+                doc.roadAddress?.zone_no ||
+                doc.roadAddress?.zoneNo ||
+                doc.zipCode ||
+                doc.zip_code ||
+                doc.postalCode ||
+                doc.zone_no ||
+                doc.zoneNo ||
+                '',
+              x: doc.road_address?.x || doc.roadAddress?.x || '',
+              y: doc.road_address?.y || doc.roadAddress?.y || '',
+            },
+          })),
         };
       }
 
