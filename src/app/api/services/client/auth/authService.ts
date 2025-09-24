@@ -1018,4 +1018,100 @@ export class AuthService {
       };
     }
   }
+
+  /**
+   * Refresh authentication tokens
+   * Endpoint: POST /api/pet-save/auth/refresh
+   */
+  static async refreshToken(): Promise<ApiResponse<LoginResponse>> {
+    try {
+      console.log('Refreshing authentication token...');
+
+      const response = await apiClient.post<UnknownJson>('/auth/refresh');
+
+      if (response.error) {
+        console.error('Token refresh failed:', response.error);
+        return {
+          data: null,
+          error: response.error,
+        };
+      }
+
+      // Store new auth tokens if refresh successful
+      if (response.data && typeof window !== 'undefined') {
+        let accessToken: string | undefined;
+        let refreshToken: string | undefined;
+        let user: UserInfo | undefined;
+
+        const responseData: unknown = response.data;
+
+        if (isLoginApiEnvelope(responseData)) {
+          // Structure: { success: true, data: { accessToken, refreshToken, identifier, ... } }
+          const userData = responseData.data;
+          console.log('Refreshed user data from API:', userData);
+
+          accessToken = userData.accessToken;
+          refreshToken = userData.refreshToken;
+          user = {
+            id: userData.uuidMember || userData.identifier,
+            identifier: userData.identifier,
+            email: userData.email || '',
+            name: userData.name || userData.identifier,
+            nickname: userData.nickname || userData.identifier,
+            phoneNumber: userData.phoneNumber || '',
+            loginType: userData.loginType || 'GENERAL',
+          };
+          console.log('Created refreshed user object:', user);
+        } else if (isLoginAlt1(responseData)) {
+          ({ accessToken, refreshToken, user } = responseData);
+        } else if (isLoginAlt2(responseData)) {
+          accessToken = responseData.token;
+          refreshToken = responseData.refreshToken;
+          user = responseData.user;
+        } else {
+          console.error(
+            'Token refresh response has unexpected structure:',
+            responseData
+          );
+          return {
+            data: null,
+            error: 'Token refresh response has unexpected structure',
+          };
+        }
+
+        if (accessToken && user && user.identifier) {
+          localStorage.setItem('authToken', accessToken);
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+          }
+          localStorage.setItem('userInfo', JSON.stringify(user));
+          console.log('Token refresh successful, new tokens stored:', {
+            user: user.identifier,
+          });
+        } else {
+          console.error('Token refresh response missing required data:', {
+            accessToken,
+            user,
+          });
+          return {
+            data: null,
+            error:
+              'Token refresh response is missing required data (accessToken or user)',
+          };
+        }
+      }
+
+      // Cast back to the expected ApiResponse<LoginResponse> shape
+      return {
+        data: response.data as LoginResponse,
+        error: response.error,
+      };
+    } catch (error) {
+      console.error('Token refresh service error:', error);
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Token refresh failed',
+      };
+    }
+  }
 }

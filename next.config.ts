@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       'placedog.net',
       'cdn.pixabay.com',
       'images.pexels.com',
+      '211.107.13.167', //server ip
     ],
   },
   async rewrites() {

@@ -1,6 +1,18 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import axios, {
+  AxiosInstance,
+  AxiosResponse,
+  AxiosError,
+  AxiosRequestConfig,
+} from 'axios';
 import { baseURL } from './config';
 import { PAGE_URLS } from '@/app/utils/page_url';
+
+// Extend AxiosRequestConfig to include _retry property
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    _retry?: boolean;
+  }
+}
 
 /**
  * Generic API response wrapper
@@ -67,6 +79,7 @@ axiosInstance.interceptors.request.use(
     const publicEndpoints = [
       '/auth/signup/general',
       '/auth/login',
+      '/auth/refresh',
       '/verification/email/send-verification',
       '/verification/phone/send-verification',
       '/verification/verify-code',
@@ -117,19 +130,78 @@ axiosInstance.interceptors.response.use(
     }
     return response;
   },
-  (error: AxiosError) => {
-    // Handle 401/403 authentication errors (but not for signup endpoint or address search)
+  async (error: AxiosError) => {
+    const originalRequest = error.config;
+
+    // Handle 401/403 authentication errors
     if (error.response?.status === 401 || error.response?.status === 403) {
       const isSignupEndpoint = error.config?.url?.includes(
         '/auth/signup/general'
       );
       const isAddressSearchEndpoint =
         error.config?.url?.includes('/address/search');
+      const isRefreshEndpoint = error.config?.url?.includes('/auth/refresh');
+      const isLoginEndpoint = error.config?.url?.includes('/auth/login');
 
-      if (!isSignupEndpoint && !isAddressSearchEndpoint) {
+      // Skip token refresh for public endpoints and refresh endpoint itself
+      if (
+        isSignupEndpoint ||
+        isAddressSearchEndpoint ||
+        isRefreshEndpoint ||
+        isLoginEndpoint
+      ) {
+        if (!isSignupEndpoint && !isAddressSearchEndpoint) {
+          clearAllStorage();
+          // Redirect to login page
+          if (typeof window !== 'undefined') {
+            window.location.href = PAGE_URLS.LOGIN;
+          }
+        }
+        return Promise.reject(error);
+      }
+
+      // Check if we have a refresh token and this is not a retry
+      const refreshToken = getFromLocalStorage('refreshToken');
+      if (refreshToken && originalRequest && !originalRequest._retry) {
+        originalRequest._retry = true;
+
+        try {
+          // Import AuthService dynamically to avoid circular dependency
+          const { AuthService } = await import(
+            './services/client/auth/authService'
+          );
+
+          console.log('Attempting token refresh...');
+          const refreshResponse = await AuthService.refreshToken();
+
+          if (refreshResponse.data && !refreshResponse.error) {
+            console.log('Token refresh successful, retrying original request');
+
+            // Update the authorization header with the new token
+            const newToken = getFromLocalStorage('authToken');
+            if (newToken && originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            }
+
+            // Retry the original request
+            return axiosInstance(originalRequest);
+          } else {
+            console.error('Token refresh failed:', refreshResponse.error);
+            clearAllStorage();
+            if (typeof window !== 'undefined') {
+              window.location.href = PAGE_URLS.LOGIN;
+            }
+          }
+        } catch (refreshError) {
+          console.error('Token refresh error:', refreshError);
+          clearAllStorage();
+          if (typeof window !== 'undefined') {
+            window.location.href = PAGE_URLS.LOGIN;
+          }
+        }
+      } else {
+        // No refresh token available or already retried
         clearAllStorage();
-
-        // Redirect to login page
         if (typeof window !== 'undefined') {
           window.location.href = PAGE_URLS.LOGIN;
         }
