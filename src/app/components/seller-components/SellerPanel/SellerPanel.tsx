@@ -14,8 +14,14 @@ export default function SellerPanel({ show = true }: SellerPanelProps) {
   const { user } = useUser(); // get logged-in user
   const isHomepage = pathname.startsWith('/client/pages/homepage');
 
-  // Only render if user exists and role is 'seller'
-  if (!show || !user || user.role !== 'seller') return null;
+  // Only render if user exists, role is 'seller', and business is approved
+  if (
+    !show ||
+    !user ||
+    user.role !== 'seller' ||
+    user.businessApprovalStatus !== 'APPROVED'
+  )
+    return null;
 
   return (
     <div className={styles.container}>

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import styles from './FileUploadModal.module.css';
 import Image from 'next/image';
-import { FileUploadService } from '@/app/api/services/client/fileService/fileUploadService';
+import { BusinessFileService } from '@/app/api/services/client/fileService/businessFileService';
 
 interface FileUploadModalProps {
   file: File | null;
@@ -70,17 +70,17 @@ export default function FileUploadModal({
     setUploadSuccess(null);
 
     try {
-      console.log('Uploading file:', tempFile.name);
-      const result = await FileUploadService.uploadFile(tempFile);
+      console.log('Uploading business file:', tempFile.name);
+      const result = await BusinessFileService.uploadFile(tempFile);
 
       if (result.error) {
-        console.error('File upload failed:', result.error);
+        console.error('Business file upload failed:', result.error);
         setUploadError(result.error);
         return;
       }
 
       if (result.data) {
-        console.log('File uploaded successfully:', result.data);
+        console.log('Business file uploaded successfully:', result.data);
         setFile(tempFile); // commit temporary file to parent state
 
         // Notify parent component with file IDs
@@ -95,7 +95,7 @@ export default function FileUploadModal({
         setTimeout(() => setUploadSuccess(null), 2000);
       }
     } catch (error) {
-      console.error('File upload error:', error);
+      console.error('Business file upload error:', error);
       setUploadError('파일 업로드 중 오류가 발생했습니다.');
     } finally {
       setIsUploading(false);

@@ -24,6 +24,30 @@ export class MemberService {
       }
 
       console.log('Member info retrieved successfully:', response.data);
+
+      // Log business approval status specifically
+      if (response.data?.data) {
+        const memberData = response.data.data;
+        console.log('🏢 Business Registration Status Check:');
+        console.log('  - Member ID:', memberData.memberId);
+        console.log('  - Role:', memberData.role);
+        console.log('  - Store ID:', memberData.storeId);
+        console.log(
+          '  - Business Approval Status:',
+          memberData.businessApprovalStatus
+        );
+
+        if (memberData.businessApprovalStatus === 'PENDING') {
+          console.log(' Business registration is PENDING approval');
+        } else if (memberData.businessApprovalStatus === 'APPROVED') {
+          console.log(' Business registration is APPROVED');
+        } else if (memberData.businessApprovalStatus === 'REJECTED') {
+          console.log(' Business registration was REJECTED');
+        } else {
+          console.log('ℹ No business registration status found');
+        }
+      }
+
       return response;
     } catch (error) {
       console.error('Member service error:', error);

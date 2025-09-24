@@ -9,15 +9,18 @@ import {
   ReactNode,
 } from 'react';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
+import { BusinessService } from '@/app/api/services/client/businessService/businessService';
 /* import { StoreService } from '@/app/api/services/client/memberService/store'; */
 
 export type Role = 'client' | 'seller';
+export type BusinessApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | null;
 
 export interface User {
   username: string;
   role: Role;
   // Make location optional so login() can be used without providing it
   location?: string;
+  businessApprovalStatus?: BusinessApprovalStatus;
 }
 
 interface UserContextType {
@@ -38,7 +41,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('user');
-      if (raw) setUser(JSON.parse(raw) as User);
+      if (raw) {
+        const savedUser = JSON.parse(raw) as User;
+        setUser(savedUser);
+        // Refresh user data to get latest business registration status
+        setTimeout(() => {
+          console.log('🔄 Auto-refreshing user data on app load...');
+          refreshUserData();
+        }, 500); // Small delay to ensure app is fully loaded
+      }
     } catch {
       // ignore JSON parse errors
     }
@@ -47,6 +58,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const login = (userData: User) => {
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
+    // Refresh user data to get latest business registration status
+    setTimeout(() => {
+      console.log('🔄 Auto-refreshing user data after login...');
+      refreshUserData();
+    }, 100); // Small delay to ensure login is processed
   };
 
   const logout = () => {
@@ -72,73 +88,133 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       setIsRefreshing(true);
       console.log('🔄 Refreshing user data from backend...');
-      const response = await MemberService.getMyInfo();
 
-      if (response.data?.success && response.data?.data) {
-        const userData = response.data.data;
+      // Always fetch both member info and business registration status in parallel
+      // Business registration status is the source of truth for approval status
+      const [memberResponse, businessResponse] = await Promise.allSettled([
+        MemberService.getMyInfo(),
+        BusinessService.getMyBusinessRegistration(),
+      ]);
+
+      let userData = null;
+      let businessData = null;
+
+      // Process member info
+      if (
+        memberResponse.status === 'fulfilled' &&
+        memberResponse.value.data?.success
+      ) {
+        userData = memberResponse.value.data.data;
         console.log('Backend user data:', userData);
+      } else {
+        console.log(
+          'Failed to get member info from backend:',
+          memberResponse.status === 'rejected'
+            ? memberResponse.reason
+            : 'No data'
+        );
+      }
 
-        // Check if user has a store to determine if they're a seller
+      // Process business registration info
+      if (
+        businessResponse.status === 'fulfilled' &&
+        businessResponse.value.data?.success
+      ) {
+        businessData = businessResponse.value.data.data;
+        console.log('Business registration data:', businessData);
+      } else {
+        console.log(
+          'No business registration found or error:',
+          businessResponse.status === 'rejected'
+            ? businessResponse.reason
+            : 'No data'
+        );
+      }
+
+      if (userData) {
+        // Determine user role based on business approval status
         let userRole = userData.role || user?.role || 'client';
+        let businessApprovalStatus = userData.businessApprovalStatus;
 
-        // If the member info doesn't show seller role, check if user is actually a seller
-        if (userRole === 'client') {
+        // If we have business registration data, use its status
+        if (businessData) {
+          businessApprovalStatus = businessData.status;
           console.log(
-            'User role is client, checking if user is actually a seller...'
+            '📋 Using business registration status:',
+            businessData.status
           );
-
-          // Check if user has a storeId in member info to determine if they're a seller
-          if (userData.storeId) {
-            console.log(
-              'User has storeId in member info, upgrading to seller role'
-            );
-            userRole = 'seller';
-          } else {
-            console.log('User does not have storeId, checking localStorage...');
-
-            // Fallback: Check localStorage for previous seller registration
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-              try {
-                const parsedUser = JSON.parse(storedUser);
-                if (parsedUser.role === 'seller') {
-                  console.log(
-                    'Found seller role in localStorage, upgrading role'
-                  );
-                  userRole = 'seller';
-                } else {
-                  console.log(
-                    'No seller role found in localStorage, remaining as client'
-                  );
-                }
-              } catch (parseError) {
-                console.log('Error parsing stored user:', parseError);
-              }
-            } else {
-              console.log('No stored user found, remaining as client');
-            }
-          }
+        } else {
+          console.log(
+            '📋 No business registration data found, using member info status:',
+            businessApprovalStatus
+          );
         }
+
+        console.log('🔄 UserContext - Processing Business Approval Status:');
+        console.log('  - Original Role from API:', userData.role);
+        console.log('  - Business Approval Status:', businessApprovalStatus);
+        console.log('  - Store ID:', userData.storeId);
+
+        // If user has applied for business registration but not approved yet, keep as client
+        if (businessApprovalStatus === 'PENDING') {
+          console.log(
+            '⏳ User has pending business registration, keeping as client'
+          );
+          userRole = 'client';
+        } else if (businessApprovalStatus === 'APPROVED') {
+          console.log(
+            '✅ User has approved business registration, upgrading to seller'
+          );
+          userRole = 'seller';
+        } else if (businessApprovalStatus === 'REJECTED') {
+          console.log(
+            '❌ User business registration was rejected, keeping as client'
+          );
+          userRole = 'client';
+        } else if (userRole === 'client' && userData.storeId) {
+          // Fallback: Check if user has a storeId (for backward compatibility)
+          console.log(
+            '🔄 User has storeId in member info, upgrading to seller (fallback)'
+          );
+          userRole = 'seller';
+        }
+
+        console.log('🎯 Final determined role:', userRole);
+        console.log(
+          '🎯 Final business approval status:',
+          businessApprovalStatus
+        );
 
         // Update user with backend data
         const updatedUser: User = {
           username: userData.username || user?.username || '',
           role: userRole,
           location: userData.location || user?.location,
+          businessApprovalStatus: businessApprovalStatus,
         };
 
-        console.log('Updated user from backend:', updatedUser);
+        console.log('✅ Updated user from backend:', updatedUser);
+        console.log('🔍 User role check:', updatedUser.role === 'seller');
+        console.log(
+          '🔍 Business status check:',
+          updatedUser.businessApprovalStatus === 'APPROVED'
+        );
+        console.log(
+          '🔍 Should show seller UI:',
+          updatedUser.role === 'seller' &&
+            updatedUser.businessApprovalStatus === 'APPROVED'
+        );
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
       } else {
-        console.log('Failed to get member info from backend:', response.error);
+        console.log('Failed to get member info from backend');
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
     } finally {
       setIsRefreshing(false);
     }
-  }, [isRefreshing, user]);
+  }, [isRefreshing]);
 
   return (
     <UserContext.Provider

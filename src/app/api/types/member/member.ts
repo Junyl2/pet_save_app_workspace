@@ -15,6 +15,7 @@ export interface MemberInfo {
   profileFileId?: string;
   loginType?: string;
   storeId?: string | null; // Store ID if user is a seller
+  businessApprovalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null; // Business registration approval status
   createdAt?: string;
   updatedAt?: string;
 }

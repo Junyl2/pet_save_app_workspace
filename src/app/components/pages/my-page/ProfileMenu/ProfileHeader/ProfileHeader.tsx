@@ -16,6 +16,15 @@ const ProfileHeader = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Log user context data for debugging
+  useEffect(() => {
+    console.log('👤 ProfileHeader - User Context Data:');
+    console.log('  - User:', user);
+    console.log('  - Role:', user?.role);
+    console.log('  - Business Approval Status:', user?.businessApprovalStatus);
+    console.log('  - Username:', user?.username);
+  }, [user]);
+
   const actions = [
     {
       label: '주문 내역',
@@ -58,6 +67,19 @@ const ProfileHeader = () => {
         }
 
         console.log('✅ Member info fetched successfully:', response.data);
+
+        // Log business approval status from API
+        if (response.data?.data) {
+          const memberData = response.data.data;
+          console.log('📋 ProfileHeader - Business Status from API:');
+          console.log(
+            '  - Business Approval Status:',
+            memberData.businessApprovalStatus
+          );
+          console.log('  - Role:', memberData.role);
+          console.log('  - Store ID:', memberData.storeId);
+        }
+
         setMemberInfo(response.data?.data || null);
       } catch (err) {
         console.error('💥 Error refreshing user data:', err);
@@ -105,6 +127,12 @@ const ProfileHeader = () => {
               </span>
               {user?.role === 'seller' && (
                 <span className={styles.roleBadge}>판매자</span>
+              )}
+              {user?.businessApprovalStatus === 'PENDING' && (
+                <span className={styles.pendingBadge}>승인 대기 중</span>
+              )}
+              {user?.businessApprovalStatus === 'REJECTED' && (
+                <span className={styles.rejectedBadge}>승인 거부</span>
               )}
             </div>
           )}

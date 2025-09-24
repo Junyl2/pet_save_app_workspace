@@ -47,9 +47,12 @@ export default function SellerInquiryDetails() {
   const [selectedType, setSelectedType] = useState<InquiryType>('전체');
   const ddRef = useRef<HTMLDivElement | null>(null);
 
-  // Check if user is seller
+  // Check if user is approved seller
   useEffect(() => {
-    if (user?.role !== 'seller') {
+    if (
+      user?.role !== 'seller' ||
+      user?.businessApprovalStatus !== 'APPROVED'
+    ) {
       router.push('/client/pages/homepage');
       return;
     }
@@ -82,7 +85,11 @@ export default function SellerInquiryDetails() {
     router.push(`/client/seller/pages/reply-inquiry?id=${inquiryId}`);
   };
 
-  if (!user || user.role !== 'seller') {
+  if (
+    !user ||
+    user.role !== 'seller' ||
+    user.businessApprovalStatus !== 'APPROVED'
+  ) {
     return null; // Will redirect in useEffect
   }
 

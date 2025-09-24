@@ -355,10 +355,10 @@ export default function MembershipInformation() {
 
   // Countdown timer
   useEffect(() => {
-    if (!showAuthCode || timeLeft <= 0) return;
+    if (!showAuthCode || timeLeft <= 0 || isVerified) return;
     const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
-  }, [showAuthCode, timeLeft]);
+  }, [showAuthCode, timeLeft, isVerified]);
 
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60)
@@ -854,7 +854,9 @@ export default function MembershipInformation() {
               />
 
               <div className={styles.authFooter}>
-                <span className={styles.timer}>{formatTime(timeLeft)}</span>
+                {!isVerified && (
+                  <span className={styles.timer}>{formatTime(timeLeft)}</span>
+                )}
                 <button
                   type="button"
                   onClick={handleVerifyCode}

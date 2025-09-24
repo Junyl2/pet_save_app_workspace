@@ -26,9 +26,12 @@ export default function ReplyInquiry() {
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Check if user is seller
+  // Check if user is approved seller
   useEffect(() => {
-    if (user?.role !== 'seller') {
+    if (
+      user?.role !== 'seller' ||
+      user?.businessApprovalStatus !== 'APPROVED'
+    ) {
       router.push('/client/pages/homepage');
       return;
     }

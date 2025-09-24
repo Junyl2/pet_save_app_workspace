@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProfileHeader from './ProfileHeader/ProfileHeader';
 import ProfileSection from './ProfileSection/ProfileSection';
 import ProfileItem from './ProfileItem/ProfileItem';
@@ -12,9 +12,24 @@ import { PAGE_URLS } from '@/app/utils/page_url';
 import LogoutModal from '@/app/components/ui/modal/LogoutModal/LogoutModal';
 
 const ProfileMenu = () => {
-  const { user } = useUser();
+  const { user, refreshUserData } = useUser();
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Refresh user data when component mounts to get latest business status
+  useEffect(() => {
+    console.log('🔄 ProfileMenu mounted, refreshing user data...');
+    refreshUserData();
+  }, []); // Empty dependency array - only run once on mount
+
+  // Debug logging for user state
+  useEffect(() => {
+    console.log('🔍 ProfileMenu - User State Debug:');
+    console.log('  - User:', user);
+    console.log('  - Role:', user?.role);
+    console.log('  - Business Approval Status:', user?.businessApprovalStatus);
+    console.log('  - Should show seller options:', user?.role === 'seller');
+  }, [user]);
 
   return (
     <>
@@ -29,8 +44,8 @@ const ProfileMenu = () => {
             route="/client/pages/my-page/history-inquiry"
           />
 
-          {/* Show Business option depending on role */}
-          {user?.role === 'seller' ? (
+          {/* Show Business option depending on role and approval status */}
+          {user?.role === 'seller' || user?.businessApprovalStatus ? (
             <ProfileItem
               label="사업자 정보"
               route={PAGE_URLS.BUSINESS_INFORMATION}

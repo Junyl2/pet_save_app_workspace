@@ -9,10 +9,12 @@ import { FaChevronDown } from 'react-icons/fa';
 import { useUser } from '@/app/context/userContext';
 import { AuthService } from '@/app/api/services/client/auth/authService';
 import { BusinessRegistrationService } from '@/app/api/services/client/auth/businessRegistrationService';
-import { FileService } from '@/app/api/services/client/fileService/fileService';
+import { BusinessFileService } from '@/app/api/services/client/fileService/businessFileService';
 import { AddressService } from '@/app/api/services/client/addressService/addressService';
+import { BusinessService } from '@/app/api/services/client/businessService/businessService';
 import { BusinessRegistrationRequest } from '@/app/api/types/auth/BusinessRegistration';
 import { EmailVerificationRequest } from '@/app/api/types/auth/EmailVerification';
+import { BusinessRegistration } from '@/app/api/types/business/business';
 
 type FormState = {
   businessNumber: string;
@@ -52,7 +54,7 @@ export default function SellerInformation({
   onDone,
 }: SellerInformationProps) {
   const router = useRouter();
-  const { updateUserRole } = useUser();
+  const { updateUserRole, user } = useUser();
 
   const [formData, setFormData] = useState<FormState>({
     businessNumber: '',
@@ -101,12 +103,34 @@ export default function SellerInformation({
   const [bankbookEncryptedId, setBankbookEncryptedId] = useState<string | null>(
     null
   );
+  const [businessRegistrationData, setBusinessRegistrationData] =
+    useState<BusinessRegistration | null>(null);
+  const [isLoadingBusinessData, setIsLoadingBusinessData] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [addressSearchError, setAddressSearchError] = useState<string | null>(
     null
   );
   const [addressSearchResults, setAddressSearchResults] = useState<any[]>([]);
   const [showAddressResults, setShowAddressResults] = useState(false);
+
+  // Business number normalization function for display (XXX-XX-XXXXX format)
+  const normalizeBusinessNumber = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+
+    // If we have 10 digits, format as XXX-XX-XXXXX
+    if (digits.length === 10) {
+      return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
+    }
+
+    // If we have less than 10 digits, return as is (user is still typing)
+    if (digits.length < 10) {
+      return digits;
+    }
+
+    // If we have more than 10 digits, truncate to 10 and format
+    return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5, 10)}`;
+  };
 
   // Prefill from props.initial
   useEffect(() => {
@@ -159,12 +183,29 @@ export default function SellerInformation({
       }
     } else {
       // Regular text/select inputs
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      let processedValue = value;
+
+      // Normalize business number input
+      if (name === 'businessNumber') {
+        processedValue = normalizeBusinessNumber(value);
+      }
+
+      setFormData((prev) => ({ ...prev, [name]: processedValue }));
     }
 
-    setErrors((prev) => ({ ...prev, [name]: '', businessNumberDup: '' }));
+    setErrors((prev) => {
+      const newErrors = { ...prev, [name]: '' };
+      // Only clear business number duplication error if business number field is being changed
+      if (name === 'businessNumber') {
+        newErrors.businessNumberDup = '';
+      }
+      return newErrors;
+    });
     if (name === 'authCode' && authError) setAuthError('');
-    setIsBusinessDup(false);
+    // Only reset business duplication state if the business number field is being changed
+    if (name === 'businessNumber') {
+      setIsBusinessDup(false);
+    }
   };
 
   // Business number duplication check
@@ -178,7 +219,9 @@ export default function SellerInformation({
       );
 
       const response = await AuthService.validateBusinessNumber(
-        formData.businessNumber
+        BusinessRegistrationService.normalizeBusinessRegistrationNumber(
+          formData.businessNumber
+        )
       );
 
       if (response.error) {
@@ -409,10 +452,76 @@ export default function SellerInformation({
 
   // Countdown
   useEffect(() => {
-    if (!showAuthCode || timeLeft <= 0) return;
+    if (!showAuthCode || timeLeft <= 0 || isVerified) return;
     const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
-  }, [showAuthCode, timeLeft]);
+  }, [showAuthCode, timeLeft, isVerified]);
+
+  // Fetch business registration data if user has pending status
+  useEffect(() => {
+    const fetchBusinessRegistration = async () => {
+      if (
+        user?.businessApprovalStatus === 'PENDING' &&
+        !businessRegistrationData
+      ) {
+        try {
+          setIsLoadingBusinessData(true);
+          console.log(
+            '🔄 Fetching business registration data for pending user...'
+          );
+
+          const response = await BusinessService.getMyBusinessRegistration();
+
+          if (response.data?.success && response.data.data) {
+            const businessData = response.data.data;
+            console.log('✅ Business registration data fetched:', businessData);
+            setBusinessRegistrationData(businessData);
+
+            // Pre-fill form with existing data
+            setFormData({
+              businessNumber: businessData.businessRegistrationNumber || '',
+              representativeName: businessData.representativeName || '',
+              companyName: businessData.businessName || '',
+              businessLicenseFile: null,
+              postalCode: businessData.zipCode || '',
+              address: businessData.roadAddress || '',
+              detailAddress: businessData.detailedAddress || '',
+              bankName: businessData.bankName || '',
+              accountNumber: businessData.accountNumber || '',
+              accountHolder: businessData.depositorName || '',
+              bankbookFile: null,
+              email: businessData.businessEmail?.split('@')[0] || '',
+              emailDomain: businessData.businessEmail?.split('@')[1] || '',
+              x: businessData.longitude || 0,
+              y: businessData.latitude || 0,
+            });
+
+            // Set file display names
+            setDisplayNames({
+              businessLicense: '사업자등록증',
+              bankbook: '통장사본',
+            });
+
+            // Set file IDs for display
+            if (businessData.businessRegistrationCopy) {
+              setBusinessLicenseFileId(businessData.businessRegistrationCopy);
+            }
+            if (businessData.bankbook) {
+              setBankbookFileId(businessData.bankbook);
+            }
+          } else {
+            console.log('No business registration data found');
+          }
+        } catch (error) {
+          console.error('❌ Error fetching business registration:', error);
+        } finally {
+          setIsLoadingBusinessData(false);
+        }
+      }
+    };
+
+    fetchBusinessRegistration();
+  }, [user?.businessApprovalStatus, businessRegistrationData]);
 
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60)
@@ -426,9 +535,22 @@ export default function SellerInformation({
   const validateForm = () => {
     if (readOnly) return false;
 
+    // Quick check: if business number is empty, fail immediately
+    if (!formData.businessNumber || !formData.businessNumber.trim()) {
+      console.log(
+        'Business number is empty in validateForm:',
+        formData.businessNumber
+      );
+      setErrors({ businessNumber: '사업자등록번호를 입력해주세요.' });
+      return false;
+    }
+
     // Prepare data for validation
     const registrationData = {
-      businessRegistrationNumber: formData.businessNumber,
+      businessRegistrationNumber:
+        BusinessRegistrationService.normalizeBusinessRegistrationNumber(
+          formData.businessNumber
+        ),
       representativeName: formData.representativeName,
       businessName: formData.companyName,
       businessRegistrationCopyFileId:
@@ -457,7 +579,7 @@ export default function SellerInformation({
       // Map validation errors to form field errors
       validation.errors.forEach((error) => {
         if (error.includes('Business registration number')) {
-          newErrors.businessNumber = '사업자등록번호를 입력해주세요.';
+          newErrors.businessNumber = '사업자등록번호는 10자리 숫자여야 합니다.';
         } else if (error.includes('Representative name')) {
           newErrors.representativeName = '대표자명을 입력해주세요.';
         } else if (error.includes('Business name')) {
@@ -520,7 +642,7 @@ export default function SellerInformation({
 
       // Verify files exist on server before submission
       if (businessLicenseEncryptedId) {
-        const businessLicenseInfo = await FileService.getFileInfo(
+        const businessLicenseInfo = await BusinessFileService.getFileInfo(
           businessLicenseEncryptedId
         );
         if (businessLicenseInfo.error || !businessLicenseInfo.data?.data) {
@@ -531,7 +653,9 @@ export default function SellerInformation({
       }
 
       if (bankbookEncryptedId) {
-        const bankbookInfo = await FileService.getFileInfo(bankbookEncryptedId);
+        const bankbookInfo = await BusinessFileService.getFileInfo(
+          bankbookEncryptedId
+        );
         if (bankbookInfo.error || !bankbookInfo.data?.data) {
           throw new Error(
             '통장 사본 파일을 찾을 수 없습니다. 다시 업로드해주세요.'
@@ -540,7 +664,10 @@ export default function SellerInformation({
       }
 
       const registrationData: BusinessRegistrationRequest = {
-        businessRegistrationNumber: formData.businessNumber,
+        businessRegistrationNumber:
+          BusinessRegistrationService.normalizeBusinessRegistrationNumber(
+            formData.businessNumber
+          ),
         representativeName: formData.representativeName,
         businessName: formData.companyName,
         businessRegistrationCopyFileId:
@@ -558,6 +685,12 @@ export default function SellerInformation({
       };
 
       console.log('Sending business registration request:', registrationData);
+
+      // Check existing registration first for debugging
+      const existingRegistration =
+        await BusinessRegistrationService.getExistingBusinessRegistration();
+      console.log('🔍 Existing registration check:', existingRegistration);
+
       const response =
         await BusinessRegistrationService.submitBusinessRegistration(
           registrationData
@@ -566,10 +699,12 @@ export default function SellerInformation({
       if (response.error) {
         console.error('Business registration failed:', response.error);
 
-        // Handle 409 Conflict (already registered)
+        // Handle 409 Conflict (already registered) - this should now be handled by the service
         if (
           response.error.includes('409') ||
-          response.error.includes('이미 가게를 등록했습니다')
+          response.error.includes('이미 가게를 등록했습니다') ||
+          response.error.includes('already exists') ||
+          response.error.includes('duplicate')
         ) {
           console.log('User is already registered as seller, updating role...');
           updateUserRole('seller');
@@ -579,6 +714,21 @@ export default function SellerInformation({
           setTimeout(() => {
             window.location.href = '/client/pages/homepage';
           }, 2000);
+          return;
+        }
+
+        // Handle re-registration errors more gracefully
+        if (
+          response.error.includes('rejected') ||
+          response.error.includes('반려')
+        ) {
+          console.log(
+            'Previous registration was rejected, allowing re-registration...'
+          );
+          // Don't throw error, let the user try again
+          setErrors({
+            submit: '이전 등록이 반려되었습니다. 다시 시도해주세요.',
+          });
           return;
         }
 
@@ -989,7 +1139,9 @@ export default function SellerInformation({
                 }`}
               />
               <div className={styles.authFooter}>
-                <span className={styles.timer}>{formatTime(timeLeft)}</span>
+                {!isVerified && (
+                  <span className={styles.timer}>{formatTime(timeLeft)}</span>
+                )}
                 <button
                   type="button"
                   onClick={handleVerifyCode}
@@ -1016,9 +1168,22 @@ export default function SellerInformation({
             className={`${styles.bottomButton} ${
               canSubmit ? styles.enabled : styles.disabled
             }`}
-            disabled={!canSubmit}
+            disabled={
+              !canSubmit ||
+              user?.businessApprovalStatus === 'PENDING' /* ||
+              user?.businessApprovalStatus === 'REJECTED' */ ||
+              user?.businessApprovalStatus === null
+            }
           >
-            {isSubmitting ? '등록 중...' : '사업자 등록하기'}
+            {isSubmitting
+              ? '등록 중...'
+              : user?.businessApprovalStatus === 'PENDING'
+              ? '승인 대기 중'
+              : user?.businessApprovalStatus === null
+              ? '작성중'
+              : /*  : user?.businessApprovalStatus === 'REJECTED'
+              ? '승인 거부됨' */
+                '사업자 등록하기'}
           </button>
         ) : (
           <div className={styles.readonlyFooter}>{banner || '읽기 전용'}</div>
@@ -1043,7 +1208,9 @@ export default function SellerInformation({
           />
         </div>
         <h1 className={styles.modalTitle}>사업자 등록 완료</h1>
-        <p className={styles.successMessage}>정상적으로 등록되었습니다.</p>
+        <p className={styles.successMessage}>
+          사업자 등록이 완료되었습니다. 승인 후 이용하실 수 있어요.
+        </p>
         <button
           className={styles.modalButton}
           onClick={() => {

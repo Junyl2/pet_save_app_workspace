@@ -47,6 +47,32 @@
   letter-spacing: 0.5px;
 }
 
+.pendingBadge {
+  display: inline-block;
+  background-color: #ffa726;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rejectedBadge {
+  display: inline-block;
+  background-color: #f44336;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .editButton {
   font-size: 0.9rem;
   color: rgba(0, 0, 0, 0.6);

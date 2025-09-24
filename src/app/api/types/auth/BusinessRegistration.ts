@@ -64,3 +64,147 @@ export interface BusinessRegistrationResponse extends ApiResponseEnvelope {
   /** Response data (empty object for successful registration) */
   data: Record<string, unknown>;
 }
+
+/**
+ * Business file upload metadata
+ */
+export interface BusinessFileMetadata {
+  /** Entity type (e.g., "business-registration") */
+  entityType?: string;
+  /** Entity ID */
+  entityId?: string;
+  /** Document type (e.g., "PDF", "IMAGE") */
+  documentType?: string;
+  /** Additional metadata */
+  [key: string]: unknown;
+}
+
+/**
+ * Business file upload response data
+ */
+export interface BusinessFileUploadData {
+  /** File ID */
+  fileId: string;
+  /** Encrypted file ID */
+  encryptedId: string;
+  /** Generated filename */
+  filename: string;
+  /** Original filename */
+  originalFilename: string;
+  /** MIME type */
+  mimeType: string;
+  /** File size in bytes */
+  fileSize: number;
+  /** File extension */
+  fileExtension: string;
+  /** File URL */
+  url: string;
+  /** Upload timestamp */
+  uploadedAt: string;
+  /** Whether file is attached to entity */
+  isAttached: boolean;
+  /** Entity type */
+  entityType: string;
+  /** Entity ID */
+  entityId: string;
+  /** Image width (for images) */
+  width?: number;
+  /** Image height (for images) */
+  height?: number;
+  /** Whether thumbnail exists */
+  hasThumbnail: boolean;
+  /** Document type (for documents) */
+  documentType?: string;
+  /** Page count (for documents) */
+  pageCount?: number;
+  /** Whether text is extractable */
+  isTextExtractable?: boolean;
+}
+
+/**
+ * Business file upload response
+ */
+export interface BusinessFileUploadResponse {
+  /** Success flag */
+  success: boolean;
+  /** Status code */
+  status: number;
+  /** Result message */
+  resultMsg: string;
+  /** Division code */
+  divisionCode: string;
+  /** File upload data */
+  data: BusinessFileUploadData;
+  /** Error ID */
+  errorId: string;
+}
+
+/**
+ * Business multiple file upload response
+ */
+export interface BusinessMultipleFileUploadResponse {
+  /** Success flag */
+  success: boolean;
+  /** Status code */
+  status: number;
+  /** Result message */
+  resultMsg: string;
+  /** Division code */
+  divisionCode: string;
+  /** Array of uploaded file data */
+  data: BusinessFileUploadData[];
+  /** Error ID */
+  errorId: string;
+}
+
+/**
+ * Business file attach response
+ */
+export interface BusinessFileAttachResponse extends ApiResponseEnvelope {
+  /** Empty data object for successful attachment */
+  data: Record<string, unknown>;
+}
+
+/**
+ * Business file info response
+ */
+export interface BusinessFileInfoResponse {
+  /** Success flag */
+  success: boolean;
+  /** Status code */
+  status: number;
+  /** Result message */
+  resultMsg: string;
+  /** Division code */
+  divisionCode: string;
+  /** File information data */
+  data: BusinessFileUploadData;
+  /** Error ID */
+  errorId: string;
+}
+
+/**
+ * Business file list response
+ */
+export interface BusinessFileListResponse {
+  /** Success flag */
+  success: boolean;
+  /** Status code */
+  status: number;
+  /** Result message */
+  resultMsg: string;
+  /** Division code */
+  divisionCode: string;
+  /** Array of file information data */
+  data: BusinessFileUploadData[];
+  /** Error ID */
+  errorId: string;
+}
+
+/**
+ * Business file delete response
+ */
+export interface BusinessFileDeleteResponse extends ApiResponseEnvelope {
+  /** Empty data object for successful deletion */
+  data: Record<string, unknown>;
+}

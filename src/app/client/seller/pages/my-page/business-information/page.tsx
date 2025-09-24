@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React from 'react';
 import styles from './page.module.css';
 import { useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
@@ -8,116 +8,83 @@ import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
 import { useUser } from '@/app/context/userContext';
 import { FaChevronLeft } from 'react-icons/fa';
 
-type UserLike = {
-  role?: string | null;
-  shopId?: number | string | null;
-  seller?: { shopId?: number | string | null } | null;
-};
-
-function isUserLike(value: unknown): value is UserLike {
-  return typeof value === 'object' && value !== null;
-}
-
-function toNumOrNull(v: unknown): number | null {
-  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
-  return Number.isFinite(n) ? n : null;
-}
-
 export default function BusinessInformationPage() {
   const router = useRouter();
   const { user } = useUser();
 
-  // Get shopId from user or localStorage
-  const derivedShopId = useMemo(() => {
-    const fromUser = isUserLike(user)
-      ? user.shopId ?? user.seller?.shopId ?? null
-      : null;
-
-    let fromStorage: number | null = null;
-    if (typeof window !== 'undefined') {
-      const lsSeller = Number(window.localStorage.getItem('sellerId'));
-      const lsShop = Number(window.localStorage.getItem('shopId'));
-      const pick = Number.isFinite(lsSeller)
-        ? lsSeller
-        : Number.isFinite(lsShop)
-        ? lsShop
-        : NaN;
-      fromStorage = Number.isFinite(pick) ? pick : null;
-    }
-
-    const u = toNumOrNull(fromUser);
-    return u ?? fromStorage;
-  }, [user]);
-
-  // 🔗 Route to registration status page
-  const goRegister = () =>
-    router.push(
-      '/client/seller/pages/my-page/business-information/seller-registration'
-    );
-
-  // 🔗 Route to profile page based on shopId or fallback
-  const goProfile = () => {
-    const role =
-      isUserLike(user) && typeof user.role === 'string'
-        ? user.role.toLowerCase()
-        : '';
-
-    if (role !== 'seller') {
+  // Redirect approved users directly to business information page
+  React.useEffect(() => {
+    if (user?.businessApprovalStatus === 'APPROVED') {
       router.push(
-        '/client/seller/pages/my-page/business-information/seller-registration'
+        '/client/seller/pages/my-page/business-information/seller-business-information'
       );
-      return;
     }
+  }, [user, router]);
 
-    if (Number.isFinite(Number(derivedShopId))) {
-      router.push(
-        `/client/seller/pages/change-profile?shopId=${derivedShopId}`
-      );
-      return;
-    }
+  // Get status items for display (only for non-approved users)
+  const getStatusItems = () => {
+    const items = [
+      {
+        label: '사업자등록',
+        status: '작성중',
+        route:
+          '/client/seller/pages/my-page/business-information/business-info-form',
+        isActive: !user || user.businessApprovalStatus === null,
+      },
+      {
+        label: '사업자등록',
+        status: '승인 대기',
+        route:
+          '/client/seller/pages/my-page/business-information/business-info-form',
+        isActive: user?.businessApprovalStatus === 'PENDING',
+      },
+      {
+        label: '사업자등록',
+        status: '반려',
+        route:
+          '/client/seller/pages/my-page/business-information/business-info-form',
+        isActive: user?.businessApprovalStatus === 'REJECTED',
+      },
+    ];
 
-    router.push('/client/seller/pages/change-profile');
+    return items;
   };
 
-  // keep shopId in localStorage for change-profile page
-  useEffect(() => {
-    if (
-      typeof window !== 'undefined' &&
-      Number.isFinite(Number(derivedShopId))
-    ) {
-      window.localStorage.setItem('shopId', String(derivedShopId));
-      window.localStorage.setItem('sellerId', String(derivedShopId));
-    }
-  }, [derivedShopId]);
+  const handleItemClick = (route: string, status: string) => {
+    console.log('🖱️ Clicking on status:', status, 'routing to:', route);
+    console.log('👤 Current user status:', user?.businessApprovalStatus);
+    router.push(route);
+  };
 
   return (
     <>
       <ProductHeader />
       <main className={styles.wrapper}>
         <ul className={styles.list}>
-          <li
-            className={styles.item1}
-            onClick={goRegister}
-            role="button"
-            tabIndex={0}
-          >
-            <div className={styles.greenBorder}>
-              <span className={styles.label}>사업자 등록하기</span>
-              <FaChevronLeft className={styles.chevron} aria-hidden="true" />
-            </div>
-          </li>
-
-          <li
-            className={styles.item2}
-            onClick={goProfile}
-            role="button"
-            tabIndex={0}
-          >
-            <div className={styles.redBorder}>
-              <span className={styles.label}>사업자 프로필 보기</span>
-              <FaChevronLeft className={styles.chevron} aria-hidden="true" />
-            </div>
-          </li>
+          {getStatusItems().map((item, index) => (
+            <li
+              key={index}
+              className={`${styles.item} ${
+                item.isActive ? styles.activeItem : ''
+              }`}
+              onClick={() => handleItemClick(item.route, item.status)}
+              role="button"
+              tabIndex={0}
+            >
+              <div className={styles.itemContent}>
+                <div className={styles.itemText}>
+                  <span className={styles.label}>{item.label}</span>
+                  <span className={styles.status}>[{item.status}]</span>
+                </div>
+                <div className={styles.chevron}>
+                  <FaChevronLeft
+                    className={styles.chevronIcon}
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
+            </li>
+          ))}
         </ul>
       </main>
       <BottomBar />
