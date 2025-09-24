@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import styles from './ProductActions.module.css';
 import { ProductDrawer } from '@/app/components/ui/drawer/ProductDrawer';
 import Image from 'next/image';
@@ -18,12 +18,12 @@ export const ProductActions = ({
   productName,
   productPrice,
   onAddToCart,
-  onPurchase,
-}: ProductActionsProps) => {
+}: /*   onPurchase, */
+ProductActionsProps) => {
   const route = useRouter();
   const [showDrawer, setShowDrawer] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [onMessageProduct, setOnMessageProduct] = useState(false);
+  /*   const [onMessageProduct, setOnMessageProduct] = useState(false); */
   const [activeProduct, setActiveProduct] = useState<{
     id: number;
     name: string;

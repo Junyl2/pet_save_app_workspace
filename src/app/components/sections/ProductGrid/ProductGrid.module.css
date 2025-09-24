@@ -5,12 +5,23 @@
   overflow-x: hidden;
 }
 .grid {
-  display: flex;
-  flex-direction: column;
+  /* display: flex;
+  flex-direction: column; */
+  display: grid;
+  grid-template-columns: repeat(1);
   gap: 1rem;
   padding: 1rem 1rem;
   margin-left: -1rem;
   margin-right: -1rem;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+  }
 }
 
 .card {
@@ -46,9 +57,12 @@
 }
 
 .header {
+  /*  position: relative; */
+  padding-top: 0.5rem;
   display: flex;
-  align-items: flex-start;
-  position: relative;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .name {
@@ -61,8 +75,9 @@
 
 .icons {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
-  position: absolute;
+  /*   position: absolute; */
   right: 0;
   z-index: 150;
 }
@@ -130,4 +145,10 @@
 
 .emptyText {
   font-weight: 500;
+}
+
+@media (min-width: 400px) {
+  .header {
+    margin-bottom: -0.2rem;
+  }
 }

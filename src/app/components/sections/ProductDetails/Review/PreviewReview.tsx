@@ -6,6 +6,7 @@ import { IoStarSharp } from 'react-icons/io5';
 import { Review } from '@/app/api/types/review/review';
 import styles from './PreviewReview.module.css';
 import { BiChevronRight } from 'react-icons/bi';
+import Image from 'next/image';
 
 interface CustomerReviewProps {
   productId: number;
@@ -14,7 +15,13 @@ interface CustomerReviewProps {
 const ReviewItem = ({ review }: { review: Review }) => {
   return (
     <li className={styles.reviewItem}>
-      <img src={review.avatar} alt={review.author} className={styles.avatar} />
+      <Image
+        src={review.avatar}
+        alt={review.author}
+        className={styles.avatar}
+        height={35}
+        width={35}
+      />
       <div className={styles.reviewContent}>
         <div className={styles.rating}>
           {[1, 2, 3, 4, 5].map((i) => (
@@ -45,8 +52,12 @@ export const PreviewReview = ({ productId }: CustomerReviewProps) => {
         const res = await reviewService.getByProductId(productId);
         if (res.error) setError(res.error);
         else setReviews(res.data.slice(0, 5));
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('알 수 없는 에러가 발생했습니다.');
+        }
       } finally {
         setLoading(false);
       }

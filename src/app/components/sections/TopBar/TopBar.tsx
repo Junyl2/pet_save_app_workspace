@@ -7,6 +7,9 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import styles from './TopBar.module.css';
+import { TopIcons } from '../../ui/TopIcons/TopIcons';
+import { PAGE_URLS } from '@/app/utils/page_url';
+import { useUser } from '@/app/context/userContext';
 
 type SearchHistoryItem = {
   id: number;
@@ -20,7 +23,9 @@ type TopBarProps = {
 
 export default function TopBar({ onSearch }: TopBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const isLoggedIn = true;
+  const { user } = useUser();
+  const isLoggedIn = !!user;
+
   const router = useRouter();
   const pathname = usePathname();
 
@@ -29,39 +34,39 @@ export default function TopBar({ onSearch }: TopBarProps) {
   const [showHistory, setShowHistory] = useState(false);
 
   /** Determine storage key based on path */
-  const getStorageKey = () => {
-    if (pathname === '/shops') return 'searchHistoryShops';
-    return 'searchHistoryProducts';
-  };
+  const getStorageKey = useCallback(() => {
+    return pathname === '/shops'
+      ? 'searchHistoryShops'
+      : 'searchHistoryProducts';
+  }, [pathname]);
 
   /** Load history from localStorage */
   useEffect(() => {
     const stored = localStorage.getItem(getStorageKey());
     if (stored) setHistory(JSON.parse(stored));
     else setHistory([]);
-  }, [pathname]);
+  }, [getStorageKey]);
 
   /** Save search term */
-  const saveHistory = (term: string) => {
-    if (!term) return;
-    const now = new Date();
+  const saveHistory = useCallback(
+    (term: string) => {
+      if (!term) return;
+      const now = new Date();
+      const hours = now.getHours() % 12 || 12;
+      const formatted = `${hours}.${now
+        .getMinutes()
+        .toString()
+        .padStart(2, '0')}`;
+      const newHistory = [
+        { id: Date.now(), term, time: formatted },
+        ...history.filter((h) => h.term !== term),
+      ].slice(0, 10);
 
-    let hours = now.getHours() % 12;
-    if (hours === 0) hours = 12;
-
-    const formatted = `${hours}.${now
-      .getMinutes()
-      .toString()
-      .padStart(2, '0')}`;
-
-    const newHistory = [
-      { id: Date.now(), term, time: formatted },
-      ...history.filter((h) => h.term !== term),
-    ].slice(0, 10);
-
-    setHistory(newHistory);
-    localStorage.setItem(getStorageKey(), JSON.stringify(newHistory));
-  };
+      setHistory(newHistory);
+      localStorage.setItem(getStorageKey(), JSON.stringify(newHistory));
+    },
+    [history, getStorageKey]
+  );
 
   /** Submit search */
   const submitSearch = useCallback(() => {
@@ -74,60 +79,42 @@ export default function TopBar({ onSearch }: TopBarProps) {
     saveHistory(term);
 
     if (onSearch) {
-      onSearch(term); // Filter mock data directly
+      onSearch(term);
     } else {
-      // fallback navigation for other pages
-      if (pathname === '/shops') {
-        router.push(`/shops/search?query=${encodeURIComponent(term)}`);
-      } else {
-        router.push(
-          `/client/pages/products/search?query=${encodeURIComponent(term)}`
-        );
-      }
+      const searchPath =
+        pathname === '/shops'
+          ? `/shops/search?query=${encodeURIComponent(term)}`
+          : `/client/pages/products/search?query=${encodeURIComponent(term)}`;
+      router.push(searchPath);
     }
 
     setInputValue('');
     inputRef.current?.blur();
     setShowHistory(false);
-  }, [inputValue, history, pathname, router, onSearch]);
+  }, [inputValue, pathname, router, onSearch, saveHistory]);
 
   /** Handle Enter safely for Korean/Japanese IME */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // @ts-ignore
     if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
       e.preventDefault();
       submitSearch();
     }
   };
 
-  /** Form submit */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     submitSearch();
   };
 
-  /** Clear input */
-  const handleClear = () => {
-    setInputValue('');
-    inputRef.current?.blur();
-    setShowHistory(false);
-  };
-
   /** Select from history */
   const handleSelectHistory = (term: string) => {
     setInputValue(term);
-    if (onSearch) {
-      onSearch(term);
-    } else {
-      if (pathname === '/shops') {
-        router.push(
-          `/client/pages/shops/search?query=${encodeURIComponent(term)}`
-        );
-      } else {
-        router.push(
-          `/client/pages/products/search?query=${encodeURIComponent(term)}`
-        );
-      }
+    if (onSearch) onSearch(term);
+    else {
+      const searchPath = `/client/pages/products/search?query=${encodeURIComponent(
+        term
+      )}`;
+      router.push(searchPath);
     }
     inputRef.current?.blur();
     setShowHistory(false);
@@ -149,9 +136,20 @@ export default function TopBar({ onSearch }: TopBarProps) {
   const handleFocus = () => setShowHistory(true);
   const handleBlur = () => setTimeout(() => setShowHistory(false), 200);
 
+  const isShoplist = pathname.startsWith('/shops');
+
   return (
-    <header className={styles.topbar}>
+    <header
+      className={
+        pathname === '/shops'
+          ? styles.shopTopBar
+          : pathname === '/shopping-cart'
+          ? styles.shoppingCartTopbar
+          : styles.topbar
+      }
+    >
       <div className={styles.inner}>
+        {/* Logo / Back / Location */}
         <div className={styles.logoWrapper}>
           {pathname === '/client/pages/homepage' ? (
             isLoggedIn ? (
@@ -159,7 +157,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
                 className={styles.userLocation}
                 onClick={() => router.push('/client/pages/homepage/location')}
               >
-                <span>신림동</span>
+                <span>{user?.location || '내 위치 선택'}</span>
                 <FaChevronDown className={styles.dropdownIcon} />
               </div>
             ) : (
@@ -182,112 +180,99 @@ export default function TopBar({ onSearch }: TopBarProps) {
           )}
         </div>
 
-        <div className={styles.icons}>
-          {pathname !== '/client/pages/homepage' && (
-            <button
-              className={styles.iconBtn}
-              onClick={() => router.push('/client/pages/homepage')}
-              aria-label="홈으로 이동"
-            >
-              <Image
-                src="/images/icons/bottom-bar/home-active.png"
-                alt="Notification"
-                width={27}
-                height={30}
-                className={styles.logo}
-              />
-            </button>
-          )}
-
-          <button className={styles.iconBtn}>
-            <Image
-              src="/images/icons/Bell.svg"
-              alt="Notification"
-              width={27}
-              height={30}
-              className={styles.logo}
-            />
-          </button>
-          <button className={styles.iconBtn}>
-            <Image
-              src="/images/icons/Cart.png"
-              alt="Cart"
-              width={27}
-              height={30}
-              className="object-contain"
-            />
-          </button>
-        </div>
+        <TopIcons />
       </div>
 
       {/* Search */}
-      <div className={styles.searchWrapper}>
-        <form onSubmit={handleSubmit} className={styles.searchForm}>
-          <button
-            type="submit"
-            aria-label="검색"
-            className={styles.searchButton}
-          >
-            <CiSearch className={styles.searchIcon} />
-          </button>
-          <input
-            ref={inputRef}
-            type="search"
-            placeholder={
-              pathname === '/shops'
-                ? '동명(읍, 면)으로 검색해주세요'
-                : '검색어를 입력해 주세요'
-            }
-            className={styles.searchInput}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            enterKeyHint="search"
-          />
-        </form>
 
-        {showHistory && history.length > 0 && (
-          <div className={styles.historyDropdown}>
-            <div className={styles.historyHeader}>
-              <span className={styles.historyTitle}>최근 검색어</span>
+      {pathname !== PAGE_URLS.SHOPPING_CART &&
+        pathname !== PAGE_URLS.ORDER_CONFIRMATION && (
+          <div className={styles.searchWrapper}>
+            <form onSubmit={handleSubmit} className={styles.searchForm}>
               <button
-                type="button"
-                className={styles.clearAllBtn}
-                onClick={handleClearAll}
+                type="submit"
+                aria-label="검색"
+                className={styles.searchButton}
               >
-                전체 삭제
+                <CiSearch className={styles.searchIcon} />
               </button>
-            </div>
+              <input
+                ref={inputRef}
+                type="search"
+                placeholder={
+                  pathname === '/shops'
+                    ? '동명(읍, 면)으로 검색해주세요'
+                    : '검색어를 입력해 주세요'
+                }
+                className={styles.searchInput}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                enterKeyHint="search"
+              />
+            </form>
 
-            {history.map((item) => (
-              <div key={item.id} className={styles.historyItem}>
-                <div
-                  className={styles.historyContent}
-                  onClick={() => handleSelectHistory(item.term)}
-                >
-                  <div className={styles.historyLeft}>
-                    <CiClock2 className={styles.historyIcon} />
-                    <span className={styles.historyTerm}>{item.term}</span>
-                  </div>
-
-                  <div className={styles.historyRight}>
-                    <span className={styles.historyTime}>{item.time}</span>
-                    <button
-                      type="button"
-                      className={styles.historyDelete}
-                      onClick={() => handleDeleteItem(item.id)}
-                    >
-                      <IoClose />
-                    </button>
-                  </div>
+            {showHistory && history.length > 0 && (
+              <div
+                className={
+                  pathname === '/shops'
+                    ? styles.shopHistoryDropdown
+                    : styles.historyDropdown
+                }
+              >
+                <div className={styles.historyHeader}>
+                  <span className={styles.historyTitle}>최근 검색어</span>
+                  <button
+                    type="button"
+                    className={styles.clearAllBtn}
+                    onClick={handleClearAll}
+                  >
+                    전체 삭제
+                  </button>
                 </div>
+
+                {history.map((item) => (
+                  <div key={item.id} className={styles.historyItem}>
+                    <div
+                      className={styles.historyContent}
+                      onClick={() => handleSelectHistory(item.term)}
+                    >
+                      <div className={styles.historyLeft}>
+                        <CiClock2 className={styles.historyIcon} />
+                        <span className={styles.historyTerm}>{item.term}</span>
+                      </div>
+
+                      <div className={styles.historyRight}>
+                        <span className={styles.historyTime}>{item.time}</span>
+                        <button
+                          type="button"
+                          className={styles.historyDelete}
+                          onClick={() => handleDeleteItem(item.id)}
+                        >
+                          <IoClose />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+            {isShoplist && (
+              <button className={styles.currentBtn}>
+                <Image
+                  src="/images/icons/mage_location.png"
+                  alt="Location Icon"
+                  height={16}
+                  width={16}
+                  className="object-contain"
+                />
+                현재위치로 찾기
+              </button>
+            )}
           </div>
         )}
-      </div>
     </header>
   );
 }

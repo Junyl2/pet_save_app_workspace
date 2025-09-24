@@ -1,0 +1,317 @@
+.container {
+  background-color: #f9fafb;
+  min-height: 100vh;
+  padding-top: 60px;
+}
+
+.header {
+  background-color: white;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+
+  display: flex; /* make children horizontal */
+  justify-content: space-between; /* push them to opposite sides */
+  align-items: center; /* vertically center */
+}
+
+.orderNumber {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0; /* remove margin-top so it aligns nicely */
+  text-decoration: underline;
+}
+
+.progressSection {
+  background-color: white;
+  padding: 40px 20px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.progressTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 40px;
+  margin-top: 0;
+  text-align: center;
+}
+
+.progressContainer {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.progressTrack {
+  position: absolute;
+  top: 10px; /* Adjusted from 20px to 10px to center with dots */
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background-color: #e5e7eb;
+  z-index: 1;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: #10b981;
+  transition: width 0.3s ease;
+  border-radius: 3px;
+}
+
+.stepsContainer {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.stepDot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid;
+  background-color: white;
+  z-index: 3;
+  position: relative;
+}
+
+.stepDotActive {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+.stepDotInactive {
+  background-color: #e5e7eb;
+  border-color: #e5e7eb;
+}
+
+.stepLabel {
+  font-size: 14px;
+  margin-top: 16px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.stepLabelActive {
+  color: #059669;
+}
+
+.stepLabelInactive {
+  color: #9ca3af;
+}
+
+.productSection {
+  background-color: white;
+  margin-top: 16px;
+  padding: 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.productContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.productImage {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  background-color: #f3f4f6;
+}
+
+.productDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.productName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 4px;
+  margin-top: 0;
+}
+
+.productBrand {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  margin-top: 0;
+}
+
+.productPricing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.originalPrice {
+  font-size: 12px;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.currentPrice {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ef4444;
+}
+
+.timelineSection {
+  background-color: white;
+  margin-top: 16px;
+}
+
+.sectionHeader {
+  padding: 12px 16px;
+}
+
+.sectionTitle {
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  font-size: 16px;
+}
+
+.timelineContent {
+  padding: 16px;
+}
+
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timelineItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #f3f4f6;
+}
+.timelineItem:last-child {
+  border-bottom: none;
+}
+
+.timelineItem {
+  display: flex;
+  align-items: flex-start; /* align top edges */
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.eventTime {
+  text-align: left; /* time on the left */
+  margin-right: 12px; /* space between time and details */
+  min-width: 80px; /* optional: keep times aligned */
+}
+
+.eventDate {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0 0 2px 0;
+}
+
+.eventTimeStamp {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.eventDetails {
+  flex: 1; /* takes remaining space */
+}
+
+.eventStatus {
+  font-size: 14px;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.eventDescription {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.infoSection {
+  background-color: white;
+  margin-top: 16px;
+
+}
+
+.infoSection:last-child {
+  margin-bottom: 16px;
+}
+
+.infoContent {
+  padding: 16px;
+  font-size: 14px;
+  
+}
+
+.infoItem {
+  display: flex;
+  margin-bottom: 8px;
+  align-items: flex-start;
+}
+
+.infoItem:last-child {
+  margin-bottom: 0;
+}
+
+.infoLabel {
+  color: #6b7280;
+  margin-right: 16px;
+  min-width: 80px;
+  text-align: left;
+}
+
+.infoValue {
+  color: #111827;
+  flex: 1;
+}
+
+.infoValueAddress {
+  color: #111827;
+  text-align: left;
+  flex: 1;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 480px) {
+  .progressSection {
+    padding: 30px 16px;
+  }
+
+  .progressContainer {
+    max-width: 100%;
+  }
+
+  .stepLabel {
+    font-size: 12px;
+    margin-top: 12px;
+  }
+
+  .stepDot {
+    width: 16px;
+    height: 16px;
+  }
+
+  .progressTrack {
+    top: 8px; /* Adjusted mobile positioning to center with smaller dots */
+    left: 16px;
+    right: 16px;
+  }
+}

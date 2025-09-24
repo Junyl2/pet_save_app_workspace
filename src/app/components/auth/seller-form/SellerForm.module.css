@@ -1,0 +1,499 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem;
+  margin-top: 71.59px;
+  background-color: #f2f4f7;
+  margin-inline: -1rem;
+  padding-inline: 1rem;
+  padding-top: 1rem;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 0.8rem;
+  text-align: center;
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+.backBtn {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  position: absolute;
+  left: 0;
+  margin-left: 1rem;
+}
+.backIcon {
+  font-size: clamp(1.2rem, 2.8vw, 1.4rem);
+  margin-right: 0.5rem;
+  font-weight: 100;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.4);
+}
+.headerTitle {
+  font-size: clamp(20px, 3vw, 24px);
+  font-weight: 600;
+  text-align: center;
+  color: black;
+  width: 100%;
+}
+
+/* Form groups */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  color: #333;
+}
+
+/* Inputs */
+.input {
+  width: 100%;
+  padding: 1rem !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  border-radius: 5px;
+  font-size: clamp(1rem, 2.8vw, 1.1rem);
+  color: #333;
+  box-sizing: border-box;
+  background-color: #fff;
+}
+
+.input:focus,
+.authInput:focus {
+  border-color: #66bfa7;
+  outline: 1px solid #66bfa7;
+}
+
+.input::placeholder,
+.authInput::placeholder {
+  font-size: clamp(13px, 2.3vw, 14px);
+  color: rgba(0, 0, 0, 0.4);
+}
+
+/* Inline grouping ( phone + button, email + domain) */
+.inlineGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+}
+
+.emailInputWrapper {
+  position: relative;
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  width: 100%;
+}
+
+.at {
+  font-size: clamp(0.875rem, 1.5vw, 1rem);
+  color: #374151;
+  display: flex;
+  align-items: center;
+  padding: 0 0.25rem;
+}
+
+/* Select dropdown */
+.select {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #bcbcbc;
+  border-radius: 5px;
+  font-size: clamp(13px, 2.3vw, 14px);
+  color: rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+}
+
+/* Outline button  */
+.outlineButton {
+  background: #d9d9d9;
+  color: #ffffff;
+  font-size: clamp(0.75rem, 1.25vw, 0.875rem);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.emailButton {
+  position: absolute;
+  right: 1rem;
+  background: #d9d9d9;
+  color: #ffffff;
+  font-size: clamp(0.75rem, 1.25vw, 0.875rem);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+/* .outlineButton:hover,
+.emailButton:hover {
+  background: #d8d1d1;
+}
+ */
+
+/* Bottom submit button */
+.bottomButton {
+  width: 100%;
+  padding: 1rem;
+  font-size: clamp(1rem, 1.75vw, 1.125rem);
+  border-radius: 16px;
+  border: none;
+  cursor: not-allowed;
+  background: #d1d5db;
+  color: #9ca3af;
+  transition: background 0.2s;
+  border-radius: 5px;
+}
+
+.disabled {
+  background-color: #d9d9d9 !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.bottomButton.enabled {
+  cursor: pointer;
+  background: #66bfa7;
+  color: #fff;
+}
+
+.bottomButton.enabled:hover {
+  background: #57ae97;
+}
+
+.inlineButton {
+  background: #d9d9d9;
+  color: #ffffff;
+  font-size: clamp(0.75rem, 1.25vw, 0.875rem);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.error {
+  color: red;
+  font-size: clamp(13px, 2.3vw, 14px);
+  margin-top: 0.3rem;
+}
+
+.success {
+  color: #66bfa7;
+  font-size: clamp(13px, 2.3vw, 14px);
+  margin-top: 0.3rem;
+}
+
+/* Enabled state */
+.inlineButton.enabled {
+  background: #66bfa7;
+  border-color: #66bfa7;
+  cursor: pointer;
+  color: #fff;
+}
+
+/* password */
+.passwordWrapper {
+  position: relative;
+}
+
+.eyeIcon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 1rem;
+}
+
+.authButton {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Authentication Code Section */
+
+.authContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.authInput {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #bcbcbc;
+  border-radius: 5px;
+  font-size: clamp(1rem, 2.8vw, 1.1rem);
+  color: #333;
+  box-sizing: border-box;
+}
+
+.authFooter {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4rem;
+  right: 1rem;
+}
+
+.timer {
+  color: #ff6b6b;
+  font-size: clamp(13px, 2.3vw, 14px);
+  font-weight: normal;
+}
+.authFooter .inlineButton {
+  position: static;
+  transform: none;
+  padding: 6px 10px;
+}
+
+/* modal section */
+.imageWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-bottom: 2.2rem;
+}
+.checkicon {
+  object-fit: contain;
+}
+
+.modalTitle {
+  font-size: clamp(20px, 2.5vw, 24px);
+  font-weight: bold;
+  margin-bottom: 16px;
+  text-align: center;
+  color: #1f1f1f;
+}
+
+.successMessage {
+  text-align: center;
+  font-size: clamp(16px, 2.8vw, 18px);
+  margin: 20px 0;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.modalButton {
+  display: block;
+  width: 100%;
+  background: #66bfa7;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  padding: 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-top: 4rem;
+  font-size: clamp(15px, 2.5vw, 16px);
+  font-weight: 600;
+
+  &:hover {
+    background-color: #51b59a;
+  }
+}
+
+/* Outline & Email Buttons */
+.outlineButton,
+.emailButton,
+.inlineButton {
+  background: #d9d9d9;
+  color: #ffffff;
+  font-size: clamp(0.75rem, 1.25vw, 0.875rem);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  cursor: not-allowed;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+/* Enabled state (applies to all button types) */
+.outlineButton.enabled,
+.emailButton.enabled,
+.inlineButton.enabled,
+.bottomButton.enabled {
+  background: #66bfa7;
+  border-color: #66bfa7;
+  color: #fff;
+  cursor: pointer;
+}
+
+.outlineButton.enabled:hover,
+.emailButton.enabled:hover,
+.inlineButton.enabled:hover,
+.bottomButton.enabled:hover {
+  background: #57ae97;
+}
+
+.errorInput {
+  border-color: red !important;
+}
+
+/* Ensure select also shows error */
+.select.errorInput {
+  border-color: red !important;
+}
+
+/* Auth code input error override */
+.authInput.errorInput {
+  border-color: red !important;
+}
+
+/* drop down */
+.emailWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+}
+
+.atSymbol {
+  font-size: 1rem;
+  color: #333;
+}
+
+.input {
+  flex: 1;
+  padding: 0.5rem;
+}
+
+.customSelectWrapper {
+  position: relative;
+  flex: 1;
+}
+
+.customSelect {
+  padding: 1rem !important;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+}
+
+.chevronIcon {
+  margin-left: 0.5rem;
+}
+
+.customSelectList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  z-index: 10;
+  margin-top: 2px;
+  list-style: none;
+  padding: 0;
+  color: #000;
+  font-weight: normal;
+}
+
+.customSelectItem {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.customSelectItem:hover {
+  background-color: #f0f0f0;
+}
+
+/* Address search results */
+.addressResults {
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.addressResultsHeader {
+  background-color: #f9fafb;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 8px 8px 0 0;
+}
+
+.addressResultItem {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.addressResultItem:hover {
+  background-color: #f9fafb;
+}
+
+.addressResultItem:last-child {
+  border-bottom: none;
+}
+
+.addressResultMain {
+  font-size: 0.875rem;
+  color: #111827;
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+.addressResultPostal {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Read-only styles */
+.readonlyFileBox {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 5px;
+  padding: 12px 16px;
+  color: #495057;
+  font-size: 14px;
+  min-height: 45px;
+  display: flex;
+  align-items: center;
+}
+
+.readonlyFooter {
+  background-color: #e8f5e8;
+  border: 1px solid #66c0a4;
+  border-radius: 5px;
+  padding: 12px 16px;
+  color: #2d5a2d;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 20px;
+}

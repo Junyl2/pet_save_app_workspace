@@ -4,8 +4,8 @@ import styles from './ProductInfo.module.css';
 interface ProductInfoProps {
   name: string;
   expiration: string;
-  price: string;
-  discountPrice?: string;
+  price: number;
+  discountPrice?: number;
   details?: string[];
 }
 

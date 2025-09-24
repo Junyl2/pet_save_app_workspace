@@ -2,48 +2,88 @@
 import styles from './DotMenu.module.css';
 import { FiMoreHorizontal } from 'react-icons/fi';
 import { useState } from 'react';
-import ReportModal from '../modal/ReportModal/ReportModal';
-export const DotMenu = () => {
+import { usePathname } from 'next/navigation';
+import { DeleteModal } from '../modal/DeleteModal/DeleteModal';
+
+interface DotMenuProps {
+  mode?: 'default' | 'deleteOnly' | 'deletePage';
+  onDelete?: () => void; // new callback
+}
+
+export const DotMenu = ({ mode = 'default', onDelete }: DotMenuProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  /* const router = useRouter(); */
+  const pathname = usePathname();
+
+  const isContactUs = pathname.startsWith('/contact-us');
+
+  const handleDelete = () => {
+    setMenuOpen(false);
+    if (onDelete) {
+      onDelete(); // trigger passed callback
+    } /*  else {
+      router.push('/delete');
+    } */
+  };
+
+  const handlDeleteModal = () => {
+    setDeleteModalOpen(true);
+    setMenuOpen(false);
+  };
 
   return (
-    <>
-      {/* Horizontal three-dot menu */}
-      <div className={styles.menuWrapper}>
-        <button
-          className={styles.menuBtn}
-          onClick={() => setMenuOpen((prev) => !prev)}
-        >
-          <FiMoreHorizontal size={20} />
-        </button>
-      </div>
+    <div
+      className={
+        mode === 'deletePage'
+          ? styles.deletePage
+          : styles.menuWrapper && isContactUs
+          ? styles.contactUsWrapper
+          : styles.menuWrapper
+      }
+    >
+      <button
+        className={styles.menuBtn}
+        onClick={() => setMenuOpen((prev) => !prev)}
+      >
+        <FiMoreHorizontal size={20} />
+      </button>
 
       {menuOpen && (
         <div className={styles.dropdown}>
-          <button
-            onClick={() => {
-              setMenuOpen(false);
-              setReportOpen(true);
-            }}
-            className={styles.onReportButton}
-          >
-            신고하기
-          </button>
-          <div className={styles.separator}></div>
-          <button
-            onClick={() => {
-              setMenuOpen(false);
-              alert('차단하기 기능은 아직 준비 중입니다.');
-            }}
-            className={styles.onReportButton}
-          >
-            차단하기
-          </button>
+          {/* delete buttons */}
+          {mode === 'deleteOnly' ? (
+            <button className={styles.onReportButton} onClick={handleDelete}>
+              삭제하기
+            </button>
+          ) : mode === 'deletePage' ? (
+            <button
+              className={styles.onReportButton}
+              onClick={handlDeleteModal}
+            >
+              삭제하기
+            </button>
+          ) : (
+            /* report button */
+            <>
+              <button className={styles.onReportButton}>신고하기</button>
+              <div className={styles.separator}></div>
+              <button className={styles.onReportButton}>차단하기</button>
+            </>
+          )}
         </div>
       )}
-      {/* report modal */}
-      <ReportModal show={reportOpen} onClose={() => setReportOpen(false)} />
-    </>
+
+      {deleteModalOpen && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <DeleteModal
+            modalTitle="이 글을 삭제하시겠습니까?"
+            open={true}
+            onDelete={handleDelete}
+            onClose={() => setDeleteModalOpen(false)}
+          />
+        </div>
+      )}
+    </div>
   );
 };

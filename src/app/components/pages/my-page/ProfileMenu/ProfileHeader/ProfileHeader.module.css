@@ -1,0 +1,105 @@
+.profileHeader {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1rem 1.8rem 1rem;
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+  border-radius: 10px;
+}
+
+/* Top row: image + name + edit */
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0rem 1rem 1rem 1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+.profileImage img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+}
+
+.profileInfo {
+  flex: 1;
+  margin-left: 1rem;
+}
+
+.username {
+  font-weight: normal;
+  font-size: 1.1rem;
+}
+
+.roleBadge {
+  display: inline-block;
+  background-color: #66bfa7;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pendingBadge {
+  display: inline-block;
+  background-color: #ffa726;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rejectedBadge {
+  display: inline-block;
+  background-color: #f44336;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.editButton {
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.6);
+  background: none;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* Quick Actions grid */
+.quickActions {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 1rem;
+}
+
+.quickActionItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.actionIcon {
+  /* width: 30px;
+  height: 30px; */
+  margin-bottom: 0.5rem;
+  object-fit: contain;
+}

@@ -6,7 +6,7 @@ type CartItem = {
 };
 
 // temporary in-memory cart
-let cart: CartItem[] = [];
+const cart: CartItem[] = [];
 
 export const cartService = {
   addToCart: async (
@@ -25,8 +25,12 @@ export const cartService = {
       }
 
       return { data: { success: true } };
-    } catch (error: any) {
-      return { data: { success: false }, error: error.message };
+    } catch (error: unknown) {
+      let message = 'An unknown error occurred';
+      if (error instanceof Error) {
+        message = error.message;
+      }
+      return { data: { success: false }, error: message };
     }
   },
 

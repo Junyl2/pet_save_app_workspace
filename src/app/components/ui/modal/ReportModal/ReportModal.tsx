@@ -20,18 +20,19 @@ const reportOptions = [
 
 export default function ReportModal({ show, onClose }: ReportModalProps) {
   const [submitted, setSubmitted] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  /*   const [selectedOption, setSelectedOption] = useState<string | null>(null); */
 
   if (!show) return null;
 
   const handleOptionClick = (option: string) => {
-    setSelectedOption(option);
+    /* setSelectedOption(option); */
     setSubmitted(true);
+    console.log('Selected report reason:', option);
   };
 
   const handleClose = () => {
     setSubmitted(false);
-    setSelectedOption(null);
+    /*  setSelectedOption(null); */
     onClose();
   };
 

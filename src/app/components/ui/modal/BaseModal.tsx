@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import styles from './BaseModal.module.css';
 
 interface BaseModalProps {
@@ -25,11 +26,16 @@ export const BaseModal = ({
   noRadius = false,
 }: BaseModalProps) => {
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : 'auto';
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onEsc);
     return () => {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onEsc);
     };
-  }, [open]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -37,23 +43,34 @@ export const BaseModal = ({
     noRadius ? styles.noRadius : ''
   } ${className}`;
 
-  const content = (
-    <div className={modalClass} onClick={(e) => e.stopPropagation()}>
-      {/*    <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
-        <FiX size={22} />
-      </button> */}
-      {title && (
-        <h2 className={`${styles.title} ${titleClassName}`}>{title}</h2>
-      )}
-      <div className={styles.body}>{children}</div>
+  const tree = (
+    <div
+      className={styles.overlay}
+      onClick={(e) => {
+        //  This ensures modal closes only when clicking outside
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* visible dim only over your app width (desktop) */}
+      <div className={styles.scrim} aria-hidden="true" />
+
+      <div className={styles.canvas}>
+        <div className={modalClass} onClick={(e) => e.stopPropagation()}>
+          {title && (
+            <h2 className={`${styles.title} ${titleClassName}`}>{title}</h2>
+          )}
+          <div className={styles.body}>{children}</div>
+        </div>
+      </div>
     </div>
   );
 
-  return withOverlay ? (
-    <div className={styles.overlay} onClick={onClose}>
-      {content}
-    </div>
-  ) : (
-    content
-  );
+  return withOverlay
+    ? ReactDOM.createPortal(tree, document.body)
+    : ReactDOM.createPortal(
+        <div className={styles.canvas}>{children}</div>,
+        document.body
+      );
 };

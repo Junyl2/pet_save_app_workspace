@@ -1,0 +1,44 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  background-color: white;
+  border-bottom: 1px solid #e9ecef;
+  margin: 0 -16px;
+  padding-left: 16px;
+  padding-right: 16px;
+  position: relative;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.backIcon {
+  font-size: 18px;
+  color: #333;
+}
+
+.title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  z-index: 1;
+}
+
+/* Ensure TopIcons are positioned correctly */
+.header :global(.topIcons) {
+  z-index: 2;
+} 

@@ -5,6 +5,7 @@
   margin-left: -1rem;
   margin-right: -1rem;
   margin-bottom: 68.09px;
+  margin-top: 178px;
 }
 
 .searchWrapper {
@@ -19,6 +20,26 @@
   border-radius: 8px;
   outline: none;
   transition: border 0.2s ease;
+}
+
+/* Current Location Button */
+.currentBtn {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #fff;
+  color: #66bfa7;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: start;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+.currentBtn img {
+  margin-right: 10px;
 }
 
 .searchInput:focus {
@@ -37,7 +58,7 @@
   align-items: center;
   background-color: #fff;
   padding: 0.75rem 1rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  /*   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); */
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
@@ -57,7 +78,7 @@
 
 .shopCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .shopImage {

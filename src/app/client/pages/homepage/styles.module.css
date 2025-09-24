@@ -1,3 +1,32 @@
 .homeContainer {
   margin-bottom: 68.9px;
 }
+
+.header {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  background-color: #fff;
+  padding: 0;
+  box-sizing: border-box;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.02);
+  overflow-x: auto;
+}
+
+.mainContent {
+  margin-top: 201px;
+}
+
+@media (min-width: 1025px) {
+  .header {
+    width: 468px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}

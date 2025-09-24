@@ -1,0 +1,164 @@
+/* NoticeDetailPage.module.css */
+
+/* Container and Layout */
+.container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #ffffff; /* White background throughout */
+  box-sizing: border-box;
+  margin: 0;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  width: 100vw;
+  padding: 90px 16px 80px 16px;
+}
+
+/* Header */
+.noticeTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.noticeDate {
+  font-size: 14px;
+  color: #999;
+  margin: 0 0 20px 0;
+}
+
+/* Divider line */
+.divider {
+  height: 1px;
+  background-color: #e5e7eb;
+  border: none;
+  margin: 0 0 24px 0;
+}
+
+/* Section styling */
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 24px 0 0 0;
+}
+
+.sectionTitle:first-of-type {
+  margin-top: 0;
+}
+
+.contentText {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+}
+
+.contentList {
+  margin: 0 0 16px 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.contentList li {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 6px;
+  padding-left: 16px;
+  position: relative;
+  list-style: none;
+}
+
+.contentList li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #333;
+  font-weight: bold;
+}
+
+.highlight {
+  font-weight: 600;
+  color: #333;
+}
+
+.warning {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  padding-left: 16px;
+}
+
+.timeRange {
+  font-weight: 600;
+  color: #333;
+}
+
+/* Service Message */
+.serviceMessage {
+  margin: 6px 0 20px 0;
+}
+
+.serviceMessage p {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin: 0 0 8px 0;
+}
+
+.serviceMessage p:last-child {
+  margin-bottom: 0;
+}
+
+/* Contact Info */
+.contactInfo {
+  margin-top: 24px;
+}
+
+.contactTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #333;
+}
+
+.contactList {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.contactList li {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 4px;
+  padding-left: 16px;
+  position: relative;
+}
+
+.contactList li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #333;
+  font-weight: bold;
+}
+
+.contactList li:last-child {
+  margin-bottom: 0;
+}
+
+@media (min-width: 1024px) {
+  .container {
+    width: 470px;
+    left: 50%;
+    right: 50%;
+    margin-left: -235px;
+    margin-right: -235px;
+  }
+}

@@ -7,9 +7,10 @@ import { useFavorites } from '@/app/context/FavoritesContext';
 import { Product } from '@/app/api/types/products/products';
 import { productService } from '@/app/api/services/product-service/productService';
 import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
+import { CartModal } from '../../ui/modal/CartModal/CartModal';
 
 interface ProductGridProps {
-  products?: Product[]; // optional pre-fetched products
+  products?: Product[];
   category?: string;
   searchTerm?: string;
   onProductClick?: (product: Product) => void;
@@ -23,13 +24,16 @@ export const ProductGrid = ({
   onProductClick,
   onAddToCart,
 }: ProductGridProps) => {
-  const { favorites, toggleFavorite } = useFavorites();
+  const { favorites, toggleFavorite, isFavorited } = useFavorites();
 
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
   const [loading, setLoading] = useState(!initialProducts);
 
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
+
   useEffect(() => {
-    if (initialProducts) return; // skip fetch if products provided
+    if (initialProducts) return;
 
     let isMounted = true;
 
@@ -81,7 +85,7 @@ export const ProductGrid = ({
     <div className={styles.mainContainer}>
       <div className={styles.grid}>
         {products.map((product) => {
-          const isFavorited = favorites.includes(product.id);
+          const isProductFavorited = isFavorited(product.id);
 
           return (
             <div
@@ -92,7 +96,7 @@ export const ProductGrid = ({
             >
               <div className={styles.imageWrapper}>
                 <Image
-                  src={product.image}
+                  src={product.image ?? '/images/products/placeholder.png'}
                   alt={product.name}
                   width={120}
                   height={120}
@@ -108,6 +112,8 @@ export const ProductGrid = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         onAddToCart?.(product);
+                        setSelectedProduct(product);
+                        setCartOpen(true);
                       }}
                     >
                       <Image
@@ -119,15 +125,15 @@ export const ProductGrid = ({
                       />
                     </button>
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        toggleFavorite(product.id);
+                        await toggleFavorite(product.id);
                       }}
                       className={styles.iconBtn}
                     >
                       <Image
                         src={
-                          isFavorited
+                          isProductFavorited
                             ? '/images/products/heart-active.png'
                             : '/images/products/heart-default.png'
                         }
@@ -145,13 +151,15 @@ export const ProductGrid = ({
                 <p className={styles.price}>
                   {product.discountPrice ? (
                     <>
-                      <span className={styles.original}>{product.price}</span>
+                      <span className={styles.original}>
+                        {product.price.toLocaleString('ko-KR')}원
+                      </span>
                       <span className={styles.discount}>
-                        {product.discountPrice}
+                        {product.discountPrice.toLocaleString('ko-KR')}원
                       </span>
                     </>
                   ) : (
-                    product.price
+                    `${product.price.toLocaleString('ko-KR')}원`
                   )}
                 </p>
                 <p className={styles.info}>
@@ -164,6 +172,16 @@ export const ProductGrid = ({
           );
         })}
       </div>
+
+      {/* cart modal */}
+      {selectedProduct && (
+        <CartModal
+          open={cartOpen}
+          onClose={() => setCartOpen(false)}
+          productName={selectedProduct.name}
+          productPrice={selectedProduct.discountPrice ?? selectedProduct.price}
+        />
+      )}
     </div>
   );
 };

@@ -1,0 +1,15 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px; /* space between header and filter bar */
+  padding-top: 80px;
+  max-width: 1200px; /* keep content centered */
+  margin: 0 -1rem;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 1rem; /* reapply padding *inside* if you still want breathing space */
+}

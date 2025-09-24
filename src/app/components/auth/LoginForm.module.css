@@ -4,10 +4,56 @@
   align-items: center;
   justify-content: center;
   gap: 69px;
-  min-height: 100vh;
+  height: 100%;
   background: #ffffff;
   width: 100%;
-  padding-bottom: 2rem;
+}
+.topBar {
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #ffffff;
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1025px) {
+  .topBar {
+    width: 468px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding-left: 0rem;
+    padding-right: 0rem;
+  }
+}
+
+.backLink {
+  position: absolute;
+  background-color: transparent;
+  border: none;
+  left: 0rem;
+  display: flex;
+  align-items: center;
+  font-size: clamp(1.2rem, 2.8vw, 1.4rem) !important;
+  font-weight: 100;
+  color: rgba(0, 0, 0, 0.4);
+  text-decoration: none;
+  cursor: pointer;
+}
+.arrowLeft {
+  font-size: clamp(1.2rem, 2.8vw, 1.4rem) !important;
+  color: rgba(0, 0, 0, 0.4);
+  font-weight: 100;
+}
+.home {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.4);
 }
 
 /* .imageWrapper {
@@ -15,6 +61,7 @@
  */
 .objectContain {
   object-fit: contain;
+  cursor: pointer;
 }
 
 .loginFormContainer {
@@ -199,4 +246,15 @@
 }
 .eyeButton:hover {
   color: #66bfa7;
+}
+
+.error {
+  color: #e74c3c;
+  font-size: 14px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  border-radius: 4px;
+  text-align: center;
 }

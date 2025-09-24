@@ -8,6 +8,8 @@
   --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
     Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
     'Malgun Gothic', sans-serif;
+
+  --primary-color: #66bfa7;
 }
 
 html,
@@ -18,7 +20,6 @@ body {
   box-sizing: border-box;
   height: 100%;
   background-color: #ffffff;
-  font-family: system-ui, sans-serif;
   max-width: 100%;
 }
 
@@ -68,4 +69,10 @@ body {
     border-radius: 8px;
     background-color: #ffffff;
   }
+}
+
+/* UTILITIES */
+
+.text-muted {
+  color: rgba(0, 0, 0, 0.4);
 }

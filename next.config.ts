@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       'placedog.net',
       'cdn.pixabay.com',
       'images.pexels.com',
+      '211.107.13.167', //server ip
     ],
   },
   async rewrites() {
@@ -50,15 +51,34 @@ const nextConfig: NextConfig = {
         source: '/',
         destination: '/client/pages/homepage',
       },
+      //shopping cart
+      {
+        source: '/shopping-cart',
+        destination: '/client/pages/shopping-cart',
+      },
+      {
+        source: '/shopping-cart/delivery-payment',
+        destination: '/client/pages/shopping-cart/delivery-payment',
+      },
+      //contact-us
+      {
+        source: '/contact-us',
+        destination: '/client/pages/contact-us',
+      },
+      {
+        source: '/inquiries/waiting-reply/:id',
+        destination: '/client/pages/contact-us/waiting-reply/:id',
+      },
       // Login
       {
         source: '/login',
         destination: '/client/pages/login',
       },
+
       // Join Membership
       {
         source: '/join-membership',
-        destination: '/client/pages/join-membership',
+        destination: '/client/join-membership',
       },
       // Reset Password
       {
@@ -73,7 +93,7 @@ const nextConfig: NextConfig = {
       // MyPage
       {
         source: '/mypage',
-        destination: '/client/pages/mypage',
+        destination: '/client/pages/my-page',
       },
       // Contact
       {

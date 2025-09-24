@@ -1,0 +1,438 @@
+.container {
+  margin-top: 71.59px;
+  margin-bottom: 1rem;
+}
+.pageTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 1rem 1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card {
+  background: #fff;
+  /*  border: 1px solid #eee; */
+  /*   border-radius: 12px; */
+  /*  padding: 16px; */
+  /*   margin-bottom: 12px; */
+  padding: 1rem 0rem;
+}
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.divider {
+  background-color: #f2f4f7;
+  height: 0.8rem;
+  margin: 0rem -1rem;
+}
+.sectionSubTitle {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 12px 0 8px;
+}
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.label {
+  min-width: 132px;
+  color: #666;
+}
+.select {
+  flex: 1;
+  height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fff;
+}
+.input {
+  height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0 10px;
+  width: 180px;
+}
+
+/* direct custom input  */
+.directInput {
+  width: 100%;
+  min-height: 100px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-top: 1rem;
+  background-color: #fafafa;
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: #333;
+  resize: none;
+  transition: border 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.directInput::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+  font-style: italic;
+}
+
+.directInput:focus {
+  border-color: #25d873;
+  outline: none;
+}
+
+.addressBlock {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.addrName {
+  font-weight: 700;
+}
+.addrPhone,
+.addrText {
+  color: #555;
+}
+.secondaryBtn {
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 5px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.pointsRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.pointsHint {
+  margin-top: 8px;
+  color: #000;
+  font-size: 0.775rem;
+}
+
+/* payment summary */
+
+.paymentLabel {
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  color: #333;
+}
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px dashed #e5e5e5;
+  font-size: 16px;
+}
+/* payment method */
+.payCategory {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 16px;
+  margin-top: 8px;
+}
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+.privacyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.linkBtn {
+  border: none;
+  background: none;
+  color: rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  padding: 4px 6px;
+}
+/* Mode of payment */
+.quickSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quickPayments {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.quickBtn1 {
+  background-image: url('/images/icons/toss-payment.png');
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
+  outline: 1px solid rgba(0, 0, 0, 0.1);
+  height: 35px;
+  border-radius: 5px;
+  border: none;
+  width: 100%;
+  background-color: transparent !important;
+}
+.quickBtn2 {
+  background-image: url('/images/icons/kakao-payment.png');
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
+  outline: 1px solid rgba(0, 0, 0, 0.1);
+  height: 35px;
+  border-radius: 5px;
+  border: none;
+  width: 100%;
+  background-color: #fbeb02 !important;
+}
+.quickBtn3 {
+  background-image: url('/images/icons/naver-payment.png');
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
+  outline: 1px solid rgba(0, 0, 0, 0.1);
+  height: 35px;
+  border-radius: 5px;
+  border: none;
+  width: 100%;
+  background-color: transparent !important;
+}
+
+.quickSelected {
+  outline: 2px solid rgb(55, 210, 55);
+}
+
+/* Column for card/bank options */
+.payCategoryColumn {
+  display: flex;
+  flex-direction: column;
+  margin-top: 1rem;
+  gap: 0.5rem;
+}
+
+.warnText {
+  margin-top: 8px;
+  color: #d93025;
+  font-size: 13px;
+}
+
+.payButton {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 800;
+  background: #66bfa7;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.payButtonDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.empty {
+  padding: 24px 16px;
+}
+
+/* Dropdown styles */
+.dropdownContainer {
+  /*  position: sticky;
+  top: 71.59px; */
+  background: #fff;
+  padding: 1rem 1rem 0rem 1rem;
+  margin-left: -1rem;
+  z-index: 600;
+  /*  border-bottom: 1px solid rgba(0, 0, 0, 0.1); */
+  padding-bottom: 1rem;
+}
+
+.dropdownToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.4);
+  transition: background 0.2s ease;
+  margin: 0;
+}
+
+.dropdownToggle.open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.dropdownToggle:hover {
+  background-color: #f9fafb;
+}
+
+.dropdownLabel {
+  flex: 1;
+  text-align: left;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.dropdownArrow {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.dropdownMenu {
+  margin-top: 0;
+  width: 100%;
+  background: #ffffff;
+  list-style: none;
+  padding: 0;
+}
+
+.dropdownMenu:last-child {
+  border-bottom: none !important;
+  border-bottom-right-radius: 5px !important;
+  border-bottom-left-radius: 5px !important;
+}
+
+.dropdownItem {
+  padding: 0.6rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin: 0;
+  color: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dropdownItem:last-child {
+  border-bottom-right-radius: 5px !important;
+  border-bottom-left-radius: 5px !important;
+}
+
+/* Selected state */
+.dropdownItem.selected {
+  color: #000000;
+  font-weight: 500;
+}
+
+/* checbox */
+
+/* Checkbox input */
+.checkbox,
+.checkboxLabel {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  padding: 8px;
+  border: 1px solid #bcbcbc;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  background-color: #ffffff;
+  transition: background-color 0.3s;
+}
+
+.checkbox:checked {
+  border-color: #66bfa7;
+  background-color: #66bfa7;
+}
+.checkboxLabel:checked {
+  border-color: #ffffff;
+  background-color: #66bfa7;
+}
+.checkbox:checked::after,
+.checkboxLabel::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* agreements */
+/* Bullet style row */
+.bulletRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.labelAgreements {
+  color: #000;
+}
+
+.bullet {
+  font-size: 18px;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* Add border bottom when needed */
+.withBorder {
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+/* Align text left, button right */
+.flexBetween {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.flexStart {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Muted warning text */
+.warnMuted {
+  margin-top: 12px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* Underlined muted link inside text */
+.underlineMuted {
+  color: rgba(0, 0, 0, 0.5);
+  padding-bottom: 0.1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+}
