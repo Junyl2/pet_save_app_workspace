@@ -8,7 +8,10 @@ import { PAGE_URLS } from '@/app/utils/page_url';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 import { MemberInfo, MemberUpdateRequest } from '@/app/api/types/member/member';
+import { MemberUpdateRequest as NewMemberUpdateRequest } from '@/app/api/types/auth/MemberUpdate';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
+import { FileUploadService } from '@/app/api/services/client/fileService/fileUploadService';
+import { FileService } from '@/app/api/services/client/fileService/fileService';
 import styles from './MemberInformation.module.css';
 
 export default function MemberInformation() {
@@ -21,6 +24,9 @@ export default function MemberInformation() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [originalFormData, setOriginalFormData] = useState({
     email: '',
     name: '',
@@ -37,6 +43,26 @@ export default function MemberInformation() {
     password: '••••••••',
     address: '',
   });
+
+  // Function to get profile image URL
+  const getProfileImageUrl = async (profileFileId: string | undefined) => {
+    if (!profileFileId) return null;
+
+    try {
+      const response = await FileService.getFile(profileFileId, {
+        disposition: 'inline',
+        type: 'original',
+      });
+
+      if (response.data) {
+        return URL.createObjectURL(response.data);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting profile image:', error);
+      return null;
+    }
+  };
 
   // Fetch member information on component mount
   useEffect(() => {
@@ -65,6 +91,12 @@ export default function MemberInformation() {
           );
 
           setMemberInfo(memberData);
+
+          // Load profile image if available
+          if (memberData.profileFileId) {
+            const imageUrl = await getProfileImageUrl(memberData.profileFileId);
+            setProfileImage(imageUrl);
+          }
 
           // Update form data with real API data
           const initialFormData = {
@@ -111,6 +143,151 @@ export default function MemberInformation() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProfileImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      setUploadError(null);
+
+      console.log('Uploading profile image:', file.name);
+
+      // Preferred flow (A): upload file first, then send JSON with the returned IDs
+      try {
+        // 1) Upload file
+        const uploadResult = await FileUploadService.uploadFile(file);
+
+        if (uploadResult.error) {
+          setUploadError(uploadResult.error);
+          return;
+        }
+
+        if (!uploadResult.data) {
+          setUploadError('파일 업로드에 실패했습니다.');
+          return;
+        }
+
+        const { fileId, encryptedId } = uploadResult.data;
+
+        if (!fileId && !encryptedId) {
+          throw new Error('Upload did not return fileId/encryptedId');
+        }
+
+        // Create preview URL
+        const previewUrl = URL.createObjectURL(file);
+        setProfileImage(previewUrl);
+
+        // 2) Update member with JSON
+        // Create the file URL using the encryptedId
+        const fileUrl = `http://211.107.13.167:11309/api/pet-save/files/${encryptedId}`;
+
+        const updateData: NewMemberUpdateRequest = {
+          // Try different field names that the server might expect
+          profileImageUrl: fileUrl,
+          profileImage: fileUrl,
+          imageUrl: fileUrl,
+          image: fileUrl,
+          avatar: fileUrl,
+          avatarUrl: fileUrl,
+          profilePicture: fileUrl,
+          profilePictureUrl: fileUrl,
+          // Also try file ID approaches
+          profileImageFileId: fileId,
+          profileFileId: fileId,
+          imageId: fileId,
+          imageFileId: fileId,
+        };
+
+        console.log('Updating member profile with JSON:', updateData);
+
+        // Try URL-only update first (most likely to work based on server response)
+        let response = await MemberService.updateMyProfileImageUrl(
+          memberInfo!.memberId,
+          fileUrl
+        );
+
+        if (response.error) {
+          console.error('URL-only update failed, trying PATCH method...');
+          response = await MemberService.updateMyProfileImagePatch(
+            memberInfo!.memberId,
+            fileUrl
+          );
+        }
+
+        if (response.error) {
+          console.error('PATCH update failed, trying full JSON update...');
+          response = await MemberService.updateMyInfo(
+            memberInfo!.memberId,
+            updateData
+          );
+        }
+
+        if (response.error) {
+          console.error('JSON update failed, trying multipart fallback...');
+
+          // Fallback flow (B): if backend expects multipart on /members/{memberId}
+          const multipartResponse =
+            await MemberService.updateMyProfileImageMultipart(
+              memberInfo!.memberId,
+              file
+            );
+
+          if (multipartResponse.error) {
+            console.error('All update methods failed');
+            setUploadError(
+              `프로필 이미지 업데이트에 실패했습니다: ${multipartResponse.error}`
+            );
+            return;
+          }
+
+          if (multipartResponse.data?.success && multipartResponse.data?.data) {
+            setMemberInfo(multipartResponse.data.data);
+            console.log('Profile image updated successfully via multipart');
+          }
+        } else if (response.data?.success && response.data?.data) {
+          setMemberInfo(response.data.data);
+          console.log('Profile image updated successfully via JSON/URL');
+        }
+      } catch (err: any) {
+        const status = err?.response?.status;
+        const data = err?.response?.data;
+        console.error('Profile update failed', { status, data });
+
+        // Try multipart as final fallback
+        try {
+          console.log('Trying multipart as final fallback...');
+          const multipartResponse =
+            await MemberService.updateMyProfileImageMultipart(
+              memberInfo!.memberId,
+              file
+            );
+
+          if (multipartResponse.error) {
+            throw new Error(multipartResponse.error);
+          }
+
+          if (multipartResponse.data?.success && multipartResponse.data?.data) {
+            setMemberInfo(multipartResponse.data.data);
+            console.log(
+              'Profile image updated successfully via multipart fallback'
+            );
+          }
+        } catch (fallbackError) {
+          console.error('All update methods failed:', fallbackError);
+          setUploadError('프로필 이미지 업로드 중 오류가 발생했습니다.');
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      setUploadError('프로필 이미지 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -167,14 +344,20 @@ export default function MemberInformation() {
             response.error.includes('not found'))
         ) {
           console.log('🔄 MemberId approach failed, trying fallback method...');
-          response = await MemberService.updateMyInfo(updateData);
+          response = await MemberService.updateMyInfo(
+            memberInfo!.memberId,
+            updateData
+          );
           console.log('🔍 Update response (fallback):', response);
         }
       } catch (error) {
         console.log(
           '🔄 MemberId approach failed with exception, trying fallback method...'
         );
-        response = await MemberService.updateMyInfo(updateData);
+        response = await MemberService.updateMyInfo(
+          memberInfo!.memberId,
+          updateData
+        );
         console.log('🔍 Update response (fallback):', response);
       }
 
@@ -274,17 +457,34 @@ export default function MemberInformation() {
         <div className={styles.profileSection}>
           <div className={styles.profileImageContainer}>
             <Image
-              src="/images/animals/강아지.png"
+              src={profileImage || '/images/icons/profile-default.png'}
               alt="프로필"
               width={100}
               height={100}
               className={styles.profileImage}
             />
+            {isUploadingImage && (
+              <div className={styles.uploadingOverlay}>
+                <div className={styles.uploadingSpinner}></div>
+                <span>업로드 중...</span>
+              </div>
+            )}
           </div>
-          <button className={styles.profileEditBtn}>
+          <label className={styles.profileEditBtn} htmlFor="profileImageInput">
             <span className={styles.cameraIcon}>📷</span>
-            프로필 사진 변경
-          </button>
+            {isUploadingImage ? '업로드 중...' : '프로필 사진 변경'}
+          </label>
+          <input
+            id="profileImageInput"
+            type="file"
+            accept="image/*"
+            onChange={handleProfileImageUpload}
+            style={{ display: 'none' }}
+            disabled={isUploadingImage}
+          />
+          {uploadError && (
+            <div className={styles.uploadError}>{uploadError}</div>
+          )}
         </div>
 
         {/* Error Messages */}

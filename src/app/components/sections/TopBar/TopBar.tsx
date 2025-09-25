@@ -32,6 +32,22 @@ export default function TopBar({ onSearch }: TopBarProps) {
   const [inputValue, setInputValue] = useState('');
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
+
+  /** Format address to show only first 2 parts */
+  const formatAddress = useCallback((address: string): string => {
+    if (!address) return '';
+    const parts = address.split(' ');
+    return parts.slice(0, 2).join(' ');
+  }, []);
+
+  /** Load selected location from localStorage */
+  const loadSelectedLocation = useCallback(() => {
+    const savedLocation = localStorage.getItem('selectedLocation');
+    if (savedLocation) {
+      setSelectedLocation(savedLocation);
+    }
+  }, []);
 
   /** Determine storage key based on path */
   const getStorageKey = useCallback(() => {
@@ -46,6 +62,29 @@ export default function TopBar({ onSearch }: TopBarProps) {
     if (stored) setHistory(JSON.parse(stored));
     else setHistory([]);
   }, [getStorageKey]);
+
+  /** Load selected location on component mount */
+  useEffect(() => {
+    loadSelectedLocation();
+  }, [loadSelectedLocation]);
+
+  /** Listen for storage changes to update selected location */
+  useEffect(() => {
+    const handleStorageChange = () => {
+      loadSelectedLocation();
+    };
+
+    // Listen for storage changes from other tabs
+    window.addEventListener('storage', handleStorageChange);
+
+    // Listen for custom location change events from the same tab
+    window.addEventListener('locationChanged', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('locationChanged', handleStorageChange);
+    };
+  }, [loadSelectedLocation]);
 
   /** Save search term */
   const saveHistory = useCallback(
@@ -157,7 +196,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
                 className={styles.userLocation}
                 onClick={() => router.push('/client/pages/homepage/location')}
               >
-                <span>{user?.location || '내 위치 선택'}</span>
+                <span>{selectedLocation || '내 위치 선택'}</span>
                 <FaChevronDown className={styles.dropdownIcon} />
               </div>
             ) : (

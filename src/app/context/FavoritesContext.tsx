@@ -76,6 +76,14 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       const response = await WishlistService.getWishlist();
 
       if (response.data && response.data.items) {
+        console.log('Loaded wishlist items:', response.data.items.length);
+        console.log(
+          'Wishlist items:',
+          response.data.items.map((item) => ({
+            productId: item.productId,
+            productName: item.productName,
+          }))
+        );
         setWishlistItems(response.data.items);
         // Map wishlist items to product IDs (using productId field from API response)
         setFavorites(response.data.items.map((item) => item.productId));
@@ -140,6 +148,11 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const isCurrentlyFavorited = favorites.includes(id);
+        console.log('Toggle favorite state:', {
+          productId: id,
+          isCurrentlyFavorited,
+          action: isCurrentlyFavorited ? 'REMOVE' : 'ADD',
+        });
 
         // Try to sync with API first
         try {
@@ -149,14 +162,15 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           );
 
           if (response.data?.success) {
-            // API call succeeded, update UI
+            // API call succeeded, reload wishlist to get accurate state from backend
+            console.log('Toggle successful, reloading wishlist...');
+            await loadWishlist();
+
+            // Show success message based on the action
             if (isCurrentlyFavorited) {
-              // Remove from favorites
-              setFavorites((prev) => prev.filter((f) => f !== id));
-              setWishlistItems((prev) => prev.filter((item) => item.id !== id));
+              console.log('Removed from wishlist:', id);
             } else {
-              // Add to favorites and reload wishlist to get full data
-              await loadWishlist();
+              console.log('Added to wishlist:', id);
             }
           } else {
             console.error('Wishlist API error:', response.error);

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaChevronLeft } from 'react-icons/fa';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-import { FiCamera } from 'react-icons/fi';
+import { FiCamera, FiX } from 'react-icons/fi';
 import Image from 'next/image';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
@@ -16,6 +16,7 @@ import {
   LOGIN_TYPES,
 } from '@/app/api/types/auth/MemberSignupDto';
 import { EmailVerificationRequest } from '@/app/api/types/auth/EmailVerification';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 export default function MembershipInformation() {
   const router = useRouter();
@@ -48,6 +49,10 @@ export default function MembershipInformation() {
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
+
+  // QR Scanner states
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [qrScanError, setQrScanError] = useState<string | null>(null);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -156,6 +161,67 @@ export default function MembershipInformation() {
     if (name === 'postalCode') {
       setAddressSearchError('');
     }
+  };
+
+  // QR Scanner functions
+  const handleQRScan = (detectedCodes: any[]) => {
+    if (detectedCodes && detectedCodes.length > 0) {
+      const result = detectedCodes[0].rawValue;
+      console.log('QR Code scanned:', result);
+
+      let referralCode = '';
+
+      try {
+        // Try to parse as JSON first
+        const parsedData = JSON.parse(result);
+        console.log('Parsed JSON data:', parsedData);
+
+        // If it's a JSON object, extract the referralCode
+        if (
+          parsedData &&
+          typeof parsedData === 'object' &&
+          parsedData.referralCode
+        ) {
+          referralCode = parsedData.referralCode;
+          console.log('Found referralCode in JSON:', referralCode);
+        } else {
+          // If no referralCode field, use the whole result
+          referralCode = result;
+          console.log('No referralCode field found, using full result');
+        }
+      } catch (error) {
+        // If it's not JSON, use the result as is
+        referralCode = result;
+        console.log('Not JSON, using raw result:', referralCode);
+      }
+
+      console.log('Extracted referral code:', referralCode);
+
+      // Update the referral input with the extracted referral code
+      setFormData((prev) => ({
+        ...prev,
+        referral: referralCode,
+      }));
+
+      // Close the scanner
+      setShowQRScanner(false);
+      setQrScanError(null);
+    }
+  };
+
+  const handleQRScanError = (error: unknown) => {
+    console.error('QR Scan error:', error);
+    setQrScanError('QR 코드 스캔 중 오류가 발생했습니다.');
+  };
+
+  const openQRScanner = () => {
+    setShowQRScanner(true);
+    setQrScanError(null);
+  };
+
+  const closeQRScanner = () => {
+    setShowQRScanner(false);
+    setQrScanError(null);
   };
 
   // Send verification code
@@ -974,10 +1040,7 @@ export default function MembershipInformation() {
             <button
               type="button"
               className={styles.qrScanButton}
-              onClick={() => {
-                // TODO: Implement QR code scanning functionality
-                console.log('QR code scan clicked');
-              }}
+              onClick={openQRScanner}
             >
               <FiCamera className={styles.qrScanIcon} />
             </button>
@@ -1027,6 +1090,55 @@ export default function MembershipInformation() {
             로그인 페이지로 이동
           </button>
         </BaseModal>
+      )}
+
+      {/* QR Scanner Modal */}
+      {showQRScanner && (
+        /*  <BaseModal open={showQRScanner} onClose={closeQRScanner}> */
+        <div className={styles.qrScannerModal}>
+          <div className={styles.qrScannerContent}>
+            <div className={styles.qrScannerHeader}>
+              <h3>QR 코드 스캔</h3>
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={closeQRScanner}
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <div className={styles.qrScannerContainer}>
+              <Scanner
+                onScan={handleQRScan}
+                onError={handleQRScanError}
+                styles={{
+                  container: {
+                    width: '100%',
+                    height: '300px',
+                  },
+                  video: {
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  },
+                }}
+                constraints={{
+                  facingMode: 'environment', // Use back camera
+                }}
+              />
+            </div>
+
+            {qrScanError && (
+              <div className={styles.qrScanError}>{qrScanError}</div>
+            )}
+
+            <div className={styles.qrScannerInstructions}>
+              <p>QR 코드를 카메라에 비춰주세요</p>
+            </div>
+          </div>
+        </div>
+        /*   </BaseModal> */
       )}
     </>
   );

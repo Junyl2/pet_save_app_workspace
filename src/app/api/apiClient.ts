@@ -71,7 +71,10 @@ const hasValidTokens = (): boolean => {
  * Check if an endpoint is public (doesn't require authentication)
  * Uses an allowlist approach - only explicitly listed endpoints are public
  */
-const isPublicEndpoint = (url: string | undefined): boolean => {
+const isPublicEndpoint = (
+  url: string | undefined,
+  method?: string
+): boolean => {
   if (!url) return false;
 
   // Strict allowlist of public endpoints
@@ -93,10 +96,28 @@ const isPublicEndpoint = (url: string | undefined): boolean => {
     '/auth/recovery/password/reset',
     '/address/search',
     '/address/search/zip-code',
-    '/products', // Only for browsing, not user-specific operations
     '/categories',
     '/stores', // Only for browsing, not user-specific operations
   ];
+
+  // Special handling for products endpoints
+  // Only GET requests to /products (browsing) are public
+  // POST, PUT, DELETE, PATCH requests to /products require authentication
+  if (url.startsWith('/products')) {
+    const isGetRequest = !method || method.toLowerCase() === 'get';
+    const isProductsBrowsing =
+      isGetRequest && (url === '/products' || url.startsWith('/products?'));
+
+    console.log('🔍 Products endpoint classification:', {
+      url,
+      method: method || 'GET',
+      isGetRequest,
+      isProductsBrowsing,
+      isPublic: isProductsBrowsing,
+    });
+
+    return isProductsBrowsing;
+  }
 
   // Check if URL starts with any public endpoint
   const isPublic = publicEndpoints.some((endpoint) => {
@@ -106,6 +127,7 @@ const isPublicEndpoint = (url: string | undefined): boolean => {
   // Comprehensive logging for debugging
   console.log('🔍 Endpoint classification:', {
     url,
+    method: method || 'GET',
     isPublic,
     reason: isPublic ? 'Public endpoint' : 'Protected endpoint (requires auth)',
     withCredentials: !isPublic, // Protected endpoints should use credentials
@@ -152,9 +174,43 @@ const axiosInstance: AxiosInstance = axios.create({
 
 // Request interceptor: Inject Authorization header if token exists
 axiosInstance.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const token = getFromLocalStorage('authToken');
-    const isPublic = isPublicEndpoint(config.url);
+    const refreshToken = getFromLocalStorage('refreshToken');
+    const isPublic = isPublicEndpoint(config.url, config.method);
+
+    // Handle Content-Type based on data type
+    if (config.data instanceof FormData) {
+      // Let browser set proper multipart boundary
+      if (config.headers) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
+      }
+    } else {
+      // JSON only if not FormData AND no explicit content-type already given
+      const hasContentType = !!(
+        config.headers &&
+        (config.headers['Content-Type'] || config.headers['content-type'])
+      );
+      if (!hasContentType) {
+        if (config.headers) {
+          config.headers['Content-Type'] = 'application/json';
+        } else {
+          config.headers = { 'Content-Type': 'application/json' } as any;
+        }
+      }
+    }
+
+    // Debug logging (masked token)
+    console.debug('apiClient →', {
+      method: config.method,
+      url: config.url,
+      isFormData: config.data instanceof FormData,
+      contentType:
+        config.headers?.['Content-Type'] || config.headers?.['content-type'],
+      withCredentials: config.withCredentials,
+      hasAuth: !!config.headers?.Authorization,
+    });
 
     // Log final request configuration
     console.log('🚀 Request interceptor:', {
@@ -162,6 +218,11 @@ axiosInstance.interceptors.request.use(
       method: config.method?.toUpperCase(),
       isPublic,
       hasToken: !!token,
+      hasRefreshToken: !!refreshToken,
+      tokenExpired: token ? isTokenExpired(token) : 'No token',
+      refreshTokenExpired: refreshToken
+        ? isTokenExpired(refreshToken)
+        : 'No refresh token',
       withCredentials: config.withCredentials,
       authorizationHeader:
         config.headers.Authorization &&
@@ -180,14 +241,50 @@ axiosInstance.interceptors.request.use(
       config.withCredentials = true;
 
       if (token) {
-        // Check if token is expired before using it
-        if (isTokenExpired(token)) {
+        // Check if token is expired and try to refresh proactively
+        if (
+          isTokenExpired(token) &&
+          refreshToken &&
+          !isTokenExpired(refreshToken)
+        ) {
           console.log(
-            '⚠️ Auth token is expired, will trigger refresh on 401 response'
+            '⚠️ Auth token is expired, attempting proactive refresh...'
           );
+          try {
+            // Import AuthService dynamically to avoid circular dependency
+            const { AuthService } = await import(
+              './services/client/auth/authService'
+            );
+
+            const refreshResponse = await AuthService.refreshToken();
+            if (refreshResponse.data && !refreshResponse.error) {
+              const newToken = getFromLocalStorage('authToken');
+              if (newToken) {
+                config.headers.Authorization = `Bearer ${newToken}`;
+                console.log('✅ Token refreshed proactively, using new token');
+              } else {
+                config.headers.Authorization = `Bearer ${token}`;
+                console.log(
+                  '⚠️ Token refresh succeeded but new token not found, using old token'
+                );
+              }
+            } else {
+              config.headers.Authorization = `Bearer ${token}`;
+              console.log(
+                '⚠️ Proactive token refresh failed, using old token (will retry on 401)'
+              );
+            }
+          } catch (error) {
+            console.error('Proactive token refresh error:', error);
+            config.headers.Authorization = `Bearer ${token}`;
+            console.log(
+              '⚠️ Proactive token refresh error, using old token (will retry on 401)'
+            );
+          }
+        } else {
+          config.headers.Authorization = `Bearer ${token}`;
+          console.log('✅ Protected endpoint - auth token attached');
         }
-        config.headers.Authorization = `Bearer ${token}`;
-        console.log('✅ Protected endpoint - auth token attached');
       } else {
         console.log('❌ Protected endpoint - no auth token available');
       }
@@ -234,9 +331,28 @@ axiosInstance.interceptors.response.use(
 
     // Handle 401/403 authentication errors
     if (error.response?.status === 401 || error.response?.status === 403) {
-      const isPublic = isPublicEndpoint(error.config?.url);
+      const isPublic = isPublicEndpoint(
+        error.config?.url,
+        error.config?.method
+      );
       const isRefreshEndpoint = error.config?.url?.includes('/auth/refresh');
       const isLoginEndpoint = error.config?.url?.includes('/auth/login');
+
+      console.log('🔐 Authentication error detected:', {
+        status: error.response?.status,
+        url: error.config?.url,
+        isPublic,
+        isRefreshEndpoint,
+        isLoginEndpoint,
+        hasAuthToken: !!getFromLocalStorage('authToken'),
+        hasRefreshToken: !!getFromLocalStorage('refreshToken'),
+        authTokenExpired: getFromLocalStorage('authToken')
+          ? isTokenExpired(getFromLocalStorage('authToken')!)
+          : 'No token',
+        refreshTokenExpired: getFromLocalStorage('refreshToken')
+          ? isTokenExpired(getFromLocalStorage('refreshToken')!)
+          : 'No refresh token',
+      });
 
       // Skip token refresh for public endpoints and refresh endpoint itself
       if (isPublic || isRefreshEndpoint || isLoginEndpoint) {
@@ -453,11 +569,76 @@ export const apiClient = {
     }
   },
 
-  delete: async <T>(url: string): Promise<ApiResponse<T>> => {
+  patch: async <T>(url: string, data?: unknown): Promise<ApiResponse<T>> => {
     try {
-      const response = await axiosInstance.delete<T>(url);
+      const response = await axiosInstance.patch<T>(url, data);
       return { data: response.data, error: undefined };
     } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'An unknown error occurred';
+      return { data: null, error: message };
+    }
+  },
+
+  delete: async <T>(url: string): Promise<ApiResponse<T>> => {
+    try {
+      console.log('API DELETE Request:', { url });
+      const response = await axiosInstance.delete<T>(url);
+      console.log('API DELETE Response:', response.data);
+      return { data: response.data, error: undefined };
+    } catch (error: unknown) {
+      if (error instanceof Error && 'response' in error) {
+        // ✅ Avoid `any`: use AxiosError<unknown, unknown>
+        const axiosError = error as AxiosError<unknown, unknown>;
+        const resp = axiosError.response;
+
+        console.error('API DELETE Error Details:', {
+          status: resp?.status,
+          statusText: resp?.statusText,
+          data: resp?.data,
+          headers: resp?.headers,
+          config: {
+            url: axiosError.config?.url,
+            method: axiosError.config?.method,
+            headers: axiosError.config?.headers,
+          },
+        });
+
+        // Log the actual response data for debugging
+        console.error(
+          'API DELETE Response Data:',
+          JSON.stringify(resp?.data, null, 2)
+        );
+
+        // Try to extract meaningful error message from API response (no `any`)
+        let apiErrorMessage: string | undefined;
+        const dataObj =
+          resp?.data && typeof resp.data === 'object'
+            ? (resp.data as {
+                resultMsg?: unknown;
+                message?: unknown;
+                error?: unknown;
+              })
+            : undefined;
+
+        if (dataObj) {
+          apiErrorMessage =
+            (typeof dataObj.resultMsg === 'string' && dataObj.resultMsg) ||
+            (typeof dataObj.message === 'string' && dataObj.message) ||
+            (typeof dataObj.error === 'string' && dataObj.error) ||
+            undefined;
+        }
+
+        apiErrorMessage = apiErrorMessage || resp?.statusText || error.message;
+
+        // Include status code in error message for better debugging
+        const statusCode = resp?.status;
+        const finalErrorMessage = statusCode
+          ? `${statusCode}: ${apiErrorMessage}`
+          : apiErrorMessage;
+
+        return { data: null, error: finalErrorMessage };
+      }
       const message =
         error instanceof Error ? error.message : 'An unknown error occurred';
       return { data: null, error: message };

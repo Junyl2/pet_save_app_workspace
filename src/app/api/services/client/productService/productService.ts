@@ -176,4 +176,32 @@ export class ProductService {
 
     return response;
   }
+
+  /**
+   * Delete product by ID
+   * DELETE /api/pet-save/products/{productId}
+   */
+  static async deleteProduct(
+    productId: string
+  ): Promise<ApiResponse<BaseApiEnvelope<{}>>> {
+    console.log('[ProductService] Deleting product with ID:', productId);
+
+    const response = await apiClient.delete<BaseApiEnvelope<{}>>(
+      `/products/${productId}`
+    );
+
+    if (response.error) {
+      console.error(
+        '[ProductService] Failed to delete product:',
+        response.error
+      );
+    } else {
+      console.log(
+        '[ProductService] Product deleted successfully:',
+        response.data
+      );
+    }
+
+    return response;
+  }
 }

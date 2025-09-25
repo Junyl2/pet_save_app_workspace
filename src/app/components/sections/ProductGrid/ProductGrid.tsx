@@ -5,10 +5,15 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './ProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
-import { Product } from '@/app/api/types/products/products';
+import {
+  Product,
+  ProductSearchResponse,
+  ProductPageInfo,
+} from '@/app/api/types/products/products';
 import { ProductService } from '@/app/api/services/client/productService/productService';
 import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
+import { Pagination, PaginationInfo } from '../../ui/Pagination';
 
 interface ProductGridProps {
   products?: Product[];
@@ -32,6 +37,19 @@ export const ProductGrid = ({
 
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
   const [loading, setLoading] = useState(!initialProducts);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [pageInfo, setPageInfo] = useState<ProductPageInfo>({
+    totalElements: 0,
+    totalPages: 0,
+    currentPage: 0,
+    pageSize: 10,
+    first: true,
+    last: false,
+    hasNext: false,
+    hasPrevious: false,
+  });
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -42,18 +60,20 @@ export const ProductGrid = ({
     let isMounted = true;
 
     const fetchProducts = async () => {
+      console.log('fetchProducts called with currentPage:', currentPage);
       setLoading(true);
       try {
         const searchParams = {
           keyword: searchTerm.trim() || undefined,
           categoryName: category || undefined,
           registrationStatus: 'ONSALE' as const,
-          page: 0,
-          size: 50,
+          page: currentPage,
+          size: 10,
           sortBy: 'createdAt' as const,
           direction: 'desc' as const,
         };
 
+        console.log('API call params:', searchParams);
         const res = await ProductService.searchProducts(searchParams);
         if (!isMounted) return;
 
@@ -62,6 +82,36 @@ export const ProductGrid = ({
           setProducts([]);
         } else {
           let filtered = res.data?.data?.content || [];
+
+          // Update pagination info - API returns pagination in pageInfo object
+          const apiPageInfo = res.data?.data?.pageInfo;
+          const totalPages = apiPageInfo?.totalPages || 0;
+          const totalElements = apiPageInfo?.totalElements || 0;
+
+          setTotalPages(totalPages);
+          setTotalElements(totalElements);
+          setPageInfo(
+            apiPageInfo || {
+              totalElements: 0,
+              totalPages: 0,
+              currentPage: 0,
+              pageSize: 10,
+              first: true,
+              last: false,
+              hasNext: false,
+              hasPrevious: false,
+            }
+          );
+
+          // Debug pagination info
+          console.log('Pagination Debug:', {
+            totalPages,
+            totalElements,
+            currentPage,
+            contentLength: filtered.length,
+            pageInfo: apiPageInfo,
+            fullApiResponse: res.data?.data,
+          });
 
           // Debug: Log the first product to see the actual API structure
           if (filtered.length > 0) {
@@ -85,6 +135,8 @@ export const ProductGrid = ({
             );
           }
 
+          console.log('Setting products:', filtered.length, 'products');
+          console.log('First product ID:', filtered[0]?.productId);
           setProducts(filtered);
         }
       } catch (error) {
@@ -102,7 +154,24 @@ export const ProductGrid = ({
     return () => {
       isMounted = false;
     };
+  }, [category, searchTerm, storeId, initialProducts, currentPage]);
+
+  // Reset pagination when category or search term changes (but not when currentPage changes)
+  useEffect(() => {
+    if (initialProducts) return;
+    console.log('Category or search term changed, resetting to page 0');
+    setCurrentPage(0);
   }, [category, searchTerm, storeId, initialProducts]);
+
+  // Debug useEffect to track currentPage changes
+  useEffect(() => {
+    console.log('currentPage changed to:', currentPage);
+  }, [currentPage]);
+
+  const handlePageChange = (page: number) => {
+    console.log('ProductGrid: handlePageChange called with page:', page);
+    setCurrentPage(page);
+  };
 
   if (loading) return <ProductSkeleton count={5} />;
 
@@ -256,6 +325,9 @@ export const ProductGrid = ({
           );
         })}
       </div>
+
+      {/* Pagination */}
+      <Pagination pageInfo={pageInfo} onPageChange={handlePageChange} />
 
       {/* cart modal */}
       {selectedProduct && (

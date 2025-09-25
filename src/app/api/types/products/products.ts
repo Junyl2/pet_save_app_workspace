@@ -63,6 +63,18 @@ export interface ProductSearchParams {
   direction?: 'asc' | 'desc';
 }
 
+// Pagination info returned by the GET /products API
+export interface ProductPageInfo {
+  totalElements: number; // Total number of products across all pages
+  totalPages: number; // Total number of pages
+  currentPage: number; // Current page number (0-based)
+  pageSize: number; // Number of items per page
+  first: boolean; // Is this the first page?
+  last: boolean; // Is this the last page?
+  hasNext: boolean; // Are there more pages after this one?
+  hasPrevious: boolean; // Are there pages before this one?
+}
+
 export interface ProductSearchResponse {
   success: boolean;
   status: number;
@@ -70,13 +82,7 @@ export interface ProductSearchResponse {
   divisionCode: string;
   data: {
     content: Product[];
-    totalElements: number;
-    totalPages: number;
-    size: number;
-    number: number;
-    first: boolean;
-    last: boolean;
-    numberOfElements: number;
+    pageInfo: ProductPageInfo;
   };
   errorId?: string;
 }

@@ -90,14 +90,8 @@ export function SteamedProducts() {
   const handleToggleFavorite = async (productId: string) => {
     try {
       await toggleFavorite(productId);
-
-      // Update local products state to reflect the change
-      setProducts((prevProducts) =>
-        prevProducts.filter((product) => product.id !== productId)
-      );
-
-      setSuccessMessage('상품이 찜목록에서 제거되었습니다.');
-      setShowSuccessMessage(true);
+      // The FavoritesContext will handle updating the wishlistItems
+      // which will automatically update the products via useEffect
     } catch (error) {
       console.error('Error toggling favorite:', error);
       setError('찜목록 업데이트에 실패했습니다.');

@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 import { BusinessService } from '@/app/api/services/client/businessService/businessService';
+import { useAuth } from './authContext';
 /* import { StoreService } from '@/app/api/services/client/memberService/store'; */
 
 export type Role = 'client' | 'seller';
@@ -37,6 +38,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { isLoggedIn, checkAuthState } = useAuth();
 
   // Load saved user on first mount (client-side only)
   useEffect(() => {
@@ -60,6 +62,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // ignore JSON parse errors
     }
   }, []);
+
+  // Sync with AuthContext login state
+  useEffect(() => {
+    if (!isLoggedIn) {
+      // If not logged in, clear user data
+      setUser(null);
+      localStorage.removeItem('user');
+    }
+  }, [isLoggedIn]);
 
   const login = (userData: User) => {
     localStorage.setItem('user', JSON.stringify(userData));
@@ -95,6 +106,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const authToken = localStorage.getItem('authToken');
     if (!authToken) {
       console.log('No auth token found, skipping user data refresh');
+      return;
+    }
+
+    // Ensure auth state is valid before making API calls
+    await checkAuthState();
+
+    // Double-check after auth state check
+    const updatedAuthToken = localStorage.getItem('authToken');
+    if (!updatedAuthToken) {
+      console.log('Auth token invalid after check, skipping user data refresh');
       return;
     }
 

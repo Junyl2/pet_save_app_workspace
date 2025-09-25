@@ -13,9 +13,38 @@ export interface MemberInfo {
   deliveryAddress?: string;
   birthDate?: string;
   profileFileId?: string;
+  profileImageUrl?: string;
   loginType?: string;
   storeId?: string | null; // Store ID if user is a seller
   businessApprovalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null; // Business registration approval status
+  availablePointsBalance?: number; // Available points balance
+  referralCode?: string; // User's referral code
+  zipCode?: string;
+  roadAddress?: string;
+  detailedAddress?: string;
+  verifiedAt?: string;
+  numberOfWishlists?: number;
+  numberOfProducts?: number;
+  numberOfReviewsMade?: number;
+  numberOfReferrals?: number;
+  defaultDeliveryAddress?: {
+    deliveryAddressId: string;
+    roadAddress: string;
+    detailedAddress: string;
+    zipCode: string;
+    default: boolean;
+  };
+  businessName?: string;
+  businessRegistrationNumber?: string;
+  representativeName?: string;
+  businessRegistrationCopy?: string;
+  businessAddress?: string;
+  bankName?: string;
+  accountNumber?: string;
+  depositorName?: string;
+  bankbook?: string;
+  classification?: string;
+  verified?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

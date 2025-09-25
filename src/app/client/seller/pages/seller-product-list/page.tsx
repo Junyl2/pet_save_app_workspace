@@ -7,6 +7,7 @@ import styles from './styles.module.css';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
 import { SellerProductListService } from '@/app/api/services/client/productService/sellerProductListService';
+import { ProductService } from '@/app/api/services/client/productService/productService';
 import {
   StoreProduct,
   RegistrationStatus,
@@ -150,9 +151,36 @@ export default function SellerProductListPage() {
     };
   }, [statusDropdownOpen]);
 
-  const handleDelete = (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.productId !== productId));
-    setDeleteModalOpen(null);
+  const handleDelete = async (productId: string) => {
+    try {
+      console.log('[SellerProductListPage] Deleting product:', productId);
+
+      const response = await ProductService.deleteProduct(productId);
+
+      if (response.error) {
+        console.error(
+          '[SellerProductListPage] Failed to delete product:',
+          response.error
+        );
+
+        // Check if it's a 500 error and provide more specific message
+        if (response.error.includes('500')) {
+          setError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        } else {
+          setError('상품 삭제에 실패했습니다. 다시 시도해주세요.');
+        }
+        return;
+      }
+
+      console.log('[SellerProductListPage] Product deleted successfully');
+
+      // Remove the product from the local state
+      setProducts((prev) => prev.filter((p) => p.productId !== productId));
+      setDeleteModalOpen(null);
+    } catch (err) {
+      console.error('[SellerProductListPage] Error deleting product:', err);
+      setError('상품 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   if (loading) {

@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast';
 import { CartProvider } from '../context/cartContext';
 import { UserProvider } from '../context/userContext';
 import { AuthProvider } from '../context/authContext';
+import '../utils/auth-debug';
 
 export const metadata: Metadata = {
   title: 'Pet Save App',

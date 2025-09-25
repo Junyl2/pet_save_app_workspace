@@ -67,3 +67,14 @@ export interface StoreProductsResponse {
 }
 
 export type StoreProductsApiResponse = BaseApiEnvelope<StoreProductsResponse>;
+
+export interface DeleteProductResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: {};
+  errorId: string;
+}
+
+export type DeleteProductApiResponse = BaseApiEnvelope<{}>;
