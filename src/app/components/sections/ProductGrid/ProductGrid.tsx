@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './ProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
@@ -27,6 +28,7 @@ export const ProductGrid = ({
   onAddToCart,
 }: ProductGridProps) => {
   const { favorites, toggleFavorite, isFavorited } = useFavorites();
+  const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
   const [loading, setLoading] = useState(!initialProducts);
@@ -118,7 +120,7 @@ export const ProductGrid = ({
       <div className={styles.grid}>
         {products.map((product) => {
           // Add safety check for product.id (API uses productId)
-          const productId = product?.id || product?.productId;
+          const productId = product?.productId || product?.id;
           if (!product || !productId) {
             console.warn('Product missing id:', product);
             return null;
@@ -130,8 +132,14 @@ export const ProductGrid = ({
             <div
               key={productId}
               className={styles.card}
-              onClick={() => onProductClick?.(product)}
-              style={{ cursor: onProductClick ? 'pointer' : 'default' }}
+              onClick={() => {
+                if (onProductClick) {
+                  onProductClick(product);
+                } else {
+                  router.push(`/client/pages/products/${productId}`);
+                }
+              }}
+              style={{ cursor: 'pointer' }}
             >
               <div className={styles.imageWrapper}>
                 <Image

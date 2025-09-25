@@ -7,6 +7,7 @@ import {
   RemoveFromWishlistRequest,
   RemoveFromWishlistResponse,
 } from '../../../types/my-page/wishlist';
+import { MemberService } from '../memberService/memberService';
 
 /**
  * Wishlist Service
@@ -15,17 +16,36 @@ import {
 export class WishlistService {
   /**
    * Get user's wishlist
-   * GET /api/pet-save/members/me/wishlist
+   * GET /api/pet-save/wishlists/members/{memberId}
    */
   static async getWishlist(): Promise<ApiResponse<WishlistData>> {
     try {
+      // Get memberId from member service
+      const memberResponse = await MemberService.getMyInfo();
+      if (!memberResponse.data?.data?.memberId) {
+        return {
+          data: null,
+          error: 'Failed to get member information',
+        };
+      }
+
+      const memberId = memberResponse.data.data.memberId;
+      console.log('Getting wishlist for member:', memberId);
+
       const response = await apiClient.get<GetWishlistResponse>(
-        '/members/me/wishlist'
+        `/wishlists/members/${memberId}`
       );
 
+      console.log('Get wishlist response:', response);
+
       if (response.data?.success && response.data.data) {
+        // API returns array directly, wrap it in our expected structure
+        const wishlistData: WishlistData = {
+          items: response.data.data,
+          totalCount: response.data.data.length,
+        };
         return {
-          data: response.data.data,
+          data: wishlistData,
           error: undefined,
         };
       } else {
@@ -47,96 +67,69 @@ export class WishlistService {
   }
 
   /**
-   * Add product to wishlist
-   * POST /api/pet-save/members/me/wishlist
-   */
-  static async addToWishlist(
-    productId: string
-  ): Promise<ApiResponse<{ success: boolean; message: string }>> {
-    try {
-      const requestData: AddToWishlistRequest = { productId };
-      const response = await apiClient.post<AddToWishlistResponse>(
-        '/members/me/wishlist',
-        requestData
-      );
-
-      if (response.data?.success) {
-        return {
-          data: response.data.data,
-          error: undefined,
-        };
-      } else {
-        return {
-          data: null,
-          error: response.data?.resultMsg || 'Failed to add to wishlist',
-        };
-      }
-    } catch (error: any) {
-      console.error('Error adding to wishlist:', error);
-      return {
-        data: null,
-        error:
-          error.response?.data?.resultMsg ||
-          error.message ||
-          'Failed to add to wishlist',
-      };
-    }
-  }
-
-  /**
-   * Remove product from wishlist
-   * DELETE /api/pet-save/members/me/wishlist/{productId}
-   */
-  static async removeFromWishlist(
-    productId: string
-  ): Promise<ApiResponse<{ success: boolean; message: string }>> {
-    try {
-      const response = await apiClient.delete<RemoveFromWishlistResponse>(
-        `/members/me/wishlist/${productId}`
-      );
-
-      if (response.data?.success) {
-        return {
-          data: response.data.data,
-          error: undefined,
-        };
-      } else {
-        return {
-          data: null,
-          error: response.data?.resultMsg || 'Failed to remove from wishlist',
-        };
-      }
-    } catch (error: any) {
-      console.error('Error removing from wishlist:', error);
-      return {
-        data: null,
-        error:
-          error.response?.data?.resultMsg ||
-          error.message ||
-          'Failed to remove from wishlist',
-      };
-    }
-  }
-
-  /**
    * Toggle product in wishlist (add if not present, remove if present)
+   * POST /api/pet-save/wishlists/products/{productId}
    */
   static async toggleWishlist(
     productId: string,
     isCurrentlyFavorited: boolean
   ): Promise<ApiResponse<{ success: boolean; message: string }>> {
-    if (isCurrentlyFavorited) {
-      return this.removeFromWishlist(productId);
-    } else {
-      return this.addToWishlist(productId);
+    try {
+      // Check authentication before making the request
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        console.error('No auth token found');
+        return {
+          data: null,
+          error: 'Authentication required',
+        };
+      }
+
+      console.log('Toggling wishlist:', { productId, isCurrentlyFavorited });
+      console.log('Auth token exists:', !!authToken);
+
+      const requestBody = { productId };
+      console.log('Sending wishlist request:', {
+        url: `/wishlists/products/${productId}`,
+        body: requestBody,
+      });
+
+      const response = await apiClient.post<AddToWishlistResponse>(
+        `/wishlists/products/${productId}`,
+        requestBody
+      );
+
+      console.log('Toggle wishlist response:', response);
+
+      if (response.data?.success) {
+        return {
+          data: { success: true, message: 'Wishlist updated successfully' },
+          error: undefined,
+        };
+      } else {
+        return {
+          data: null,
+          error: response.data?.resultMsg || 'Failed to toggle wishlist',
+        };
+      }
+    } catch (error: any) {
+      console.error('Error toggling wishlist:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+      });
+      return {
+        data: null,
+        error:
+          error.response?.data?.resultMsg ||
+          error.message ||
+          'Failed to toggle wishlist',
+      };
     }
   }
 }
 
 // Export individual functions for convenience
-export const {
-  getWishlist,
-  addToWishlist,
-  removeFromWishlist,
-  toggleWishlist,
-} = WishlistService;
+export const { getWishlist, toggleWishlist } = WishlistService;

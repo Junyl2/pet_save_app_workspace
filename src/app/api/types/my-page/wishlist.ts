@@ -12,24 +12,26 @@ export interface WishlistApiResponse {
   errorId: string;
 }
 
-// Wishlist item structure
+// Wishlist item structure - matches actual API response
 export interface WishlistItem {
-  id: string;
-  name: string;
-  image: string;
-  originalPrice: number;
+  productId: string;
+  productName: string;
+  productNumber: string;
+  productThumbnail: string;
+  quantity: number;
+  category: string[];
   salePrice: number;
-  isFavorited: boolean;
-  // Add more fields as needed based on actual API response
-  category?: string;
-  brand?: string;
-  description?: string;
-  stock?: number;
-  rating?: number;
-  reviewCount?: number;
+  discountedPrice: number;
+  expiryDate: string;
+  // Legacy fields for backward compatibility
+  id?: string;
+  name?: string;
+  image?: string;
+  originalPrice?: number;
+  isFavorited?: boolean;
 }
 
-// Wishlist data structure
+// Wishlist data structure - API returns array directly
 export interface WishlistData {
   items: WishlistItem[];
   totalCount: number;
@@ -39,7 +41,7 @@ export interface WishlistData {
 
 // Request/Response types for wishlist operations
 export interface GetWishlistResponse extends WishlistApiResponse {
-  data: WishlistData;
+  data: WishlistItem[]; // API returns array directly, not wrapped in object
 }
 
 export interface AddToWishlistRequest {
@@ -48,8 +50,7 @@ export interface AddToWishlistRequest {
 
 export interface AddToWishlistResponse extends WishlistApiResponse {
   data: {
-    success: boolean;
-    message: string;
+    wishlisted: boolean;
   };
 }
 

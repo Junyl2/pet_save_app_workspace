@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import styles from './SearchProductGrid.module.css';
-/* import { useFavorites } from '@/app/context/FavoritesContext'; */
+import { useFavorites } from '@/app/context/FavoritesContext';
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
 import { Product } from '@/app/api/types/products/products';
 import { productService } from '@/app/api/services/product-service/productService';
@@ -19,7 +19,7 @@ export default function SearchProductGrid({
   searchTerm?: string;
   onSearchSubmit?: () => void;
 }) {
-  /*   const { favorites } = useFavorites(); */
+  const { favorites, toggleFavorite, isFavorited } = useFavorites();
   const router = useRouter();
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);
@@ -120,7 +120,12 @@ export default function SearchProductGrid({
     setCartOpen(true);
   };
   const handleProductClick = (product: Product) => {
-    router.push(`/products/${product.id}`);
+    const productId = product.productId || product.id;
+    if (productId) {
+      router.push(`/client/pages/products/${productId}`);
+    } else {
+      console.error('Product missing ID:', product);
+    }
   };
 
   /* const handleSearchSubmit = () => {
@@ -225,65 +230,92 @@ export default function SearchProductGrid({
         )}
 
         <div className={styles.grid}>
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className={styles.card}
-              onClick={() => handleProductClick(product)}
-            >
-              <div className={styles.imageWrapper}>
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  width={162}
-                  height={147}
-                  className={styles.image}
-                />
-                <div className={styles.icons}>
-                  <button
-                    className={styles.iconBtn}
-                    onClick={(e) => handleCartClick(e, product)}
-                  >
-                    <Image
-                      src="/images/icons/Cart.png"
-                      alt="Cart Icon"
-                      width={24}
-                      height={22}
-                      className="object-contain"
-                    />
-                  </button>
+          {filteredProducts.map((product) => {
+            const productId = product.productId || product.id;
+            return (
+              <div
+                key={productId}
+                className={styles.card}
+                onClick={() => handleProductClick(product)}
+              >
+                <div className={styles.imageWrapper}>
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    width={162}
+                    height={147}
+                    className={styles.image}
+                  />
+                  <div className={styles.icons}>
+                    <button
+                      className={styles.iconBtn}
+                      onClick={(e) => handleCartClick(e, product)}
+                    >
+                      <Image
+                        src="/images/icons/Cart.png"
+                        alt="Cart Icon"
+                        width={24}
+                        height={22}
+                        className="object-contain"
+                      />
+                    </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const productId = product.productId || product.id;
+                        if (productId) {
+                          await toggleFavorite(productId.toString());
+                        }
+                      }}
+                      className={styles.iconBtn}
+                    >
+                      <Image
+                        src={
+                          isFavorited(
+                            (product.productId || product.id)?.toString() || ''
+                          )
+                            ? '/images/products/heart-active.png'
+                            : '/images/products/heart-default.png'
+                        }
+                        alt="Heart Icon"
+                        width={24}
+                        height={22}
+                        className="object-contain"
+                      />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className={styles.content}>
-                <div className={styles.header}>
-                  <h3 className={styles.name}>{product.name}</h3>
-                </div>
-                <p className={styles.detail}>
-                  {product.weight}, {product.quantity}
-                </p>
-                <p className={styles.price}>
-                  {product.discountPrice ? (
-                    <>
-                      <span className={styles.original}>
-                        {product.price.toLocaleString('ko-KR')}원
-                      </span>
-                      <span className={styles.discount}>
-                        {product.discountPrice.toLocaleString('ko-KR')}원
-                      </span>
-                    </>
-                  ) : (
-                    `${product.price.toLocaleString('ko-KR')}원`
-                  )}
-                </p>
+                <div className={styles.content}>
+                  <div className={styles.header}>
+                    <h3 className={styles.name}>{product.name}</h3>
+                  </div>
+                  <p className={styles.detail}>
+                    {product.weight}, {product.quantity}
+                  </p>
+                  <p className={styles.price}>
+                    {product.discountPrice ? (
+                      <>
+                        <span className={styles.original}>
+                          {product.price.toLocaleString('ko-KR')}원
+                        </span>
+                        <span className={styles.discount}>
+                          {product.discountPrice.toLocaleString('ko-KR')}원
+                        </span>
+                      </>
+                    ) : (
+                      `${product.price.toLocaleString('ko-KR')}원`
+                    )}
+                  </p>
 
-                <p className={styles.info}>
-                  {product.expiration} <br />
-                  {product.location} <br />
-                  {product.distance}
-                </p>
+                  <p className={styles.info}>
+                    {product.expiration} <br />
+                    {product.location} <br />
+                    {product.distance}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/*  {selectedProduct && (

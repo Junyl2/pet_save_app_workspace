@@ -42,7 +42,14 @@ export default function HomePage() {
         <ProductGrid
           category={selectedCategory}
           searchTerm=""
-          onProductClick={(product) => router.push(`/products/${product.id}`)}
+          onProductClick={(product) => {
+            const productId = product.productId || product.id;
+            if (productId) {
+              router.push(`/client/pages/products/${productId}`);
+            } else {
+              console.error('Product missing ID:', product);
+            }
+          }}
           onAddToCart={() => {}}
         />
       </div>

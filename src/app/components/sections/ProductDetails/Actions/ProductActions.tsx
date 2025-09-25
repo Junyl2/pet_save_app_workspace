@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 interface ProductActionsProps {
-  productId: number; // add id
+  productId: string | number; // support both string and number
   productName: string;
   productPrice: number | string; // support both string/number
   onAddToCart: (quantity: number, productName: string) => void;
@@ -25,12 +25,16 @@ ProductActionsProps) => {
   const [quantity, setQuantity] = useState(1);
   /*   const [onMessageProduct, setOnMessageProduct] = useState(false); */
   const [activeProduct, setActiveProduct] = useState<{
-    id: number;
+    id: string | number;
     name: string;
     price: number | string;
   } | null>(null);
 
-  const openDrawer = (id: number, name: string, price: number | string) => {
+  const openDrawer = (
+    id: string | number,
+    name: string,
+    price: number | string
+  ) => {
     setActiveProduct({ id, name, price });
     setQuantity(1);
     setShowDrawer(true);

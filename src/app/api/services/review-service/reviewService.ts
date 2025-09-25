@@ -3,7 +3,7 @@ import { Review } from '../../types/review/review';
 
 export const reviewService = {
   getByProductId: async (
-    productId: number
+    productId: string | number
   ): Promise<{ data: Review[]; error?: string }> => {
     return new Promise((resolve) => {
       setTimeout(() => {

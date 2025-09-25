@@ -9,7 +9,7 @@ import { BiChevronRight } from 'react-icons/bi';
 import Image from 'next/image';
 
 interface CustomerReviewProps {
-  productId: number;
+  productId: string | number;
 }
 
 const ReviewItem = ({ review }: { review: Review }) => {

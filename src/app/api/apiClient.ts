@@ -69,10 +69,12 @@ const hasValidTokens = (): boolean => {
 
 /**
  * Check if an endpoint is public (doesn't require authentication)
+ * Uses an allowlist approach - only explicitly listed endpoints are public
  */
 const isPublicEndpoint = (url: string | undefined): boolean => {
   if (!url) return false;
 
+  // Strict allowlist of public endpoints
   const publicEndpoints = [
     '/auth/signup/general',
     '/auth/login',
@@ -91,14 +93,25 @@ const isPublicEndpoint = (url: string | undefined): boolean => {
     '/auth/recovery/password/reset',
     '/address/search',
     '/address/search/zip-code',
-    '/products',
+    '/products', // Only for browsing, not user-specific operations
     '/categories',
-    '/stores',
+    '/stores', // Only for browsing, not user-specific operations
   ];
 
-  return publicEndpoints.some((endpoint) => {
-    return url.startsWith(endpoint) || url.includes(endpoint);
+  // Check if URL starts with any public endpoint
+  const isPublic = publicEndpoints.some((endpoint) => {
+    return url.startsWith(endpoint);
   });
+
+  // Comprehensive logging for debugging
+  console.log('🔍 Endpoint classification:', {
+    url,
+    isPublic,
+    reason: isPublic ? 'Public endpoint' : 'Protected endpoint (requires auth)',
+    withCredentials: !isPublic, // Protected endpoints should use credentials
+  });
+
+  return isPublic;
 };
 
 /**
@@ -141,30 +154,49 @@ const axiosInstance: AxiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = getFromLocalStorage('authToken');
+    const isPublic = isPublicEndpoint(config.url);
 
-    // For public endpoints, explicitly remove any existing Authorization header
-    if (isPublicEndpoint(config.url)) {
+    // Log final request configuration
+    console.log('🚀 Request interceptor:', {
+      url: config.url,
+      method: config.method?.toUpperCase(),
+      isPublic,
+      hasToken: !!token,
+      withCredentials: config.withCredentials,
+      authorizationHeader:
+        config.headers.Authorization &&
+        typeof config.headers.Authorization === 'string'
+          ? `${config.headers.Authorization.substring(0, 20)}...`
+          : 'None',
+    });
+
+    if (isPublic) {
+      // For public endpoints, explicitly remove any existing Authorization header
       delete config.headers.Authorization;
-      // Also disable credentials for public endpoints
       config.withCredentials = false;
-      console.log(
-        'Public endpoint detected, removing auth headers:',
-        config.url
-      );
-    } else if (token) {
-      // Check if token is expired before using it
-      if (isTokenExpired(token)) {
-        console.log(
-          'Auth token is expired, will trigger refresh on 401 response'
-        );
+      console.log('✅ Public endpoint - auth headers removed');
+    } else {
+      // For protected endpoints, ensure credentials are enabled
+      config.withCredentials = true;
+
+      if (token) {
+        // Check if token is expired before using it
+        if (isTokenExpired(token)) {
+          console.log(
+            '⚠️ Auth token is expired, will trigger refresh on 401 response'
+          );
+        }
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log('✅ Protected endpoint - auth token attached');
+      } else {
+        console.log('❌ Protected endpoint - no auth token available');
       }
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log('Adding auth token for protected endpoint:', config.url);
     }
 
     return config;
   },
   (error) => {
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );

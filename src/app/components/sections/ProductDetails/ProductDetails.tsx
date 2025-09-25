@@ -8,7 +8,7 @@ import { ShopInfo } from './Product/ShopInfo';
 import { UsageInstructions } from './Usage/UsageInstructions';
 import { ProductActions } from './Actions/ProductActions';
 import { PreviewReview } from './Review/PreviewReview';
-/* import { useFavorites } from '@/app/context/FavoritesContext'; */
+import { useFavorites } from '@/app/context/FavoritesContext';
 import { productService } from '@/app/api/services/product-service/productService';
 import { Product } from '@/app/api/types/products/products';
 import Loading from '../../ui/Loading/Loading';
@@ -17,7 +17,7 @@ import styles from './ProductDetails.module.css';
 export default function ProductDetails() {
   const { id } = useParams();
   const productId = Number(id);
-  /*  const { toggleFavorite } = useFavorites(); */
+  const { toggleFavorite } = useFavorites();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,26 +46,26 @@ export default function ProductDetails() {
   return (
     <section className={styles.container}>
       <ProductHeader />
-      <ProductImage src={product.image} alt={product.name} />
+      <ProductImage src={product.image || ''} alt={product.name || ''} />
       <ShopInfo
-        shopName={product.shopName}
-        shopLocation={product.shopLocation || product.location}
-        shopImage={product.shopImage}
-        productId={product.id}
+        shopName={product.shopName || ''}
+        shopLocation={product.shopLocation || product.location || ''}
+        shopImage={product.shopImage || ''}
+        productId={product.id?.toString() || ''}
       />
       <ProductInfo
-        name={product.name}
-        expiration={product.expiration}
-        price={product.price}
-        discountPrice={product.discountPrice}
-        details={product.details}
+        name={product.name || ''}
+        expiration={product.expiration || ''}
+        price={product.price || 0}
+        discountPrice={product.discountPrice || 0}
+        details={product.details || []}
       />
       <UsageInstructions />
-      <PreviewReview productId={product.id} />
+      <PreviewReview productId={product.id?.toString() || ''} />
       <ProductActions
-        productId={product.id}
-        productName={product.name}
-        productPrice={product.discountPrice || product.price}
+        productId={product.id?.toString() || ''}
+        productName={product.name || ''}
+        productPrice={product.discountPrice || product.price || 0}
         onAddToCart={(quantity, name) => {
           /*    setCartOpen(true); */
           console.log('Added to cart:', quantity, name);

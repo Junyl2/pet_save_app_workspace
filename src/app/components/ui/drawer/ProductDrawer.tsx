@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '@/app/context/cartContext';
 
 interface SimpleProduct {
-  id: number;
+  id: string | number;
   name: string;
   price: string | number;
 }

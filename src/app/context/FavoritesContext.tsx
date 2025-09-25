@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { WishlistService } from '@/app/api/services/client/my-page/wishlistService';
 import { WishlistItem } from '@/app/api/types/my-page/wishlist';
+import toast from 'react-hot-toast';
 
 type FavoritesContextType = {
   favorites: string[];
@@ -18,6 +19,7 @@ type FavoritesContextType = {
   toggleFavorite: (id: string) => Promise<void>;
   loadWishlist: () => Promise<void>;
   isFavorited: (id: string) => boolean;
+  clearError: () => void;
 };
 
 const FavoritesContext = createContext<FavoritesContextType>({
@@ -28,6 +30,7 @@ const FavoritesContext = createContext<FavoritesContextType>({
   toggleFavorite: async () => {},
   loadWishlist: async () => {},
   isFavorited: () => false,
+  clearError: () => {},
 });
 
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
@@ -74,7 +77,8 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.data && response.data.items) {
         setWishlistItems(response.data.items);
-        setFavorites(response.data.items.map((item) => item.id));
+        // Map wishlist items to product IDs (using productId field from API response)
+        setFavorites(response.data.items.map((item) => item.productId));
       } else {
         // If no data or items, set empty arrays
         setWishlistItems([]);
@@ -102,19 +106,42 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(true);
         setError(null);
 
-        const isCurrentlyFavorited = favorites.includes(id);
-
-        // Always update the UI immediately for better UX
-        if (isCurrentlyFavorited) {
-          // Remove from favorites immediately
-          setFavorites((prev) => prev.filter((f) => f !== id));
-          setWishlistItems((prev) => prev.filter((item) => item.id !== id));
-        } else {
-          // Add to favorites immediately
-          setFavorites((prev) => [...prev, id]);
+        // Check if user is authenticated
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          setError('로그인이 필요합니다.');
+          return;
         }
 
-        // Try to sync with API in the background
+        console.log('Auth token found:', !!token);
+        console.log('Token preview:', token.substring(0, 20) + '...');
+
+        // Check if token is expired
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Date.now() / 1000;
+          const isExpired = payload.exp < currentTime;
+          console.log('Token expiration check:', {
+            exp: payload.exp,
+            currentTime: currentTime,
+            isExpired: isExpired,
+            expiresIn:
+              Math.round((payload.exp - currentTime) / 60) + ' minutes',
+          });
+
+          if (isExpired) {
+            setError('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+            return;
+          }
+        } catch (error) {
+          console.error('Error parsing token:', error);
+          setError('인증 토큰이 유효하지 않습니다. 다시 로그인해주세요.');
+          return;
+        }
+
+        const isCurrentlyFavorited = favorites.includes(id);
+
+        // Try to sync with API first
         try {
           const response = await WishlistService.toggleWishlist(
             id,
@@ -122,24 +149,53 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           );
 
           if (response.data?.success) {
-            // API call succeeded, reload wishlist to get full data
-            if (!isCurrentlyFavorited) {
+            // API call succeeded, update UI
+            if (isCurrentlyFavorited) {
+              // Remove from favorites
+              setFavorites((prev) => prev.filter((f) => f !== id));
+              setWishlistItems((prev) => prev.filter((item) => item.id !== id));
+            } else {
+              // Add to favorites and reload wishlist to get full data
               await loadWishlist();
             }
           } else {
-            console.warn('Wishlist API error:', response.error);
-            // API failed, but UI is already updated, so we're good
+            console.error('Wishlist API error:', response.error);
+            setError(response.error || '찜목록 업데이트에 실패했습니다.');
           }
-        } catch (apiError) {
-          console.warn(
-            'Wishlist API failed, using localStorage only:',
-            apiError
-          );
-          // API failed, but UI is already updated, so we're good
+        } catch (apiError: any) {
+          console.error('Wishlist API failed:', apiError);
+
+          // Handle specific error cases
+          if (apiError?.response?.status === 401) {
+            const errorMsg = '로그인이 필요합니다.';
+            setError(errorMsg);
+            toast.error(errorMsg);
+            // Clear invalid tokens
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
+            // Optionally trigger login modal or redirect
+            if (typeof window !== 'undefined') {
+              // You can replace this with a login modal trigger
+              console.log('Authentication required - should show login modal');
+            }
+          } else if (apiError?.response?.status === 500) {
+            const errorMsg =
+              '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+            setError(errorMsg);
+            toast.error(errorMsg);
+          } else if (apiError?.response?.status === 404) {
+            const errorMsg = '상품을 찾을 수 없습니다.';
+            setError(errorMsg);
+            toast.error(errorMsg);
+          } else {
+            const errorMsg = '찜목록 업데이트에 실패했습니다.';
+            setError(errorMsg);
+            toast.error(errorMsg);
+          }
         }
       } catch (error) {
         console.error('Error toggling favorite:', error);
-        setError('Failed to update wishlist');
+        setError('찜목록 업데이트에 실패했습니다.');
       } finally {
         setIsLoading(false);
       }
@@ -154,6 +210,10 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     [favorites]
   );
 
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   return (
     <FavoritesContext.Provider
       value={{
@@ -164,6 +224,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         toggleFavorite,
         loadWishlist,
         isFavorited,
+        clearError,
       }}
     >
       {children}

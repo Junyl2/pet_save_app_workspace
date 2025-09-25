@@ -6,6 +6,7 @@ import { FavoritesProvider } from '../context/FavoritesContext';
 import { Toaster } from 'react-hot-toast';
 import { CartProvider } from '../context/cartContext';
 import { UserProvider } from '../context/userContext';
+import { AuthProvider } from '../context/authContext';
 
 export const metadata: Metadata = {
   title: 'Pet Save App',
@@ -19,13 +20,15 @@ export default function ClientLayout({
 }) {
   return (
     <>
-      <UserProvider>
-        <ClientWrapper BottomBar={<BottomBar />}>
-          <FavoritesProvider>
-            <CartProvider>{children}</CartProvider>
-          </FavoritesProvider>
-        </ClientWrapper>
-      </UserProvider>
+      <AuthProvider>
+        <UserProvider>
+          <ClientWrapper BottomBar={<BottomBar />}>
+            <FavoritesProvider>
+              <CartProvider>{children}</CartProvider>
+            </FavoritesProvider>
+          </ClientWrapper>
+        </UserProvider>
+      </AuthProvider>
 
       {/* Global toast container */}
       <Toaster

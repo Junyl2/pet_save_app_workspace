@@ -192,7 +192,14 @@ export default function SellerDetailsPage() {
         <ProductGrid
           category={selectedCategory}
           storeId={storeId}
-          onProductClick={(product) => router.push(`/products/${product.id}`)}
+          onProductClick={(product) => {
+            const productId = product.productId || product.id;
+            if (productId) {
+              router.push(`/client/pages/products/${productId}`);
+            } else {
+              console.error('Product missing ID:', product);
+            }
+          }}
         />
       </div>
     </>
