@@ -47,7 +47,7 @@ const ProfileMenu = () => {
           {/* Show Business option depending on role and approval status */}
           {user?.role === 'seller' || user?.businessApprovalStatus ? (
             <ProfileItem
-              label="사업자 정보"
+              label="사업자 정보 보기"
               route={PAGE_URLS.BUSINESS_INFORMATION}
             />
           ) : (
@@ -56,6 +56,12 @@ const ProfileMenu = () => {
               route={PAGE_URLS.SELLER_REGISTRATION}
             />
           )}
+
+          {/* Show Store Information for approved sellers */}
+          {user?.role === 'seller' &&
+            user?.businessApprovalStatus === 'APPROVED' && (
+              <ProfileItem label="사업장 정보" route={PAGE_URLS.STORE_INFO} />
+            )}
 
           <ProfileItem
             label="약관 및 정책"

@@ -35,6 +35,73 @@ const getFromLocalStorage = (key: string): string | null => {
 };
 
 /**
+ * Check if a JWT token is expired
+ */
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const currentTime = Date.now() / 1000;
+    return payload.exp < currentTime;
+  } catch {
+    return true; // If we can't parse the token, consider it expired
+  }
+};
+
+/**
+ * Check if we have valid tokens
+ */
+const hasValidTokens = (): boolean => {
+  const authToken = getFromLocalStorage('authToken');
+  const refreshToken = getFromLocalStorage('refreshToken');
+
+  if (!authToken || !refreshToken) {
+    return false;
+  }
+
+  // If auth token is not expired, we're good
+  if (!isTokenExpired(authToken)) {
+    return true;
+  }
+
+  // If auth token is expired but refresh token is still valid, we can refresh
+  return !isTokenExpired(refreshToken);
+};
+
+/**
+ * Check if an endpoint is public (doesn't require authentication)
+ */
+const isPublicEndpoint = (url: string | undefined): boolean => {
+  if (!url) return false;
+
+  const publicEndpoints = [
+    '/auth/signup/general',
+    '/auth/login',
+    '/auth/refresh',
+    '/verification/email/send-verification',
+    '/verification/phone/send-verification',
+    '/verification/verify-code',
+    '/auth/recovery/id/email/send-verification',
+    '/auth/recovery/id/phone/send-verification',
+    '/auth/recovery/id/email',
+    '/auth/recovery/id/phone',
+    '/auth/recovery/password/email/send-verification',
+    '/auth/recovery/password/phone/send-verification',
+    '/auth/recovery/password/email',
+    '/auth/recovery/password/phone',
+    '/auth/recovery/password/reset',
+    '/address/search',
+    '/address/search/zip-code',
+    '/products',
+    '/categories',
+    '/stores',
+  ];
+
+  return publicEndpoints.some((endpoint) => {
+    return url.startsWith(endpoint) || url.includes(endpoint);
+  });
+};
+
+/**
  * Clear all storage (localStorage, sessionStorage, and cookies)
  */
 const clearAllStorage = (): void => {
@@ -75,33 +142,8 @@ axiosInstance.interceptors.request.use(
   (config) => {
     const token = getFromLocalStorage('authToken');
 
-    // Don't add Authorization header for public endpoints
-    const publicEndpoints = [
-      '/auth/signup/general',
-      '/auth/login',
-      '/auth/refresh',
-      '/verification/email/send-verification',
-      '/verification/phone/send-verification',
-      '/verification/verify-code',
-      '/auth/recovery/id/email/send-verification',
-      '/auth/recovery/id/phone/send-verification',
-      '/auth/recovery/id/email',
-      '/auth/recovery/id/phone',
-      '/auth/recovery/password/email/send-verification',
-      '/auth/recovery/password/phone/send-verification',
-      '/auth/recovery/password/email',
-      '/auth/recovery/password/phone',
-      '/auth/recovery/password/reset',
-      '/address/search',
-      '/address/search/zip-code',
-    ];
-
-    const isPublicEndpoint = publicEndpoints.some((endpoint) =>
-      config.url?.includes(endpoint)
-    );
-
     // For public endpoints, explicitly remove any existing Authorization header
-    if (isPublicEndpoint) {
+    if (isPublicEndpoint(config.url)) {
       delete config.headers.Authorization;
       // Also disable credentials for public endpoints
       config.withCredentials = false;
@@ -110,6 +152,12 @@ axiosInstance.interceptors.request.use(
         config.url
       );
     } else if (token) {
+      // Check if token is expired before using it
+      if (isTokenExpired(token)) {
+        console.log(
+          'Auth token is expired, will trigger refresh on 401 response'
+        );
+      }
       config.headers.Authorization = `Bearer ${token}`;
       console.log('Adding auth token for protected endpoint:', config.url);
     }
@@ -120,6 +168,25 @@ axiosInstance.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
+// Track refresh token attempts to prevent race conditions
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
 
 // Response interceptor: Handle responses and errors
 axiosInstance.interceptors.response.use(
@@ -135,22 +202,14 @@ axiosInstance.interceptors.response.use(
 
     // Handle 401/403 authentication errors
     if (error.response?.status === 401 || error.response?.status === 403) {
-      const isSignupEndpoint = error.config?.url?.includes(
-        '/auth/signup/general'
-      );
-      const isAddressSearchEndpoint =
-        error.config?.url?.includes('/address/search');
+      const isPublic = isPublicEndpoint(error.config?.url);
       const isRefreshEndpoint = error.config?.url?.includes('/auth/refresh');
       const isLoginEndpoint = error.config?.url?.includes('/auth/login');
 
       // Skip token refresh for public endpoints and refresh endpoint itself
-      if (
-        isSignupEndpoint ||
-        isAddressSearchEndpoint ||
-        isRefreshEndpoint ||
-        isLoginEndpoint
-      ) {
-        if (!isSignupEndpoint && !isAddressSearchEndpoint) {
+      if (isPublic || isRefreshEndpoint || isLoginEndpoint) {
+        // Only clear storage and redirect for auth-related endpoints, not public endpoints
+        if (!isPublic && !isRefreshEndpoint && !isLoginEndpoint) {
           clearAllStorage();
           // Redirect to login page
           if (typeof window !== 'undefined') {
@@ -163,7 +222,24 @@ axiosInstance.interceptors.response.use(
       // Check if we have a refresh token and this is not a retry
       const refreshToken = getFromLocalStorage('refreshToken');
       if (refreshToken && originalRequest && !originalRequest._retry) {
+        if (isRefreshing) {
+          // If already refreshing, queue this request
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((token) => {
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+              }
+              return axiosInstance(originalRequest);
+            })
+            .catch((err) => {
+              return Promise.reject(err);
+            });
+        }
+
         originalRequest._retry = true;
+        isRefreshing = true;
 
         try {
           // Import AuthService dynamically to avoid circular dependency
@@ -183,10 +259,14 @@ axiosInstance.interceptors.response.use(
               originalRequest.headers.Authorization = `Bearer ${newToken}`;
             }
 
+            // Process queued requests
+            processQueue(null, newToken);
+
             // Retry the original request
             return axiosInstance(originalRequest);
           } else {
             console.error('Token refresh failed:', refreshResponse.error);
+            processQueue(error, null);
             clearAllStorage();
             if (typeof window !== 'undefined') {
               window.location.href = PAGE_URLS.LOGIN;
@@ -194,10 +274,13 @@ axiosInstance.interceptors.response.use(
           }
         } catch (refreshError) {
           console.error('Token refresh error:', refreshError);
+          processQueue(refreshError, null);
           clearAllStorage();
           if (typeof window !== 'undefined') {
             window.location.href = PAGE_URLS.LOGIN;
           }
+        } finally {
+          isRefreshing = false;
         }
       } else {
         // No refresh token available or already retried

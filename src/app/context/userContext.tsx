@@ -21,6 +21,7 @@ export interface User {
   // Make location optional so login() can be used without providing it
   location?: string;
   businessApprovalStatus?: BusinessApprovalStatus;
+  storeId?: string | null; // Store ID if user is a seller
 }
 
 interface UserContextType {
@@ -41,14 +42,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('user');
-      if (raw) {
+      const authToken = localStorage.getItem('authToken');
+      if (raw && authToken) {
         const savedUser = JSON.parse(raw) as User;
         setUser(savedUser);
-        // Refresh user data to get latest business registration status
+        // Only refresh user data if we have a valid auth token
         setTimeout(() => {
           console.log('🔄 Auto-refreshing user data on app load...');
           refreshUserData();
         }, 500); // Small delay to ensure app is fully loaded
+      } else if (raw) {
+        // Load user data without refreshing if no auth token
+        const savedUser = JSON.parse(raw) as User;
+        setUser(savedUser);
       }
     } catch {
       // ignore JSON parse errors
@@ -85,6 +91,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Check if we have a valid auth token before attempting to refresh
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      console.log('No auth token found, skipping user data refresh');
+      return;
+    }
+
     try {
       setIsRefreshing(true);
       console.log('🔄 Refreshing user data from backend...');
@@ -113,6 +126,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
             ? memberResponse.reason
             : 'No data'
         );
+
+        // If member info fails due to auth issues, don't update user data
+        if (
+          memberResponse.status === 'rejected' &&
+          (memberResponse.reason?.message?.includes('401') ||
+            memberResponse.reason?.message?.includes('403'))
+        ) {
+          console.log('Authentication failed, user may need to re-login');
+          // Don't clear user data, just skip the refresh
+          return;
+        }
       }
 
       // Process business registration info
@@ -181,7 +205,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         console.log('🎯 Final determined role:', userRole);
         console.log(
-          '🎯 Final business approval status:',
+          '🎯 Final   business approval status:',
           businessApprovalStatus
         );
 
@@ -191,6 +215,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           role: userRole,
           location: userData.location || user?.location,
           businessApprovalStatus: businessApprovalStatus,
+          storeId: userData.storeId || user?.storeId,
         };
 
         console.log('✅ Updated user from backend:', updatedUser);
@@ -211,10 +236,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
+
+      // Don't clear user data on authentication errors - just log the error
+      // The user can still use the app with cached data
+      if (
+        error instanceof Error &&
+        (error.message.includes('401') || error.message.includes('403'))
+      ) {
+        console.log(
+          'Authentication error detected, but keeping cached user data'
+        );
+      }
     } finally {
       setIsRefreshing(false);
     }
-  }, [isRefreshing]);
+  }, [isRefreshing, user]);
 
   return (
     <UserContext.Provider

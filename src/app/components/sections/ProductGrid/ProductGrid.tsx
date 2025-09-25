@@ -5,7 +5,7 @@ import Image from 'next/image';
 import styles from './ProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
 import { Product } from '@/app/api/types/products/products';
-import { productService } from '@/app/api/services/product-service/productService';
+import { ProductService } from '@/app/api/services/client/productService/productService';
 import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
 
@@ -13,6 +13,7 @@ interface ProductGridProps {
   products?: Product[];
   category?: string;
   searchTerm?: string;
+  storeId?: string;
   onProductClick?: (product: Product) => void;
   onAddToCart?: (product: Product) => void;
 }
@@ -21,6 +22,7 @@ export const ProductGrid = ({
   products: initialProducts,
   category,
   searchTerm = '',
+  storeId,
   onProductClick,
   onAddToCart,
 }: ProductGridProps) => {
@@ -40,23 +42,51 @@ export const ProductGrid = ({
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const res = await productService.getAll();
+        const searchParams = {
+          keyword: searchTerm.trim() || undefined,
+          categoryName: category || undefined,
+          registrationStatus: 'ONSALE' as const,
+          page: 0,
+          size: 50,
+          sortBy: 'createdAt' as const,
+          direction: 'desc' as const,
+        };
+
+        const res = await ProductService.searchProducts(searchParams);
         if (!isMounted) return;
 
-        let filtered = res.data || [];
+        if (res.error) {
+          console.error('Failed to fetch products:', res.error);
+          setProducts([]);
+        } else {
+          let filtered = res.data?.data?.content || [];
 
-        if (category) {
-          filtered = filtered.filter((p) => p.category === category);
+          // Debug: Log the first product to see the actual API structure
+          if (filtered.length > 0) {
+            console.log('First product from API:', filtered[0]);
+            console.log('Product keys:', Object.keys(filtered[0]));
+            console.log('Price fields:', {
+              price: filtered[0].price,
+              originalPrice: filtered[0].originalPrice,
+              discountPrice: filtered[0].discountPrice,
+              discountedPrice: filtered[0].discountedPrice,
+              salePrice: filtered[0].salePrice,
+              productPrice: filtered[0].productPrice,
+              regularPrice: filtered[0].regularPrice,
+            });
+          }
+
+          // Filter by storeId if provided
+          if (storeId) {
+            filtered = filtered.filter(
+              (p) => p.storeId === storeId || p.store?.storeId === storeId
+            );
+          }
+
+          setProducts(filtered);
         }
-
-        if (searchTerm.trim()) {
-          filtered = filtered.filter((p) =>
-            p.name.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-        }
-
-        setProducts(filtered);
-      } catch {
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
         if (!isMounted) return;
         setProducts([]);
       } finally {
@@ -70,14 +100,16 @@ export const ProductGrid = ({
     return () => {
       isMounted = false;
     };
-  }, [category, searchTerm, initialProducts]);
+  }, [category, searchTerm, storeId, initialProducts]);
 
   if (loading) return <ProductSkeleton count={5} />;
 
   if (products.length === 0)
     return (
       <div className={styles.emptyContainer}>
-        <p className={styles.emptyText}>검색 결과가 없습니다.</p>
+        <p className={styles.emptyText}>
+          {storeId ? '이 스토어의 상품이 없습니다.' : '검색 결과가 없습니다.'}
+        </p>
       </div>
     );
 
@@ -85,19 +117,30 @@ export const ProductGrid = ({
     <div className={styles.mainContainer}>
       <div className={styles.grid}>
         {products.map((product) => {
-          const isProductFavorited = isFavorited(product.id);
+          // Add safety check for product.id (API uses productId)
+          const productId = product?.id || product?.productId;
+          if (!product || !productId) {
+            console.warn('Product missing id:', product);
+            return null;
+          }
+
+          const isProductFavorited = isFavorited(productId.toString());
 
           return (
             <div
-              key={product.id}
+              key={productId}
               className={styles.card}
               onClick={() => onProductClick?.(product)}
               style={{ cursor: onProductClick ? 'pointer' : 'default' }}
             >
               <div className={styles.imageWrapper}>
                 <Image
-                  src={product.image ?? '/images/products/placeholder.png'}
-                  alt={product.name}
+                  src={
+                    product.image ||
+                    product.thumbnail ||
+                    '/images/products/placeholder.png'
+                  }
+                  alt={product.name || product.productName || 'Product'}
                   width={120}
                   height={120}
                   className={styles.image}
@@ -105,7 +148,9 @@ export const ProductGrid = ({
               </div>
               <div className={styles.content}>
                 <div className={styles.header}>
-                  <h3 className={styles.name}>{product.name}</h3>
+                  <h3 className={styles.name}>
+                    {product.name || product.productName || 'Unnamed Product'}
+                  </h3>
                   <div className={styles.icons}>
                     <button
                       className={styles.iconBtn}
@@ -127,7 +172,7 @@ export const ProductGrid = ({
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
-                        await toggleFavorite(product.id);
+                        await toggleFavorite(productId.toString());
                       }}
                       className={styles.iconBtn}
                     >
@@ -146,26 +191,57 @@ export const ProductGrid = ({
                   </div>
                 </div>
                 <p className={styles.detail}>
-                  {product.weight}, {product.quantity}
+                  {product.weight || product.productWeight || 'N/A'},{' '}
+                  {product.quantity || product.productQuantity || 'N/A'}
                 </p>
                 <p className={styles.price}>
-                  {product.discountPrice ? (
-                    <>
-                      <span className={styles.original}>
-                        {product.price.toLocaleString('ko-KR')}원
-                      </span>
-                      <span className={styles.discount}>
-                        {product.discountPrice.toLocaleString('ko-KR')}원
-                      </span>
-                    </>
-                  ) : (
-                    `${product.price.toLocaleString('ko-KR')}원`
-                  )}
+                  {(() => {
+                    // For your API: salePrice is the higher price, discountedPrice is the lower price
+                    const higherPrice =
+                      product.salePrice ||
+                      product.price ||
+                      product.originalPrice ||
+                      product.regularPrice ||
+                      product.productPrice;
+                    const lowerPrice =
+                      product.discountedPrice || product.discountPrice;
+
+                    // If we have both prices and they're different, show both with strike-through
+                    if (
+                      higherPrice &&
+                      lowerPrice &&
+                      higherPrice !== lowerPrice
+                    ) {
+                      return (
+                        <>
+                          <span className={styles.original}>
+                            {higherPrice.toLocaleString('ko-KR')}원
+                          </span>
+                          <span className={styles.discount}>
+                            {lowerPrice.toLocaleString('ko-KR')}원
+                          </span>
+                        </>
+                      );
+                    }
+                    // If we only have one price, show it
+                    else if (higherPrice || lowerPrice) {
+                      const priceToShow = higherPrice || lowerPrice || 0;
+                      return `${priceToShow.toLocaleString('ko-KR')}원`;
+                    }
+                    // Fallback
+                    else {
+                      return '0원';
+                    }
+                  })()}
                 </p>
                 <p className={styles.info}>
-                  {product.expiration} <br />
-                  {product.location} <br />
-                  {product.distance}
+                  {product.expiryDate
+                    ? new Date(product.expiryDate).toLocaleDateString('ko-KR') +
+                      '까지'
+                    : product.expiration || 'N/A'}{' '}
+                  <br />
+                  {product.store?.name || product.location || 'N/A'} <br />
+                  {product.distance || product.storeDistance || 'N/A'}
                 </p>
               </div>
             </div>
@@ -178,8 +254,21 @@ export const ProductGrid = ({
         <CartModal
           open={cartOpen}
           onClose={() => setCartOpen(false)}
-          productName={selectedProduct.name}
-          productPrice={selectedProduct.discountPrice ?? selectedProduct.price}
+          productName={
+            selectedProduct.name || selectedProduct.productName || 'Product'
+          }
+          productPrice={(() => {
+            // Use the lower price (discounted price) for cart
+            const lowerPrice =
+              selectedProduct.discountedPrice || selectedProduct.discountPrice;
+            const higherPrice =
+              selectedProduct.salePrice ||
+              selectedProduct.price ||
+              selectedProduct.originalPrice ||
+              selectedProduct.regularPrice ||
+              selectedProduct.productPrice;
+            return lowerPrice || higherPrice || 0;
+          })()}
         />
       )}
     </div>

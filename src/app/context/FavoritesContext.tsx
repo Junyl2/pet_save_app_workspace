@@ -39,7 +39,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   // Load wishlist from API on mount
   useEffect(() => {
     // Only load wishlist if we have a token (user is authenticated)
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('authToken');
     if (token) {
       loadWishlist();
     }

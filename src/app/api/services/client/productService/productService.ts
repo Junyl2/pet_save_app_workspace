@@ -5,6 +5,10 @@ import {
   ProductCreateRequest,
   ProductStatusChangeResponse,
 } from '@/app/api/types/products/createProduct';
+import {
+  ProductSearchParams,
+  ProductSearchResponse,
+} from '@/app/api/types/products/products';
 
 /**
  * Product Service
@@ -91,6 +95,52 @@ export class ProductService {
     } else {
       console.log(
         '[ProductService] Product marked as on sale successfully:',
+        response.data
+      );
+    }
+
+    return response;
+  }
+
+  /**
+   * Search products with filters
+   * GET /api/pet-save/products
+   */
+  static async searchProducts(
+    params: ProductSearchParams = {}
+  ): Promise<ApiResponse<ProductSearchResponse>> {
+    console.log('[ProductService] Searching products with params:', params);
+
+    const queryParams = new URLSearchParams();
+
+    if (params.keyword) queryParams.append('keyword', params.keyword);
+    if (params.categoryName)
+      queryParams.append('categoryName', params.categoryName);
+    if (params.baseLocation)
+      queryParams.append('base location', params.baseLocation);
+    if (params.registrationStatus)
+      queryParams.append('registrationStatus', params.registrationStatus);
+    if (params.page !== undefined)
+      queryParams.append('page', params.page.toString());
+    if (params.size !== undefined)
+      queryParams.append('size', params.size.toString());
+    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params.direction) queryParams.append('direction', params.direction);
+
+    const url = `/products${
+      queryParams.toString() ? `?${queryParams.toString()}` : ''
+    }`;
+
+    const response = await apiClient.get<ProductSearchResponse>(url);
+
+    if (response.error) {
+      console.error(
+        '[ProductService] Failed to search products:',
+        response.error
+      );
+    } else {
+      console.log(
+        '[ProductService] Products search successful:',
         response.data
       );
     }
