@@ -33,10 +33,7 @@ export default function HomePage() {
     <div className={styles.homeContainer}>
       <TopBar />
 
-      <CategoryNav
-        onSelectCategory={setSelectedCategory}
-        categories={['강아지', '고양이', '햄스터', '새', '고슴도치']}
-      />
+      <CategoryNav onSelectCategory={setSelectedCategory} />
 
       <div className={styles.mainContent}>
         <ProductGrid

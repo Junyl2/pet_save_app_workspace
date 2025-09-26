@@ -10,12 +10,8 @@ import styles from './TopBar.module.css';
 import { TopIcons } from '../../ui/TopIcons/TopIcons';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { useUser } from '@/app/context/userContext';
-
-type SearchHistoryItem = {
-  id: number;
-  term: string;
-  time: string;
-};
+import { SearchHistoryService } from '@/app/api/services/client/searchHistoryService/searchHistoryService';
+import { SearchHistoryItem } from '@/app/api/types/searchHistory/searchHistory';
 
 type TopBarProps = {
   onSearch?: (term: string) => void;
@@ -31,6 +27,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
   const [inputValue, setInputValue] = useState('');
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
 
@@ -56,11 +53,101 @@ export default function TopBar({ onSearch }: TopBarProps) {
       : 'searchHistoryProducts';
   }, [pathname]);
 
-  /** Load history from localStorage */
+  /** Load history from API */
   useEffect(() => {
-    const stored = localStorage.getItem(getStorageKey());
-    if (stored) setHistory(JSON.parse(stored));
-    else setHistory([]);
+    const loadSearchHistory = async () => {
+      try {
+        setLoadingHistory(true);
+        console.log('Loading search history from API...');
+
+        // First check if there's any search history at all
+        console.log('Checking search history count...');
+        const countResponse =
+          await SearchHistoryService.getSearchHistoryCount();
+        console.log('Search history count response:', countResponse);
+
+        // Try getRecentSearches first
+        let response = await SearchHistoryService.getRecentSearches();
+        console.log('Search history API response (recent):', response);
+
+        // If recent searches doesn't work, try the main getSearchHistory method
+        if (
+          response.error ||
+          !response.data?.data ||
+          response.data.data.length === 0
+        ) {
+          console.log('Trying main getSearchHistory method...');
+          const mainResponse = await SearchHistoryService.getSearchHistory({
+            page: 0,
+            size: 10,
+            sortBy: 'searchedAt',
+            direction: 'desc',
+          });
+          console.log('Main search history response:', mainResponse);
+
+          if (!mainResponse.error && mainResponse.data?.data) {
+            response = mainResponse;
+          }
+        }
+
+        // If recent searches is empty, try distinct keywords
+        if (
+          !response.error &&
+          (!response.data?.data || response.data.data.length === 0)
+        ) {
+          console.log('Recent searches empty, trying distinct keywords...');
+          const keywordsResponse =
+            await SearchHistoryService.getDistinctKeywords();
+          console.log('Keywords API response:', keywordsResponse);
+
+          if (!keywordsResponse.error && keywordsResponse.data?.data) {
+            // Convert keywords to search history format
+            const keywords = Array.isArray(keywordsResponse.data.data)
+              ? keywordsResponse.data.data
+              : [];
+            const mockHistory = keywords.map((keyword, index) => ({
+              id: `keyword-${index}`,
+              keyword: keyword,
+              searchedAt: new Date().toISOString(),
+            }));
+            console.log('Converted keywords to history:', mockHistory);
+            setHistory(mockHistory);
+            return;
+          }
+        }
+
+        if (response.error) {
+          console.error('Failed to load search history:', response.error);
+          // Fallback to localStorage if API fails
+          const stored = localStorage.getItem(getStorageKey());
+          if (stored) setHistory(JSON.parse(stored));
+        } else {
+          // Extract the actual data array from the API response
+          console.log('Full response.data structure:', response.data);
+          console.log('response.data.data:', response.data?.data);
+          console.log('response.data.data type:', typeof response.data?.data);
+          console.log(
+            'response.data.data isArray:',
+            Array.isArray(response.data?.data)
+          );
+
+          const historyData = response.data?.data || response.data || [];
+          console.log('Extracted history data:', historyData);
+          console.log('History data length:', historyData.length);
+
+          setHistory(Array.isArray(historyData) ? historyData : []);
+        }
+      } catch (error) {
+        console.error('Error loading search history:', error);
+        // Fallback to localStorage if API fails
+        const stored = localStorage.getItem(getStorageKey());
+        if (stored) setHistory(JSON.parse(stored));
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+
+    loadSearchHistory();
   }, [getStorageKey]);
 
   /** Load selected location on component mount */
@@ -86,26 +173,25 @@ export default function TopBar({ onSearch }: TopBarProps) {
     };
   }, [loadSelectedLocation]);
 
-  /** Save search term */
-  const saveHistory = useCallback(
-    (term: string) => {
-      if (!term) return;
-      const now = new Date();
-      const hours = now.getHours() % 12 || 12;
-      const formatted = `${hours}.${now
-        .getMinutes()
-        .toString()
-        .padStart(2, '0')}`;
-      const newHistory = [
-        { id: Date.now(), term, time: formatted },
-        ...history.filter((h) => h.term !== term),
-      ].slice(0, 10);
-
-      setHistory(newHistory);
-      localStorage.setItem(getStorageKey(), JSON.stringify(newHistory));
-    },
-    [history, getStorageKey]
-  );
+  /** Save search term - API handles this automatically on search submission */
+  const saveHistory = useCallback((term: string) => {
+    if (!term) return;
+    // API automatically saves search history on submission
+    // We just need to refresh the local state
+    const loadSearchHistory = async () => {
+      try {
+        const response = await SearchHistoryService.getRecentSearches();
+        if (!response.error) {
+          // Extract the actual data array from the API response
+          const historyData = response.data?.data || response.data || [];
+          setHistory(Array.isArray(historyData) ? historyData : []);
+        }
+      } catch (error) {
+        console.error('Error refreshing search history:', error);
+      }
+    };
+    loadSearchHistory();
+  }, []);
 
   /** Submit search */
   const submitSearch = useCallback(() => {
@@ -131,6 +217,15 @@ export default function TopBar({ onSearch }: TopBarProps) {
     inputRef.current?.blur();
     setShowHistory(false);
   }, [inputValue, pathname, router, onSearch, saveHistory]);
+
+  const handleBack = () => {
+    // If we're on a search page, go back to homepage
+    if (pathname.startsWith('/products/search')) {
+      router.push('/client/pages/homepage');
+    } else {
+      router.back();
+    }
+  };
 
   /** Handle Enter safely for Korean/Japanese IME */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -160,19 +255,55 @@ export default function TopBar({ onSearch }: TopBarProps) {
   };
 
   /** Delete one item */
-  const handleDeleteItem = (id: number) => {
-    const newHistory = history.filter((h) => h.id !== id);
-    setHistory(newHistory);
-    localStorage.setItem(getStorageKey(), JSON.stringify(newHistory));
+  const handleDeleteItem = async (keyword: string) => {
+    try {
+      const response = await SearchHistoryService.deleteKeyword(keyword);
+      if (response.error) {
+        console.error('Failed to delete keyword:', response.error);
+        toast.error('검색어 삭제에 실패했습니다.');
+      } else {
+        // Refresh the history list
+        const refreshResponse = await SearchHistoryService.getRecentSearches();
+        if (!refreshResponse.error) {
+          // Extract the actual data array from the API response
+          const historyData =
+            refreshResponse.data?.data || refreshResponse.data || [];
+          setHistory(Array.isArray(historyData) ? historyData : []);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting keyword:', error);
+      toast.error('검색어 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   /** Delete all */
-  const handleClearAll = () => {
-    setHistory([]);
-    localStorage.removeItem(getStorageKey());
+  const handleClearAll = async () => {
+    try {
+      const response = await SearchHistoryService.clearSearchHistory();
+      if (response.error) {
+        console.error('Failed to clear search history:', response.error);
+        toast.error('검색 기록 삭제에 실패했습니다.');
+      } else {
+        setHistory([]);
+        toast.success('검색 기록이 삭제되었습니다.');
+      }
+    } catch (error) {
+      console.error('Error clearing search history:', error);
+      toast.error('검색 기록 삭제 중 오류가 발생했습니다.');
+    }
   };
 
-  const handleFocus = () => setShowHistory(true);
+  const handleFocus = () => {
+    console.log('Search input focused, showing history dropdown');
+    console.log('Current history:', history);
+    console.log(
+      'History length:',
+      Array.isArray(history) ? history.length : 'Not an array'
+    );
+    console.log('Loading history:', loadingHistory);
+    setShowHistory(true);
+  };
   const handleBlur = () => setTimeout(() => setShowHistory(false), 200);
 
   const isShoplist = pathname.startsWith('/shops');
@@ -210,7 +341,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
             )
           ) : (
             <button
-              onClick={() => router.back()}
+              onClick={handleBack}
               className={styles.backButton}
               aria-label="뒤로 가기"
             >
@@ -253,7 +384,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
               />
             </form>
 
-            {showHistory && history.length > 0 && (
+            {showHistory && (
               <div
                 className={
                   pathname === '/shops'
@@ -272,30 +403,50 @@ export default function TopBar({ onSearch }: TopBarProps) {
                   </button>
                 </div>
 
-                {history.map((item) => (
-                  <div key={item.id} className={styles.historyItem}>
-                    <div
-                      className={styles.historyContent}
-                      onClick={() => handleSelectHistory(item.term)}
-                    >
-                      <div className={styles.historyLeft}>
-                        <CiClock2 className={styles.historyIcon} />
-                        <span className={styles.historyTerm}>{item.term}</span>
-                      </div>
-
-                      <div className={styles.historyRight}>
-                        <span className={styles.historyTime}>{item.time}</span>
-                        <button
-                          type="button"
-                          className={styles.historyDelete}
-                          onClick={() => handleDeleteItem(item.id)}
-                        >
-                          <IoClose />
-                        </button>
-                      </div>
+                {loadingHistory ? (
+                  <div className={styles.historyItem}>
+                    <div className={styles.historyContent}>
+                      <span>검색 기록을 불러오는 중...</span>
                     </div>
                   </div>
-                ))}
+                ) : history.length > 0 ? (
+                  history.map((item) => (
+                    <div key={item.id} className={styles.historyItem}>
+                      <div
+                        className={styles.historyContent}
+                        onClick={() => handleSelectHistory(item.keyword)}
+                      >
+                        <div className={styles.historyLeft}>
+                          <CiClock2 className={styles.historyIcon} />
+                          <span className={styles.historyTerm}>
+                            {item.keyword}
+                          </span>
+                        </div>
+
+                        <div className={styles.historyRight}>
+                          <span className={styles.historyTime}>
+                            {new Date(item.searchedAt).toLocaleDateString(
+                              'ko-KR'
+                            )}
+                          </span>
+                          <button
+                            type="button"
+                            className={styles.historyDelete}
+                            onClick={() => handleDeleteItem(item.keyword)}
+                          >
+                            <IoClose />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className={styles.historyItem}>
+                    <div className={styles.historyContent}>
+                      <span>최근 검색 기록이 없습니다.</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {isShoplist && (
