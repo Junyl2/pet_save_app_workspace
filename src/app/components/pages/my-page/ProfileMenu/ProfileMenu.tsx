@@ -1,6 +1,5 @@
 'use client';
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ProfileHeader from './ProfileHeader/ProfileHeader';
 import ProfileSection from './ProfileSection/ProfileSection';
 import ProfileItem from './ProfileItem/ProfileItem';
@@ -13,14 +12,17 @@ import LogoutModal from '@/app/components/ui/modal/LogoutModal/LogoutModal';
 
 const ProfileMenu = () => {
   const { user, refreshUserData } = useUser();
-
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const hasRefreshed = useRef(false);
 
   // Refresh user data when component mounts to get latest business status
   useEffect(() => {
+    if (hasRefreshed.current) return; // guard to ensure "run once"
+    hasRefreshed.current = true;
+
     console.log('🔄 ProfileMenu mounted, refreshing user data...');
     refreshUserData();
-  }, []); // Empty dependency array - only run once on mount
+  }, [refreshUserData]); // Include refreshUserData but guard prevents infinite loop
 
   // Debug logging for user state
   useEffect(() => {
@@ -96,7 +98,7 @@ const ProfileMenu = () => {
           />
           <ProfileItem
             label="로그아웃"
-            onClick={() => setShowLogoutModal(true)} // open modal
+            onClick={() => setShowLogoutModal(true)}
             showChevron={false}
           />
           <ProfileItem

@@ -6,12 +6,13 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 import { BusinessService } from '@/app/api/services/client/businessService/businessService';
 import { useAuth } from './authContext';
-/* import { StoreService } from '@/app/api/services/client/memberService/store'; */
+import { MemberInfo } from '@/app/api/types/member/member';
 
 export type Role = 'client' | 'seller';
 export type BusinessApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | null;
@@ -19,10 +20,13 @@ export type BusinessApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | null;
 export interface User {
   username: string;
   role: Role;
-  // Make location optional so login() can be used without providing it
   location?: string;
   businessApprovalStatus?: BusinessApprovalStatus;
-  storeId?: string | null; // Store ID if user is a seller
+  storeId?: string | null;
+}
+
+interface BusinessData {
+  status: string;
 }
 
 interface UserContextType {
@@ -39,62 +43,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { isLoggedIn, checkAuthState } = useAuth();
+  const userRef = useRef<User | null>(null);
 
-  // Load saved user on first mount (client-side only)
+  // Update ref whenever user state changes
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('user');
-      const authToken = localStorage.getItem('authToken');
-      if (raw && authToken) {
-        const savedUser = JSON.parse(raw) as User;
-        setUser(savedUser);
-        // Only refresh user data if we have a valid auth token
-        setTimeout(() => {
-          console.log('🔄 Auto-refreshing user data on app load...');
-          refreshUserData();
-        }, 500); // Small delay to ensure app is fully loaded
-      } else if (raw) {
-        // Load user data without refreshing if no auth token
-        const savedUser = JSON.parse(raw) as User;
-        setUser(savedUser);
-      }
-    } catch {
-      // ignore JSON parse errors
-    }
-  }, []);
+    userRef.current = user;
+  }, [user]);
 
-  // Sync with AuthContext login state
-  useEffect(() => {
-    if (!isLoggedIn) {
-      // If not logged in, clear user data
-      setUser(null);
-      localStorage.removeItem('user');
-    }
-  }, [isLoggedIn]);
-
-  const login = (userData: User) => {
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
-    // Refresh user data to get latest business registration status
-    setTimeout(() => {
-      console.log('🔄 Auto-refreshing user data after login...');
-      refreshUserData();
-    }, 100); // Small delay to ensure login is processed
-  };
-
-  const logout = () => {
-    localStorage.removeItem('user');
-    setUser(null);
-  };
-
-  const updateUserRole = (newRole: Role) => {
-    if (user) {
-      const updatedUser = { ...user, role: newRole };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-    }
-  };
-
+  // -------- refreshUserData (memoized) --------
   const refreshUserData = useCallback(async () => {
     // Prevent multiple simultaneous calls
     if (isRefreshing) {
@@ -102,7 +58,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Check if we have a valid auth token before attempting to refresh
     const authToken = localStorage.getItem('authToken');
     if (!authToken) {
       console.log('No auth token found, skipping user data refresh');
@@ -123,15 +78,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setIsRefreshing(true);
       console.log('🔄 Refreshing user data from backend...');
 
-      // Always fetch both member info and business registration status in parallel
-      // Business registration status is the source of truth for approval status
+      // Fetch both member info and business registration in parallel
       const [memberResponse, businessResponse] = await Promise.allSettled([
         MemberService.getMyInfo(),
         BusinessService.getMyBusinessRegistration(),
       ]);
 
-      let userData = null;
-      let businessData = null;
+      let userData: MemberInfo | null = null;
+      let businessData: BusinessData | null = null;
 
       // Process member info
       if (
@@ -148,14 +102,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
             : 'No data'
         );
 
-        // If member info fails due to auth issues, don't update user data
         if (
           memberResponse.status === 'rejected' &&
           (memberResponse.reason?.message?.includes('401') ||
             memberResponse.reason?.message?.includes('403'))
         ) {
           console.log('Authentication failed, user may need to re-login');
-          // Don't clear user data, just skip the refresh
           return;
         }
       }
@@ -177,13 +129,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
 
       if (userData) {
-        // Determine user role based on business approval status
-        let userRole = userData.role || user?.role || 'client';
-        let businessApprovalStatus = userData.businessApprovalStatus;
+        // Get current user data to preserve existing values
+        const currentUser = userRef.current;
 
-        // If we have business registration data, use its status
+        // Determine user role based on business approval status
+        let userRole: Role =
+          (userData.role as Role) || currentUser?.role || 'client';
+        let businessApprovalStatus: BusinessApprovalStatus =
+          (userData.businessApprovalStatus as BusinessApprovalStatus) ?? null;
+
         if (businessData) {
-          businessApprovalStatus = businessData.status;
+          businessApprovalStatus =
+            businessData.status as BusinessApprovalStatus;
           console.log(
             '📋 Using business registration status:',
             businessData.status
@@ -200,7 +157,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.log('  - Business Approval Status:', businessApprovalStatus);
         console.log('  - Store ID:', userData.storeId);
 
-        // If user has applied for business registration but not approved yet, keep as client
         if (businessApprovalStatus === 'PENDING') {
           console.log(
             '⏳ User has pending business registration, keeping as client'
@@ -217,7 +173,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
           );
           userRole = 'client';
         } else if (userRole === 'client' && userData.storeId) {
-          // Fallback: Check if user has a storeId (for backward compatibility)
           console.log(
             '🔄 User has storeId in member info, upgrading to seller (fallback)'
           );
@@ -230,13 +185,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
           businessApprovalStatus
         );
 
-        // Update user with backend data
         const updatedUser: User = {
-          username: userData.username || user?.username || '',
+          username: userData.username || currentUser?.username || '',
           role: userRole,
-          location: userData.location || user?.location,
-          businessApprovalStatus: businessApprovalStatus,
-          storeId: userData.storeId || user?.storeId,
+          location: userData.location || currentUser?.location,
+          businessApprovalStatus,
+          storeId: userData.storeId || currentUser?.storeId,
         };
 
         console.log('✅ Updated user from backend:', updatedUser);
@@ -250,19 +204,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
           updatedUser.role === 'seller' &&
             updatedUser.businessApprovalStatus === 'APPROVED'
         );
+
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
       } else {
         console.log('Failed to get member info from backend');
       }
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
-
-      // Don't clear user data on authentication errors - just log the error
-      // The user can still use the app with cached data
+    } catch (err: unknown) {
+      console.error('Error refreshing user data:', err);
       if (
-        error instanceof Error &&
-        (error.message.includes('401') || error.message.includes('403'))
+        err instanceof Error &&
+        (err.message.includes('401') || err.message.includes('403'))
       ) {
         console.log(
           'Authentication error detected, but keeping cached user data'
@@ -271,7 +223,65 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsRefreshing(false);
     }
-  }, [isRefreshing, user]);
+  }, [isRefreshing, checkAuthState]); // ✅ Remove user dependency to prevent infinite loop
+
+  // -------- Load saved user on first mount (client-only) --------
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (didInit.current) return; // guard to ensure "run once"
+    didInit.current = true;
+
+    try {
+      const raw = localStorage.getItem('user');
+      const authToken = localStorage.getItem('authToken');
+      if (raw && authToken) {
+        const savedUser = JSON.parse(raw) as User;
+        setUser(savedUser);
+        // Only refresh user data if we have a valid auth token
+        setTimeout(() => {
+          console.log('🔄 Auto-refreshing user data on app load...');
+          // safe to call; guarded by isRefreshing inside
+          void refreshUserData();
+        }, 500);
+      } else if (raw) {
+        const savedUser = JSON.parse(raw) as User;
+        setUser(savedUser);
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+  }, [refreshUserData]); // ✅ Include refreshUserData in dependencies
+
+  // -------- Sync with AuthContext login state --------
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setUser(null);
+      localStorage.removeItem('user');
+    }
+  }, [isLoggedIn]);
+
+  // -------- Public actions --------
+  const login = (userData: User) => {
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    setTimeout(() => {
+      console.log('🔄 Auto-refreshing user data after login...');
+      void refreshUserData();
+    }, 100);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+
+  const updateUserRole = (newRole: Role) => {
+    if (user) {
+      const updatedUser = { ...user, role: newRole };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    }
+  };
 
   return (
     <UserContext.Provider

@@ -1,15 +1,18 @@
 'use client';
+
 import {
   createContext,
   useContext,
   useEffect,
   useState,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 import { WishlistService } from '@/app/api/services/client/my-page/wishlistService';
 import { WishlistItem } from '@/app/api/types/my-page/wishlist';
 import toast from 'react-hot-toast';
+import { AxiosError, isAxiosError } from 'axios';
 
 type FavoritesContextType = {
   favorites: string[];
@@ -33,40 +36,23 @@ const FavoritesContext = createContext<FavoritesContextType>({
   clearError: () => {},
 });
 
+type JwtPayload = { exp: number; [k: string]: unknown };
+
+const parseJwt = (token: string): JwtPayload | null => {
+  try {
+    const base64 = token.split('.')[1];
+    if (!base64) return null;
+    return JSON.parse(atob(base64)) as JwtPayload;
+  } catch {
+    return null;
+  }
+};
+
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Load wishlist from API on mount
-  useEffect(() => {
-    // Only load wishlist if we have a token (user is authenticated)
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      loadWishlist();
-    }
-  }, []);
-
-  // Fallback: Load from localStorage on mount (for offline support)
-  useEffect(() => {
-    const stored = localStorage.getItem('favorites');
-    if (stored && favorites.length === 0) {
-      try {
-        const parsedFavorites = JSON.parse(stored);
-        setFavorites(parsedFavorites);
-      } catch (error) {
-        console.error('Error parsing stored favorites:', error);
-      }
-    }
-  }, []);
-
-  // Save to localStorage on change (for offline support)
-  useEffect(() => {
-    if (favorites.length > 0) {
-      localStorage.setItem('favorites', JSON.stringify(favorites));
-    }
-  }, [favorites]);
 
   const loadWishlist = useCallback(async () => {
     try {
@@ -85,28 +71,56 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           }))
         );
         setWishlistItems(response.data.items);
-        // Map wishlist items to product IDs (using productId field from API response)
         setFavorites(response.data.items.map((item) => item.productId));
       } else {
-        // If no data or items, set empty arrays
         setWishlistItems([]);
         setFavorites([]);
         if (response.error) {
           console.warn('Wishlist API error:', response.error);
-          // Don't set error for now, just use empty arrays
-          // setError(response.error);
         }
       }
-    } catch (error) {
-      console.error('Error loading wishlist:', error);
-      // Don't set error for now, just use empty arrays
-      // setError('Failed to load wishlist');
+    } catch (err: unknown) {
+      console.error('Error loading wishlist:', err);
       setWishlistItems([]);
       setFavorites([]);
     } finally {
       setIsLoading(false);
     }
-  }, []); // Empty dependency array since this function doesn't depend on any props or state
+  }, []);
+
+  // Load wishlist from API on mount (only if authenticated)
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      void loadWishlist();
+    }
+  }, [loadWishlist]); // ✅ include dependency
+
+  // Fallback: Load from localStorage once on mount (for offline support)
+  const didBootstrapLocalFavorites = useRef(false);
+  useEffect(() => {
+    if (didBootstrapLocalFavorites.current) return;
+    didBootstrapLocalFavorites.current = true;
+
+    const stored = localStorage.getItem('favorites');
+    if (stored && favorites.length === 0) {
+      try {
+        const parsedFavorites = JSON.parse(stored) as unknown;
+        if (Array.isArray(parsedFavorites)) {
+          setFavorites(parsedFavorites as string[]);
+        }
+      } catch (err) {
+        console.error('Error parsing stored favorites:', err);
+      }
+    }
+  }, [favorites.length]); // ✅ include the value the effect reads
+
+  // Save to localStorage whenever favorites change (for offline support)
+  useEffect(() => {
+    if (favorites.length > 0) {
+      localStorage.setItem('favorites', JSON.stringify(favorites));
+    }
+  }, [favorites]);
 
   const toggleFavorite = useCallback(
     async (id: string) => {
@@ -114,36 +128,38 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(true);
         setError(null);
 
-        // Check if user is authenticated
+        // Check auth
         const token = localStorage.getItem('authToken');
         if (!token) {
-          setError('로그인이 필요합니다.');
+          const msg = '로그인이 필요합니다.';
+          setError(msg);
+          toast.error(msg);
           return;
         }
 
         console.log('Auth token found:', !!token);
         console.log('Token preview:', token.substring(0, 20) + '...');
 
-        // Check if token is expired
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const currentTime = Date.now() / 1000;
-          const isExpired = payload.exp < currentTime;
-          console.log('Token expiration check:', {
-            exp: payload.exp,
-            currentTime: currentTime,
-            isExpired: isExpired,
-            expiresIn:
-              Math.round((payload.exp - currentTime) / 60) + ' minutes',
-          });
-
-          if (isExpired) {
-            setError('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
-            return;
-          }
-        } catch (error) {
-          console.error('Error parsing token:', error);
-          setError('인증 토큰이 유효하지 않습니다. 다시 로그인해주세요.');
+        // Check token expiry
+        const payload = parseJwt(token);
+        if (!payload || typeof payload.exp !== 'number') {
+          const msg = '인증 토큰이 유효하지 않습니다. 다시 로그인해주세요.';
+          setError(msg);
+          toast.error(msg);
+          return;
+        }
+        const currentTime = Date.now() / 1000;
+        const isExpired = payload.exp < currentTime;
+        console.log('Token expiration check:', {
+          exp: payload.exp,
+          currentTime,
+          isExpired,
+          expiresIn: Math.round((payload.exp - currentTime) / 60) + ' minutes',
+        });
+        if (isExpired) {
+          const msg = '로그인 세션이 만료되었습니다. 다시 로그인해주세요.';
+          setError(msg);
+          toast.error(msg);
           return;
         }
 
@@ -154,7 +170,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           action: isCurrentlyFavorited ? 'REMOVE' : 'ADD',
         });
 
-        // Try to sync with API first
+        // Sync with API
         try {
           const response = await WishlistService.toggleWishlist(
             id,
@@ -162,11 +178,9 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           );
 
           if (response.data?.success) {
-            // API call succeeded, reload wishlist to get accurate state from backend
             console.log('Toggle successful, reloading wishlist...');
             await loadWishlist();
 
-            // Show success message based on the action
             if (isCurrentlyFavorited) {
               console.log('Removed from wishlist:', id);
             } else {
@@ -175,52 +189,57 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
           } else {
             console.error('Wishlist API error:', response.error);
             setError(response.error || '찜목록 업데이트에 실패했습니다.');
+            toast.error(response.error || '찜목록 업데이트에 실패했습니다.');
           }
-        } catch (apiError: any) {
-          console.error('Wishlist API failed:', apiError);
+        } catch (apiErr: unknown) {
+          console.error('Wishlist API failed:', apiErr);
 
-          // Handle specific error cases
-          if (apiError?.response?.status === 401) {
-            const errorMsg = '로그인이 필요합니다.';
-            setError(errorMsg);
-            toast.error(errorMsg);
-            // Clear invalid tokens
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('refreshToken');
-            // Optionally trigger login modal or redirect
-            if (typeof window !== 'undefined') {
-              // You can replace this with a login modal trigger
-              console.log('Authentication required - should show login modal');
+          if (isAxiosError(apiErr)) {
+            const status = (apiErr as AxiosError)?.response?.status;
+            if (status === 401) {
+              const msg = '로그인이 필요합니다.';
+              setError(msg);
+              toast.error(msg);
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('refreshToken');
+              if (typeof window !== 'undefined') {
+                console.log(
+                  'Authentication required - should show login modal'
+                );
+              }
+            } else if (status === 500) {
+              const msg =
+                '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+              setError(msg);
+              toast.error(msg);
+            } else if (status === 404) {
+              const msg = '상품을 찾을 수 없습니다.';
+              setError(msg);
+              toast.error(msg);
+            } else {
+              const msg = '찜목록 업데이트에 실패했습니다.';
+              setError(msg);
+              toast.error(msg);
             }
-          } else if (apiError?.response?.status === 500) {
-            const errorMsg =
-              '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-            setError(errorMsg);
-            toast.error(errorMsg);
-          } else if (apiError?.response?.status === 404) {
-            const errorMsg = '상품을 찾을 수 없습니다.';
-            setError(errorMsg);
-            toast.error(errorMsg);
           } else {
-            const errorMsg = '찜목록 업데이트에 실패했습니다.';
-            setError(errorMsg);
-            toast.error(errorMsg);
+            const msg = '찜목록 업데이트에 실패했습니다.';
+            setError(msg);
+            toast.error(msg);
           }
         }
-      } catch (error) {
-        console.error('Error toggling favorite:', error);
+      } catch (err: unknown) {
+        console.error('Error toggling favorite:', err);
         setError('찜목록 업데이트에 실패했습니다.');
+        toast.error('찜목록 업데이트에 실패했습니다.');
       } finally {
         setIsLoading(false);
       }
     },
     [favorites, loadWishlist]
-  ); // Depend on favorites and loadWishlist
+  );
 
   const isFavorited = useCallback(
-    (id: string) => {
-      return favorites.includes(id);
-    },
+    (id: string) => favorites.includes(id),
     [favorites]
   );
 

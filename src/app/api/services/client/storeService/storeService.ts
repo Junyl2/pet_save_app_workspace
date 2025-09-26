@@ -3,7 +3,9 @@ import {
   NearbyStoresRequest,
   NearbyStoresApiResponse,
 } from '../../../types/stores/nearby';
-import { StoreInfo, StoreApiResponse } from '../../../types/member/store/store';
+import {
+  /* StoreInfo, */ StoreApiResponse,
+} from '../../../types/member/store/store';
 
 /**
  * Store service for handling store-related operations

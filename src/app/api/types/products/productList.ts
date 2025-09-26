@@ -73,8 +73,8 @@ export interface DeleteProductResponse {
   status: number;
   resultMsg: string;
   divisionCode: string;
-  data: {};
+  data: Record<string, never>; // ✅ strict empty object
   errorId: string;
 }
 
-export type DeleteProductApiResponse = BaseApiEnvelope<{}>;
+export type DeleteProductApiResponse = BaseApiEnvelope<Record<string, never>>; //  strict empty object

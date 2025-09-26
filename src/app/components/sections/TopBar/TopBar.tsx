@@ -60,6 +60,14 @@ export default function TopBar({ onSearch }: TopBarProps) {
         setLoadingHistory(true);
         console.log('Loading search history from API...');
 
+        // Only try to load search history if user is logged in
+        // This prevents 401 errors for non-authenticated users
+        if (!isLoggedIn) {
+          console.log('User not logged in, skipping search history API calls');
+          setLoadingHistory(false);
+          return;
+        }
+
         // First check if there's any search history at all
         console.log('Checking search history count...');
         const countResponse =
@@ -74,6 +82,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
         if (
           response.error ||
           !response.data?.data ||
+          !Array.isArray(response.data.data) ||
           response.data.data.length === 0
         ) {
           console.log('Trying main getSearchHistory method...');
@@ -93,7 +102,9 @@ export default function TopBar({ onSearch }: TopBarProps) {
         // If recent searches is empty, try distinct keywords
         if (
           !response.error &&
-          (!response.data?.data || response.data.data.length === 0)
+          (!response.data?.data ||
+            !Array.isArray(response.data.data) ||
+            response.data.data.length === 0)
         ) {
           console.log('Recent searches empty, trying distinct keywords...');
           const keywordsResponse =
@@ -133,7 +144,10 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
           const historyData = response.data?.data || response.data || [];
           console.log('Extracted history data:', historyData);
-          console.log('History data length:', historyData.length);
+          console.log(
+            'History data length:',
+            Array.isArray(historyData) ? historyData.length : 0
+          );
 
           setHistory(Array.isArray(historyData) ? historyData : []);
         }
@@ -148,7 +162,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
     };
 
     loadSearchHistory();
-  }, [getStorageKey]);
+  }, [getStorageKey, isLoggedIn]);
 
   /** Load selected location on component mount */
   useEffect(() => {
@@ -327,7 +341,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
                 className={styles.userLocation}
                 onClick={() => router.push('/client/pages/homepage/location')}
               >
-                <span>{selectedLocation || '내 위치 선택'}</span>
+                <span>{formatAddress(selectedLocation) || '내 위치 선택'}</span>
                 <FaChevronDown className={styles.dropdownIcon} />
               </div>
             ) : (

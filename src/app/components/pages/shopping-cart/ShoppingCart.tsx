@@ -39,8 +39,9 @@ export default function ShoppingCartPage() {
   }, [cart]);
 
   const handleOrder = (items: typeof cart) => {
-    const selected = items.filter(({ product }) =>
-      selectedItems.includes(product.id)
+    const selected = items.filter(
+      ({ product }) =>
+        product.id !== undefined && selectedItems.includes(product.id)
     );
     if (selected.length === 0) return;
     localStorage.setItem('checkoutItems', JSON.stringify(selected));
@@ -54,7 +55,8 @@ export default function ShoppingCartPage() {
     let final = 0;
 
     items.forEach(({ product, quantity }) => {
-      if (!selectedItems.includes(product.id)) return;
+      if (product.id === undefined || !selectedItems.includes(product.id))
+        return;
 
       const base = num(product.price);
       const disc =
@@ -105,7 +107,9 @@ export default function ShoppingCartPage() {
         const { original, discount, final } = calcStoreSummary(items);
         const hasSelection = final > 0;
 
-        const storeItemIds = items.map(({ product }) => product.id);
+        const storeItemIds = items
+          .map(({ product }) => product.id)
+          .filter((id): id is number => id !== undefined);
         const isAllSelected = storeItemIds.every((id) =>
           selectedItems.includes(id)
         );
@@ -147,7 +151,9 @@ export default function ShoppingCartPage() {
               <button
                 onClick={() =>
                   setDeleteTarget({
-                    ids: items.map(({ product }) => product.id),
+                    ids: items
+                      .map(({ product }) => product.id)
+                      .filter((id): id is number => id !== undefined),
                   })
                 }
                 className={styles.bulkDeleteButton}
@@ -169,8 +175,13 @@ export default function ShoppingCartPage() {
                   <div>
                     <input
                       type="checkbox"
-                      checked={selectedItems.includes(product.id)}
-                      onChange={() => toggleSelectItem(product.id)}
+                      checked={
+                        product.id !== undefined &&
+                        selectedItems.includes(product.id)
+                      }
+                      onChange={() =>
+                        product.id !== undefined && toggleSelectItem(product.id)
+                      }
                       className={styles.checkbox}
                     />
                   </div>
@@ -208,13 +219,23 @@ export default function ShoppingCartPage() {
                         <span>{basePrice.toLocaleString()}원</span>
                       )}
                       <div className={styles.quantityControls}>
-                        <button onClick={() => decreaseQuantity(product.id)}>
+                        <button
+                          onClick={() =>
+                            product.id !== undefined &&
+                            decreaseQuantity(product.id)
+                          }
+                        >
                           <FiMinus size={18} color="rgba(0,0,0,0.4)" />
                         </button>
                         <span style={{ color: 'rgba(0,0,0,0.8)' }}>
                           {quantity}
                         </span>
-                        <button onClick={() => increaseQuantity(product.id)}>
+                        <button
+                          onClick={() =>
+                            product.id !== undefined &&
+                            increaseQuantity(product.id)
+                          }
+                        >
                           <FiPlus size={18} color="rgba(0,0,0,0.4)" />
                         </button>
                       </div>
@@ -222,7 +243,10 @@ export default function ShoppingCartPage() {
                   </div>
                   <div className={styles.deleteButton}>
                     <button
-                      onClick={() => setDeleteTarget({ ids: [product.id] })}
+                      onClick={() =>
+                        product.id !== undefined &&
+                        setDeleteTarget({ ids: [product.id] })
+                      }
                       className={styles.oneDelete}
                     >
                       삭제
@@ -257,8 +281,10 @@ export default function ShoppingCartPage() {
               >
                 총{' '}
                 {
-                  items.filter(({ product }) =>
-                    selectedItems.includes(product.id)
+                  items.filter(
+                    ({ product }) =>
+                      product.id !== undefined &&
+                      selectedItems.includes(product.id)
                   ).length
                 }
                 건 주문하기

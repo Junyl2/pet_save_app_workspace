@@ -22,7 +22,7 @@ export default function SearchProductGrid({
   searchTerm?: string;
   onSearchSubmit?: () => void;
 }) {
-  const { favorites, toggleFavorite, isFavorited } = useFavorites();
+  const { /*  favorites,  */ toggleFavorite, isFavorited } = useFavorites();
   const router = useRouter();
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);

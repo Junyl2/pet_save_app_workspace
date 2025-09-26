@@ -6,10 +6,10 @@ import { FaChevronLeft } from 'react-icons/fa';
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import AuthenticationComplete from '@/app/components/pages/auth/find-id/AuthenticationComplete';
 import { AuthService } from '@/app/api/services/client/auth/authService';
-import { FindIdByEmailPayload } from '@/app/api/types/auth/EmailVerification';
+/* import { FindIdByEmailPayload } from '@/app/api/types/auth/EmailVerification'; */
 import styles from './FindIdForm.module.css';
 
-type UnknownJson = unknown;
+/* type UnknownJson = unknown; */
 
 export default function FindIdFormEmail() {
   const router = useRouter();

@@ -253,9 +253,10 @@ export default function MemberInformation() {
           setMemberInfo(response.data.data);
           console.log('Profile image updated successfully via JSON/URL');
         }
-      } catch (err: any) {
-        const status = err?.response?.status;
-        const data = err?.response?.data;
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response
+          ?.status;
+        const data = (err as { response?: { data?: unknown } })?.response?.data;
         console.error('Profile update failed', { status, data });
 
         // Try multipart as final fallback
@@ -350,7 +351,7 @@ export default function MemberInformation() {
           );
           console.log('🔍 Update response (fallback):', response);
         }
-      } catch (error) {
+      } catch {
         console.log(
           '🔄 MemberId approach failed with exception, trying fallback method...'
         );

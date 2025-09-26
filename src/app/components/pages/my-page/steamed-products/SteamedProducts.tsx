@@ -14,7 +14,6 @@ import styles from './SteamedProducts.module.css';
 
 export function SteamedProducts() {
   const {
-    favorites,
     wishlistItems,
     isLoading: favoritesLoading,
     error: favoritesError,
@@ -49,7 +48,7 @@ export function SteamedProducts() {
     };
 
     loadProducts();
-  }, []); // Only run once on mount
+  }, [loadWishlist]); // Include loadWishlist dependency
 
   // Convert wishlist items to Product format when wishlistItems change
   useEffect(() => {

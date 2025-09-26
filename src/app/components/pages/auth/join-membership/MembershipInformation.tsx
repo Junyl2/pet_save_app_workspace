@@ -11,6 +11,7 @@ import { PAGE_URLS } from '@/app/utils/page_url';
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import { AuthService } from '@/app/api/services/client/auth/authService';
 import { AddressService } from '@/app/api/services/client/addressService/addressService';
+import { AddressSearchResult } from '@/app/api/types/address/addressSearch';
 import {
   MemberSignupDto,
   LOGIN_TYPES,
@@ -67,7 +68,9 @@ export default function MembershipInformation() {
   // Address search states
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [addressSearchError, setAddressSearchError] = useState('');
-  const [addressSearchResults, setAddressSearchResults] = useState<any[]>([]);
+  const [addressSearchResults, setAddressSearchResults] = useState<unknown[]>(
+    []
+  );
   const [showAddressResults, setShowAddressResults] = useState(false);
 
   // Fix hydration issues
@@ -164,10 +167,16 @@ export default function MembershipInformation() {
   };
 
   // QR Scanner functions
-  const handleQRScan = (detectedCodes: any[]) => {
+  const handleQRScan = (detectedCodes: unknown[]) => {
     if (detectedCodes && detectedCodes.length > 0) {
-      const result = detectedCodes[0].rawValue;
+      const firstCode = detectedCodes[0];
+      const result = (firstCode as { rawValue?: string })?.rawValue;
       console.log('QR Code scanned:', result);
+
+      if (!result) {
+        console.log('No QR code data found');
+        return;
+      }
 
       let referralCode = '';
 
@@ -189,7 +198,7 @@ export default function MembershipInformation() {
           referralCode = result;
           console.log('No referralCode field found, using full result');
         }
-      } catch (error) {
+      } catch {
         // If it's not JSON, use the result as is
         referralCode = result;
         console.log('Not JSON, using raw result:', referralCode);
@@ -402,10 +411,13 @@ export default function MembershipInformation() {
   };
 
   // Handle address selection from search results
-  const handleAddressSelect = (selectedAddress: any) => {
-    const formattedAddress = AddressService.formatAddress(selectedAddress);
-    const postalCode = AddressService.extractPostalCode(selectedAddress);
-    const coordinates = AddressService.extractCoordinates(selectedAddress);
+  const handleAddressSelect = (selectedAddress: unknown) => {
+    const formattedAddress = AddressService.formatAddress(
+      selectedAddress as AddressSearchResult
+    );
+    const postalCode = AddressService.extractPostalCode(
+      selectedAddress as AddressSearchResult
+    );
 
     setFormData((prev) => ({
       ...prev,
@@ -988,10 +1000,14 @@ export default function MembershipInformation() {
                   onClick={() => handleAddressSelect(result)}
                 >
                   <div className={styles.addressResultMain}>
-                    {AddressService.formatAddress(result)}
+                    {AddressService.formatAddress(
+                      result as AddressSearchResult
+                    )}
                   </div>
                   {(() => {
-                    const zipCode = AddressService.extractPostalCode(result);
+                    const zipCode = AddressService.extractPostalCode(
+                      result as AddressSearchResult
+                    );
                     return zipCode ? (
                       <div className={styles.addressResultPostal}>
                         우편번호: {zipCode}

@@ -3,7 +3,22 @@
  * Use this in browser console to check auth state
  */
 
-export const debugAuthState = () => {
+type JwtPayload = {
+  exp: number;
+  [key: string]: unknown;
+};
+
+const parseJwt = (token: string): JwtPayload | null => {
+  try {
+    const base64 = token.split('.')[1];
+    if (!base64) return null;
+    return JSON.parse(atob(base64)) as JwtPayload;
+  } catch {
+    return null;
+  }
+};
+
+export const debugAuthState = (): void => {
   if (typeof window === 'undefined') {
     console.log('This function can only be used in the browser');
     return;
@@ -23,8 +38,8 @@ export const debugAuthState = () => {
   console.log('  - Refresh Token:', refreshToken ? 'Present' : 'Missing');
 
   if (authToken) {
-    try {
-      const payload = JSON.parse(atob(authToken.split('.')[1]));
+    const payload = parseJwt(authToken);
+    if (payload && typeof payload.exp === 'number') {
       const currentTime = Date.now() / 1000;
       const isExpired = payload.exp < currentTime;
       const timeUntilExpiry = payload.exp - currentTime;
@@ -39,14 +54,14 @@ export const debugAuthState = () => {
         '  - Expires at:',
         new Date(payload.exp * 1000).toLocaleString()
       );
-    } catch (error) {
+    } else {
       console.log('  - Auth Token: Invalid format');
     }
   }
 
   if (refreshToken) {
-    try {
-      const payload = JSON.parse(atob(refreshToken.split('.')[1]));
+    const payload = parseJwt(refreshToken);
+    if (payload && typeof payload.exp === 'number') {
       const currentTime = Date.now() / 1000;
       const isExpired = payload.exp < currentTime;
       const timeUntilExpiry = payload.exp - currentTime;
@@ -61,7 +76,7 @@ export const debugAuthState = () => {
         '  - Expires at:',
         new Date(payload.exp * 1000).toLocaleString()
       );
-    } catch (error) {
+    } else {
       console.log('  - Refresh Token: Invalid format');
     }
   }
@@ -75,7 +90,7 @@ export const debugAuthState = () => {
     try {
       const parsed = JSON.parse(userInfo);
       console.log('  - User Info Data:', parsed);
-    } catch (error) {
+    } catch {
       console.log('  - User Info: Invalid JSON');
     }
   }
@@ -84,7 +99,7 @@ export const debugAuthState = () => {
     try {
       const parsed = JSON.parse(user);
       console.log('  - User Context Data:', parsed);
-    } catch (error) {
+    } catch {
       console.log('  - User Context: Invalid JSON');
     }
   }
@@ -93,6 +108,12 @@ export const debugAuthState = () => {
 };
 
 // Make it available globally for easy access
+declare global {
+  interface Window {
+    debugAuthState: () => void;
+  }
+}
+
 if (typeof window !== 'undefined') {
-  (window as any).debugAuthState = debugAuthState;
+  window.debugAuthState = debugAuthState;
 }

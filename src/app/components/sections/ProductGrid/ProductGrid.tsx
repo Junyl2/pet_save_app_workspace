@@ -5,15 +5,11 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './ProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
-import {
-  Product,
-  ProductSearchResponse,
-  ProductPageInfo,
-} from '@/app/api/types/products/products';
+import { Product, ProductPageInfo } from '@/app/api/types/products/products';
 import { ProductService } from '@/app/api/services/client/productService/productService';
 import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
-import { Pagination, PaginationInfo } from '../../ui/Pagination';
+import { Pagination } from '../../ui/Pagination';
 
 interface ProductGridProps {
   products?: Product[];
@@ -32,14 +28,12 @@ export const ProductGrid = ({
   onProductClick,
   onAddToCart,
 }: ProductGridProps) => {
-  const { favorites, toggleFavorite, isFavorited } = useFavorites();
+  const { toggleFavorite, isFavorited } = useFavorites();
   const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
   const [loading, setLoading] = useState(!initialProducts);
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
   const [pageInfo, setPageInfo] = useState<ProductPageInfo>({
     totalElements: 0,
     totalPages: 0,
@@ -88,8 +82,6 @@ export const ProductGrid = ({
           const totalPages = apiPageInfo?.totalPages || 0;
           const totalElements = apiPageInfo?.totalElements || 0;
 
-          setTotalPages(totalPages);
-          setTotalElements(totalElements);
           setPageInfo(
             apiPageInfo || {
               totalElements: 0,

@@ -15,6 +15,7 @@ import { BusinessService } from '@/app/api/services/client/businessService/busin
 import { BusinessRegistrationRequest } from '@/app/api/types/auth/BusinessRegistration';
 import { EmailVerificationRequest } from '@/app/api/types/auth/EmailVerification';
 import { BusinessRegistration } from '@/app/api/types/business/business';
+import { AddressSearchResult } from '@/app/api/types/address/addressSearch';
 
 type FormState = {
   businessNumber: string;
@@ -105,12 +106,13 @@ export default function SellerInformation({
   );
   const [businessRegistrationData, setBusinessRegistrationData] =
     useState<BusinessRegistration | null>(null);
-  const [isLoadingBusinessData, setIsLoadingBusinessData] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [addressSearchError, setAddressSearchError] = useState<string | null>(
     null
   );
-  const [addressSearchResults, setAddressSearchResults] = useState<any[]>([]);
+  const [addressSearchResults, setAddressSearchResults] = useState<
+    AddressSearchResult[]
+  >([]);
   const [showAddressResults, setShowAddressResults] = useState(false);
 
   // Business number normalization function for display (XXX-XX-XXXXX format)
@@ -421,7 +423,7 @@ export default function SellerInformation({
   };
 
   // Handle address selection from search results
-  const handleAddressSelect = (selectedAddress: any) => {
+  const handleAddressSelect = (selectedAddress: AddressSearchResult) => {
     const formattedAddress = AddressService.formatAddress(selectedAddress);
     const postalCode = AddressService.extractPostalCode(selectedAddress);
     const coordinates = AddressService.extractCoordinates(selectedAddress);
@@ -465,7 +467,6 @@ export default function SellerInformation({
         !businessRegistrationData
       ) {
         try {
-          setIsLoadingBusinessData(true);
           console.log(
             '🔄 Fetching business registration data for pending user...'
           );
@@ -514,8 +515,6 @@ export default function SellerInformation({
           }
         } catch (error) {
           console.error('❌ Error fetching business registration:', error);
-        } finally {
-          setIsLoadingBusinessData(false);
         }
       }
     };

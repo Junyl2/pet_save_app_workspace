@@ -8,7 +8,7 @@ export interface WishlistApiResponse {
   status: number;
   resultMsg: string;
   divisionCode: string;
-  data: any;
+  data: unknown;
   errorId: string;
 }
 

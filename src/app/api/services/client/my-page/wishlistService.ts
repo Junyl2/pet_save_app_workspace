@@ -2,12 +2,15 @@ import { apiClient, ApiResponse } from '../../../apiClient';
 import {
   GetWishlistResponse,
   WishlistData,
-  AddToWishlistRequest,
   AddToWishlistResponse,
-  RemoveFromWishlistRequest,
-  RemoveFromWishlistResponse,
 } from '../../../types/my-page/wishlist';
 import { MemberService } from '../memberService/memberService';
+import { isAxiosError, type AxiosError } from 'axios';
+
+/** Type guard to safely read resultMsg from unknown payloads */
+function hasResultMsg(data: unknown): data is { resultMsg?: unknown } {
+  return typeof data === 'object' && data !== null && 'resultMsg' in data;
+}
 
 /**
  * Wishlist Service
@@ -44,25 +47,35 @@ export class WishlistService {
           items: response.data.data,
           totalCount: response.data.data.length,
         };
-        return {
-          data: wishlistData,
-          error: undefined,
-        };
+        return { data: wishlistData, error: undefined };
       } else {
         return {
           data: null,
           error: response.data?.resultMsg || 'Failed to fetch wishlist',
         };
       }
-    } catch (error: any) {
-      console.error('Error fetching wishlist:', error);
-      return {
-        data: null,
-        error:
-          error.response?.data?.resultMsg ||
-          error.message ||
-          'Failed to fetch wishlist',
-      };
+    } catch (err: unknown) {
+      console.error('Error fetching wishlist:', err);
+
+      if (isAxiosError(err)) {
+        const ax = err as AxiosError<unknown>;
+        const payload = ax.response?.data;
+
+        const msg =
+          (hasResultMsg(payload) &&
+            typeof payload.resultMsg === 'string' &&
+            payload.resultMsg) ||
+          (typeof ax.message === 'string' && ax.message) ||
+          'Failed to fetch wishlist';
+
+        return { data: null, error: msg };
+      }
+
+      if (err instanceof Error) {
+        return { data: null, error: err.message };
+      }
+
+      return { data: null, error: 'Failed to fetch wishlist' };
     }
   }
 
@@ -76,7 +89,11 @@ export class WishlistService {
   ): Promise<ApiResponse<{ success: boolean; message: string }>> {
     try {
       // Check authentication before making the request
-      const authToken = localStorage.getItem('authToken');
+      const authToken =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('authToken')
+          : null;
+
       if (!authToken) {
         console.error('No auth token found');
         return {
@@ -112,21 +129,34 @@ export class WishlistService {
           error: response.data?.resultMsg || 'Failed to toggle wishlist',
         };
       }
-    } catch (error: any) {
-      console.error('Error toggling wishlist:', error);
-      console.error('Error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message,
-      });
-      return {
-        data: null,
-        error:
-          error.response?.data?.resultMsg ||
-          error.message ||
-          'Failed to toggle wishlist',
-      };
+    } catch (err: unknown) {
+      console.error('Error toggling wishlist:', err);
+
+      if (isAxiosError(err)) {
+        const ax = err as AxiosError<unknown>;
+        console.error('Error details:', {
+          status: ax.response?.status,
+          statusText: ax.response?.statusText,
+          data: ax.response?.data,
+          message: ax.message,
+        });
+
+        const payload = ax.response?.data;
+        const msg =
+          (hasResultMsg(payload) &&
+            typeof payload.resultMsg === 'string' &&
+            payload.resultMsg) ||
+          (typeof ax.message === 'string' && ax.message) ||
+          'Failed to toggle wishlist';
+
+        return { data: null, error: msg };
+      }
+
+      if (err instanceof Error) {
+        return { data: null, error: err.message };
+      }
+
+      return { data: null, error: 'Failed to toggle wishlist' };
     }
   }
 }

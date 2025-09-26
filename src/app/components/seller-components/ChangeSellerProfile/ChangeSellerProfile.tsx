@@ -1,4 +1,3 @@
-// /client/seller/pages/change-profile/page.tsx
 'use client';
 
 import React, { useEffect, useId, useMemo, useState } from 'react';
@@ -23,6 +22,31 @@ type Props = {
   initial?: Partial<SellerProfile>;
   onSubmit?: (data: SellerProfile) => void;
   onBack?: () => void;
+};
+
+type StoreSummary = {
+  businessName?: string;
+  businessPhoneNumber?: string;
+  openingHours?: string;
+  closingHours?: string;
+  roadAddress?: string;
+  detailedAddress?: string;
+  businessProfileImage?: string;
+};
+
+type LegacySeller = {
+  name?: string;
+  phoneNumber?: string;
+  location?: string;
+  products?: Array<{ shopImage?: string }>;
+};
+
+type ApiEnvelope<T> = {
+  success?: boolean;
+  status?: number;
+  resultMsg?: string;
+  divisionCode?: string | null;
+  data?: T;
 };
 
 const timeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
@@ -96,13 +120,14 @@ Props) {
         }
 
         // Try to get store data from the new API first
-        let storeData = null;
+        let storeData: StoreSummary | null = null;
         try {
           if (storeId !== null) {
-            const storeResponse = await StoreService.getStoreSummary(
+            const storeResponse = (await StoreService.getStoreSummary(
               storeId.toString()
-            );
-            if (storeResponse.data?.data) {
+            )) as unknown as { data?: ApiEnvelope<StoreSummary> };
+
+            if (storeResponse?.data?.data) {
               storeData = storeResponse.data.data;
               console.log('Store data loaded:', storeData);
               console.log('Business name from API:', storeData.businessName);
@@ -116,24 +141,25 @@ Props) {
               );
             }
           }
-        } catch (error) {
+        } catch {
           console.log(
             'Store API not available, falling back to seller service'
           );
         }
 
         // Fallback to existing seller service if store API fails
-        let sellerData = null;
+        let sellerData: LegacySeller | null = null;
         if (!storeData) {
           try {
             // Try to convert to number for the legacy seller service
             const numericStoreId = Number(storeId);
             if (Number.isFinite(numericStoreId)) {
-              sellerData = await sellerService.getSellerDetailsByShopId(
+              const legacyRes = (await sellerService.getSellerDetailsByShopId(
                 numericStoreId
-              );
+              )) as unknown as LegacySeller | null;
+              sellerData = legacyRes ?? null;
             }
-          } catch (error) {
+          } catch {
             console.log('Seller service also failed, using defaults');
           }
         }
@@ -147,9 +173,6 @@ Props) {
 
         const override: Partial<SellerProfile> = saved ? JSON.parse(saved) : {};
         console.log('LocalStorage override data:', override);
-
-        // Uncomment the line below to clear localStorage and force fresh API data
-        // localStorage.removeItem(lsKey);
 
         // Map data from store API or fallback to seller service
         // Priority: API data first, then localStorage overrides, then fallbacks

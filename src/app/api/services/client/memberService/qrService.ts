@@ -1,6 +1,6 @@
 import { apiClient, ApiResponse } from '../../../apiClient';
-import { QRReferralResponse, QRErrorResponse } from '@/app/api/types/member/qr';
-
+/* import { QRReferralResponse, QRErrorResponse } from '@/app/api/types/member/qr';
+ */
 /**
  * QR Service for handling QR code related operations
  */

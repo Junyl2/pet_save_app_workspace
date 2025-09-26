@@ -107,7 +107,7 @@ export default function SellerDetailsPage() {
   if (!store) return <Loading />;
 
   const profileImage = '/images/default-shop.png'; // Default image since StoreInfo doesn't have image field
-  const categories: string[] = []; // Categories will be handled by ProductGrid component
+  /*   const categories: string[] = [];  */
 
   const goToEditProfile = () => {
     router.push(`/client/seller/pages/change-profile?storeId=${storeId}`);

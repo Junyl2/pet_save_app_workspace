@@ -45,9 +45,7 @@ export default function SellerProductListPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [storeId, setStoreId] = useState<string | null>(null);
+  const [currentPage] = useState(0);
 
   const filteredProducts = useMemo(() => {
     const filtered = products.filter(
@@ -86,8 +84,6 @@ export default function SellerProductListPage() {
           );
         }
 
-        setStoreId(memberData.storeId);
-
         // Then fetch products for this store
         const productsResponse =
           await SellerProductListService.getProductsByStoreId({
@@ -117,7 +113,6 @@ export default function SellerProductListPage() {
         );
 
         setProducts(productsData.content);
-        setTotalPages(productsData.totalPages);
       } catch (err) {
         console.error('Error fetching products:', err);
         setError(

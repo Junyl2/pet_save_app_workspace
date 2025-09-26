@@ -30,6 +30,11 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      if (product.id === undefined) {
+        toast.error('상품 정보를 찾을 수 없습니다.');
+        return;
+      }
+
       await productContactService.submitInquiry({
         productId: product.id,
         inquiryType,
@@ -118,8 +123,8 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
       {/* Product Info */}
       <div className={styles.productInfoRow}>
         <Image
-          src={product.image}
-          alt={product.name}
+          src={product.image || '/images/products/noresult.png'}
+          alt={product.name || '상품 이미지'}
           className={styles.productThumbnail}
           width={80}
           height={80}

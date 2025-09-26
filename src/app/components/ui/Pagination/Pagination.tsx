@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
 import styles from './Pagination.module.css';
 
 export interface PaginationInfo {
   totalElements: number;
   totalPages: number;
-  currentPage: number;
+  currentPage: number; // zero-based
   pageSize: number;
   first: boolean;
   last: boolean;
@@ -16,7 +16,7 @@ export interface PaginationInfo {
 
 interface PaginationProps {
   pageInfo: PaginationInfo;
-  onPageChange: (page: number) => void;
+  onPageChange: (page: number) => void; // expects zero-based page
   className?: string;
 }
 
@@ -37,11 +37,11 @@ export const Pagination = ({
     onPageChange(page);
   };
 
-  const pages = [];
+  const pages: React.ReactNode[] = [];
   const maxVisiblePages = 5;
 
   let startPage = Math.max(0, currentPage - Math.floor(maxVisiblePages / 2));
-  let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
+  const endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
 
   if (endPage - startPage < maxVisiblePages - 1) {
     startPage = Math.max(0, endPage - maxVisiblePages + 1);
@@ -55,6 +55,7 @@ export const Pagination = ({
           i === currentPage ? styles.activePage : ''
         }`}
         onClick={() => handlePageChange(i)}
+        aria-current={i === currentPage ? 'page' : undefined}
       >
         {i + 1}
       </button>
@@ -70,6 +71,7 @@ export const Pagination = ({
       >
         이전
       </button>
+
       {startPage > 0 && (
         <>
           <button
@@ -81,7 +83,9 @@ export const Pagination = ({
           {startPage > 1 && <span className={styles.ellipsis}>...</span>}
         </>
       )}
+
       {pages}
+
       {endPage < totalPages - 1 && (
         <>
           {endPage < totalPages - 2 && (
@@ -95,6 +99,7 @@ export const Pagination = ({
           </button>
         </>
       )}
+
       <button
         className={`${styles.pageButton} ${styles.navButton}`}
         onClick={() => handlePageChange(currentPage + 1)}

@@ -1,6 +1,6 @@
 import { apiClient, ApiResponse } from '@/app/api/apiClient';
 import {
-  SearchHistoryItem,
+  /*  SearchHistoryItem, */
   SearchHistoryResponse,
   SearchHistoryParams,
   KeywordListResponse,

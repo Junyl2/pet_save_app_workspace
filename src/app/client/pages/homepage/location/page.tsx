@@ -10,14 +10,14 @@ import styles from './styles.module.css';
 import { AddressService } from '@/app/api/services/client/addressService/addressService';
 import { AddressSearchResult } from '@/app/api/types/address/addressSearch';
 
-type Location = {
+/* type Location = {
   id: number;
   name: string;
   district: string;
   city: string;
   province: string;
 };
-
+ */
 export default function LocationPage() {
   const router = useRouter();
   const [addresses, setAddresses] = useState<AddressSearchResult[]>([]);

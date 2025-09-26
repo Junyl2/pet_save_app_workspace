@@ -2,7 +2,8 @@ import axios, {
   AxiosInstance,
   AxiosResponse,
   AxiosError,
-  AxiosRequestConfig,
+  AxiosHeaders,
+  type AxiosRequestConfig,
 } from 'axios';
 import { baseURL } from './config';
 import { PAGE_URLS } from '@/app/utils/page_url';
@@ -48,23 +49,25 @@ const isTokenExpired = (token: string): boolean => {
 };
 
 /**
- * Check if we have valid tokens
+ * Make sure headers are an AxiosHeaders instance so we can use set/get/delete safely.
  */
-const hasValidTokens = (): boolean => {
-  const authToken = getFromLocalStorage('authToken');
-  const refreshToken = getFromLocalStorage('refreshToken');
-
-  if (!authToken || !refreshToken) {
-    return false;
+const ensureAxiosHeaders = (
+  headers: AxiosRequestConfig['headers']
+): AxiosHeaders => {
+  if (headers instanceof AxiosHeaders) {
+    return headers;
   }
+  // Convert to a plain object that AxiosHeaders.from can handle
+  const plainHeaders = headers as Record<string, string> | undefined;
+  return AxiosHeaders.from(plainHeaders ?? {});
+};
 
-  // If auth token is not expired, we're good
-  if (!isTokenExpired(authToken)) {
-    return true;
-  }
-
-  // If auth token is expired but refresh token is still valid, we can refresh
-  return !isTokenExpired(refreshToken);
+/**
+ * Get a header in a case-insensitive way (returns undefined if missing)
+ */
+const getHeader = (headers: AxiosHeaders, key: string): string | undefined => {
+  const v = headers.get(key);
+  return typeof v === 'string' ? v : undefined;
 };
 
 /**
@@ -98,6 +101,7 @@ const isPublicEndpoint = (
     '/address/search/zip-code',
     '/categories',
     '/stores', // Only for browsing, not user-specific operations
+    '/search-history', // Search history endpoints are now public
   ];
 
   // Special handling for products endpoints
@@ -120,9 +124,7 @@ const isPublicEndpoint = (
   }
 
   // Check if URL starts with any public endpoint
-  const isPublic = publicEndpoints.some((endpoint) => {
-    return url.startsWith(endpoint);
-  });
+  const isPublic = publicEndpoints.some((endpoint) => url.startsWith(endpoint));
 
   // Comprehensive logging for debugging
   console.log('🔍 Endpoint classification:', {
@@ -143,13 +145,8 @@ const clearAllStorage = (): void => {
   if (typeof window === 'undefined') return;
 
   try {
-    // Clear localStorage
     localStorage.clear();
-
-    // Clear sessionStorage
     sessionStorage.clear();
-
-    // Clear cookies by setting them to expire in the past
     document.cookie.split(';').forEach((cookie) => {
       const eqPos = cookie.indexOf('=');
       const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
@@ -179,25 +176,19 @@ axiosInstance.interceptors.request.use(
     const refreshToken = getFromLocalStorage('refreshToken');
     const isPublic = isPublicEndpoint(config.url, config.method);
 
+    // Normalize headers to AxiosHeaders for type-safe ops
+    const headers = ensureAxiosHeaders(config.headers);
+
     // Handle Content-Type based on data type
     if (config.data instanceof FormData) {
       // Let browser set proper multipart boundary
-      if (config.headers) {
-        delete config.headers['Content-Type'];
-        delete config.headers['content-type'];
-      }
+      headers.delete('Content-Type');
     } else {
       // JSON only if not FormData AND no explicit content-type already given
-      const hasContentType = !!(
-        config.headers &&
-        (config.headers['Content-Type'] || config.headers['content-type'])
-      );
+      const hasContentType =
+        headers.has('Content-Type') || headers.has('content-type');
       if (!hasContentType) {
-        if (config.headers) {
-          config.headers['Content-Type'] = 'application/json';
-        } else {
-          config.headers = { 'Content-Type': 'application/json' } as any;
-        }
+        headers.set('Content-Type', 'application/json');
       }
     }
 
@@ -207,12 +198,14 @@ axiosInstance.interceptors.request.use(
       url: config.url,
       isFormData: config.data instanceof FormData,
       contentType:
-        config.headers?.['Content-Type'] || config.headers?.['content-type'],
+        getHeader(headers, 'Content-Type') ??
+        getHeader(headers, 'content-type'),
       withCredentials: config.withCredentials,
-      hasAuth: !!config.headers?.Authorization,
+      hasAuth: typeof getHeader(headers, 'Authorization') === 'string',
     });
 
     // Log final request configuration
+    const authPreview = getHeader(headers, 'Authorization');
     console.log('🚀 Request interceptor:', {
       url: config.url,
       method: config.method?.toUpperCase(),
@@ -225,15 +218,14 @@ axiosInstance.interceptors.request.use(
         : 'No refresh token',
       withCredentials: config.withCredentials,
       authorizationHeader:
-        config.headers.Authorization &&
-        typeof config.headers.Authorization === 'string'
-          ? `${config.headers.Authorization.substring(0, 20)}...`
+        authPreview && typeof authPreview === 'string'
+          ? `${authPreview.substring(0, 20)}...`
           : 'None',
     });
 
     if (isPublic) {
       // For public endpoints, explicitly remove any existing Authorization header
-      delete config.headers.Authorization;
+      headers.delete('Authorization');
       config.withCredentials = false;
       console.log('✅ Public endpoint - auth headers removed');
     } else {
@@ -251,38 +243,36 @@ axiosInstance.interceptors.request.use(
             '⚠️ Auth token is expired, attempting proactive refresh...'
           );
           try {
-            // Import AuthService dynamically to avoid circular dependency
             const { AuthService } = await import(
               './services/client/auth/authService'
             );
-
             const refreshResponse = await AuthService.refreshToken();
             if (refreshResponse.data && !refreshResponse.error) {
               const newToken = getFromLocalStorage('authToken');
               if (newToken) {
-                config.headers.Authorization = `Bearer ${newToken}`;
+                headers.set('Authorization', `Bearer ${newToken}`);
                 console.log('✅ Token refreshed proactively, using new token');
               } else {
-                config.headers.Authorization = `Bearer ${token}`;
+                headers.set('Authorization', `Bearer ${token}`);
                 console.log(
                   '⚠️ Token refresh succeeded but new token not found, using old token'
                 );
               }
             } else {
-              config.headers.Authorization = `Bearer ${token}`;
+              headers.set('Authorization', `Bearer ${token}`);
               console.log(
-                '⚠️ Proactive token refresh failed, using old token (will retry on 401)'
+                '⚠️ Proactive refresh failed, using old token (will retry on 401)'
               );
             }
-          } catch (error) {
-            console.error('Proactive token refresh error:', error);
-            config.headers.Authorization = `Bearer ${token}`;
+          } catch (err) {
+            console.error('Proactive token refresh error:', err);
+            headers.set('Authorization', `Bearer ${token}`);
             console.log(
-              '⚠️ Proactive token refresh error, using old token (will retry on 401)'
+              '⚠️ Proactive refresh error, using old token (will retry on 401)'
             );
           }
         } else {
-          config.headers.Authorization = `Bearer ${token}`;
+          headers.set('Authorization', `Bearer ${token}`);
           console.log('✅ Protected endpoint - auth token attached');
         }
       } else {
@@ -290,6 +280,8 @@ axiosInstance.interceptors.request.use(
       }
     }
 
+    // write back normalized headers
+    config.headers = headers;
     return config;
   },
   (error) => {
@@ -307,13 +299,9 @@ let failedQueue: Array<{
 
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve(token);
-    }
+    if (error) reject(error);
+    else resolve(token);
   });
-
   failedQueue = [];
 };
 
@@ -335,8 +323,10 @@ axiosInstance.interceptors.response.use(
         error.config?.url,
         error.config?.method
       );
-      const isRefreshEndpoint = error.config?.url?.includes('/auth/refresh');
-      const isLoginEndpoint = error.config?.url?.includes('/auth/login');
+      const isRefreshEndpoint =
+        error.config?.url?.includes('/auth/refresh') ?? false;
+      const isLoginEndpoint =
+        error.config?.url?.includes('/auth/login') ?? false;
 
       console.log('🔐 Authentication error detected:', {
         status: error.response?.status,
@@ -356,18 +346,14 @@ axiosInstance.interceptors.response.use(
 
       // Skip token refresh for public endpoints and refresh endpoint itself
       if (isPublic || isRefreshEndpoint || isLoginEndpoint) {
-        // Only clear storage and redirect for auth-related endpoints, not public endpoints
         if (!isPublic && !isRefreshEndpoint && !isLoginEndpoint) {
           clearAllStorage();
-          // Redirect to login page
-          if (typeof window !== 'undefined') {
+          if (typeof window !== 'undefined')
             window.location.href = PAGE_URLS.LOGIN;
-          }
         }
         return Promise.reject(error);
       }
 
-      // Check if we have a refresh token and this is not a retry
       const refreshToken = getFromLocalStorage('refreshToken');
       if (refreshToken && originalRequest && !originalRequest._retry) {
         if (isRefreshing) {
@@ -377,20 +363,21 @@ axiosInstance.interceptors.response.use(
           })
             .then((token) => {
               if (originalRequest.headers) {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
+                const hdrs = ensureAxiosHeaders(originalRequest.headers);
+                if (typeof token === 'string') {
+                  hdrs.set('Authorization', `Bearer ${token}`);
+                }
+                originalRequest.headers = hdrs;
               }
               return axiosInstance(originalRequest);
             })
-            .catch((err) => {
-              return Promise.reject(err);
-            });
+            .catch((err) => Promise.reject(err));
         }
 
         originalRequest._retry = true;
         isRefreshing = true;
 
         try {
-          // Import AuthService dynamically to avoid circular dependency
           const { AuthService } = await import(
             './services/client/auth/authService'
           );
@@ -403,12 +390,14 @@ axiosInstance.interceptors.response.use(
 
             // Update the authorization header with the new token
             const newToken = getFromLocalStorage('authToken');
-            if (newToken && originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            if (newToken) {
+              const hdrs = ensureAxiosHeaders(originalRequest.headers);
+              hdrs.set('Authorization', `Bearer ${newToken}`);
+              originalRequest.headers = hdrs;
             }
 
             // Process queued requests
-            processQueue(null, newToken);
+            processQueue(null, newToken ?? null);
 
             // Retry the original request
             return axiosInstance(originalRequest);
@@ -416,26 +405,23 @@ axiosInstance.interceptors.response.use(
             console.error('Token refresh failed:', refreshResponse.error);
             processQueue(error, null);
             clearAllStorage();
-            if (typeof window !== 'undefined') {
+            if (typeof window !== 'undefined')
               window.location.href = PAGE_URLS.LOGIN;
-            }
           }
         } catch (refreshError) {
           console.error('Token refresh error:', refreshError);
           processQueue(refreshError, null);
           clearAllStorage();
-          if (typeof window !== 'undefined') {
+          if (typeof window !== 'undefined')
             window.location.href = PAGE_URLS.LOGIN;
-          }
         } finally {
           isRefreshing = false;
         }
       } else {
         // No refresh token available or already retried
         clearAllStorage();
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined')
           window.location.href = PAGE_URLS.LOGIN;
-        }
       }
     }
 
@@ -469,16 +455,14 @@ export const apiClient = {
     }
   ): Promise<ApiResponse<Blob>> => {
     try {
-      const config = {
-        responseType: 'blob' as const,
+      const response = await axiosInstance.get(url, {
+        responseType: 'blob',
         params: {
-          disposition: options?.disposition || 'inline',
-          type: options?.type || 'original',
+          disposition: options?.disposition ?? 'inline',
+          type: options?.type ?? 'original',
         },
-        headers: options?.headers || {},
-      };
-
-      const response = await axiosInstance.get(url, config);
+        headers: options?.headers ?? {},
+      });
       return { data: response.data as Blob, error: undefined };
     } catch (error: unknown) {
       const message =
@@ -495,7 +479,6 @@ export const apiClient = {
       return { data: response.data, error: undefined };
     } catch (error: unknown) {
       if (error instanceof Error && 'response' in error) {
-        // ✅ Avoid `any`: use AxiosError<unknown, unknown>
         const axiosError = error as AxiosError<unknown, unknown>;
         const resp = axiosError.response;
 
@@ -512,7 +495,6 @@ export const apiClient = {
           },
         });
 
-        // Log the actual response data for debugging
         console.error(
           'API Response Data:',
           JSON.stringify(resp?.data, null, 2)
@@ -522,7 +504,6 @@ export const apiClient = {
           JSON.stringify(axiosError.config?.data, null, 2)
         );
 
-        // Try to extract meaningful error message from API response (no `any`)
         let apiErrorMessage: string | undefined;
         const dataObj =
           resp?.data && typeof resp.data === 'object'
@@ -543,7 +524,6 @@ export const apiClient = {
 
         apiErrorMessage = apiErrorMessage || resp?.statusText || error.message;
 
-        // Include status code in error message for better debugging
         const statusCode = resp?.status;
         const finalErrorMessage = statusCode
           ? `${statusCode}: ${apiErrorMessage}`
@@ -557,7 +537,6 @@ export const apiClient = {
     }
   },
 
-  // ✅ Avoid `any` here by using `unknown`
   put: async <T>(url: string, data?: unknown): Promise<ApiResponse<T>> => {
     try {
       const response = await axiosInstance.put<T>(url, data);
@@ -588,7 +567,6 @@ export const apiClient = {
       return { data: response.data, error: undefined };
     } catch (error: unknown) {
       if (error instanceof Error && 'response' in error) {
-        // ✅ Avoid `any`: use AxiosError<unknown, unknown>
         const axiosError = error as AxiosError<unknown, unknown>;
         const resp = axiosError.response;
 
@@ -604,13 +582,11 @@ export const apiClient = {
           },
         });
 
-        // Log the actual response data for debugging
         console.error(
           'API DELETE Response Data:',
           JSON.stringify(resp?.data, null, 2)
         );
 
-        // Try to extract meaningful error message from API response (no `any`)
         let apiErrorMessage: string | undefined;
         const dataObj =
           resp?.data && typeof resp.data === 'object'
@@ -631,7 +607,6 @@ export const apiClient = {
 
         apiErrorMessage = apiErrorMessage || resp?.statusText || error.message;
 
-        // Include status code in error message for better debugging
         const statusCode = resp?.status;
         const finalErrorMessage = statusCode
           ? `${statusCode}: ${apiErrorMessage}`

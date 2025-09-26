@@ -118,7 +118,7 @@ export class ProductService {
     if (params.categoryName)
       queryParams.append('categoryName', params.categoryName);
     if (params.baseLocation)
-      queryParams.append('base location', params.baseLocation);
+      queryParams.append('base location', params.baseLocation); // keeping key as-is to preserve behavior
     if (params.registrationStatus)
       queryParams.append('registrationStatus', params.registrationStatus);
     if (params.page !== undefined)
@@ -183,12 +183,12 @@ export class ProductService {
    */
   static async deleteProduct(
     productId: string
-  ): Promise<ApiResponse<BaseApiEnvelope<{}>>> {
+  ): Promise<ApiResponse<BaseApiEnvelope<Record<string, never>>>> {
     console.log('[ProductService] Deleting product with ID:', productId);
 
-    const response = await apiClient.delete<BaseApiEnvelope<{}>>(
-      `/products/${productId}`
-    );
+    const response = await apiClient.delete<
+      BaseApiEnvelope<Record<string, never>>
+    >(`/products/${productId}`);
 
     if (response.error) {
       console.error(

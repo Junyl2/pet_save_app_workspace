@@ -9,15 +9,7 @@ export interface SearchHistoryResponse {
   status: number;
   resultMsg: string;
   divisionCode?: string | null;
-  data:
-    | {
-        content?: SearchHistoryItem[];
-        totalElements?: number;
-        totalPages?: number;
-        size?: number;
-        number?: number;
-      }
-    | any;
+  data: unknown;
   errorId?: string | null;
 }
 
