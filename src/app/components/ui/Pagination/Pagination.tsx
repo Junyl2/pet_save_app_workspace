@@ -2,6 +2,7 @@
 
 import React from 'react';
 import styles from './Pagination.module.css';
+import { usePathname } from 'next/navigation';
 
 export interface PaginationInfo {
   totalElements: number;
@@ -26,6 +27,11 @@ export const Pagination = ({
   className,
 }: PaginationProps) => {
   const { totalPages, currentPage, hasNext, hasPrevious } = pageInfo;
+  const pathname = usePathname();
+
+  const isProductListPage = pathname.startsWith(
+    '/client/seller/pages/seller-product-list'
+  );
 
   // Don't render pagination if there's only one page or no pages
   if (totalPages <= 1) {
@@ -63,7 +69,11 @@ export const Pagination = ({
   }
 
   return (
-    <div className={`${styles.pagination} ${className || ''}`}>
+    <div
+      className={`${styles.pagination} ${
+        isProductListPage ? styles.productListPage : ''
+      } ${className || ''}`}
+    >
       <button
         className={`${styles.pageButton} ${styles.navButton}`}
         onClick={() => handlePageChange(currentPage - 1)}

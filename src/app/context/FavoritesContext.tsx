@@ -93,14 +93,25 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     const token = localStorage.getItem('authToken');
     if (token) {
       void loadWishlist();
+    } else {
+      // Clear favorites if no auth token (user logged out)
+      setFavorites([]);
+      setWishlistItems([]);
     }
   }, [loadWishlist]); // ✅ include dependency
 
   // Fallback: Load from localStorage once on mount (for offline support)
+  // Only load from localStorage if user is authenticated
   const didBootstrapLocalFavorites = useRef(false);
   useEffect(() => {
     if (didBootstrapLocalFavorites.current) return;
     didBootstrapLocalFavorites.current = true;
+
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      // User is not authenticated, don't load from localStorage
+      return;
+    }
 
     const stored = localStorage.getItem('favorites');
     if (stored && favorites.length === 0) {
@@ -121,6 +132,37 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('favorites', JSON.stringify(favorites));
     }
   }, [favorites]);
+
+  // Listen for auth token changes to clear favorites when user logs out
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'authToken' && e.newValue === null) {
+        // Auth token was removed (user logged out)
+        console.log('Auth token removed, clearing favorites');
+        setFavorites([]);
+        setWishlistItems([]);
+        localStorage.removeItem('favorites');
+      }
+    };
+
+    // Listen for storage events (when localStorage is modified from other tabs/contexts)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also check auth token on mount and when loadWishlist changes
+    const checkAuthAndClear = () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setFavorites([]);
+        setWishlistItems([]);
+      }
+    };
+
+    checkAuthAndClear();
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const toggleFavorite = useCallback(
     async (id: string) => {

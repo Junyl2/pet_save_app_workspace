@@ -6,7 +6,12 @@ import axios, {
   type AxiosRequestConfig,
 } from 'axios';
 import { baseURL } from './config';
-import { PAGE_URLS } from '@/app/utils/page_url';
+import {
+  AUTH_ERROR_CODES,
+  AuthError,
+  isTokenExpired as safeIsTokenExpired,
+} from '@/app/utils/token-utils';
+import { AuthTestLogger } from '@/app/utils/auth-test-logger';
 
 // Extend AxiosRequestConfig to include _retry property
 declare module 'axios' {
@@ -36,16 +41,12 @@ const getFromLocalStorage = (key: string): string | null => {
 };
 
 /**
- * Check if a JWT token is expired
+ * Check if a JWT token is expired (legacy function for backward compatibility)
+ * @deprecated Use safeIsTokenExpired from token-utils instead
  */
 const isTokenExpired = (token: string): boolean => {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const currentTime = Date.now() / 1000;
-    return payload.exp < currentTime;
-  } catch {
-    return true; // If we can't parse the token, consider it expired
-  }
+  const result = safeIsTokenExpired(token);
+  return result === true; // Return true only if definitely expired
 };
 
 /**
@@ -139,25 +140,6 @@ const isPublicEndpoint = (
 };
 
 /**
- * Clear all storage (localStorage, sessionStorage, and cookies)
- */
-const clearAllStorage = (): void => {
-  if (typeof window === 'undefined') return;
-
-  try {
-    localStorage.clear();
-    sessionStorage.clear();
-    document.cookie.split(';').forEach((cookie) => {
-      const eqPos = cookie.indexOf('=');
-      const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-      document.cookie = `${name.trim()}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-    });
-  } catch (error) {
-    console.error('Error clearing storage:', error);
-  }
-};
-
-/**
  * Production-ready Axios instance with interceptors
  */
 const axiosInstance: AxiosInstance = axios.create({
@@ -227,17 +209,20 @@ axiosInstance.interceptors.request.use(
       // For public endpoints, explicitly remove any existing Authorization header
       headers.delete('Authorization');
       config.withCredentials = false;
-      console.log('✅ Public endpoint - auth headers removed');
+      console.log(
+        '✅ Public endpoint - auth headers removed, withCredentials=false'
+      );
     } else {
       // For protected endpoints, ensure credentials are enabled
       config.withCredentials = true;
 
       if (token) {
-        // Check if token is expired and try to refresh proactively
+        // Check if token is expired and try to refresh proactively (only if online)
         if (
           isTokenExpired(token) &&
           refreshToken &&
-          !isTokenExpired(refreshToken)
+          !isTokenExpired(refreshToken) &&
+          navigator.onLine
         ) {
           console.log(
             '⚠️ Auth token is expired, attempting proactive refresh...'
@@ -271,6 +256,10 @@ axiosInstance.interceptors.request.use(
               '⚠️ Proactive refresh error, using old token (will retry on 401)'
             );
           }
+        } else if (isTokenExpired(token) && !navigator.onLine) {
+          // Use expired token for offline requests
+          headers.set('Authorization', `Bearer ${token}`);
+          console.log('⚠️ Using expired token for offline request');
         } else {
           headers.set('Authorization', `Bearer ${token}`);
           console.log('✅ Protected endpoint - auth token attached');
@@ -317,8 +306,23 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config;
 
+    // Handle network errors (no response.status)
+    if (!error.response) {
+      console.log('🌐 Network error detected (no response):', {
+        url: error.config?.url,
+        message: error.message,
+        code: error.code,
+      });
+
+      AuthTestLogger.logNetworkErrorScenario(error, 'API request');
+
+      // For network errors, return the original error without modification
+      // AuthProvider will handle offline scenarios
+      return Promise.reject(error);
+    }
+
     // Handle 401/403 authentication errors
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    if (error.response.status === 401 || error.response.status === 403) {
       const isPublic = isPublicEndpoint(
         error.config?.url,
         error.config?.method
@@ -329,7 +333,7 @@ axiosInstance.interceptors.response.use(
         error.config?.url?.includes('/auth/login') ?? false;
 
       console.log('🔐 Authentication error detected:', {
-        status: error.response?.status,
+        status: error.response.status,
         url: error.config?.url,
         isPublic,
         isRefreshEndpoint,
@@ -344,13 +348,26 @@ axiosInstance.interceptors.response.use(
           : 'No refresh token',
       });
 
-      // Skip token refresh for public endpoints and refresh endpoint itself
+      // For public endpoints, login, and refresh endpoints, return original error
       if (isPublic || isRefreshEndpoint || isLoginEndpoint) {
-        if (!isPublic && !isRefreshEndpoint && !isLoginEndpoint) {
-          clearAllStorage();
-          if (typeof window !== 'undefined')
-            window.location.href = PAGE_URLS.LOGIN;
+        // If refresh endpoint returns 401/403, signal auth invalid
+        if (isRefreshEndpoint) {
+          console.log(
+            '🚨 Refresh endpoint returned 401/403 - signaling auth invalid'
+          );
+          const authError = new AuthError(
+            AUTH_ERROR_CODES.AUTH_INVALID,
+            'Refresh token is invalid',
+            error
+          );
+          return Promise.reject(authError);
         }
+
+        // For public endpoints, ensure failures don't affect auth state
+        if (isPublic) {
+          console.log('🌐 Public endpoint error - not affecting auth state');
+        }
+
         return Promise.reject(error);
       }
 
@@ -382,11 +399,15 @@ axiosInstance.interceptors.response.use(
             './services/client/auth/authService'
           );
 
-          console.log('Attempting token refresh...');
+          console.log('🔄 Attempting token refresh...');
+          AuthTestLogger.logTokenRefreshAttempt('API interceptor');
           const refreshResponse = await AuthService.refreshToken();
 
           if (refreshResponse.data && !refreshResponse.error) {
-            console.log('Token refresh successful, retrying original request');
+            console.log(
+              '✅ Token refresh successful, retrying original request'
+            );
+            AuthTestLogger.logTokenRefreshResult(true);
 
             // Update the authorization header with the new token
             const newToken = getFromLocalStorage('authToken');
@@ -402,30 +423,67 @@ axiosInstance.interceptors.response.use(
             // Retry the original request
             return axiosInstance(originalRequest);
           } else {
-            console.error('Token refresh failed:', refreshResponse.error);
+            console.error('❌ Token refresh failed:', refreshResponse.error);
+            AuthTestLogger.logTokenRefreshResult(false, refreshResponse.error);
             processQueue(error, null);
-            clearAllStorage();
-            if (typeof window !== 'undefined')
-              window.location.href = PAGE_URLS.LOGIN;
+
+            // Signal auth invalid instead of clearing storage
+            const authError = new AuthError(
+              AUTH_ERROR_CODES.AUTH_INVALID,
+              'Token refresh failed',
+              refreshResponse.error
+            );
+            return Promise.reject(authError);
           }
         } catch (refreshError) {
-          console.error('Token refresh error:', refreshError);
+          console.error('❌ Token refresh error:', refreshError);
+          AuthTestLogger.logTokenRefreshResult(false, refreshError);
           processQueue(refreshError, null);
-          clearAllStorage();
-          if (typeof window !== 'undefined')
-            window.location.href = PAGE_URLS.LOGIN;
+
+          // Check if it's a network error or auth error
+          if (
+            refreshError instanceof Error &&
+            refreshError.message.includes('Network Error')
+          ) {
+            console.log(
+              '🌐 Network error during token refresh - keeping auth state'
+            );
+            AuthTestLogger.logNetworkErrorScenario(
+              refreshError,
+              'token refresh'
+            );
+            // Return original error for network issues
+            return Promise.reject(error);
+          } else if (refreshError instanceof AuthError) {
+            // If refresh returned auth invalid, propagate that
+            return Promise.reject(refreshError);
+          } else {
+            // Other errors during refresh
+            const authError = new AuthError(
+              AUTH_ERROR_CODES.TOKEN_REFRESH_FAILED,
+              'Token refresh failed with unknown error',
+              refreshError
+            );
+            return Promise.reject(authError);
+          }
         } finally {
           isRefreshing = false;
         }
       } else {
         // No refresh token available or already retried
-        clearAllStorage();
-        if (typeof window !== 'undefined')
-          window.location.href = PAGE_URLS.LOGIN;
+        console.log(
+          '🚨 No refresh token available or already retried - signaling auth invalid'
+        );
+        const authError = new AuthError(
+          AUTH_ERROR_CODES.AUTH_INVALID,
+          'No refresh token available',
+          error
+        );
+        return Promise.reject(authError);
       }
     }
 
-    // Always reject to propagate errors to callers
+    // For all other errors, return the original error
     return Promise.reject(error);
   }
 );

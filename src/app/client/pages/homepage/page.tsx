@@ -14,8 +14,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState('강아지');
   const hasRefreshed = useRef(false);
 
-  const isApprovedSeller =
-    user?.role === 'seller' && user?.businessApprovalStatus === 'APPROVED';
+  const isApprovedSeller = user?.role === 'seller' && !!user?.storeId;
 
   // Refresh user data when component mounts to get latest business status
   useEffect(() => {

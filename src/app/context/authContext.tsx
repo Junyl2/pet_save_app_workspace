@@ -1,7 +1,21 @@
 'use client';
 
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+  useRef,
+} from 'react';
 import { AuthService } from '@/app/api/services/client/auth/authService';
+import {
+  isTokenExpired,
+  AUTH_ERROR_CODES,
+  AuthError,
+} from '@/app/utils/token-utils';
+import { PAGE_URLS } from '@/app/utils/page_url';
+import { AuthTestLogger } from '@/app/utils/auth-test-logger';
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -15,6 +29,8 @@ interface AuthContextType {
   error: string | null;
   clearError: () => void;
   checkAuthState: () => Promise<void>;
+  clearAuthState: () => void;
+  handleAuthInvalid: (error: AuthError) => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -25,6 +41,8 @@ export const AuthContext = createContext<AuthContextType>({
   error: null,
   clearError: () => {},
   checkAuthState: async () => {},
+  clearAuthState: () => {},
+  handleAuthInvalid: () => {},
 });
 
 interface AuthProviderProps {
@@ -36,72 +54,179 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Check login state on mount from localStorage with token validation
-    const checkAuthState = async () => {
-      const token = localStorage.getItem('authToken');
-      const refreshToken = localStorage.getItem('refreshToken');
+  // Cooldown/debounce for checkAuthState calls
+  const checkAuthStateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastCheckAuthStateRef = useRef<number>(0);
+  const CHECK_AUTH_STATE_COOLDOWN = 2000; // 2 seconds cooldown
 
-      if (token && refreshToken) {
-        // Check if token is expired
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const currentTime = Date.now() / 1000;
-          const isExpired = payload.exp < currentTime;
+  /**
+   * Centralized function to clear auth state and redirect to login
+   * This is the ONLY place where tokens should be cleared
+   */
+  const clearAuthState = useCallback(() => {
+    console.log('🚨 Clearing auth state - redirecting to login');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userInfo');
+    localStorage.removeItem('user');
+    localStorage.removeItem('favorites'); // Clear favorites on auth state clear
+    setIsLoggedIn(false);
+    setError(null);
 
-          if (isExpired) {
-            console.log('Auth token is expired, attempting refresh...');
-            try {
-              const refreshResponse = await AuthService.refreshToken();
-              if (refreshResponse.data && !refreshResponse.error) {
-                console.log('Token refreshed successfully on app startup');
-                setIsLoggedIn(true);
-              } else {
-                console.log(
-                  'Token refresh failed on app startup, clearing auth state'
-                );
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('refreshToken');
-                localStorage.removeItem('userInfo');
-                setIsLoggedIn(false);
-              }
-            } catch (error) {
-              console.error('Token refresh error on app startup:', error);
-              localStorage.removeItem('authToken');
-              localStorage.removeItem('refreshToken');
-              localStorage.removeItem('userInfo');
-              setIsLoggedIn(false);
+    // Redirect to login page
+    if (typeof window !== 'undefined') {
+      window.location.href = PAGE_URLS.LOGIN;
+    }
+  }, []);
+
+  /**
+   * Handle auth invalid signals from API calls
+   * This is the ONLY place that should clear auth state
+   */
+  const handleAuthInvalid = useCallback(
+    (error: AuthError) => {
+      console.log('🚨 Auth invalid signal received:', error.message);
+      AuthTestLogger.logRefreshInvalidScenario(error);
+      clearAuthState();
+    },
+    [clearAuthState]
+  );
+
+  /**
+   * Core checkAuthState function with safe token parsing
+   */
+  const checkAuthStateCore = useCallback(async () => {
+    const token = localStorage.getItem('authToken');
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    if (token && refreshToken) {
+      // Use safe token parsing
+      const tokenExpired = isTokenExpired(token);
+
+      if (tokenExpired === null) {
+        // Token is malformed - treat as possibly expired but don't clear
+        console.log('⚠️ Token format invalid, treating as possibly expired');
+        if (navigator.onLine) {
+          try {
+            const refreshResponse = await AuthService.refreshToken();
+            if (refreshResponse.data && !refreshResponse.error) {
+              console.log('✅ Token refreshed successfully after format check');
+              setIsLoggedIn(true);
+            } else {
+              console.log('❌ Token refresh failed after format check');
+              // Don't clear tokens here - let AuthProvider handle auth invalid signals
             }
-          } else {
-            console.log('Auth token is valid');
-            setIsLoggedIn(true);
+          } catch (error) {
+            console.error('❌ Token refresh error after format check:', error);
+            if (
+              error instanceof AuthError &&
+              error.code === AUTH_ERROR_CODES.AUTH_INVALID
+            ) {
+              handleAuthInvalid(error);
+            } else {
+              // Network or other errors - keep auth state
+              console.log(
+                '🌐 Network/other error during token refresh, keeping auth state'
+              );
+              setIsLoggedIn(true);
+            }
           }
-        } catch (error) {
-          console.error('Error parsing token:', error);
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('userInfo');
-          setIsLoggedIn(false);
+        } else {
+          console.log('🌐 Offline with malformed token, keeping auth state');
+          setIsLoggedIn(true);
+        }
+      } else if (tokenExpired === true) {
+        // Token is definitely expired
+        if (navigator.onLine) {
+          console.log('🔄 Token expired, attempting refresh...');
+          try {
+            const refreshResponse = await AuthService.refreshToken();
+            if (refreshResponse.data && !refreshResponse.error) {
+              console.log('✅ Token refreshed successfully');
+              setIsLoggedIn(true);
+            } else {
+              console.log('❌ Token refresh failed');
+              // Don't clear tokens here - let AuthProvider handle auth invalid signals
+            }
+          } catch (error) {
+            console.error('❌ Token refresh error:', error);
+            if (
+              error instanceof AuthError &&
+              error.code === AUTH_ERROR_CODES.AUTH_INVALID
+            ) {
+              handleAuthInvalid(error);
+            } else {
+              // Network or other errors - keep auth state
+              console.log(
+                '🌐 Network/other error during token refresh, keeping auth state'
+              );
+              setIsLoggedIn(true);
+            }
+          }
+        } else {
+          console.log(
+            '🌐 Token expired but offline, keeping auth state for offline use'
+          );
+          AuthTestLogger.logOfflineExpiredTokenScenario();
+          setIsLoggedIn(true);
         }
       } else {
-        setIsLoggedIn(false);
+        // Token is valid
+        console.log('✅ Token is valid');
+        setIsLoggedIn(true);
       }
-    };
+    } else {
+      console.log('❌ No tokens found');
+      setIsLoggedIn(false);
+    }
+  }, [handleAuthInvalid]);
 
-    checkAuthState();
-  }, []);
+  /**
+   * Debounced checkAuthState function with cooldown
+   */
+  const debouncedCheckAuthState = useCallback(async () => {
+    const now = Date.now();
+    const timeSinceLastCheck = now - lastCheckAuthStateRef.current;
+
+    if (timeSinceLastCheck < CHECK_AUTH_STATE_COOLDOWN) {
+      console.log(
+        `⏳ CheckAuthState cooldown active (${
+          CHECK_AUTH_STATE_COOLDOWN - timeSinceLastCheck
+        }ms remaining)`
+      );
+      return;
+    }
+
+    lastCheckAuthStateRef.current = now;
+
+    // Clear any existing timeout
+    if (checkAuthStateTimeoutRef.current) {
+      clearTimeout(checkAuthStateTimeoutRef.current);
+    }
+
+    // Set new timeout
+    checkAuthStateTimeoutRef.current = setTimeout(async () => {
+      await checkAuthStateCore();
+    }, 100); // Small delay to batch rapid calls
+  }, [checkAuthStateCore]);
+
+  useEffect(() => {
+    // Initial auth state check on mount
+    checkAuthStateCore();
+  }, [checkAuthStateCore]);
 
   // Handle network reconnection and app visibility changes
   useEffect(() => {
     const handleOnline = () => {
-      console.log('Network reconnected, checking auth state...');
-      checkAuthState();
+      console.log('🌐 Network reconnected, checking auth state...');
+      AuthTestLogger.logOnlineAfterOfflineScenario();
+      debouncedCheckAuthState();
     };
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('App became visible, checking auth state...');
-        checkAuthState();
+        console.log('👁️ App became visible, checking auth state...');
+        debouncedCheckAuthState();
       }
     };
 
@@ -111,8 +236,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => {
       window.removeEventListener('online', handleOnline);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      // Clean up timeout on unmount
+      if (checkAuthStateTimeoutRef.current) {
+        clearTimeout(checkAuthStateTimeoutRef.current);
+      }
     };
-  }, []);
+  }, [debouncedCheckAuthState]);
 
   const login = async (
     identifier: string,
@@ -173,58 +303,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem('userName');
       localStorage.removeItem('rememberedUsername');
       localStorage.removeItem('sellerId');
+      localStorage.removeItem('favorites'); // Clear favorites on logout
       sessionStorage.clear();
     }
   };
 
   const clearError = () => {
     setError(null);
-  };
-
-  const checkAuthState = async () => {
-    const token = localStorage.getItem('authToken');
-    const refreshToken = localStorage.getItem('refreshToken');
-
-    if (token && refreshToken) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const currentTime = Date.now() / 1000;
-        const isExpired = payload.exp < currentTime;
-
-        if (isExpired) {
-          console.log('Auth token is expired, attempting refresh...');
-          try {
-            const refreshResponse = await AuthService.refreshToken();
-            if (refreshResponse.data && !refreshResponse.error) {
-              console.log('Token refreshed successfully');
-              setIsLoggedIn(true);
-            } else {
-              console.log('Token refresh failed, clearing auth state');
-              localStorage.removeItem('authToken');
-              localStorage.removeItem('refreshToken');
-              localStorage.removeItem('userInfo');
-              setIsLoggedIn(false);
-            }
-          } catch (error) {
-            console.error('Token refresh error:', error);
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('userInfo');
-            setIsLoggedIn(false);
-          }
-        } else {
-          setIsLoggedIn(true);
-        }
-      } catch (error) {
-        console.error('Error parsing token:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('userInfo');
-        setIsLoggedIn(false);
-      }
-    } else {
-      setIsLoggedIn(false);
-    }
   };
 
   return (
@@ -236,7 +321,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         isLoading,
         error,
         clearError,
-        checkAuthState,
+        checkAuthState: debouncedCheckAuthState,
+        clearAuthState,
+        handleAuthInvalid,
       }}
     >
       {children}

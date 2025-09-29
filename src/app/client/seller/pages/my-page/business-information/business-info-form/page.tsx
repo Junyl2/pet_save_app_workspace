@@ -54,9 +54,9 @@ export default function BusinessInfoFormPage() {
     fetchBusinessData();
   }, []);
 
-  // Redirect if user is approved
+  // Redirect if user has storeId
   useEffect(() => {
-    if (user && user.businessApprovalStatus === 'APPROVED') {
+    if (user && user.storeId) {
       router.push(
         '/client/seller/pages/my-page/business-information/seller-business-information'
       );

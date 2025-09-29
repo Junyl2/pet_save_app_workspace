@@ -59,11 +59,10 @@ const ProfileMenu = () => {
             />
           )}
 
-          {/* Show Store Information for approved sellers */}
-          {user?.role === 'seller' &&
-            user?.businessApprovalStatus === 'APPROVED' && (
-              <ProfileItem label="사업장 정보" route={PAGE_URLS.STORE_INFO} />
-            )}
+          {/* Show Store Information for sellers with storeId */}
+          {user?.role === 'seller' && !!user?.storeId && (
+            <ProfileItem label="사업장 정보" route={PAGE_URLS.STORE_INFO} />
+          )}
 
           <ProfileItem
             label="약관 및 정책"

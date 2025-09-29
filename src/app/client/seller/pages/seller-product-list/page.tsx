@@ -11,7 +11,9 @@ import { ProductService } from '@/app/api/services/client/productService/product
 import {
   StoreProduct,
   RegistrationStatus,
+  PageInfo,
 } from '@/app/api/types/products/productList';
+import { Pagination } from '@/app/components/ui/Pagination/Pagination';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 
 type ProductStatus = '판매중' | '판매완료';
@@ -45,7 +47,8 @@ export default function SellerProductListPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
 
   const filteredProducts = useMemo(() => {
     const filtered = products.filter(
@@ -89,7 +92,7 @@ export default function SellerProductListPage() {
           await SellerProductListService.getProductsByStoreId({
             storeId: memberData.storeId,
             page: currentPage,
-            size: 20,
+            size: 10,
             sortBy: 'createdAt',
             direction: 'desc',
           });
@@ -113,6 +116,7 @@ export default function SellerProductListPage() {
         );
 
         setProducts(productsData.content);
+        setPageInfo(productsData.pageInfo);
       } catch (err) {
         console.error('Error fetching products:', err);
         setError(
@@ -127,6 +131,11 @@ export default function SellerProductListPage() {
 
     fetchProducts();
   }, [currentPage]);
+
+  const handlePageChange = (page: number) => {
+    console.log('[SellerProductListPage] Page change requested:', page);
+    setCurrentPage(page);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -213,7 +222,7 @@ export default function SellerProductListPage() {
       <div className={styles.pageWrap}>
         <div className={styles.summaryRow}>
           <span className={styles.lengthLabel}>
-            총 상품수 {filteredProducts.length}개
+            총 상품수 {pageInfo?.totalElements || filteredProducts.length}개
           </span>
           <div className={styles.filterControl}>
             <button
@@ -378,6 +387,19 @@ export default function SellerProductListPage() {
             })
           )}
         </main>
+
+        {/* Pagination */}
+        {pageInfo && pageInfo.totalElements > 10 && (
+          <div
+            style={{
+              marginTop: '2rem',
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
+            <Pagination pageInfo={pageInfo} onPageChange={handlePageChange} />
+          </div>
+        )}
       </div>
 
       <BottomBar />

@@ -37,33 +37,20 @@ export interface StoreProductsRequest {
   direction?: SortDirection;
 }
 
-export interface StoreProductsResponse {
-  content: StoreProduct[];
-  pageable: {
-    sort: {
-      empty: boolean;
-      sorted: boolean;
-      unsorted: boolean;
-    };
-    offset: number;
-    pageSize: number;
-    pageNumber: number;
-    paged: boolean;
-    unpaged: boolean;
-  };
+export interface PageInfo {
   totalElements: number;
   totalPages: number;
-  last: boolean;
-  size: number;
-  number: number;
-  sort: {
-    empty: boolean;
-    sorted: boolean;
-    unsorted: boolean;
-  };
-  numberOfElements: number;
+  currentPage: number;
+  pageSize: number;
   first: boolean;
-  empty: boolean;
+  last: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface StoreProductsResponse {
+  content: StoreProduct[];
+  pageInfo: PageInfo;
 }
 
 export type StoreProductsApiResponse = BaseApiEnvelope<StoreProductsResponse>;

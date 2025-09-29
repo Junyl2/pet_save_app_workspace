@@ -28,10 +28,7 @@ export default function ReplyInquiry() {
 
   // Check if user is approved seller
   useEffect(() => {
-    if (
-      user?.role !== 'seller' ||
-      user?.businessApprovalStatus !== 'APPROVED'
-    ) {
+    if (user?.role !== 'seller' || !user?.storeId) {
       router.push('/client/pages/homepage');
       return;
     }

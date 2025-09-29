@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import styles from './RegisterProduct.module.css';
 import { FaChevronDown, FaChevronUp, FaRedo } from 'react-icons/fa';
 import { CiImageOn } from 'react-icons/ci';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { FileProductService } from '@/app/api/services/client/productService/fileProductService';
 import { ProductService } from '@/app/api/services/client/productService/productService';
 import { StoreService } from '@/app/api/services/client/memberService/store';
@@ -42,6 +43,7 @@ export default function RegisterProductForm() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [showToast, setShowToast] = useState(false);
 
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [nameOpen, setNameOpen] = useState(false);
@@ -411,8 +413,11 @@ export default function RegisterProductForm() {
         }
       }
 
-      alert('상품이 성공적으로 등록되었습니다.');
-      router.push('/client/seller/pages/seller-product-list');
+      setShowToast(true);
+      // Navigate after a short delay to allow toast to be visible
+      setTimeout(() => {
+        router.push('/client/seller/pages/seller-product-list');
+      }, 2000);
     } catch (error) {
       console.error('Product registration failed:', error);
       setError(
@@ -751,6 +756,14 @@ export default function RegisterProductForm() {
           {isLoading ? '등록 중...' : '등록하기'}
         </button>
       </form>
+
+      {/* Toast shows after successful product registration */}
+      {showToast && (
+        <ToastMessage
+          message="상품이 성공적으로 등록되었습니다."
+          onClose={() => setShowToast(false)}
+        />
+      )}
     </>
   );
 }

@@ -13,6 +13,10 @@
   z-index: 10;
 }
 
+.productListPage {
+  background-color: #fff;
+}
+
 .pageButton {
   display: flex;
   align-items: center;

@@ -12,9 +12,9 @@ export default function BusinessInformationPage() {
   const router = useRouter();
   const { user } = useUser();
 
-  // Redirect approved users directly to business information page
+  // Redirect users with storeId directly to business information page
   React.useEffect(() => {
-    if (user?.businessApprovalStatus === 'APPROVED') {
+    if (user?.storeId) {
       router.push(
         '/client/seller/pages/my-page/business-information/seller-business-information'
       );
