@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useCart } from '@/app/context/cartContext';
 import styles from './ShoppingCart.module.css';
 import Image from 'next/image';
 import { FiPlus, FiMinus } from 'react-icons/fi';
 import { DeleteModal } from '../../ui/modal/DeleteModal/DeleteModal';
 import { useRouter } from 'next/navigation';
+import { cartService } from '@/app/api/services/client/cartService/cartService';
+import { CartItem, CartStore } from '@/app/api/types/cart/cart';
+import toast from 'react-hot-toast';
 
 export default function ShoppingCartPage() {
   const router = useRouter();
@@ -16,6 +19,68 @@ export default function ShoppingCartPage() {
   const [deleteTarget, setDeleteTarget] = useState<null | { ids: number[] }>(
     null
   );
+  const [apiCartStores, setApiCartStores] = useState<CartStore[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch cart data from API
+  useEffect(() => {
+    const fetchCartData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await cartService.getCart();
+
+        console.log('Cart API Response:', response);
+
+        if (response.data?.success && response.data.data?.stores) {
+          console.log('Setting cart stores:', response.data.data.stores);
+          setApiCartStores(response.data.data.stores);
+        } else {
+          console.log('Cart API failed:', response);
+          setError('장바구니 데이터를 불러올 수 없습니다');
+        }
+      } catch (err) {
+        console.error('Failed to fetch cart data:', err);
+        setError('장바구니 데이터를 불러오는 중 오류가 발생했습니다');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCartData();
+  }, []);
+
+  // Convert API cart stores to the format expected by the existing cart context
+  const convertedCart = useMemo(() => {
+    const allItems: any[] = [];
+
+    apiCartStores.forEach((store) => {
+      store.items.forEach((item) => {
+        allItems.push({
+          product: {
+            id: parseInt(item.product.productId) || 0,
+            name: item.product.productName,
+            price: item.product.salePrice,
+            image:
+              item.product.productThumbnail ||
+              '/images/products/placeholder.png',
+            shopName: store.store.name,
+            storeId: store.store.storeId,
+            discountPrice: item.product.discountedPrice,
+            expiration: item.product.expiryDate,
+          },
+          quantity: item.quantity,
+        });
+      });
+    });
+
+    return allItems;
+  }, [apiCartStores]);
+
+  // Use API cart data if available, otherwise fall back to context cart
+  const displayCart = apiCartStores.length > 0 ? convertedCart : cart;
 
   // ✅ safe number helper
   const num = (v: unknown): number => {
@@ -27,18 +92,43 @@ export default function ShoppingCartPage() {
     return 0;
   };
 
-  // group by shop
+  // group by shop - use API store data if available, otherwise group by shop name
   const grouped = useMemo(() => {
-    const map: Record<string, typeof cart> = {};
-    cart.forEach((item) => {
-      const shop = item.product.shopName ?? '기타';
-      if (!map[shop]) map[shop] = [];
-      map[shop].push(item);
-    });
-    return map;
-  }, [cart]);
+    if (apiCartStores.length > 0) {
+      // Use API store structure
+      const map: Record<string, any[]> = {};
+      apiCartStores.forEach((store) => {
+        const storeName = store.store.name;
+        map[storeName] = store.items.map((item) => ({
+          product: {
+            id: parseInt(item.product.productId) || 0,
+            name: item.product.productName,
+            price: item.product.salePrice,
+            image:
+              item.product.productThumbnail ||
+              '/images/products/placeholder.png',
+            shopName: store.store.name,
+            storeId: store.store.storeId,
+            discountPrice: item.product.discountedPrice,
+            expiration: item.product.expiryDate,
+          },
+          quantity: item.quantity,
+        }));
+      });
+      return map;
+    } else {
+      // Fallback to context cart grouping
+      const map: Record<string, any[]> = {};
+      displayCart.forEach((item) => {
+        const shop = item.product.shopName ?? '기타';
+        if (!map[shop]) map[shop] = [];
+        map[shop].push(item);
+      });
+      return map;
+    }
+  }, [apiCartStores, displayCart]);
 
-  const handleOrder = (items: typeof cart) => {
+  const handleOrder = (items: typeof displayCart) => {
     const selected = items.filter(
       ({ product }) =>
         product.id !== undefined && selectedItems.includes(product.id)
@@ -49,7 +139,7 @@ export default function ShoppingCartPage() {
   };
 
   // calculate per-store summary safely
-  const calcStoreSummary = (items: typeof cart) => {
+  const calcStoreSummary = (items: typeof displayCart) => {
     let original = 0;
     let discount = 0;
     let final = 0;
@@ -86,8 +176,27 @@ export default function ShoppingCartPage() {
     { original: 0, discount: 0, final: 0 }
   );
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className={styles.emptyContainer}>
+        <p>장바구니를 불러오는 중...</p>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className={styles.emptyContainer}>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>다시 시도</button>
+      </div>
+    );
+  }
+
   // empty state
-  if (cart.length === 0) {
+  if (displayCart.length === 0) {
     return (
       <div className={styles.emptyContainer}>
         <Image
@@ -302,7 +411,7 @@ export default function ShoppingCartPage() {
         </div>
         <button
           disabled={selectedItems.length === 0}
-          onClick={() => handleOrder(cart)}
+          onClick={() => handleOrder(displayCart)}
           className={
             selectedItems.length === 0
               ? styles.disabledButton

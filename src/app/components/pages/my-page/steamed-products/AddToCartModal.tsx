@@ -7,6 +7,9 @@ import { Product } from './ProductCard';
 import styles from './AddToCartModal.module.css';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { useRouter } from 'next/navigation';
+import { cartService } from '@/app/api/services/client/cartService/cartService';
+import { useUser } from '@/app/context/userContext';
+import toast from 'react-hot-toast';
 
 interface AddToCartModalProps {
   isOpen: boolean;
@@ -42,6 +45,7 @@ export function AddToCartModal({
   const [isLoading, setIsLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const router = useRouter();
+  const { user } = useUser();
 
   // Reset state when modal opens
   useEffect(() => {
@@ -55,6 +59,12 @@ export function AddToCartModal({
 
   if (!product) return null;
 
+  // Check if user is trying to add their own product to cart
+  const isOwnProduct =
+    user?.role === 'seller' &&
+    user?.storeId &&
+    (product as any).storeId === user.storeId;
+
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
     if (newQuantity >= 1 && newQuantity <= 99) {
@@ -65,13 +75,30 @@ export function AddToCartModal({
   const calculateTotal = () => product.salePrice * quantity;
 
   const handleAddToCart = async () => {
+    if (!product) return;
+
     setIsLoading(true);
     try {
-      await onAddToCart(product, quantity, shippingOption);
-      onClose();
-      setShowToast(true); // ✅ directly show toast
+      // Call the real API
+      const response = await cartService.addToCart(product.id, quantity);
+
+      if (response.data?.success) {
+        // Also call the local handler for UI updates
+        await onAddToCart(product, quantity, shippingOption);
+        onClose();
+        setShowToast(true);
+        toast.success(`${product.name} 장바구니에 담겼습니다`, {
+          style: { background: '#66bfa7' },
+          iconTheme: { primary: '#66bfa7', secondary: '#fff' },
+        });
+      } else {
+        toast.error(
+          '장바구니 추가 실패: ' + (response.error || '알 수 없는 오류')
+        );
+      }
     } catch (error) {
       console.error('Failed to add to cart:', error);
+      toast.error('네트워크 오류로 장바구니 추가 실패');
     } finally {
       setIsLoading(false);
     }
@@ -187,16 +214,24 @@ export function AddToCartModal({
           <button
             className={`${styles.actionButton} ${styles.addToCartButton}`}
             onClick={handleAddToCart}
-            disabled={isLoading}
+            disabled={isLoading || isOwnProduct}
           >
-            {isLoading ? '담는 중...' : '장바구니 담기'}
+            {isLoading
+              ? '담는 중...'
+              : isOwnProduct
+              ? '본인 상품은 담을 수 없습니다'
+              : '장바구니 담기'}
           </button>
           <button
             className={`${styles.actionButton} ${styles.purchaseButton}`}
             onClick={handlePurchase}
-            disabled={isLoading}
+            disabled={isLoading || isOwnProduct}
           >
-            {isLoading ? '구매 중...' : '구매하기'}
+            {isLoading
+              ? '구매 중...'
+              : isOwnProduct
+              ? '본인 상품은 구매할 수 없습니다'
+              : '구매하기'}
           </button>
         </div>
       </BaseModal>

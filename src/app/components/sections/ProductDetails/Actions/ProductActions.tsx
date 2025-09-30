@@ -9,6 +9,7 @@ interface ProductActionsProps {
   productId: string | number; // support both string and number
   productName: string;
   productPrice: number | string; // support both string/number
+  storeId?: string; // Add storeId for seller validation
   onAddToCart: (quantity: number, productName: string) => void;
   onPurchase: (quantity: number, productName: string) => void;
 }
@@ -17,6 +18,7 @@ export const ProductActions = ({
   productId,
   productName,
   productPrice,
+  storeId,
   onAddToCart,
 }: /*   onPurchase, */
 ProductActionsProps) => {
@@ -28,6 +30,7 @@ ProductActionsProps) => {
     id: string | number;
     name: string;
     price: number | string;
+    storeId?: string;
   } | null>(null);
 
   const openDrawer = (
@@ -35,7 +38,7 @@ ProductActionsProps) => {
     name: string,
     price: number | string
   ) => {
-    setActiveProduct({ id, name, price });
+    setActiveProduct({ id, name, price, storeId });
     setQuantity(1);
     setShowDrawer(true);
   };

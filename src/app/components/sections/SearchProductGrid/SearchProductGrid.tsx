@@ -395,6 +395,10 @@ export default function SearchProductGrid({
                 selectedProduct.productPrice;
               return lowerPrice || higherPrice || 0;
             })()}
+            productId={String(selectedProduct.productId || selectedProduct.id)}
+            storeId={String(
+              selectedProduct.storeId || selectedProduct.store?.storeId
+            )}
           />
         )}
       </section>

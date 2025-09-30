@@ -341,6 +341,10 @@ export const ProductGrid = ({
               selectedProduct.productPrice;
             return lowerPrice || higherPrice || 0;
           })()}
+          productId={String(selectedProduct.productId || selectedProduct.id)}
+          storeId={String(
+            selectedProduct.storeId || selectedProduct.store?.storeId
+          )}
         />
       )}
     </div>
