@@ -46,9 +46,13 @@ export interface Product {
     storeName?: string;
     name?: string;
     location?: string;
+    address?: string;
     phoneNumber?: string;
     storeNumber?: string;
     profileUrl?: string;
+    averageRating?: number;
+    openingHourStart?: string;
+    openingHourEnd?: string;
   };
 }
 

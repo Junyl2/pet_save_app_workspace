@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import styles from './SellerInquiryDetails.module.css';
 import { FaChevronDown } from 'react-icons/fa';
 import Image from 'next/image';
-import { mockContactInquiries } from '../../data/mockContact';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import BottomBar from '../../sections/BottomBar/BottomBar';
 import { useUser } from '@/app/context/userContext';
+import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
+import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
 
 type InquiryType =
   | '전체'
@@ -35,6 +36,61 @@ const formatDate = (dateString: string): string => {
   return `${year}.${month}.${day}`;
 };
 
+// Helper function to transform API response to UI format
+const transformStoreInquiryToUI = (storeInquiry: any) => {
+  console.log('🔍 Transforming inquiry:', storeInquiry);
+
+  try {
+    return {
+      id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0, // Convert UUID to number for compatibility
+      inquiryId: storeInquiry.inquiryId, // Keep original inquiryId for routing
+      date: storeInquiry.createdAt,
+      shopName: storeInquiry.inquirer?.name || 'Unknown',
+      shopLocation: storeInquiry.store?.address || 'Unknown address',
+      shopImage:
+        storeInquiry.product?.productThumbnail ||
+        '/images/products/dogfood.png',
+      category: storeInquiry.category,
+      message: storeInquiry.content,
+      responseMessage: storeInquiry.answer || '',
+      status: storeInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
+      answering: false, // Default value since API doesn't provide this
+    };
+  } catch (error) {
+    console.error('Error transforming inquiry:', error, storeInquiry);
+    // Return a fallback object
+    return {
+      id: 0,
+      inquiryId: storeInquiry.inquiryId || 'unknown',
+      date: storeInquiry.createdAt || new Date().toISOString(),
+      shopName: 'Unknown',
+      shopLocation: 'Unknown address',
+      shopImage: '/images/products/dogfood.png',
+      category: storeInquiry.category || 'OTHER',
+      message: storeInquiry.content || 'No content',
+      responseMessage: '',
+      status: '답변 대기 중',
+      answering: false,
+    };
+  }
+};
+
+// Map API categories to UI categories
+const mapApiCategoryToUI = (apiCategory: string): InquiryType => {
+  switch (apiCategory) {
+    case 'PRODUCT':
+      return '상품 문의';
+    case 'DELIVERY':
+      return '배송 문의';
+    case 'EXCHANGE_RETURN':
+      return '교환/ 환불 문의';
+    case 'PAYMENT':
+    case 'OTHER':
+    default:
+      return '기타 문의';
+  }
+};
+
 export default function SellerInquiryDetails() {
   const router = useRouter();
   const { user } = useUser();
@@ -47,6 +103,10 @@ export default function SellerInquiryDetails() {
   const [selectedType, setSelectedType] = useState<InquiryType>('전체');
   const ddRef = useRef<HTMLDivElement | null>(null);
 
+  // API data state
+  const [inquiries, setInquiries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // Check if user is approved seller
   useEffect(() => {
     if (user?.role !== 'seller' || !user?.storeId) {
@@ -54,6 +114,50 @@ export default function SellerInquiryDetails() {
       return;
     }
   }, [user, router]);
+
+  // Fetch store inquiries from API
+  useEffect(() => {
+    const fetchInquiries = async () => {
+      if (!user?.role || user.role !== 'seller') return;
+
+      setLoading(true);
+      try {
+        const response = await MemberStoreService.getMyStoreInquiries({
+          sortBy: 'createdAt',
+          direction: 'desc',
+          size: 100, // Get more items to handle filtering
+        });
+
+        if (response.error || !response.data) {
+          console.error('Failed to fetch store inquiries:', response.error);
+          setInquiries([]);
+        } else {
+          // Debug: Log the actual API response structure
+          console.log(
+            '🔍 Raw API response structure:',
+            response.data.data.content
+          );
+          console.log(
+            '🔍 First inquiry structure:',
+            response.data.data.content[0]
+          );
+
+          // Transform API response to UI format
+          const transformedInquiries = response.data.data.content.map(
+            transformStoreInquiryToUI
+          );
+          setInquiries(transformedInquiries);
+        }
+      } catch (error) {
+        console.error('Error fetching store inquiries:', error);
+        setInquiries([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInquiries();
+  }, [user]);
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -65,25 +169,42 @@ export default function SellerInquiryDetails() {
   }, []);
 
   const filtered = useMemo(() => {
-    return mockContactInquiries.filter((q) => {
+    return inquiries.filter((q) => {
       const byTab = q.status === tab;
       const byType =
-        selectedType === '전체' ? true : q.category === selectedType;
+        selectedType === '전체'
+          ? true
+          : mapApiCategoryToUI(q.category) === selectedType;
       return byTab && byType;
     });
-  }, [tab, selectedType]);
+  }, [inquiries, tab, selectedType]);
 
   const handlePick = (t: InquiryType) => {
     setSelectedType(t);
     setOpen(false);
   };
 
-  const handleInquiryClick = (inquiryId: number) => {
-    router.push(`/client/seller/pages/reply-inquiry?id=${inquiryId}`);
+  const handleInquiryClick = (inquiry: any) => {
+    // Use the actual inquiryId from the API response
+    router.push(`/client/seller/pages/reply-inquiry?id=${inquiry.inquiryId}`);
   };
 
   if (!user || user.role !== 'seller' || !user.storeId) {
     return null; // Will redirect in useEffect
+  }
+
+  if (loading) {
+    return (
+      <>
+        <ProductHeader />
+        <div className={styles.page}>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            문의 내역을 불러오는 중...
+          </div>
+        </div>
+        <BottomBar />
+      </>
+    );
   }
 
   return (
@@ -167,13 +288,13 @@ export default function SellerInquiryDetails() {
             <article
               key={q.id}
               className={styles.card}
-              onClick={() => handleInquiryClick(q.id)}
+              onClick={() => handleInquiryClick(q)}
               style={{ cursor: 'pointer' }}
             >
               <header className={styles.cardHead}>
                 <div className={styles.headLeft}>
                   <span className={styles.headType}>
-                    {q.category}
+                    {mapApiCategoryToUI(q.category)}
                     <span className={styles.dot}>·</span>
                     <span className={styles.headDate}>
                       {formatDate(q.date)}

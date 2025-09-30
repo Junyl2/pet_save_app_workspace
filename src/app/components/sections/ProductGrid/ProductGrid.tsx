@@ -10,6 +10,7 @@ import { ProductService } from '@/app/api/services/client/productService/product
 import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
 import { Pagination } from '../../ui/Pagination';
+import { formatAddressForDisplay } from '@/app/utils/address-utils';
 
 interface ProductGridProps {
   products?: Product[];
@@ -260,8 +261,7 @@ export const ProductGrid = ({
                   </div>
                 </div>
                 <p className={styles.detail}>
-                  {product.weight || product.productWeight || 'N/A'},{' '}
-                  {product.quantity || product.productQuantity || 'N/A'}
+                  {/*   {product.weight || product.productWeight || 'N/A'} */}
                 </p>
                 <p className={styles.price}>
                   {(() => {
@@ -309,7 +309,7 @@ export const ProductGrid = ({
                       '까지'
                     : product.expiration || 'N/A'}{' '}
                   <br />
-                  {product.store?.name || product.location || 'N/A'} <br />
+                  {formatAddressForDisplay(product.store?.address || '')} <br />
                   {product.distance || product.storeDistance || 'N/A'}
                 </p>
               </div>

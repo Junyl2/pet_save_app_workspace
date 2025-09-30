@@ -50,7 +50,7 @@ ProductActionsProps) => {
       <div className={styles.actions}>
         <button
           className={styles.messageButton}
-          onClick={() => route.push('/contact-product')}
+          onClick={() => route.push(`/contact-product?productId=${productId}`)}
         >
           <Image
             src="/images/icons/bottom-bar/message.svg"
