@@ -102,7 +102,6 @@ const isPublicEndpoint = (
     '/address/search/zip-code',
     '/categories',
     '/stores', // Only for browsing, not user-specific operations
-    '/search-history', // Search history endpoints are now public
   ];
 
   // Special handling for products endpoints

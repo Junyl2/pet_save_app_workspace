@@ -47,6 +47,24 @@ export function isTokenExpired(token: string): boolean | null {
 }
 
 /**
+ * Extract member ID from JWT token
+ * Returns member ID if found, null otherwise
+ */
+export function getMemberIdFromToken(token: string): string | null {
+  const payload = safeParseJwtPayload(token);
+  if (!payload) return null;
+
+  // Try different possible field names for member ID
+  const memberId =
+    (payload.memberId as string) ||
+    (payload.id as string) ||
+    (payload.sub as string) ||
+    (payload.userId as string);
+
+  return memberId || null;
+}
+
+/**
  * Custom error codes for authentication
  */
 export const AUTH_ERROR_CODES = {

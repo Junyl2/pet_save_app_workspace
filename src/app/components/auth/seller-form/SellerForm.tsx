@@ -1175,14 +1175,14 @@ export default function SellerInformation({
             }
           >
             {isSubmitting
-              ? '등록 중...'
+              ? '등록 제출 중...'
               : user?.businessApprovalStatus === 'PENDING'
               ? '승인 대기 중'
               : user?.businessApprovalStatus === null
               ? '작성중'
               : /*  : user?.businessApprovalStatus === 'REJECTED'
               ? '승인 거부됨' */
-                '사업자 등록하기'}
+                '회원가입'}
           </button>
         ) : (
           <div className={styles.readonlyFooter}>{banner || '읽기 전용'}</div>

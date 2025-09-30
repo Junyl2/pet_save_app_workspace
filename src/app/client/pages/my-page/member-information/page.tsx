@@ -7,8 +7,9 @@ import Image from 'next/image';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
-import { MemberInfo } from '@/app/api/types/member/member';
+import { MemberInfo, MemberUpdateRequest } from '@/app/api/types/member/member';
 import { FileService } from '@/app/api/services/client/fileService/fileService';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import styles from './MemberInformation.module.css';
 
 export default function MemberInformation() {
@@ -19,6 +20,18 @@ export default function MemberInformation() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  // Form state for editable fields
+  const [formData, setFormData] = useState({
+    email: '',
+    name: '',
+    phoneNumber: '',
+    birthDate: '',
+    deliveryAddress: '',
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
   // Function to get profile image URL
   const getProfileImageUrl = async (profileFileId: string | undefined) => {
@@ -68,6 +81,17 @@ export default function MemberInformation() {
 
           setMemberInfo(memberData);
 
+          // Populate form data
+          setFormData({
+            email: memberData.email || '',
+            name: memberData.name || '',
+            phoneNumber: memberData.phoneNumber || '',
+            birthDate: memberData.birthDate || '',
+            deliveryAddress: memberData.defaultDeliveryAddress
+              ? `${memberData.defaultDeliveryAddress.roadAddress} ${memberData.defaultDeliveryAddress.detailedAddress}`
+              : memberData.deliveryAddress || memberData.location || '',
+          });
+
           // Load profile image if available
           if (memberData.profileFileId) {
             const imageUrl = await getProfileImageUrl(memberData.profileFileId);
@@ -87,12 +111,79 @@ export default function MemberInformation() {
     fetchMemberInfo();
   }, []);
 
+  // Handle form input changes
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (isSaving || !memberInfo) return;
+
+    try {
+      setIsSaving(true);
+      setError(null);
+
+      // Prepare update data
+      const updateData: MemberUpdateRequest = {
+        email: formData.email,
+        name: formData.name,
+        phoneNumber: formData.phoneNumber,
+        birthDate: formData.birthDate,
+        deliveryAddress: formData.deliveryAddress,
+      };
+
+      console.log('Updating member info with data:', updateData);
+
+      // Call API to update member information
+      const response = await MemberService.updateMemberInfo(
+        memberInfo.memberId,
+        updateData
+      );
+
+      if (response.error) {
+        setToastType('error');
+        setToastMessage(response.error);
+      } else if (response.data?.success) {
+        setToastType('success');
+        setToastMessage('회원 정보가 성공적으로 수정되었습니다.');
+
+        // Update local member info with the response data
+        if (response.data.data) {
+          setMemberInfo(response.data.data);
+        }
+      } else {
+        setToastType('error');
+        setToastMessage('회원 정보 수정에 실패했습니다.');
+      }
+    } catch (err) {
+      setToastType('error');
+      setToastMessage(
+        err instanceof Error ? err.message : '회원 정보 수정에 실패했습니다.'
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle toast close
+  const handleToastClose = () => {
+    setToastMessage(null);
+  };
+
   if (isLoading) {
     return (
       <div className={styles.container}>
         <ProductHeader />
-        <div className={styles.loadingContainer}>
-          <div className={styles.loading}>회원 정보를 불러오는 중...</div>
+        <div className={styles.form}>
+          <div className={styles.formGroup}>
+            <div className={styles.label}>회원 정보를 불러오는 중...</div>
+          </div>
         </div>
       </div>
     );
@@ -102,14 +193,18 @@ export default function MemberInformation() {
     return (
       <div className={styles.container}>
         <ProductHeader />
-        <div className={styles.errorContainer}>
-          <div className={styles.error}>{error}</div>
-          <button
-            className={styles.retryButton}
-            onClick={() => window.location.reload()}
-          >
-            다시 시도
-          </button>
+        <div className={styles.form}>
+          <div className={styles.formGroup}>
+            <div className={styles.label} style={{ color: '#dc3545' }}>
+              {error}
+            </div>
+            <button
+              className={styles.submitBtn}
+              onClick={() => window.location.reload()}
+            >
+              다시 시도
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -119,8 +214,12 @@ export default function MemberInformation() {
     return (
       <div className={styles.container}>
         <ProductHeader />
-        <div className={styles.errorContainer}>
-          <div className={styles.error}>회원 정보를 찾을 수 없습니다.</div>
+        <div className={styles.form}>
+          <div className={styles.formGroup}>
+            <div className={styles.label} style={{ color: '#dc3545' }}>
+              회원 정보를 찾을 수 없습니다.
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -130,124 +229,125 @@ export default function MemberInformation() {
     <div className={styles.container}>
       <ProductHeader />
 
-      <div className={styles.content}>
-        {/* Profile Image Section */}
-        <div className={styles.profileSection}>
-          <div className={styles.profileImageContainer}>
-            {profileImage ? (
-              <Image
-                src={profileImage}
-                alt="Profile"
-                width={100}
-                height={100}
-                className={styles.profileImage}
-              />
-            ) : (
-              <div className={styles.defaultProfileImage}>
-                <Image
-                  src="/images/icons/profile-default.png"
-                  alt="Default Profile"
-                  width={100}
-                  height={100}
-                />
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Toast Message */}
+      {toastMessage && (
+        <ToastMessage
+          message={toastMessage}
+          onClose={handleToastClose}
+          duration={toastType === 'error' ? 5000 : 3000}
+        />
+      )}
 
-        {/* Member Information */}
-        <div className={styles.infoSection}>
-          <div className={styles.infoItem}>
-            <div className={styles.infoLabel}>이메일</div>
-            <div className={styles.infoValue}>
-              {memberInfo.email || '정보 없음'}
-            </div>
-          </div>
-
-          <div className={styles.infoItem}>
-            <div className={styles.infoLabel}>이름</div>
-            <div className={styles.infoValue}>
-              {memberInfo.name || '정보 없음'}
-            </div>
-          </div>
-
-          <div className={styles.infoItem}>
-            <div className={styles.infoLabel}>전화번호</div>
-            <div className={styles.infoValue}>
-              {memberInfo.phoneNumber || '정보 없음'}
-            </div>
-          </div>
-
-          <div className={styles.infoItem}>
-            <div className={styles.infoLabel}>생년월일</div>
-            <div className={styles.infoValue}>
-              {memberInfo.birthDate ? (
-                <div className={styles.birthdateContainer}>
-                  <IoCalendarOutline className={styles.calendarIcon} />
-                  {memberInfo.birthDate}
-                </div>
-              ) : (
-                '정보 없음'
-              )}
-            </div>
-          </div>
-
-          <div className={styles.infoItem}>
-            <div className={styles.infoLabel}>배송 주소</div>
-            <div className={styles.infoValue}>
-              {memberInfo.deliveryAddress || memberInfo.location || '정보 없음'}
-            </div>
-          </div>
-
-          <div className={styles.infoItem}>
-            <div className={styles.infoLabel}>회원 역할</div>
-            <div className={styles.infoValue}>
-              {memberInfo.role || '정보 없음'}
-            </div>
-          </div>
-
-          {memberInfo.businessApprovalStatus && (
-            <div className={styles.infoItem}>
-              <div className={styles.infoLabel}>사업자 승인 상태</div>
-              <div className={styles.infoValue}>
-                <span
-                  className={`${styles.status} ${
-                    styles[memberInfo.businessApprovalStatus.toLowerCase()]
-                  }`}
-                >
-                  {memberInfo.businessApprovalStatus}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {memberInfo.storeId && (
-            <div className={styles.infoItem}>
-              <div className={styles.infoLabel}>스토어 ID</div>
-              <div className={styles.infoValue}>{memberInfo.storeId}</div>
-            </div>
+      {/* Profile Image Section */}
+      <div className={styles.profileSection}>
+        <div className={styles.profileImageContainer}>
+          {profileImage ? (
+            <Image
+              src={profileImage}
+              alt="Profile"
+              width={100}
+              height={100}
+              className={styles.profileImage}
+            />
+          ) : (
+            <Image
+              src="/images/icons/profile-default.png"
+              alt="Default Profile"
+              width={100}
+              height={100}
+              className={styles.profileImage}
+            />
           )}
         </div>
-
-        {/* Navigation Links */}
-        <div className={styles.navigationSection}>
-          <button
-            className={styles.navButton}
-            onClick={() => router.push(PAGE_URLS.MEMBER_INFO_PASSWORD)}
-          >
-            <span>비밀번호 변경</span>
-            <FaChevronRight className={styles.chevronIcon} />
-          </button>
-
-          <button
-            className={styles.navButton}
-            onClick={() => router.push(PAGE_URLS.MYPAGE_WITHDRAWAL)}
-          >
-            <span>회원 탈퇴</span>
-            <FaChevronRight className={styles.chevronIcon} />
-          </button>
-        </div>
+        <button className={styles.profileEditBtn}>
+          <span className={styles.cameraIcon}>📷</span>
+          프로필 사진 변경
+        </button>
       </div>
+
+      {/* Member Information Form */}
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>이메일</label>
+          <input
+            type="email"
+            className={styles.input}
+            value={formData.email}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            placeholder="이메일을 입력하세요"
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>이름</label>
+          <input
+            type="text"
+            className={styles.input}
+            value={formData.name}
+            onChange={(e) => handleInputChange('name', e.target.value)}
+            placeholder="이름을 입력하세요"
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>휴대폰 번호</label>
+          <input
+            type="tel"
+            className={styles.input}
+            value={formData.phoneNumber}
+            onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+            placeholder="휴대폰 번호를 입력하세요"
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>내 정보</label>
+          <div className={styles.inputWithIcon}>
+            <input
+              type="date"
+              className={styles.input}
+              value={formData.birthDate}
+              onChange={(e) => handleInputChange('birthDate', e.target.value)}
+            />
+            <IoCalendarOutline className={styles.calendarIcon} />
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>배송지 수정</label>
+          <div className={styles.inputWithIcon}>
+            <input
+              type="text"
+              className={styles.input}
+              value={formData.deliveryAddress}
+              onChange={(e) =>
+                handleInputChange('deliveryAddress', e.target.value)
+              }
+              placeholder="배송지를 입력하세요"
+            />
+            <FaChevronRight className={styles.chevronIcon} />
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>비밀번호</label>
+          <div className={styles.inputWithIcon}>
+            <input
+              type="password"
+              className={styles.input}
+              value="●●●●●●●●"
+              readOnly
+              placeholder="●●●●●●●●"
+              onClick={() => router.push(PAGE_URLS.MEMBER_INFO_PASSWORD)}
+            />
+            <FaChevronRight className={styles.chevronIcon} />
+          </div>
+        </div>
+
+        <button type="submit" className={styles.submitBtn} disabled={isSaving}>
+          {isSaving ? '수정 중...' : '수정 완료하기'}
+        </button>
+      </form>
     </div>
   );
 }
