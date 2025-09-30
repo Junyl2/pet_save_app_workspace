@@ -5,10 +5,13 @@ import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { SecureService } from '@/app/api/services/client/auth/secureService';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
+import { useAuth } from '@/app/context/authContext';
+import { PAGE_URLS } from '@/app/utils/page_url';
 import styles from './PasswordChange.module.css';
 
 export default function PasswordChange() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -128,9 +131,16 @@ export default function PasswordChange() {
           confirmPassword: '',
         });
 
-        // Navigate back after showing toast
-        setTimeout(() => {
-          router.back();
+        // Logout user and redirect to login after showing toast
+        setTimeout(async () => {
+          try {
+            await logout();
+            router.push(PAGE_URLS.LOGIN);
+          } catch (error) {
+            console.error('Error during logout after password change:', error);
+            // Still redirect to login even if logout fails
+            router.push(PAGE_URLS.LOGIN);
+          }
         }, 2000);
       } else {
         setErrors({ general: '비밀번호 변경에 실패했습니다.' });
@@ -281,7 +291,7 @@ export default function PasswordChange() {
       {/* Toast Message */}
       {showToast && (
         <ToastMessage
-          message="비밀번호가 성공적으로 변경되었습니다!"
+          message="비밀번호가 성공적으로 변경되었습니다! 보안을 위해 로그아웃됩니다."
           onClose={() => setShowToast(false)}
           duration={2000}
         />

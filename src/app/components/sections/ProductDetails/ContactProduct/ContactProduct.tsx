@@ -1,7 +1,8 @@
 'use client';
 import { productContactService } from '@/app/api/services/contact-product/productContactService';
+import { ProductSummary } from '@/app/api/types/products/productSummary';
 import styles from './ContactProduct.module.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { IoCallOutline } from 'react-icons/io5';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { CiImageOn } from 'react-icons/ci';
@@ -9,33 +10,99 @@ import { useRouter } from 'next/navigation';
 import { ContactDrawer } from '@/app/components/ui/drawer/ContactDrawer/ContactDrawer';
 import toast, { Toaster } from 'react-hot-toast';
 import Image from 'next/image';
+import Loading from '../../../ui/Loading/Loading';
 
 interface ContactProductProps {
-  productId: number;
+  productId: string;
 }
 
 export const ContactProduct = ({ productId }: ContactProductProps) => {
   const router = useRouter();
-  const product = productContactService.getProductById(productId);
+  const [product, setProduct] = useState<ProductSummary | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showDrawer, setShowDrawer] = useState(false);
 
   const [inquiryType, setInquiryType] = useState('');
   const [content, setContent] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setLoading(true);
+      try {
+        const productData = await productContactService.getProductById(
+          productId
+        );
+        setProduct(productData);
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        toast.error('상품 정보를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (productId) {
+      fetchProduct();
+    }
+  }, [productId]);
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (filePreview) {
+        URL.revokeObjectURL(filePreview);
+      }
+    };
+  }, [filePreview]);
+
+  if (loading) return <Loading />;
+
   if (!product) return <p>상품을 찾을 수 없습니다.</p>;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null;
+    setFile(selectedFile);
+
+    if (selectedFile) {
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(selectedFile);
+      setFilePreview(previewUrl);
+    } else {
+      setFilePreview(null);
+    }
+  };
+
+  const removeFile = () => {
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview);
+    }
+    setFile(null);
+    setFilePreview(null);
+  };
 
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await productContactService.submitInquiry({
-        productId: product.id,
+      if (!product.productId) {
+        toast.error('상품 정보를 찾을 수 없습니다.');
+        return;
+      }
+
+      const response = await productContactService.submitInquiry({
+        productId: product.productId,
         inquiryType,
         content,
-        fileName: file?.name || null,
+        file: file,
       });
+
+      if (response.error) {
+        toast.error('문의 접수 중 오류가 발생했습니다.');
+        return;
+      }
 
       // Show toast
       toast.success('문의가 정상적으로 접수되었습니다.');
@@ -92,17 +159,15 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
       {/* Seller Profile */}
       <div className={styles.sellerProfile}>
         <Image
-          src={product.shopImage || '/fallback-shop.png'}
-          alt={product.shopName || '판매자'}
+          src={product.store.profileUrl || '/fallback-shop.png'}
+          alt={product.store.name || '판매자'}
           className={styles.shopImage}
           width={50}
           height={50}
         />
         <div className={styles.shopInfo}>
-          <h3>{product.shopName}</h3>
-          <p className={styles.details}>
-            {product.shopLocation} · {product.shopDistance}
-          </p>
+          <h3>{product.store.name}</h3>
+          <p className={styles.details}>{product.store.address}</p>
         </div>
         <div className={styles.contactWrapper}>
           <button
@@ -118,15 +183,19 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
       {/* Product Info */}
       <div className={styles.productInfoRow}>
         <Image
-          src={product.image}
-          alt={product.name}
+          src={product.thumbnail || '/images/products/noresult.png'}
+          alt={product.productName || '상품 이미지'}
           className={styles.productThumbnail}
           width={80}
           height={80}
         />
         <div className={styles.productDetailsColumn}>
-          <p className={styles.productName}>{product.name}</p>
-          <p className={styles.productPrice}>{product.price}</p>
+          <p className={styles.productName}>{product.productName}</p>
+          <p className={styles.productPrice}>
+            {product.discountedPrice
+              ? `${product.discountedPrice.toLocaleString()}원`
+              : `${product.salePrice.toLocaleString()}원`}
+          </p>
         </div>
       </div>
 
@@ -171,8 +240,8 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="문의 내용을 입력해주세요 (500자 이내)"
-          maxLength={500}
+          placeholder="문의 내용을 입력해주세요 (1000자 이내)"
+          maxLength={1000}
         />
 
         <div className={styles.fileUploadWrapper}>
@@ -180,7 +249,7 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
             type="file"
             id="fileUpload"
             accept="image/*"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            onChange={handleFileChange}
             className={styles.hiddenFileInput}
           />
           <div className={styles.labelWrapper}>
@@ -189,6 +258,29 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
               사진 첨부하기
             </label>
           </div>
+
+          {/* File Preview */}
+          {filePreview && (
+            <div className={styles.filePreview}>
+              <Image
+                src={filePreview}
+                alt="Preview"
+                width={100}
+                height={100}
+                className={styles.previewImage}
+              />
+              <div className={styles.fileInfo}>
+                <p className={styles.fileName}>{file?.name}</p>
+                <button
+                  type="button"
+                  onClick={removeFile}
+                  className={styles.removeFileButton}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <p className={styles.note}>

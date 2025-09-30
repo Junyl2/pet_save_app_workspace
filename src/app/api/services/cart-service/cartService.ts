@@ -1,7 +1,7 @@
 import { ApiResponse } from '../../apiClient';
 
 type CartItem = {
-  productId: number;
+  productId: string | number;
   quantity: number;
 };
 
@@ -10,7 +10,7 @@ const cart: CartItem[] = [];
 
 export const cartService = {
   addToCart: async (
-    productId: number,
+    productId: string | number,
     quantity: number
   ): Promise<ApiResponse<{ success: boolean }>> => {
     try {

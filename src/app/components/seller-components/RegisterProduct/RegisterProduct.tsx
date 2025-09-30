@@ -4,9 +4,10 @@ import { useRouter } from 'next/navigation';
 import styles from './RegisterProduct.module.css';
 import { FaChevronDown, FaChevronUp, FaRedo } from 'react-icons/fa';
 import { CiImageOn } from 'react-icons/ci';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { FileProductService } from '@/app/api/services/client/productService/fileProductService';
 import { ProductService } from '@/app/api/services/client/productService/productService';
-import { StoreService } from '@/app/api/services/client/memberService/store';
+import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
 import { CategoryService } from '@/app/api/services/client/categoryService/categoryService';
 import {
   ProductCreateRequest,
@@ -16,8 +17,6 @@ import { Category } from '@/app/api/types/category/category';
 
 export default function RegisterProductForm() {
   const router = useRouter();
-
-  const productNames = ['사료', '간식', '장난감', '목줄', '침대'];
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -42,9 +41,9 @@ export default function RegisterProductForm() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [showToast, setShowToast] = useState(false);
 
   const [categoryOpen, setCategoryOpen] = useState(false);
-  const [nameOpen, setNameOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
 
   // Fetch store information and categories on component mount
@@ -53,7 +52,7 @@ export default function RegisterProductForm() {
       try {
         // Fetch store information
         console.log('Fetching store information...');
-        const storeResponse = await StoreService.getMyStore();
+        const storeResponse = await MemberStoreService.getMyStore();
 
         if (storeResponse.error || !storeResponse.data) {
           console.error('Failed to fetch store info:', storeResponse.error);
@@ -411,8 +410,11 @@ export default function RegisterProductForm() {
         }
       }
 
-      alert('상품이 성공적으로 등록되었습니다.');
-      router.push('/client/seller/pages/seller-product-list');
+      setShowToast(true);
+      // Navigate after a short delay to allow toast to be visible
+      setTimeout(() => {
+        router.push('/client/seller/pages/seller-product-list');
+      }, 2000);
     } catch (error) {
       console.error('Product registration failed:', error);
       setError(
@@ -620,36 +622,16 @@ export default function RegisterProductForm() {
           )}
         </label>
 
-        {/* Product Name Dropdown */}
+        {/* Product Name Input */}
         <label className={styles.label}>
           상품명
-          <div
-            className={styles.customSelect}
-            onClick={() => setNameOpen(!nameOpen)}
-          >
-            <span>{name || '상품명을 선택해 주세요'}</span>
-            {nameOpen ? (
-              <FaChevronUp color="rgba(0,0,0,0.4)" />
-            ) : (
-              <FaChevronDown color="rgba(0,0,0,0.4)" />
-            )}
-          </div>
-          {nameOpen && (
-            <ul className={styles.customSelectList}>
-              {productNames.map((p) => (
-                <li
-                  key={p}
-                  className={styles.customSelectItem}
-                  onClick={() => {
-                    setName(p);
-                    setNameOpen(false);
-                  }}
-                >
-                  {p}
-                </li>
-              ))}
-            </ul>
-          )}
+          <input
+            type="text"
+            placeholder="상품명을 입력해 주세요"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={styles.input}
+          />
         </label>
 
         {/* Description */}
@@ -751,6 +733,14 @@ export default function RegisterProductForm() {
           {isLoading ? '등록 중...' : '등록하기'}
         </button>
       </form>
+
+      {/* Toast shows after successful product registration */}
+      {showToast && (
+        <ToastMessage
+          message="상품이 성공적으로 등록되었습니다."
+          onClose={() => setShowToast(false)}
+        />
+      )}
     </>
   );
 }

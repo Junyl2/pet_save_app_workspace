@@ -10,61 +10,10 @@ import { useFavorites } from '@/app/context/FavoritesContext';
 import { WishlistItem } from '@/app/api/types/my-page/wishlist';
 import styles from './SteamedProducts.module.css';
 
-// Mock data - in a real app, this would come from an API
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: '1',
-    name: '탐사 6free 강아지 사료 15kg',
-    image: '/images/products/dog-snack2.png',
-    originalPrice: 30000,
-    salePrice: 24000,
-    isFavorited: true,
-  },
-  {
-    id: '2',
-    name: '강아지 시그니처 유기농 건식사료 2kg',
-    image: '/images/products/dog-snack.png',
-    originalPrice: 60000,
-    salePrice: 36000,
-    isFavorited: true,
-  },
-  {
-    id: '3',
-    name: '멜드펫파 무염 수제 츄르 강아지 간식',
-    image: '/images/products/dogfood.png',
-    originalPrice: 30000,
-    salePrice: 24000,
-    isFavorited: true,
-  },
-  {
-    id: '4',
-    name: '강아지 사용한 부분만 씻는 드라이 샴푸',
-    image: '/images/products/dog-snack.png',
-    originalPrice: 60000,
-    salePrice: 36000,
-    isFavorited: true,
-  },
-  {
-    id: '5',
-    name: '탐사 6free 강아지 사료 7kg',
-    image: '/images/products/dog-snack.png',
-    originalPrice: 30000,
-    salePrice: 24000,
-    isFavorited: true,
-  },
-  {
-    id: '6',
-    name: '탐사 6free 강아지 사료 3kg',
-    image: '/images/products/dogfood.png',
-    originalPrice: 60000,
-    salePrice: 36000,
-    isFavorited: true,
-  },
-];
+// Using real API data from wishlist service
 
 export function SteamedProducts() {
   const {
-    favorites,
     wishlistItems,
     isLoading: favoritesLoading,
     error: favoritesError,
@@ -99,7 +48,7 @@ export function SteamedProducts() {
     };
 
     loadProducts();
-  }, []); // Only run once on mount
+  }, [loadWishlist]); // Include loadWishlist dependency
 
   // Convert wishlist items to Product format when wishlistItems change
   useEffect(() => {
@@ -108,37 +57,22 @@ export function SteamedProducts() {
     if (wishlistItems.length > 0) {
       // Use real wishlist data from API
       convertedProducts = wishlistItems.map((item: WishlistItem) => ({
-        id: item.id,
-        name: item.name,
-        image: item.image,
-        originalPrice: item.originalPrice,
-        salePrice: item.salePrice,
-        isFavorited: item.isFavorited,
+        id: item.productId,
+        name: item.productName,
+        image: item.productThumbnail,
+        originalPrice: item.salePrice,
+        salePrice: item.discountedPrice,
+        isFavorited: true, // All items in wishlist are favorited
       }));
     } else {
-      // If no wishlist items from API, check localStorage favorites and show mock data for those
-      const storedFavorites = localStorage.getItem('favorites');
-      if (storedFavorites) {
-        try {
-          const favoriteIds = JSON.parse(storedFavorites);
-          console.log('Using localStorage favorites:', favoriteIds);
-          // Filter mock products to only show favorited ones
-          convertedProducts = MOCK_PRODUCTS.filter((product) =>
-            favoriteIds.includes(product.id)
-          );
-        } catch (error) {
-          console.error('Error parsing stored favorites:', error);
-          convertedProducts = [];
-        }
-      } else {
-        convertedProducts = [];
-      }
+      // If no wishlist items from API, show empty state
+      convertedProducts = [];
     }
 
-    console.log('Setting products:', convertedProducts);
+    console.log('Setting products from wishlist:', convertedProducts);
     setProducts(convertedProducts);
     setError(null);
-  }, [wishlistItems, favorites]); // Depend on both wishlistItems and favorites
+  }, [wishlistItems]); // Only depend on wishlistItems from API
 
   // Update error state when favorites context has an error
   useEffect(() => {
@@ -155,14 +89,8 @@ export function SteamedProducts() {
   const handleToggleFavorite = async (productId: string) => {
     try {
       await toggleFavorite(productId);
-
-      // Update local products state to reflect the change
-      setProducts((prevProducts) =>
-        prevProducts.filter((product) => product.id !== productId)
-      );
-
-      setSuccessMessage('상품이 찜목록에서 제거되었습니다.');
-      setShowSuccessMessage(true);
+      // The FavoritesContext will handle updating the wishlistItems
+      // which will automatically update the products via useEffect
     } catch (error) {
       console.error('Error toggling favorite:', error);
       setError('찜목록 업데이트에 실패했습니다.');

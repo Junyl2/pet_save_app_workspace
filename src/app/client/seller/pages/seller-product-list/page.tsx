@@ -7,10 +7,13 @@ import styles from './styles.module.css';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
 import { SellerProductListService } from '@/app/api/services/client/productService/sellerProductListService';
+import { ProductService } from '@/app/api/services/client/productService/productService';
 import {
   StoreProduct,
   RegistrationStatus,
+  PageInfo,
 } from '@/app/api/types/products/productList';
+import { Pagination } from '@/app/components/ui/Pagination/Pagination';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 
 type ProductStatus = '판매중' | '판매완료';
@@ -45,8 +48,7 @@ export default function SellerProductListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [storeId, setStoreId] = useState<string | null>(null);
+  const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
 
   const filteredProducts = useMemo(() => {
     const filtered = products.filter(
@@ -85,14 +87,12 @@ export default function SellerProductListPage() {
           );
         }
 
-        setStoreId(memberData.storeId);
-
         // Then fetch products for this store
         const productsResponse =
           await SellerProductListService.getProductsByStoreId({
             storeId: memberData.storeId,
             page: currentPage,
-            size: 20,
+            size: 10,
             sortBy: 'createdAt',
             direction: 'desc',
           });
@@ -116,7 +116,7 @@ export default function SellerProductListPage() {
         );
 
         setProducts(productsData.content);
-        setTotalPages(productsData.totalPages);
+        setPageInfo(productsData.pageInfo);
       } catch (err) {
         console.error('Error fetching products:', err);
         setError(
@@ -131,6 +131,11 @@ export default function SellerProductListPage() {
 
     fetchProducts();
   }, [currentPage]);
+
+  const handlePageChange = (page: number) => {
+    console.log('[SellerProductListPage] Page change requested:', page);
+    setCurrentPage(page);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -150,9 +155,36 @@ export default function SellerProductListPage() {
     };
   }, [statusDropdownOpen]);
 
-  const handleDelete = (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.productId !== productId));
-    setDeleteModalOpen(null);
+  const handleDelete = async (productId: string) => {
+    try {
+      console.log('[SellerProductListPage] Deleting product:', productId);
+
+      const response = await ProductService.deleteProduct(productId);
+
+      if (response.error) {
+        console.error(
+          '[SellerProductListPage] Failed to delete product:',
+          response.error
+        );
+
+        // Check if it's a 500 error and provide more specific message
+        if (response.error.includes('500')) {
+          setError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        } else {
+          setError('상품 삭제에 실패했습니다. 다시 시도해주세요.');
+        }
+        return;
+      }
+
+      console.log('[SellerProductListPage] Product deleted successfully');
+
+      // Remove the product from the local state
+      setProducts((prev) => prev.filter((p) => p.productId !== productId));
+      setDeleteModalOpen(null);
+    } catch (err) {
+      console.error('[SellerProductListPage] Error deleting product:', err);
+      setError('상품 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   if (loading) {
@@ -190,7 +222,7 @@ export default function SellerProductListPage() {
       <div className={styles.pageWrap}>
         <div className={styles.summaryRow}>
           <span className={styles.lengthLabel}>
-            총 상품수 {filteredProducts.length}개
+            총 상품수 {pageInfo?.totalElements || filteredProducts.length}개
           </span>
           <div className={styles.filterControl}>
             <button
@@ -355,6 +387,19 @@ export default function SellerProductListPage() {
             })
           )}
         </main>
+
+        {/* Pagination */}
+        {pageInfo && pageInfo.totalElements > 10 && (
+          <div
+            style={{
+              marginTop: '2rem',
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
+            <Pagination pageInfo={pageInfo} onPageChange={handlePageChange} />
+          </div>
+        )}
       </div>
 
       <BottomBar />

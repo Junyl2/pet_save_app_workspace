@@ -3,6 +3,9 @@ import {
   NearbyStoresRequest,
   NearbyStoresApiResponse,
 } from '../../../types/stores/nearby';
+import {
+  /* StoreInfo, */ StoreApiResponse,
+} from '../../../types/member/store/store';
 
 /**
  * Store service for handling store-related operations
@@ -66,6 +69,59 @@ export class StoreService {
           error instanceof Error
             ? error.message
             : 'Failed to search nearby stores',
+      };
+    }
+  }
+
+  /**
+   * Get store summary by ID
+   * Endpoint: GET /api/pet-save/stores/{storeId}
+   * @param storeId - Store ID (UUID)
+   * @param lat - User latitude for distance calculation (optional)
+   * @param long - User longitude for distance calculation (optional)
+   */
+  static async getStoreSummary(
+    storeId: string,
+    lat?: number,
+    long?: number
+  ): Promise<ApiResponse<StoreApiResponse>> {
+    try {
+      console.log('🔍 Getting store summary:', {
+        storeId,
+        lat,
+        long,
+      });
+
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      if (lat !== undefined) queryParams.append('lat', lat.toString());
+      if (long !== undefined) queryParams.append('long', long.toString());
+
+      const queryString = queryParams.toString();
+      const url = `/stores/${storeId}${queryString ? `?${queryString}` : ''}`;
+
+      const response = await apiClient.get<StoreApiResponse>(url);
+
+      if (response.error) {
+        console.error('❌ Get store summary failed:', response.error);
+        return response;
+      }
+
+      console.log('✅ Store summary retrieved successfully:', {
+        storeId: response.data?.data?.storeId,
+        storeName: response.data?.data?.storeName,
+        businessName: response.data?.data?.businessName,
+      });
+
+      return response;
+    } catch (error) {
+      console.error('💥 Get store summary service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to get store summary',
       };
     }
   }

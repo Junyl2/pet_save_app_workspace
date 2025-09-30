@@ -8,6 +8,7 @@ import { PAGE_URLS } from '@/app/utils/page_url';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 import { MemberInfo, MemberUpdateRequest } from '@/app/api/types/member/member';
+import { FileService } from '@/app/api/services/client/fileService/fileService';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import styles from './MemberInformation.module.css';
 
@@ -18,25 +19,39 @@ export default function MemberInformation() {
   const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const [originalFormData, setOriginalFormData] = useState({
-    email: '',
-    name: '',
-    phone: '',
-    birthdate: '',
-    address: '',
-  });
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
+  // Form state for editable fields
   const [formData, setFormData] = useState({
     email: '',
     name: '',
-    phone: '',
-    birthdate: '',
-    password: '••••••••',
-    address: '',
+    phoneNumber: '',
+    birthDate: '',
+    deliveryAddress: '',
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+
+  // Function to get profile image URL
+  const getProfileImageUrl = async (profileFileId: string | undefined) => {
+    if (!profileFileId) return null;
+
+    try {
+      const response = await FileService.getFile(profileFileId, {
+        disposition: 'inline',
+        type: 'original',
+      });
+
+      if (response.data) {
+        return URL.createObjectURL(response.data);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting profile image:', error);
+      return null;
+    }
+  };
 
   // Fetch member information on component mount
   useEffect(() => {
@@ -66,24 +81,22 @@ export default function MemberInformation() {
 
           setMemberInfo(memberData);
 
-          // Update form data with real API data
-          const initialFormData = {
+          // Populate form data
+          setFormData({
             email: memberData.email || '',
             name: memberData.name || '',
-            phone: memberData.phoneNumber || '',
-            birthdate: memberData.birthDate || '',
-            password: '••••••••',
-            address: memberData.deliveryAddress || memberData.location || '',
-          };
-
-          setFormData(initialFormData);
-          setOriginalFormData({
-            email: memberData.email || '',
-            name: memberData.name || '',
-            phone: memberData.phoneNumber || '',
-            birthdate: memberData.birthDate || '',
-            address: memberData.deliveryAddress || memberData.location || '',
+            phoneNumber: memberData.phoneNumber || '',
+            birthDate: memberData.birthDate || '',
+            deliveryAddress: memberData.defaultDeliveryAddress
+              ? `${memberData.defaultDeliveryAddress.roadAddress} ${memberData.defaultDeliveryAddress.detailedAddress}`
+              : memberData.deliveryAddress || memberData.location || '',
           });
+
+          // Load profile image if available
+          if (memberData.profileFileId) {
+            const imageUrl = await getProfileImageUrl(memberData.profileFileId);
+            setProfileImage(imageUrl);
+          }
         } else {
           setError('회원 정보를 불러올 수 없습니다.');
         }
@@ -98,321 +111,243 @@ export default function MemberInformation() {
     fetchMemberInfo();
   }, []);
 
-  // Check if form has changes
-  const hasChanges = () => {
-    return (
-      formData.name !== originalFormData.name ||
-      formData.phone !== originalFormData.phone ||
-      formData.birthdate !== originalFormData.birthdate ||
-      formData.address !== originalFormData.address
-    );
+  // Handle form input changes
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isSaving || !memberInfo) return;
+
     try {
-      setIsSubmitting(true);
-      setSubmitError(null);
-      setShowToast(false);
+      setIsSaving(true);
+      setError(null);
 
-      console.log('🔄 Submitting member information update...', formData);
-      console.log('🔍 Current memberInfo:', memberInfo);
-      console.log('🔍 Member ID:', memberInfo?.memberId);
-
-      // Check if we have member info with ID
-      if (!memberInfo?.memberId) {
-        console.error('❌ No member ID found in memberInfo:', memberInfo);
-        setSubmitError(
-          '회원 정보를 찾을 수 없습니다. 페이지를 새로고침해주세요.'
-        );
-        return;
-      }
-
-      // Prepare update data - only include fields that can be updated
+      // Prepare update data
       const updateData: MemberUpdateRequest = {
+        email: formData.email,
         name: formData.name,
-        phoneNumber: formData.phone,
-        deliveryAddress: formData.address,
-        email: formData.email, // Include email if it can be updated
-        birthDate: formData.birthdate || undefined, // Include birthdate if provided
-        profileFileId: memberInfo.profileFileId, // Keep existing profile file ID
+        phoneNumber: formData.phoneNumber,
+        birthDate: formData.birthDate,
+        deliveryAddress: formData.deliveryAddress,
       };
 
-      console.log('🔍 Calling updateMemberById with:', {
-        memberId: memberInfo.memberId,
-        updateData: updateData,
-      });
+      console.log('Updating member info with data:', updateData);
 
-      let response;
-
-      // Try updating with memberId first
-      try {
-        response = await MemberService.updateMemberById(
-          memberInfo.memberId,
-          updateData
-        );
-
-        console.log('🔍 Update response (by ID):', response);
-
-        // If memberId approach fails, try the fallback method
-        if (
-          response.error &&
-          (response.error.includes('404') ||
-            response.error.includes('not found'))
-        ) {
-          console.log('🔄 MemberId approach failed, trying fallback method...');
-          response = await MemberService.updateMyInfo(updateData);
-          console.log('🔍 Update response (fallback):', response);
-        }
-      } catch (error) {
-        console.log(
-          '🔄 MemberId approach failed with exception, trying fallback method...'
-        );
-        response = await MemberService.updateMyInfo(updateData);
-        console.log('🔍 Update response (fallback):', response);
-      }
+      // Call API to update member information
+      const response = await MemberService.updateMemberInfo(
+        memberInfo.memberId,
+        updateData
+      );
 
       if (response.error) {
-        console.error('❌ Failed to update member info:', response.error);
-        setSubmitError(`회원 정보 업데이트에 실패했습니다: ${response.error}`);
-        return;
-      }
+        setToastType('error');
+        setToastMessage(response.error);
+      } else if (response.data?.success) {
+        setToastType('success');
+        setToastMessage('회원 정보가 성공적으로 수정되었습니다.');
 
-      if (response.data?.success) {
-        console.log('✅ Member info updated successfully:', response.data);
-
-        // Update local state with the new data
+        // Update local member info with the response data
         if (response.data.data) {
           setMemberInfo(response.data.data);
-
-          // Update original form data to reflect the new state
-          const updatedData = response.data.data;
-          setOriginalFormData({
-            email: updatedData.email || '',
-            name: updatedData.name || '',
-            phone: updatedData.phoneNumber || '',
-            birthdate: updatedData.birthDate || '',
-            address: updatedData.deliveryAddress || updatedData.location || '',
-          });
         }
-
-        // Show success toast
-        setShowToast(true);
       } else {
-        setSubmitError('회원 정보 업데이트에 실패했습니다.');
+        setToastType('error');
+        setToastMessage('회원 정보 수정에 실패했습니다.');
       }
     } catch (err) {
-      console.error('💥 Error updating member info:', err);
-      setSubmitError('회원 정보 업데이트 중 오류가 발생했습니다.');
+      setToastType('error');
+      setToastMessage(
+        err instanceof Error ? err.message : '회원 정보 수정에 실패했습니다.'
+      );
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
-  const handlePasswordClick = () => {
-    router.push(PAGE_URLS.MEMBER_INFO_PASSWORD);
+  // Handle toast close
+  const handleToastClose = () => {
+    setToastMessage(null);
   };
 
-  const handleAddressClick = () => {
-    // TODO: Create address page route when needed
-    router.push('/client/pages/my-page/member-information/address');
-  };
-
-  // Loading state
   if (isLoading) {
     return (
-      <>
+      <div className={styles.container}>
         <ProductHeader />
-        <div className={styles.container}>
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <p>회원 정보를 불러오는 중...</p>
+        <div className={styles.form}>
+          <div className={styles.formGroup}>
+            <div className={styles.label}>회원 정보를 불러오는 중...</div>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <>
+      <div className={styles.container}>
         <ProductHeader />
-        <div className={styles.container}>
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <p style={{ color: 'red' }}>{error}</p>
+        <div className={styles.form}>
+          <div className={styles.formGroup}>
+            <div className={styles.label} style={{ color: '#dc3545' }}>
+              {error}
+            </div>
             <button
+              className={styles.submitBtn}
               onClick={() => window.location.reload()}
-              style={{
-                marginTop: '1rem',
-                padding: '0.5rem 1rem',
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
             >
               다시 시도
             </button>
           </div>
         </div>
-      </>
+      </div>
+    );
+  }
+
+  if (!memberInfo) {
+    return (
+      <div className={styles.container}>
+        <ProductHeader />
+        <div className={styles.form}>
+          <div className={styles.formGroup}>
+            <div className={styles.label} style={{ color: '#dc3545' }}>
+              회원 정보를 찾을 수 없습니다.
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className={styles.container}>
       <ProductHeader />
-      <div className={styles.container}>
-        {/* Profile Image Section */}
-        <div className={styles.profileSection}>
-          <div className={styles.profileImageContainer}>
+
+      {/* Toast Message */}
+      {toastMessage && (
+        <ToastMessage
+          message={toastMessage}
+          onClose={handleToastClose}
+          duration={toastType === 'error' ? 5000 : 3000}
+        />
+      )}
+
+      {/* Profile Image Section */}
+      <div className={styles.profileSection}>
+        <div className={styles.profileImageContainer}>
+          {profileImage ? (
             <Image
-              src="/images/animals/강아지.png"
-              alt="프로필"
+              src={profileImage}
+              alt="Profile"
               width={100}
               height={100}
               className={styles.profileImage}
             />
-          </div>
-          <button className={styles.profileEditBtn}>
-            <span className={styles.cameraIcon}>📷</span>
-            프로필 사진 변경
-          </button>
+          ) : (
+            <Image
+              src="/images/icons/profile-default.png"
+              alt="Default Profile"
+              width={100}
+              height={100}
+              className={styles.profileImage}
+            />
+          )}
         </div>
-
-        {/* Error Messages */}
-
-        {submitError && (
-          <div
-            style={{
-              backgroundColor: '#f8d7da',
-              color: '#721c24',
-              padding: '1rem',
-              borderRadius: '4px',
-              marginBottom: '1rem',
-              textAlign: 'center',
-            }}
-          >
-            ❌ {submitError}
-          </div>
-        )}
-
-        {/* Form */}
-        <form className={styles.form} onSubmit={handleSubmit}>
-          {/* Email */}
-          <div className={styles.formGroup}>
-            <label className={styles.label}>이메일</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className={styles.input}
-              readOnly
-            />
-          </div>
-
-          {/* Name */}
-          <div className={styles.formGroup}>
-            <label className={styles.label}>이름</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className={styles.input}
-            />
-          </div>
-
-          {/* Phone */}
-          <div className={styles.formGroup}>
-            <label className={styles.label}>휴대폰 번호</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className={styles.input}
-            />
-          </div>
-
-          {/* Birthdate */}
-          <div className={styles.formGroup}>
-            <label className={styles.label}>내 정보</label>
-            <div className={styles.inputWithIcon}>
-              <input
-                type="text"
-                name="birthdate"
-                value={formData.birthdate}
-                onChange={handleChange}
-                className={styles.input}
-              />
-              <IoCalendarOutline className={styles.calendarIcon} />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div className={styles.formGroup}>
-            <label className={styles.label}>비밀번호</label>
-            <div className={styles.inputWithIcon}>
-              <input
-                type="password"
-                name="password"
-                value="••••••••"
-                className={styles.input}
-                readOnly
-                onClick={handlePasswordClick}
-              />
-              <FaChevronRight className={styles.chevronIcon} />
-            </div>
-          </div>
-
-          {/* Address */}
-          <div className={styles.formGroup}>
-            <label className={styles.label}>배송지 수정</label>
-            <div className={styles.inputWithIcon}>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                className={styles.input}
-                readOnly
-                onClick={handleAddressClick}
-              />
-              <FaChevronRight className={styles.chevronIcon} />
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className={styles.submitBtn}
-            disabled={isSubmitting || !hasChanges()}
-            style={{
-              opacity: isSubmitting || !hasChanges() ? 0.6 : 1,
-              cursor: isSubmitting || !hasChanges() ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {isSubmitting ? '업데이트 중...' : '수정 완료하기'}
-          </button>
-        </form>
+        <button className={styles.profileEditBtn}>
+          <span className={styles.cameraIcon}>📷</span>
+          프로필 사진 변경
+        </button>
       </div>
 
-      {/* Toast Message */}
-      {showToast && (
-        <ToastMessage
-          message="회원 정보가 성공적으로 업데이트되었습니다!"
-          onClose={() => setShowToast(false)}
-          duration={3000}
-        />
-      )}
-    </>
+      {/* Member Information Form */}
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>이메일</label>
+          <input
+            type="email"
+            className={styles.input}
+            value={formData.email}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            placeholder="이메일을 입력하세요"
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>이름</label>
+          <input
+            type="text"
+            className={styles.input}
+            value={formData.name}
+            onChange={(e) => handleInputChange('name', e.target.value)}
+            placeholder="이름을 입력하세요"
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>휴대폰 번호</label>
+          <input
+            type="tel"
+            className={styles.input}
+            value={formData.phoneNumber}
+            onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+            placeholder="휴대폰 번호를 입력하세요"
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>내 정보</label>
+          <div className={styles.inputWithIcon}>
+            <input
+              type="date"
+              className={styles.input}
+              value={formData.birthDate}
+              onChange={(e) => handleInputChange('birthDate', e.target.value)}
+            />
+            <IoCalendarOutline className={styles.calendarIcon} />
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>배송지 수정</label>
+          <div className={styles.inputWithIcon}>
+            <input
+              type="text"
+              className={styles.input}
+              value={formData.deliveryAddress}
+              onChange={(e) =>
+                handleInputChange('deliveryAddress', e.target.value)
+              }
+              placeholder="배송지를 입력하세요"
+            />
+            <FaChevronRight className={styles.chevronIcon} />
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>비밀번호</label>
+          <div className={styles.inputWithIcon}>
+            <input
+              type="password"
+              className={styles.input}
+              value="●●●●●●●●"
+              readOnly
+              placeholder="●●●●●●●●"
+              onClick={() => router.push(PAGE_URLS.MEMBER_INFO_PASSWORD)}
+            />
+            <FaChevronRight className={styles.chevronIcon} />
+          </div>
+        </div>
+
+        <button type="submit" className={styles.submitBtn} disabled={isSaving}>
+          {isSaving ? '수정 중...' : '수정 완료하기'}
+        </button>
+      </form>
+    </div>
   );
 }

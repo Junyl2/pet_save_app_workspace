@@ -14,6 +14,6 @@ export interface ChangePasswordResponse {
   status: number;
   resultMsg: string;
   divisionCode: string;
-  data: {};
+  data: Record<string, never>;
   errorId: string | null;
 }

@@ -6,11 +6,13 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 import { BusinessService } from '@/app/api/services/client/businessService/businessService';
-/* import { StoreService } from '@/app/api/services/client/memberService/store'; */
+import { useAuth } from './authContext';
+import { MemberInfo } from '@/app/api/types/member/member';
 
 export type Role = 'client' | 'seller';
 export type BusinessApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | null;
@@ -18,9 +20,13 @@ export type BusinessApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | null;
 export interface User {
   username: string;
   role: Role;
-  // Make location optional so login() can be used without providing it
   location?: string;
   businessApprovalStatus?: BusinessApprovalStatus;
+  storeId?: string | null;
+}
+
+interface BusinessData {
+  status: string;
 }
 
 interface UserContextType {
@@ -36,48 +42,15 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { isLoggedIn, checkAuthState } = useAuth();
+  const userRef = useRef<User | null>(null);
 
-  // Load saved user on first mount (client-side only)
+  // Update ref whenever user state changes
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('user');
-      if (raw) {
-        const savedUser = JSON.parse(raw) as User;
-        setUser(savedUser);
-        // Refresh user data to get latest business registration status
-        setTimeout(() => {
-          console.log('🔄 Auto-refreshing user data on app load...');
-          refreshUserData();
-        }, 500); // Small delay to ensure app is fully loaded
-      }
-    } catch {
-      // ignore JSON parse errors
-    }
-  }, []);
+    userRef.current = user;
+  }, [user]);
 
-  const login = (userData: User) => {
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
-    // Refresh user data to get latest business registration status
-    setTimeout(() => {
-      console.log('🔄 Auto-refreshing user data after login...');
-      refreshUserData();
-    }, 100); // Small delay to ensure login is processed
-  };
-
-  const logout = () => {
-    localStorage.removeItem('user');
-    setUser(null);
-  };
-
-  const updateUserRole = (newRole: Role) => {
-    if (user) {
-      const updatedUser = { ...user, role: newRole };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-    }
-  };
-
+  // -------- refreshUserData (memoized) --------
   const refreshUserData = useCallback(async () => {
     // Prevent multiple simultaneous calls
     if (isRefreshing) {
@@ -85,19 +58,40 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      console.log('No auth token found, skipping user data refresh');
+      return;
+    }
+
+    // Short-circuit while offline - don't make API calls
+    if (!navigator.onLine) {
+      console.log('🌐 Offline - skipping user data refresh');
+      return;
+    }
+
+    // Ensure auth state is valid before making API calls
+    await checkAuthState();
+
+    // Double-check after auth state check
+    const updatedAuthToken = localStorage.getItem('authToken');
+    if (!updatedAuthToken) {
+      console.log('Auth token invalid after check, skipping user data refresh');
+      return;
+    }
+
     try {
       setIsRefreshing(true);
       console.log('🔄 Refreshing user data from backend...');
 
-      // Always fetch both member info and business registration status in parallel
-      // Business registration status is the source of truth for approval status
+      // Fetch both member info and business registration in parallel
       const [memberResponse, businessResponse] = await Promise.allSettled([
         MemberService.getMyInfo(),
         BusinessService.getMyBusinessRegistration(),
       ]);
 
-      let userData = null;
-      let businessData = null;
+      let userData: MemberInfo | null = null;
+      let businessData: BusinessData | null = null;
 
       // Process member info
       if (
@@ -113,6 +107,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
             ? memberResponse.reason
             : 'No data'
         );
+
+        if (
+          memberResponse.status === 'rejected' &&
+          (memberResponse.reason?.message?.includes('401') ||
+            memberResponse.reason?.message?.includes('403'))
+        ) {
+          console.log('Authentication failed, user may need to re-login');
+          return;
+        }
       }
 
       // Process business registration info
@@ -132,13 +135,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
 
       if (userData) {
-        // Determine user role based on business approval status
-        let userRole = userData.role || user?.role || 'client';
-        let businessApprovalStatus = userData.businessApprovalStatus;
+        // Get current user data to preserve existing values
+        const currentUser = userRef.current;
 
-        // If we have business registration data, use its status
+        // Determine user role based on business approval status
+        let userRole: Role =
+          (userData.role as Role) || currentUser?.role || 'client';
+        let businessApprovalStatus: BusinessApprovalStatus =
+          (userData.businessApprovalStatus as BusinessApprovalStatus) ?? null;
+
         if (businessData) {
-          businessApprovalStatus = businessData.status;
+          businessApprovalStatus =
+            businessData.status as BusinessApprovalStatus;
           console.log(
             '📋 Using business registration status:',
             businessData.status
@@ -155,8 +163,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.log('  - Business Approval Status:', businessApprovalStatus);
         console.log('  - Store ID:', userData.storeId);
 
-        // If user has applied for business registration but not approved yet, keep as client
-        if (businessApprovalStatus === 'PENDING') {
+        // Primary check: If user has storeId, they are a seller
+        if (userData.storeId) {
+          console.log(
+            '🏪 User has storeId, setting role to seller (primary check)'
+          );
+          userRole = 'seller';
+        } else if (businessApprovalStatus === 'PENDING') {
           console.log(
             '⏳ User has pending business registration, keeping as client'
           );
@@ -171,26 +184,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
             '❌ User business registration was rejected, keeping as client'
           );
           userRole = 'client';
-        } else if (userRole === 'client' && userData.storeId) {
-          // Fallback: Check if user has a storeId (for backward compatibility)
-          console.log(
-            '🔄 User has storeId in member info, upgrading to seller (fallback)'
-          );
-          userRole = 'seller';
         }
 
         console.log('🎯 Final determined role:', userRole);
         console.log(
-          '🎯 Final business approval status:',
+          '🎯 Final   business approval status:',
           businessApprovalStatus
         );
 
-        // Update user with backend data
         const updatedUser: User = {
-          username: userData.username || user?.username || '',
+          username: userData.username || currentUser?.username || '',
           role: userRole,
-          location: userData.location || user?.location,
-          businessApprovalStatus: businessApprovalStatus,
+          location: userData.location || currentUser?.location,
+          businessApprovalStatus,
+          storeId: userData.storeId || currentUser?.storeId,
         };
 
         console.log('✅ Updated user from backend:', updatedUser);
@@ -199,22 +206,178 @@ export function UserProvider({ children }: { children: ReactNode }) {
           '🔍 Business status check:',
           updatedUser.businessApprovalStatus === 'APPROVED'
         );
+        console.log('🔍 Store ID check:', !!updatedUser.storeId);
         console.log(
           '🔍 Should show seller UI:',
-          updatedUser.role === 'seller' &&
-            updatedUser.businessApprovalStatus === 'APPROVED'
+          updatedUser.role === 'seller' && !!updatedUser.storeId
         );
+
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
       } else {
-        console.log('Failed to get member info from backend');
+        console.log(
+          '🌐 Failed to get member info from backend - preserving existing user data'
+        );
+
+        // Preserve existing user data when network errors occur
+        const currentUser = userRef.current;
+        if (currentUser) {
+          console.log(
+            '🔄 Keeping existing user data due to network error:',
+            currentUser
+          );
+          // Don't update the user state, just keep the existing data
+        } else {
+          console.log('⚠️ No existing user data to preserve');
+        }
       }
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
+    } catch (err: unknown) {
+      console.error('Error refreshing user data:', err);
+
+      // Preserve existing user data during network errors
+      const currentUser = userRef.current;
+      if (currentUser) {
+        console.log(
+          '🌐 Network error during user data refresh - preserving existing user data:',
+          currentUser
+        );
+        // Don't clear user data, just keep existing data
+      } else {
+        console.log(
+          '⚠️ No existing user data to preserve during network error'
+        );
+      }
+
+      if (
+        err instanceof Error &&
+        (err.message.includes('401') || err.message.includes('403'))
+      ) {
+        console.log(
+          'Authentication error detected, but keeping cached user data'
+        );
+      }
     } finally {
       setIsRefreshing(false);
     }
-  }, [isRefreshing]);
+  }, [isRefreshing, checkAuthState]); // ✅ Remove user dependency to prevent infinite loop
+
+  // -------- Load saved user on first mount (client-only) --------
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (didInit.current) return; // guard to ensure "run once"
+    didInit.current = true;
+
+    try {
+      const raw = localStorage.getItem('user');
+      const authToken = localStorage.getItem('authToken');
+      console.log('🔄 Loading saved user on mount:', {
+        hasRaw: !!raw,
+        hasAuthToken: !!authToken,
+      });
+
+      if (raw && authToken) {
+        const savedUser = JSON.parse(raw) as User;
+        console.log('✅ Loaded saved user from localStorage:', savedUser);
+        setUser(savedUser);
+        // Only refresh user data if we have a valid auth token
+        setTimeout(() => {
+          console.log('🔄 Auto-refreshing user data on app load...');
+          // safe to call; guarded by isRefreshing inside
+          void refreshUserData();
+        }, 500);
+      } else if (raw) {
+        const savedUser = JSON.parse(raw) as User;
+        console.log(
+          '✅ Loaded saved user from localStorage (no auth token):',
+          savedUser
+        );
+        setUser(savedUser);
+      } else {
+        console.log('⚠️ No saved user data found in localStorage');
+      }
+    } catch (error) {
+      console.error('❌ Error loading saved user:', error);
+      // ignore JSON parse errors
+    }
+  }, [refreshUserData]); // ✅ Include refreshUserData in dependencies
+
+  // -------- Sync with AuthContext login state --------
+  // Only clear user when tokens are actually removed, not on brief isLoggedIn changes
+  useEffect(() => {
+    console.log(
+      '🔄 UserContext sync with AuthContext - isLoggedIn:',
+      isLoggedIn
+    );
+
+    if (!isLoggedIn) {
+      // Check if tokens are actually gone before clearing user
+      const authToken = localStorage.getItem('authToken');
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      console.log('🔍 Checking tokens when isLoggedIn=false:', {
+        hasAuthToken: !!authToken,
+        hasRefreshToken: !!refreshToken,
+      });
+
+      if (!authToken && !refreshToken) {
+        console.log('🚨 Tokens removed, clearing user data');
+        setUser(null);
+        localStorage.removeItem('user');
+      } else {
+        console.log(
+          '⚠️ isLoggedIn=false but tokens still present, keeping user data'
+        );
+      }
+    } else {
+      console.log('✅ User is logged in, no action needed');
+    }
+  }, [isLoggedIn]);
+
+  // -------- Public actions --------
+  const login = (userData: User) => {
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    setTimeout(() => {
+      console.log('🔄 Auto-refreshing user data after login...');
+      void refreshUserData();
+    }, 100);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+
+  const updateUserRole = (newRole: Role) => {
+    if (user) {
+      const updatedUser = { ...user, role: newRole };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    }
+  };
+
+  // Debug function for console access
+  const debugUserState = () => {
+    console.log('🔍 UserContext Debug State:');
+    console.log('  - Current user state:', user);
+    console.log('  - User ref:', userRef.current);
+    console.log('  - localStorage user:', localStorage.getItem('user'));
+    console.log(
+      '  - localStorage authToken:',
+      !!localStorage.getItem('authToken')
+    );
+    console.log(
+      '  - localStorage refreshToken:',
+      !!localStorage.getItem('refreshToken')
+    );
+    console.log('  - isRefreshing:', isRefreshing);
+    console.log('  - isLoggedIn from auth:', isLoggedIn);
+  };
+
+  // Make debug function available globally
+  if (typeof window !== 'undefined') {
+    (window as { debugUserState?: () => void }).debugUserState = debugUserState;
+  }
 
   return (
     <UserContext.Provider

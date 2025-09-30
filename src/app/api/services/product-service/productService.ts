@@ -23,7 +23,7 @@ export const productService = {
     try {
       await new Promise((res) => setTimeout(res, 300));
       const filtered = mockProducts.filter((p) =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+        p.name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       return { data: filtered };
     } catch (error: unknown) {

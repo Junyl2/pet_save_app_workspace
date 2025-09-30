@@ -54,11 +54,7 @@ export default function SellerBusinessInformationPage() {
 
   // Redirect if user is not approved seller
   useEffect(() => {
-    if (
-      user &&
-      user.role !== 'seller' &&
-      user.businessApprovalStatus !== 'APPROVED'
-    ) {
+    if (user && user.role !== 'seller' && !user.storeId) {
       router.push('/client/seller/pages/my-page/business-information');
     }
   }, [user, router]);

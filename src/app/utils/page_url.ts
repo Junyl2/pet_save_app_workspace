@@ -32,6 +32,7 @@ export const PAGE_URLS = {
   TERMS_CONDITIONS: '/client/pages/my-page/terms-and-conditions', // mypage - terms and conditions page
   REVIEWS: '/client/pages/my-page/reviews', // mypage - reviews page
   NOTIFICATION_SETTINGS: '/client/pages/my-page/notification-settings', // mypage - notification settings page
+  STORE_INFO: '/client/pages/my-page/store-info', // mypage - store information page
 
   STEAMED_PRODUCTS: '/client/pages/my-page/steamed-products',
 
@@ -73,6 +74,7 @@ export const PAGE_URLS = {
   SELLER_MYPAGE: '/client/seller/pages/my-page',
   SELLER_REGISTRATION: '/client/seller/pages/registration',
   BUSINESS_INFORMATION: '/client/seller/pages/my-page/business-information',
+  SELLER_STORE_INFO: '/client/seller/pages/change-profile',
   REGISTER_PRODUCT: '/client/seller/pages/register-product',
   MY_REFFERAL_CODE: '/client/pages/my-page/referral-code',
 };

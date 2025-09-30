@@ -8,6 +8,7 @@ import { PAGE_URLS } from '@/app/utils/page_url';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 import { MemberInfo } from '@/app/api/types/member/member';
 import { useUser } from '@/app/context/userContext';
+import { FileService } from '@/app/api/services/client/fileService/fileService';
 
 const ProfileHeader = () => {
   const router = useRouter();
@@ -15,6 +16,7 @@ const ProfileHeader = () => {
   const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   // Log user context data for debugging
   useEffect(() => {
@@ -81,6 +83,26 @@ const ProfileHeader = () => {
         }
 
         setMemberInfo(response.data?.data || null);
+
+        // Load profile image if available
+        if (response.data?.data?.profileFileId) {
+          try {
+            const imageResponse = await FileService.getFile(
+              response.data.data.profileFileId,
+              {
+                disposition: 'inline',
+                type: 'original',
+              }
+            );
+
+            if (imageResponse.data) {
+              const imageUrl = URL.createObjectURL(imageResponse.data);
+              setProfileImage(imageUrl);
+            }
+          } catch (imageError) {
+            console.error('Error loading profile image:', imageError);
+          }
+        }
       } catch (err) {
         console.error('💥 Error refreshing user data:', err);
         setError('회원 정보를 불러오는 중 오류가 발생했습니다.');
@@ -92,11 +114,8 @@ const ProfileHeader = () => {
     fetchMemberInfo();
   }, []); // Empty dependency array - only run once on mount
 
-  const sources = [
-    'https://i.pravatar.cc/100?img=1', // random avatar
-    'https://i.pravatar.cc/100?img=2',
-  ];
-  const randomSrc = sources[Math.floor(Math.random() * sources.length)];
+  // Default no-profile-picture placeholder
+  const defaultProfileSrc = '/images/icons/profile-default.png';
 
   return (
     <div className={styles.profileHeader}>
@@ -104,7 +123,7 @@ const ProfileHeader = () => {
       <div className={styles.topRow}>
         <div className={styles.profileImage}>
           <Image
-            src={randomSrc}
+            src={profileImage || defaultProfileSrc}
             alt="Profile"
             width={100}
             height={100}

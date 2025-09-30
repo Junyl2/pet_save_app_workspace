@@ -1,0 +1,93 @@
+/* Pagination Styles */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1rem 1.5rem 1rem;
+  width: 100%;
+  background-color: #f2f4f7;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  position: relative;
+  z-index: 10;
+}
+
+.productListPage {
+  background-color: #fff;
+}
+
+.pageButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.pageButton:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.pageButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.activePage {
+  background-color: #66bfa7;
+  border-color: #66bfa7;
+  color: #ffffff;
+}
+
+.activePage:hover {
+  background-color: #51b59a;
+  border-color: #51b59a;
+}
+
+.navButton {
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .pagination {
+    gap: 0.25rem;
+    margin: 1.5rem 0;
+  }
+
+  .pageButton {
+    min-width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .navButton {
+    min-width: 50px;
+    font-size: 12px;
+  }
+}

@@ -6,12 +6,16 @@ import styles from './CartModal.module.css';
 import { FiPlus, FiMinus } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useCart } from '@/app/context/cartContext';
+import { cartService } from '@/app/api/services/client/cartService/cartService';
+import { useUser } from '@/app/context/userContext';
 
 interface CartModalProps {
   open: boolean;
   onClose: () => void;
   productName: string;
   productPrice: number;
+  productId?: string;
+  storeId?: string;
 }
 
 export const CartModal = ({
@@ -19,9 +23,13 @@ export const CartModal = ({
   onClose,
   productName,
   productPrice,
+  productId,
+  storeId,
 }: CartModalProps) => {
   const [quantity, setQuantity] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const { addToCart } = useCart();
+  const { user } = useUser();
 
   const handleIncrease = () => setQuantity((q) => q + 1);
   const handleDecrease = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
@@ -33,25 +41,48 @@ export const CartModal = ({
     onClose();
   };
 
-  const handleAddToCart = () => {
-    // Use the parameter type of addToCart to stay in sync with your app type
-    type AddToCartProduct = Parameters<typeof addToCart>[0];
+  // Check if user is trying to add their own product to cart
+  const isOwnProduct =
+    user?.role === 'seller' && user?.storeId && storeId === user.storeId;
 
-    // Minimal product shape that matches your current Product (no deliveryType)
-    const tempProduct = {
-      id: Date.now(), // temporary id
-      name: productName,
-      price: productPrice,
-    } as AddToCartProduct;
+  const handleAddToCart = async () => {
+    if (!productId) {
+      toast.error('상품 정보가 없습니다');
+      return;
+    }
 
-    addToCart(tempProduct, quantity);
+    setIsLoading(true);
+    try {
+      // Call the real API
+      const response = await cartService.addToCart(productId, quantity);
 
-    toast.success(`${productName} 장바구니에 담겼습니다`, {
-      style: { background: '#66bfa7' },
-      iconTheme: { primary: '#66bfa7', secondary: '#fff' },
-    });
+      if (response.data?.success) {
+        // Also call the local handler for UI updates
+        type AddToCartProduct = Parameters<typeof addToCart>[0];
+        const tempProduct = {
+          id: Date.now(), // temporary id
+          name: productName,
+          price: productPrice,
+        } as AddToCartProduct;
+        addToCart(tempProduct, quantity);
 
-    handleClose();
+        toast.success(`${productName} 장바구니에 담겼습니다`, {
+          style: { background: '#66bfa7' },
+          iconTheme: { primary: '#66bfa7', secondary: '#fff' },
+        });
+
+        handleClose();
+      } else {
+        toast.error(
+          '장바구니 추가 실패: ' + (response.error || '알 수 없는 오류')
+        );
+      }
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      toast.error('네트워크 오류로 장바구니 추가 실패');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -85,8 +116,16 @@ export const CartModal = ({
         </div>
 
         {/* 장바구니 담기 버튼 */}
-        <button className={styles.addBtn} onClick={handleAddToCart}>
-          장바구니 담기
+        <button
+          className={styles.addBtn}
+          onClick={handleAddToCart}
+          disabled={isLoading || !!isOwnProduct}
+        >
+          {isLoading
+            ? '담는 중...'
+            : isOwnProduct
+            ? '본인 상품은 담을 수 없습니다'
+            : '장바구니 담기'}
         </button>
       </div>
     </BaseModal>

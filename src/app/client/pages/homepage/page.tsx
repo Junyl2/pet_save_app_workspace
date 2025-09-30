@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import TopBar from '@/app/components/sections/TopBar/TopBar';
 import CategoryNav from '@/app/components/sections/TopBar/CategoryNav/CategoryNav';
@@ -12,15 +12,18 @@ export default function HomePage() {
   const router = useRouter();
   const { user, refreshUserData } = useUser(); // get user from context
   const [selectedCategory, setSelectedCategory] = useState('강아지');
+  const hasRefreshed = useRef(false);
 
-  const isApprovedSeller =
-    user?.role === 'seller' && user?.businessApprovalStatus === 'APPROVED';
+  const isApprovedSeller = user?.role === 'seller' && !!user?.storeId;
 
   // Refresh user data when component mounts to get latest business status
   useEffect(() => {
+    if (hasRefreshed.current) return; // guard to ensure "run once"
+    hasRefreshed.current = true;
+
     console.log('🔄 HomePage mounted, refreshing user data...');
     refreshUserData();
-  }, []); // Empty dependency array - only run once on mount
+  }, [refreshUserData]); // Include refreshUserData but guard prevents infinite loop
 
   // Debug logging
   console.log('🏠 HomePage - User State:');
@@ -33,16 +36,20 @@ export default function HomePage() {
     <div className={styles.homeContainer}>
       <TopBar />
 
-      <CategoryNav
-        onSelectCategory={setSelectedCategory}
-        categories={['강아지', '고양이', '햄스터', '새', '고슴도치']}
-      />
+      <CategoryNav onSelectCategory={setSelectedCategory} />
 
       <div className={styles.mainContent}>
         <ProductGrid
           category={selectedCategory}
           searchTerm=""
-          onProductClick={(product) => router.push(`/products/${product.id}`)}
+          onProductClick={(product) => {
+            const productId = product.productId || product.id;
+            if (productId) {
+              router.push(`/client/pages/products/${productId}`);
+            } else {
+              console.error('Product missing ID:', product);
+            }
+          }}
           onAddToCart={() => {}}
         />
       </div>
