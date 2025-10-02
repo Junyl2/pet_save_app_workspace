@@ -6,68 +6,32 @@ import { FaChevronDown, FaTimes } from 'react-icons/fa';
 import styles from './styles.module.css';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
+import { SellerProductListService } from '@/app/api/services/client/productService/sellerProductListService';
+import { ProductService } from '@/app/api/services/client/productService/productService';
+import {
+  StoreProduct,
+  RegistrationStatus,
+  PageInfo,
+} from '@/app/api/types/products/productList';
+import { Pagination } from '@/app/components/ui/Pagination/Pagination';
+import { MemberService } from '@/app/api/services/client/memberService/memberService';
 
 type ProductStatus = '판매중' | '판매완료';
 
-interface SellerProductItem {
-  id: string;
-  name: string;
-  imageSrc: string;
-  originalPrice: number;
-  salePrice: number;
-  status: ProductStatus;
-}
+// Helper function to convert API registration status to display status
+const getDisplayStatus = (
+  registrationStatus: RegistrationStatus
+): ProductStatus => {
+  return registrationStatus === 'ONSALE' ? '판매중' : '판매완료';
+};
 
-const allProducts: SellerProductItem[] = [
-  {
-    id: 'p1',
-    name: '상품탐사 6free 강아지 사료 치킨 레시피, 6kg, 1개',
-    imageSrc: '/images/products/dogfood.png',
-    originalPrice: 30000,
-    salePrice: 24000,
-    status: '판매중',
-  },
-  {
-    id: 'p2',
-    name: '상품탐사 6free 고양이 사료 연어 레시피, 2kg, 1개',
-    imageSrc: '/images/products/dog-snack.png',
-    originalPrice: 25000,
-    salePrice: 20000,
-    status: '판매중',
-  },
-  {
-    id: 'p3',
-    name: '펫사랑 유기농 강아지 간식, 200g, 1개',
-    imageSrc: '/images/products/dog-snack2.png',
-    originalPrice: 15000,
-    salePrice: 12000,
-    status: '판매중',
-  },
-  {
-    id: 'p4',
-    name: '올바른 선택 고양이 모래, 5kg, 1개',
-    imageSrc: '/images/products/dog-snack2.png',
-    originalPrice: 10000,
-    salePrice: 8000,
-    status: '판매중',
-  },
-  {
-    id: 'p5',
-    name: '상품탐사 6free 강아지 사료 소고기 레시피, 6kg, 1개',
-    imageSrc: '/images/products/dog-snack.png',
-    originalPrice: 30000,
-    salePrice: 24000,
-    status: '판매중',
-  },
-  {
-    id: 'p6',
-    name: '판매 완료 샘플 상품',
-    imageSrc: '/images/products/dog-snack2.png',
-    originalPrice: 12000,
-    salePrice: 9000,
-    status: '판매완료',
-  },
-];
+// Helper function to get default image if none provided
+const getDefaultImage = (images?: string[]): string => {
+  const imageUrl =
+    images && images.length > 0 ? images[0] : '/images/products/dogfood.png';
+  console.log('[SellerProductListPage] Images:', images, 'Selected:', imageUrl);
+  return imageUrl;
+};
 
 function formatPrice(value: number) {
   return value.toLocaleString('ko-KR');
@@ -79,13 +43,99 @@ export default function SellerProductListPage() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState<string | null>(
     null
   );
-  const [products, setProducts] = useState(allProducts);
+  const [products, setProducts] = useState<StoreProduct[]>([]);
   const [deleteModalOpen, setDeleteModalOpen] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
 
-  const filteredProducts = useMemo(
-    () => products.filter((p) => p.status === filter),
-    [products, filter]
-  );
+  const filteredProducts = useMemo(() => {
+    const filtered = products.filter(
+      (p) => getDisplayStatus(p.registrationStatus) === filter
+    );
+    console.log('[SellerProductListPage] Filtered products:', filtered);
+    console.log('[SellerProductListPage] Current filter:', filter);
+    return filtered;
+  }, [products, filter]);
+
+  // Fetch products for the current seller's store
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // First, get member information to get storeId
+        const memberResponse = await MemberService.getMyInfo();
+        if (memberResponse.error || !memberResponse.data) {
+          throw new Error('회원 정보를 가져올 수 없습니다.');
+        }
+
+        const memberData = memberResponse.data.data;
+        console.log('[SellerProductListPage] Member data:', memberData);
+        console.log(
+          '[SellerProductListPage] StoreId:',
+          memberData.storeId,
+          'type:',
+          typeof memberData.storeId
+        );
+
+        if (!memberData.storeId) {
+          throw new Error(
+            '스토어 정보를 찾을 수 없습니다. 판매자 계정인지 확인해주세요.'
+          );
+        }
+
+        // Then fetch products for this store
+        const productsResponse =
+          await SellerProductListService.getProductsByStoreId({
+            storeId: memberData.storeId,
+            page: currentPage,
+            size: 10,
+            sortBy: 'createdAt',
+            direction: 'desc',
+          });
+
+        if (productsResponse.error || !productsResponse.data) {
+          throw new Error('상품 목록을 가져올 수 없습니다.');
+        }
+
+        const productsData = productsResponse.data.data;
+        console.log(
+          '[SellerProductListPage] Products response data:',
+          productsData
+        );
+        console.log(
+          '[SellerProductListPage] Products content:',
+          productsData.content
+        );
+        console.log(
+          '[SellerProductListPage] Number of products:',
+          productsData.content?.length || 0
+        );
+
+        setProducts(productsData.content);
+        setPageInfo(productsData.pageInfo);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : '데이터를 불러오는 중 오류가 발생했습니다.'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [currentPage]);
+
+  const handlePageChange = (page: number) => {
+    console.log('[SellerProductListPage] Page change requested:', page);
+    setCurrentPage(page);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -105,10 +155,65 @@ export default function SellerProductListPage() {
     };
   }, [statusDropdownOpen]);
 
-  const handleDelete = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    setDeleteModalOpen(null);
+  const handleDelete = async (productId: string) => {
+    try {
+      console.log('[SellerProductListPage] Deleting product:', productId);
+
+      const response = await ProductService.deleteProduct(productId);
+
+      if (response.error) {
+        console.error(
+          '[SellerProductListPage] Failed to delete product:',
+          response.error
+        );
+
+        // Check if it's a 500 error and provide more specific message
+        if (response.error.includes('500')) {
+          setError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        } else {
+          setError('상품 삭제에 실패했습니다. 다시 시도해주세요.');
+        }
+        return;
+      }
+
+      console.log('[SellerProductListPage] Product deleted successfully');
+
+      // Remove the product from the local state
+      setProducts((prev) => prev.filter((p) => p.productId !== productId));
+      setDeleteModalOpen(null);
+    } catch (err) {
+      console.error('[SellerProductListPage] Error deleting product:', err);
+      setError('상품 삭제 중 오류가 발생했습니다.');
+    }
   };
+
+  if (loading) {
+    return (
+      <>
+        <ProductHeader />
+        <div className={styles.pageWrap}>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            상품 목록을 불러오는 중...
+          </div>
+        </div>
+        <BottomBar />
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <ProductHeader />
+        <div className={styles.pageWrap}>
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'red' }}>
+            {error}
+          </div>
+        </div>
+        <BottomBar />
+      </>
+    );
+  }
 
   return (
     <>
@@ -117,7 +222,7 @@ export default function SellerProductListPage() {
       <div className={styles.pageWrap}>
         <div className={styles.summaryRow}>
           <span className={styles.lengthLabel}>
-            총 상품수 {filteredProducts.length}개
+            총 상품수 {pageInfo?.totalElements || filteredProducts.length}개
           </span>
           <div className={styles.filterControl}>
             <button
@@ -157,108 +262,144 @@ export default function SellerProductListPage() {
         </div>
 
         <main className={styles.listWrap}>
-          {filteredProducts.map((p) => (
-            <article key={p.id} className={styles.card}>
-              <div className={styles.thumbWrap}>
-                <Image
-                  src={p.imageSrc}
-                  alt={p.name}
-                  width={90}
-                  height={90}
-                  className={styles.thumb}
-                />
-              </div>
-              <div className={styles.cardContent}>
-                <h3 className={styles.title}>{p.name}</h3>
-                <div className={styles.priceRow}>
-                  <span className={styles.originalPrice}>
-                    {formatPrice(p.originalPrice)}원
-                  </span>
-                  <span className={styles.salePrice}>
-                    {formatPrice(p.salePrice)}원
-                  </span>
-                </div>
-                <div
-                  className={styles.statusPillContainer}
-                  data-dropdown-container
-                >
-                  <button
-                    className={styles.statusPill}
-                    onClick={() => {
-                      setStatusDropdownOpen(
-                        statusDropdownOpen === p.id ? null : p.id
-                      );
-                    }}
-                  >
-                    <span
-                      className={
-                        p.status === '판매완료' ? styles.dimText : undefined
-                      }
-                    >
-                      {p.status}
-                    </span>
-                    <FaChevronDown className={styles.downIcon} />
-                  </button>
-
-                  {statusDropdownOpen === p.id && (
-                    <div className={styles.statusDropdown}>
-                      <button
-                        className={styles.statusDropdownItem}
-                        onClick={() => {
-                          console.log('Change status to 판매중 for:', p.id);
-                          setStatusDropdownOpen(null);
-                        }}
-                      >
-                        판매중
-                      </button>
-                      <button
-                        className={styles.statusDropdownItem}
-                        onClick={() => {
-                          console.log('Change status to 판매완료 for:', p.id);
-                          setStatusDropdownOpen(null);
-                        }}
-                      >
-                        <span className={styles.dimText}>판매완료</span>
-                      </button>
+          {filteredProducts.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              등록된 상품이 없습니다.
+            </div>
+          ) : (
+            filteredProducts.map((p) => {
+              const displayStatus = getDisplayStatus(p.registrationStatus);
+              console.log('[SellerProductListPage] Rendering product:', p);
+              return (
+                <article key={p.productId} className={styles.card}>
+                  <div className={styles.thumbWrap}>
+                    <Image
+                      src={getDefaultImage(p.images)}
+                      alt={p.productName}
+                      width={90}
+                      height={90}
+                      className={styles.thumb}
+                    />
+                  </div>
+                  <div className={styles.cardContent}>
+                    <h3 className={styles.title}>{p.productName}</h3>
+                    <div className={styles.priceRow}>
+                      <span className={styles.originalPrice}>
+                        {formatPrice(p.salePrice)}원
+                      </span>
+                      {p.discountedPrice &&
+                        p.discountedPrice !== p.salePrice && (
+                          <span className={styles.salePrice}>
+                            {formatPrice(p.discountedPrice)}원
+                          </span>
+                        )}
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* X Delete Button */}
-              <button
-                className={styles.deleteBtn}
-                onClick={() => setDeleteModalOpen(p.id)}
-                aria-label="Delete product"
-              >
-                <FaTimes size={14} />
-              </button>
-
-              {/* Delete Modal */}
-              {deleteModalOpen === p.id && (
-                <div className={styles.modalBackdrop}>
-                  <div className={styles.modal}>
-                    <p>정말 이 상품을 삭제하시겠습니까?</p>
-                    <div className={styles.modalActions}>
+                    <div
+                      className={styles.statusPillContainer}
+                      data-dropdown-container
+                    >
                       <button
-                        onClick={() => handleDelete(p.id)}
-                        className={styles.confirmBtn}
+                        className={styles.statusPill}
+                        onClick={() => {
+                          setStatusDropdownOpen(
+                            statusDropdownOpen === p.productId
+                              ? null
+                              : p.productId
+                          );
+                        }}
                       >
-                        삭제
+                        <span
+                          className={
+                            displayStatus === '판매완료'
+                              ? styles.dimText
+                              : undefined
+                          }
+                        >
+                          {displayStatus}
+                        </span>
+                        <FaChevronDown className={styles.downIcon} />
                       </button>
-                      <button
-                        onClick={() => setDeleteModalOpen(null)}
-                        className={styles.cancelBtn}
-                      >
-                        취소
-                      </button>
+
+                      {statusDropdownOpen === p.productId && (
+                        <div className={styles.statusDropdown}>
+                          <button
+                            className={styles.statusDropdownItem}
+                            onClick={() => {
+                              console.log(
+                                'Change status to 판매중 for:',
+                                p.productId
+                              );
+                              setStatusDropdownOpen(null);
+                            }}
+                          >
+                            판매중
+                          </button>
+                          <button
+                            className={styles.statusDropdownItem}
+                            onClick={() => {
+                              console.log(
+                                'Change status to 판매완료 for:',
+                                p.productId
+                              );
+                              setStatusDropdownOpen(null);
+                            }}
+                          >
+                            <span className={styles.dimText}>판매완료</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              )}
-            </article>
-          ))}
+
+                  {/* X Delete Button */}
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={() => setDeleteModalOpen(p.productId)}
+                    aria-label="Delete product"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+
+                  {/* Delete Modal */}
+                  {deleteModalOpen === p.productId && (
+                    <div className={styles.modalBackdrop}>
+                      <div className={styles.modal}>
+                        <p>정말 이 상품을 삭제하시겠습니까?</p>
+                        <div className={styles.modalActions}>
+                          <button
+                            onClick={() => handleDelete(p.productId)}
+                            className={styles.confirmBtn}
+                          >
+                            삭제
+                          </button>
+                          <button
+                            onClick={() => setDeleteModalOpen(null)}
+                            className={styles.cancelBtn}
+                          >
+                            취소
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              );
+            })
+          )}
         </main>
+
+        {/* Pagination */}
+        {pageInfo && pageInfo.totalElements > 10 && (
+          <div
+            style={{
+              marginTop: '2rem',
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
+            <Pagination pageInfo={pageInfo} onPageChange={handlePageChange} />
+          </div>
+        )}
       </div>
 
       <BottomBar />

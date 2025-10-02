@@ -5,9 +5,12 @@ import { FaChevronLeft } from 'react-icons/fa';
 
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import PasswordResetScreen from './PasswordResetScreen';
+import { AuthService } from '@/app/api/services/client/auth/authService';
 import styles from './FindPassword.module.css';
-export default function FindPassword() {
+
+export default function FindPasswordEmail() {
   const router = useRouter();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [userId, setUserId] = useState('');
@@ -15,20 +18,28 @@ export default function FindPassword() {
   const [confirmedEmail, setConfirmedEmail] = useState('');
   const [confirmedUserId, setConfirmedUserId] = useState('');
   const [authCode, setAuthCode] = useState('');
+
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
     userId?: string;
   }>({});
+
   const [showAuthCode, setShowAuthCode] = useState(false);
   const [timeLeft, setTimeLeft] = useState(179);
   const [isVerified, setIsVerified] = useState(false);
-  const [serverCode, setServerCode] = useState<string | null>(null);
+
   const [showModal, setShowModal] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
   /** Validation */
-  const validate = () => {
+  const validate = (): boolean => {
     const newErrors: { name?: string; email?: string; userId?: string } = {};
     if (!name) newErrors.name = '이름을 입력해 주세요.';
     if (!userId) newErrors.userId = '아이디를 입력해 주세요.';
@@ -44,36 +55,94 @@ export default function FindPassword() {
   /** Send 인증번호 */
   const handleSendCode = async () => {
     if (!validate()) return;
+
+    setIsLoading(true);
+    setSuccessMessage('');
+    setErrorMessage('');
+
     try {
-      const generatedCode = Math.floor(
-        100000 + Math.random() * 900000
-      ).toString();
-      alert(`Hi ${name}! check console log for the dummy code`);
-      console.log('API → 인증번호 전송:', generatedCode, 'to:', email);
-      setServerCode(generatedCode);
+      const response = await AuthService.sendPasswordRecoveryEmailVerification(
+        name,
+        userId,
+        email
+      );
+
+      if (response.error) {
+        console.error('인증번호 전송 실패:', response.error);
+        let userErrorMessage = '인증번호 전송에 실패했습니다.';
+
+        if (
+          response.error.includes('아직 만료되지 않은 인증 코드가 존재합니다')
+        ) {
+          userErrorMessage =
+            '아직 만료되지 않은 인증 코드가 존재합니다. 잠시 후 다시 시도해주세요.';
+        } else if (
+          response.error.includes(
+            '입력하신 정보와 일치하는 회원을 찾을 수 없습니다'
+          )
+        ) {
+          userErrorMessage =
+            '입력하신 정보와 일치하는 회원을 찾을 수 없습니다.';
+        } else if (response.error.includes('400')) {
+          const match = response.error.match(/400: (.+)/);
+          if (match) userErrorMessage = match[1];
+        } else if (response.error.includes('404')) {
+          const match = response.error.match(/404: (.+)/);
+          if (match) userErrorMessage = match[1];
+        } else if (
+          response.error.includes('identifier') &&
+          response.error.includes('must not be blank')
+        ) {
+          userErrorMessage = '아이디를 입력해 주세요.';
+        }
+
+        setErrorMessage(userErrorMessage);
+        return;
+      }
+
       setShowAuthCode(true);
       setTimeLeft(179);
       setIsVerified(false);
+      setSuccessMessage('인증번호가 이메일로 전송되었습니다.');
     } catch (err) {
       console.error('인증번호 전송 실패', err);
+      setErrorMessage('인증번호 전송 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   /** Verify 인증번호 */
   const handleVerifyCode = async () => {
-    if (authCode === serverCode) {
+    if (!authCode) return;
+    setIsVerifying(true);
+
+    try {
+      console.log('API → 인증번호 검증 요청:', { email, code: authCode });
+      const response = await AuthService.verifyEmailCode(email, authCode);
+
+      if (response.error) {
+        console.error('인증번호 검증 실패:', response.error);
+        setIsVerified(false);
+        return;
+      }
+
       console.log('API → 인증 성공');
       setIsVerified(true);
-    } else {
-      console.log('API → 인증 실패');
+    } catch (err) {
+      console.error('인증번호 검증 실패', err);
       setIsVerified(false);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
   /** Countdown Timer */
   useEffect(() => {
     if (!showAuthCode || timeLeft <= 0) return;
-    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
     return () => clearInterval(timer);
   }, [showAuthCode, timeLeft]);
 
@@ -87,19 +156,64 @@ export default function FindPassword() {
 
   /** Submit Main Form */
   const isFormValid =
-    name && userId && email && Object.keys(errors).length === 0 && isVerified;
+    !!name &&
+    !!userId &&
+    !!email &&
+    Object.keys(errors).length === 0 &&
+    isVerified;
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
+
     try {
-      console.log('API → 최종 아이디 확인 요청:', { name, email });
+      console.log('API → 최종 비밀번호 재설정 토큰 요청:', {
+        name,
+        userId,
+        email,
+      });
+
+      const response = await AuthService.getPasswordRecoveryTokenByEmail(
+        name,
+        userId,
+        email
+      );
+
+      if (response.error) {
+        console.error('비밀번호 재설정 토큰 요청 실패:', response.error);
+        let userErrorMessage = '비밀번호 재설정에 실패했습니다.';
+        if (response.error.includes('400')) {
+          const match = response.error.match(/400: (.+)/);
+          if (match) userErrorMessage = match[1];
+        }
+        setErrorMessage(userErrorMessage);
+        return;
+      }
+
+      console.log('비밀번호 재설정 토큰 요청 성공:', response.data);
+
+      // Safely read and store resetToken if it exists and is a string
+      const token = (
+        response as {
+          data: { data?: { resetToken?: unknown } } | null;
+        }
+      )?.data?.data?.resetToken;
+
+      if (typeof token === 'string' && token.length > 0) {
+        try {
+          localStorage.setItem('resetToken', token);
+        } catch {
+          // ignore storage errors (SSR / privacy mode)
+        }
+      }
+
       setShowModal(true);
     } catch (err) {
-      console.error('아이디 확인 실패', err);
+      console.error('비밀번호 재설정 실패', err);
+      setErrorMessage('비밀번호 재설정 중 오류가 발생했습니다.');
     }
   };
 
-  /** Confirm → show AuthenticationComplete */
+  /** Confirm → show PasswordResetScreen */
   const handleConfirm = () => {
     setShowModal(false);
     setShowComplete(true);
@@ -108,7 +222,7 @@ export default function FindPassword() {
     setConfirmedEmail(email);
   };
 
-  //  if authentication is complete, render that component instead
+  //  인증 완료 화면
   if (showComplete) {
     return (
       <PasswordResetScreen
@@ -180,12 +294,14 @@ export default function FindPassword() {
             type="button"
             onClick={handleSendCode}
             className={styles.inlineButton}
-            disabled={!email || !!errors.email}
+            disabled={!email || !!errors.email || isLoading}
           >
-            인증번호 전송
+            {isLoading ? '전송 중...' : '인증번호 전송'}
           </button>
         </div>
         {errors.email && <p className={styles.error}>{errors.email}</p>}
+        {successMessage && <p className={styles.success}>{successMessage}</p>}
+        {errorMessage && <p className={styles.error}>{errorMessage}</p>}
       </div>
 
       {/* Authentication Code Section */}
@@ -207,15 +323,15 @@ export default function FindPassword() {
                 type="button"
                 className={styles.inlineButton}
                 onClick={handleVerifyCode}
-                disabled={!authCode}
+                disabled={!authCode || isVerifying}
               >
-                인증 확인
+                {isVerifying ? '검증 중...' : '인증 확인'}
               </button>
             </div>
           </div>
 
           {!isVerified && (
-            <p className={styles.error}>휴대전화 인증를 완료해주세요.</p>
+            <p className={styles.error}>이메일 인증을 완료해주세요.</p>
           )}
           {isVerified && (
             <p className={styles.success}>인증이 완료되었습니다.</p>
@@ -239,7 +355,7 @@ export default function FindPassword() {
         onClose={() => setShowModal(false)}
         title="인증 완료"
       >
-        <p className={styles.successMessage}>휴대폰 인증이 완료 되었습니다.</p>
+        <p className={styles.successMessage}>이메일 인증이 완료 되었습니다.</p>
         <button className={styles.modalButton} onClick={handleConfirm}>
           확인
         </button>

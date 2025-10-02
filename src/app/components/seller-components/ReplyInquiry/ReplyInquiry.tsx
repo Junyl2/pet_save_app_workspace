@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import styles from './ReplyInquiry.module.css';
-import { mockContactInquiries } from '../../data/mockContact';
-import { ContactInquiry } from '@/app/api/types/contact/contact';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import { useUser } from '@/app/context/userContext';
+import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
+import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
 
 // Helper function to format date from YYYY-MM-DD to YY.MM.DD
 const formatDate = (dateString: string): string => {
@@ -18,38 +18,105 @@ const formatDate = (dateString: string): string => {
   return `${year}.${month}.${day}`;
 };
 
+// Helper function to transform API response to UI format
+const transformStoreInquiryToUI = (storeInquiry: any) => {
+  return {
+    id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0,
+    inquiryId: storeInquiry.inquiryId,
+    date: storeInquiry.createdAt,
+    shopName: storeInquiry.inquirer?.name || 'Unknown',
+    shopLocation: storeInquiry.store?.address || 'Unknown address',
+    shopImage:
+      storeInquiry.product?.productThumbnail || '/images/products/dogfood.png',
+    category: storeInquiry.category,
+    message: storeInquiry.content,
+    responseMessage: storeInquiry.answer || '',
+    status: storeInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
+    answering: false,
+  };
+};
+
+// Map API categories to UI categories
+const mapApiCategoryToUI = (apiCategory: string): string => {
+  switch (apiCategory) {
+    case 'PRODUCT':
+      return '상품 문의';
+    case 'DELIVERY':
+      return '배송 문의';
+    case 'EXCHANGE_RETURN':
+      return '교환/ 환불 문의';
+    case 'PAYMENT':
+    case 'OTHER':
+    default:
+      return '기타 문의';
+  }
+};
+
 export default function ReplyInquiry() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useUser();
-  const [inquiry, setInquiry] = useState<ContactInquiry | null>(null);
+  const [inquiry, setInquiry] = useState<any>(null);
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Check if user is seller
+  // Check if user is approved seller
   useEffect(() => {
-    if (user?.role !== 'seller') {
+    if (user?.role !== 'seller' || !user?.storeId) {
       router.push('/client/pages/homepage');
       return;
     }
   }, [user, router]);
 
-  // Get inquiry data from URL params
+  // Get inquiry data from API using inquiryId from URL params
   useEffect(() => {
-    const inquiryId = searchParams.get('id');
-    if (inquiryId) {
-      const foundInquiry = mockContactInquiries.find(
-        (inq) => inq.id === parseInt(inquiryId)
-      );
-      if (foundInquiry) {
-        setInquiry(foundInquiry);
-      } else {
+    const fetchInquiry = async () => {
+      const inquiryId = searchParams.get('id');
+      if (!inquiryId) {
         router.push('/client/seller/pages/seller-inquiry-details');
+        return;
       }
-    } else {
-      router.push('/client/seller/pages/seller-inquiry-details');
-    }
-  }, [searchParams, router]);
+
+      if (!user?.role || user.role !== 'seller') return;
+
+      setLoading(true);
+      try {
+        // Fetch all store inquiries and find the one with matching inquiryId
+        const response = await MemberStoreService.getMyStoreInquiries({
+          sortBy: 'createdAt',
+          direction: 'desc',
+          size: 100, // Get more items to find the specific inquiry
+        });
+
+        if (response.error || !response.data) {
+          console.error('Failed to fetch store inquiries:', response.error);
+          router.push('/client/seller/pages/seller-inquiry-details');
+          return;
+        }
+
+        // Find inquiry with matching inquiryId
+        const matchingInquiry = response.data.data.content.find(
+          (inq) => inq.inquiryId === inquiryId
+        );
+
+        if (matchingInquiry) {
+          const transformedInquiry = transformStoreInquiryToUI(matchingInquiry);
+          setInquiry(transformedInquiry);
+        } else {
+          console.error('Inquiry not found for inquiryId:', inquiryId);
+          router.push('/client/seller/pages/seller-inquiry-details');
+        }
+      } catch (error) {
+        console.error('Error fetching inquiry:', error);
+        router.push('/client/seller/pages/seller-inquiry-details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInquiry();
+  }, [searchParams, router, user]);
 
   const handleSubmit = async () => {
     if (!replyText.trim()) {
@@ -91,10 +158,18 @@ export default function ReplyInquiry() {
     return null; // Will redirect in useEffect
   }
 
-  if (!inquiry) {
+  if (loading) {
     return (
       <div className={styles.loading}>
         <div>문의 정보를 불러오는 중...</div>
+      </div>
+    );
+  }
+
+  if (!inquiry) {
+    return (
+      <div className={styles.loading}>
+        <div>문의를 찾을 수 없습니다.</div>
       </div>
     );
   }
@@ -109,17 +184,17 @@ export default function ReplyInquiry() {
             <div className={styles.userInfo}>
               <div className={styles.userProfile}>
                 <Image
-                  src="/images/logo/pet-saves.png"
-                  alt="펫세이브"
+                  src={inquiry.shopImage || '/images/logo/pet-saves.png'}
+                  alt={inquiry.shopName || '사용자'}
                   width={30}
                   height={30}
                   className={styles.profileImage}
                 />
-                <span className={styles.userName}>펫세이브</span>
+                <span className={styles.userName}>{inquiry.shopName}</span>
               </div>
               <div className={styles.inquiryMeta}>
-                {inquiry.category} | [{inquiry.shopName}] |{' '}
-                {formatDate(inquiry.date)}
+                {mapApiCategoryToUI(inquiry.category)} | [{inquiry.shopLocation}
+                ] | {formatDate(inquiry.date)}
               </div>
             </div>
           </div>

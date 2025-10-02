@@ -181,6 +181,15 @@
   animation: fadeSlideDown 0.15s ease-out;
   height: 100vh;
 }
+
+@media (max-width: 1024px) {
+  .historyDropdown {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    right: 0;
+  }
+}
 .shopHistoryDropdown {
   position: absolute;
   top: 110%;

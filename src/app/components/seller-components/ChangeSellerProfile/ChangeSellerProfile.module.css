@@ -84,7 +84,12 @@
   transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
-.input:focus {
+.addressInput {
+  width: 88%;
+}
+
+.input:focus,
+.addressInput:focus {
   outline: none;
   border-color: #66bfa7;
 }

@@ -6,9 +6,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 interface ProductActionsProps {
-  productId: number; // add id
+  productId: string | number; // support both string and number
   productName: string;
   productPrice: number | string; // support both string/number
+  storeId?: string; // Add storeId for seller validation
   onAddToCart: (quantity: number, productName: string) => void;
   onPurchase: (quantity: number, productName: string) => void;
 }
@@ -17,6 +18,7 @@ export const ProductActions = ({
   productId,
   productName,
   productPrice,
+  storeId,
   onAddToCart,
 }: /*   onPurchase, */
 ProductActionsProps) => {
@@ -25,13 +27,18 @@ ProductActionsProps) => {
   const [quantity, setQuantity] = useState(1);
   /*   const [onMessageProduct, setOnMessageProduct] = useState(false); */
   const [activeProduct, setActiveProduct] = useState<{
-    id: number;
+    id: string | number;
     name: string;
     price: number | string;
+    storeId?: string;
   } | null>(null);
 
-  const openDrawer = (id: number, name: string, price: number | string) => {
-    setActiveProduct({ id, name, price });
+  const openDrawer = (
+    id: string | number,
+    name: string,
+    price: number | string
+  ) => {
+    setActiveProduct({ id, name, price, storeId });
     setQuantity(1);
     setShowDrawer(true);
   };
@@ -46,7 +53,7 @@ ProductActionsProps) => {
       <div className={styles.actions}>
         <button
           className={styles.messageButton}
-          onClick={() => route.push('/contact-product')}
+          onClick={() => route.push(`/contact-product?productId=${productId}`)}
         >
           <Image
             src="/images/icons/bottom-bar/message.svg"

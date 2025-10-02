@@ -1,4 +1,3 @@
-// /client/seller/pages/change-profile/page.tsx
 'use client';
 
 import React, { useEffect, useId, useMemo, useState } from 'react';
@@ -8,6 +7,7 @@ import styles from './ChangeSellerProfile.module.css';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import { sellerService } from '@/app/api/services/seller/serller-details/sellerService';
 import { shopService } from '@/app/api/services/shops/shopService';
+import { StoreService } from '@/app/api/services/client/storeService/storeService';
 
 type SellerProfile = {
   businessName: string;
@@ -22,6 +22,31 @@ type Props = {
   initial?: Partial<SellerProfile>;
   onSubmit?: (data: SellerProfile) => void;
   onBack?: () => void;
+};
+
+type StoreSummary = {
+  businessName?: string;
+  businessPhoneNumber?: string;
+  openingHours?: string;
+  closingHours?: string;
+  roadAddress?: string;
+  detailedAddress?: string;
+  businessProfileImage?: string;
+};
+
+type LegacySeller = {
+  name?: string;
+  phoneNumber?: string;
+  location?: string;
+  products?: Array<{ shopImage?: string }>;
+};
+
+type ApiEnvelope<T> = {
+  success?: boolean;
+  status?: number;
+  resultMsg?: string;
+  divisionCode?: string | null;
+  data?: T;
 };
 
 const timeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
@@ -53,18 +78,24 @@ Props) {
   const router = useRouter();
   const params = useSearchParams();
 
-  // 1) identify which shop/owner we’re editing
-  const routeShopId = Number(params?.get('shopId') || NaN);
+  // 1) identify which shop/owner we're editing
+  const routeStoreId = params?.get('storeId') || null;
+  const routeShopId = params?.get('shopId') || null; // Keep for backward compatibility
   const storedSellerId = useMemo(() => {
     if (typeof window === 'undefined') return null;
-    const v = Number(window.localStorage.getItem('sellerId'));
-    return Number.isFinite(v) ? v : null;
+    const v = window.localStorage.getItem('sellerId');
+    return v || null;
   }, []);
 
-  // prefer route ?shopId=...; fallback to local sellerId
-  const shopId = Number.isFinite(routeShopId)
-    ? routeShopId
-    : storedSellerId ?? null;
+  // prefer route ?storeId=... or ?shopId=...; fallback to local sellerId
+  const storeId = routeStoreId || routeShopId || storedSellerId;
+
+  console.log('ChangeSellerProfile - Store ID resolution:', {
+    routeStoreId,
+    routeShopId,
+    storedSellerId,
+    finalStoreId: storeId,
+  });
 
   const [loading, setLoading] = useState(true);
 
@@ -83,45 +114,107 @@ Props) {
   useEffect(() => {
     (async () => {
       try {
-        if (!Number.isFinite(Number(shopId))) {
+        if (!storeId) {
           setLoading(false);
           return;
         }
 
-        const seller = await sellerService.getSellerDetailsByShopId(
-          Number(shopId)
-        );
+        // Try to get store data from the new API first
+        let storeData: StoreSummary | null = null;
+        try {
+          if (storeId !== null) {
+            const storeResponse = (await StoreService.getStoreSummary(
+              storeId.toString()
+            )) as unknown as { data?: ApiEnvelope<StoreSummary> };
+
+            if (storeResponse?.data?.data) {
+              storeData = storeResponse.data.data;
+              console.log('Store data loaded:', storeData);
+              console.log('Business name from API:', storeData.businessName);
+              console.log('Phone from API:', storeData.businessPhoneNumber);
+              console.log('Opening hours from API:', storeData.openingHours);
+              console.log('Closing hours from API:', storeData.closingHours);
+              console.log(
+                'Address from API:',
+                storeData.roadAddress,
+                storeData.detailedAddress
+              );
+            }
+          }
+        } catch {
+          console.log(
+            'Store API not available, falling back to seller service'
+          );
+        }
+
+        // Fallback to existing seller service if store API fails
+        let sellerData: LegacySeller | null = null;
+        if (!storeData) {
+          try {
+            // Try to convert to number for the legacy seller service
+            const numericStoreId = Number(storeId);
+            if (Number.isFinite(numericStoreId)) {
+              const legacyRes = (await sellerService.getSellerDetailsByShopId(
+                numericStoreId
+              )) as unknown as LegacySeller | null;
+              sellerData = legacyRes ?? null;
+            }
+          } catch {
+            console.log('Seller service also failed, using defaults');
+          }
+        }
 
         // load overrides from localStorage if any
-        const lsKey = `seller:profile:${shopId}`;
+        const lsKey = `seller:profile:${storeId}`;
         const saved =
           typeof window !== 'undefined'
             ? window.localStorage.getItem(lsKey)
             : null;
 
         const override: Partial<SellerProfile> = saved ? JSON.parse(saved) : {};
+        console.log('LocalStorage override data:', override);
 
+        // Map data from store API or fallback to seller service
+        // Priority: API data first, then localStorage overrides, then fallbacks
         const mapped: SellerProfile = {
-          businessName: override.businessName ?? seller.name ?? '업체명',
-          phone: override.phone ?? seller.phoneNumber ?? '',
-          openTime: override.openTime ?? '09:00',
-          closeTime: override.closeTime ?? '18:00',
-          address: override.address ?? seller.location ?? '',
+          businessName:
+            storeData?.businessName ||
+            sellerData?.name ||
+            override.businessName ||
+            '업체명',
+          phone:
+            storeData?.businessPhoneNumber ||
+            sellerData?.phoneNumber ||
+            override.phone ||
+            '',
+          openTime: storeData?.openingHours || override.openTime || '09:00',
+          closeTime: storeData?.closingHours || override.closeTime || '18:00',
+          address:
+            storeData?.roadAddress && storeData?.detailedAddress
+              ? `${storeData.roadAddress} ${storeData.detailedAddress}`
+              : storeData?.roadAddress ||
+                storeData?.detailedAddress ||
+                sellerData?.location ||
+                override.address ||
+                '',
           avatarUrl:
+            storeData?.businessProfileImage ??
+            sellerData?.products?.[0]?.shopImage ??
             override.avatarUrl ??
-            seller.products?.[0]?.shopImage ??
             form.avatarUrl,
         };
 
+        console.log('Mapped form data:', mapped);
         setForm(mapped);
-      } catch {
+      } catch (error) {
+        console.error('Error loading seller profile data:', error);
         // fall back to defaults silently
       } finally {
         setLoading(false);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId]);
+  }, [storeId]);
 
   const handleChange =
     (key: keyof SellerProfile) =>
@@ -142,21 +235,24 @@ Props) {
     e.preventDefault();
 
     // persist for THIS owner/shop
-    if (Number.isFinite(Number(shopId))) {
-      const lsKey = `seller:profile:${shopId}`;
+    if (storeId) {
+      const lsKey = `seller:profile:${storeId}`;
       localStorage.setItem(lsKey, JSON.stringify(form));
 
       // also sync basic fields to mock shop service (so lists reflect it)
       try {
-        shopService.updateShop(Number(shopId), {
-          name: form.businessName,
-          phoneNumber: form.phone,
-          location: form.address,
-          shopName: form.businessName,
-          shopLocation: form.address,
-          // you can add a field in your Shop type for avatar if desired
-          // image: form.avatarUrl,
-        });
+        const numericStoreId = Number(storeId);
+        if (Number.isFinite(numericStoreId)) {
+          shopService.updateShop(numericStoreId, {
+            name: form.businessName,
+            phoneNumber: form.phone,
+            location: form.address,
+            shopName: form.businessName,
+            shopLocation: form.address,
+            // you can add a field in your Shop type for avatar if desired
+            // image: form.avatarUrl,
+          });
+        }
       } catch {
         // ignore in mock
       }
@@ -166,8 +262,8 @@ Props) {
     console.log('Form submitted:', form);
 
     // go back to seller details (optional UX)
-    if (Number.isFinite(Number(shopId))) {
-      router.push(`/seller-details/${shopId}`);
+    if (storeId) {
+      router.push(`/seller-details/${storeId}`);
     }
   };
 
@@ -282,7 +378,7 @@ Props) {
             </label>
             <input
               id={addressId}
-              className={styles.input}
+              className={`${styles.input} ${styles.addressInput}`}
               value={form.address}
               onChange={handleChange('address')}
             />

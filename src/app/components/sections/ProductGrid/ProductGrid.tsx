@@ -1,18 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './ProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
-import { Product } from '@/app/api/types/products/products';
-import { productService } from '@/app/api/services/product-service/productService';
+import { Product, ProductPageInfo } from '@/app/api/types/products/products';
+import { ProductService } from '@/app/api/services/client/productService/productService';
 import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
+import { Pagination } from '../../ui/Pagination';
+import { formatAddressForDisplay } from '@/app/utils/address-utils';
 
 interface ProductGridProps {
   products?: Product[];
   category?: string;
   searchTerm?: string;
+  storeId?: string;
   onProductClick?: (product: Product) => void;
   onAddToCart?: (product: Product) => void;
 }
@@ -21,13 +25,26 @@ export const ProductGrid = ({
   products: initialProducts,
   category,
   searchTerm = '',
+  storeId,
   onProductClick,
   onAddToCart,
 }: ProductGridProps) => {
-  const { favorites, toggleFavorite } = useFavorites();
+  const { toggleFavorite, isFavorited } = useFavorites();
+  const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
   const [loading, setLoading] = useState(!initialProducts);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageInfo, setPageInfo] = useState<ProductPageInfo>({
+    totalElements: 0,
+    totalPages: 0,
+    currentPage: 0,
+    pageSize: 10,
+    first: true,
+    last: false,
+    hasNext: false,
+    hasPrevious: false,
+  });
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -38,25 +55,85 @@ export const ProductGrid = ({
     let isMounted = true;
 
     const fetchProducts = async () => {
+      console.log('fetchProducts called with currentPage:', currentPage);
       setLoading(true);
       try {
-        const res = await productService.getAll();
+        const searchParams = {
+          keyword: searchTerm.trim() || undefined,
+          categoryName: category || undefined,
+          registrationStatus: 'ONSALE' as const,
+          page: currentPage,
+          size: 10,
+          sortBy: 'createdAt' as const,
+          direction: 'desc' as const,
+        };
+
+        console.log('API call params:', searchParams);
+        const res = await ProductService.searchProducts(searchParams);
         if (!isMounted) return;
 
-        let filtered = res.data || [];
+        if (res.error) {
+          console.error('Failed to fetch products:', res.error);
+          setProducts([]);
+        } else {
+          let filtered = res.data?.data?.content || [];
 
-        if (category) {
-          filtered = filtered.filter((p) => p.category === category);
-        }
+          // Update pagination info - API returns pagination in pageInfo object
+          const apiPageInfo = res.data?.data?.pageInfo;
+          const totalPages = apiPageInfo?.totalPages || 0;
+          const totalElements = apiPageInfo?.totalElements || 0;
 
-        if (searchTerm.trim()) {
-          filtered = filtered.filter((p) =>
-            p.name.toLowerCase().includes(searchTerm.toLowerCase())
+          setPageInfo(
+            apiPageInfo || {
+              totalElements: 0,
+              totalPages: 0,
+              currentPage: 0,
+              pageSize: 10,
+              first: true,
+              last: false,
+              hasNext: false,
+              hasPrevious: false,
+            }
           );
-        }
 
-        setProducts(filtered);
-      } catch {
+          // Debug pagination info
+          console.log('Pagination Debug:', {
+            totalPages,
+            totalElements,
+            currentPage,
+            contentLength: filtered.length,
+            pageInfo: apiPageInfo,
+            fullApiResponse: res.data?.data,
+          });
+
+          // Debug: Log the first product to see the actual API structure
+          if (filtered.length > 0) {
+            console.log('First product from API:', filtered[0]);
+            console.log('Product keys:', Object.keys(filtered[0]));
+            console.log('Price fields:', {
+              price: filtered[0].price,
+              originalPrice: filtered[0].originalPrice,
+              discountPrice: filtered[0].discountPrice,
+              discountedPrice: filtered[0].discountedPrice,
+              salePrice: filtered[0].salePrice,
+              productPrice: filtered[0].productPrice,
+              regularPrice: filtered[0].regularPrice,
+            });
+          }
+
+          // Filter by storeId if provided
+          if (storeId) {
+            filtered = filtered.filter(
+              (p) => p.storeId === storeId || p.store?.storeId === storeId
+            );
+          }
+
+          console.log('Setting products:', filtered.length, 'products');
+          console.log('First product ID:', filtered[0]?.productId);
+          setProducts(filtered);
+        }
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
         if (!isMounted) return;
         setProducts([]);
       } finally {
@@ -70,14 +147,33 @@ export const ProductGrid = ({
     return () => {
       isMounted = false;
     };
-  }, [category, searchTerm, initialProducts]);
+  }, [category, searchTerm, storeId, initialProducts, currentPage]);
+
+  // Reset pagination when category or search term changes (but not when currentPage changes)
+  useEffect(() => {
+    if (initialProducts) return;
+    console.log('Category or search term changed, resetting to page 0');
+    setCurrentPage(0);
+  }, [category, searchTerm, storeId, initialProducts]);
+
+  // Debug useEffect to track currentPage changes
+  useEffect(() => {
+    console.log('currentPage changed to:', currentPage);
+  }, [currentPage]);
+
+  const handlePageChange = (page: number) => {
+    console.log('ProductGrid: handlePageChange called with page:', page);
+    setCurrentPage(page);
+  };
 
   if (loading) return <ProductSkeleton count={5} />;
 
   if (products.length === 0)
     return (
       <div className={styles.emptyContainer}>
-        <p className={styles.emptyText}>검색 결과가 없습니다.</p>
+        <p className={styles.emptyText}>
+          {storeId ? '이 스토어의 상품이 없습니다.' : '검색 결과가 없습니다.'}
+        </p>
       </div>
     );
 
@@ -85,19 +181,36 @@ export const ProductGrid = ({
     <div className={styles.mainContainer}>
       <div className={styles.grid}>
         {products.map((product) => {
-          const isFavorited = favorites.includes(product.id);
+          // Add safety check for product.id (API uses productId)
+          const productId = product?.productId || product?.id;
+          if (!product || !productId) {
+            console.warn('Product missing id:', product);
+            return null;
+          }
+
+          const isProductFavorited = isFavorited(productId.toString());
 
           return (
             <div
-              key={product.id}
+              key={productId}
               className={styles.card}
-              onClick={() => onProductClick?.(product)}
-              style={{ cursor: onProductClick ? 'pointer' : 'default' }}
+              onClick={() => {
+                if (onProductClick) {
+                  onProductClick(product);
+                } else {
+                  router.push(`/client/pages/products/${productId}`);
+                }
+              }}
+              style={{ cursor: 'pointer' }}
             >
               <div className={styles.imageWrapper}>
                 <Image
-                  src={product.image ?? '/images/products/placeholder.png'}
-                  alt={product.name}
+                  src={
+                    product.image ||
+                    product.thumbnail ||
+                    '/images/products/placeholder.png'
+                  }
+                  alt={product.name || product.productName || 'Product'}
                   width={120}
                   height={120}
                   className={styles.image}
@@ -105,7 +218,9 @@ export const ProductGrid = ({
               </div>
               <div className={styles.content}>
                 <div className={styles.header}>
-                  <h3 className={styles.name}>{product.name}</h3>
+                  <h3 className={styles.name}>
+                    {product.name || product.productName || 'Unnamed Product'}
+                  </h3>
                   <div className={styles.icons}>
                     <button
                       className={styles.iconBtn}
@@ -125,15 +240,15 @@ export const ProductGrid = ({
                       />
                     </button>
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        toggleFavorite(product.id);
+                        await toggleFavorite(productId.toString());
                       }}
                       className={styles.iconBtn}
                     >
                       <Image
                         src={
-                          isFavorited
+                          isProductFavorited
                             ? '/images/products/heart-active.png'
                             : '/images/products/heart-default.png'
                         }
@@ -146,26 +261,56 @@ export const ProductGrid = ({
                   </div>
                 </div>
                 <p className={styles.detail}>
-                  {product.weight}, {product.quantity}
+                  {/*   {product.weight || product.productWeight || 'N/A'} */}
                 </p>
                 <p className={styles.price}>
-                  {product.discountPrice ? (
-                    <>
-                      <span className={styles.original}>
-                        {product.price.toLocaleString('ko-KR')}원
-                      </span>
-                      <span className={styles.discount}>
-                        {product.discountPrice.toLocaleString('ko-KR')}원
-                      </span>
-                    </>
-                  ) : (
-                    `${product.price.toLocaleString('ko-KR')}원`
-                  )}
+                  {(() => {
+                    // For your API: salePrice is the higher price, discountedPrice is the lower price
+                    const higherPrice =
+                      product.salePrice ||
+                      product.price ||
+                      product.originalPrice ||
+                      product.regularPrice ||
+                      product.productPrice;
+                    const lowerPrice =
+                      product.discountedPrice || product.discountPrice;
+
+                    // If we have both prices and they're different, show both with strike-through
+                    if (
+                      higherPrice &&
+                      lowerPrice &&
+                      higherPrice !== lowerPrice
+                    ) {
+                      return (
+                        <>
+                          <span className={styles.original}>
+                            {higherPrice.toLocaleString('ko-KR')}원
+                          </span>
+                          <span className={styles.discount}>
+                            {lowerPrice.toLocaleString('ko-KR')}원
+                          </span>
+                        </>
+                      );
+                    }
+                    // If we only have one price, show it
+                    else if (higherPrice || lowerPrice) {
+                      const priceToShow = higherPrice || lowerPrice || 0;
+                      return `${priceToShow.toLocaleString('ko-KR')}원`;
+                    }
+                    // Fallback
+                    else {
+                      return '0원';
+                    }
+                  })()}
                 </p>
                 <p className={styles.info}>
-                  {product.expiration} <br />
-                  {product.location} <br />
-                  {product.distance}
+                  {product.expiryDate
+                    ? new Date(product.expiryDate).toLocaleDateString('ko-KR') +
+                      '까지'
+                    : product.expiration || 'N/A'}{' '}
+                  <br />
+                  {formatAddressForDisplay(product.store?.address || '')} <br />
+                  {product.distance || product.storeDistance || 'N/A'}
                 </p>
               </div>
             </div>
@@ -173,13 +318,33 @@ export const ProductGrid = ({
         })}
       </div>
 
+      {/* Pagination */}
+      <Pagination pageInfo={pageInfo} onPageChange={handlePageChange} />
+
       {/* cart modal */}
       {selectedProduct && (
         <CartModal
           open={cartOpen}
           onClose={() => setCartOpen(false)}
-          productName={selectedProduct.name}
-          productPrice={selectedProduct.discountPrice ?? selectedProduct.price}
+          productName={
+            selectedProduct.name || selectedProduct.productName || 'Product'
+          }
+          productPrice={(() => {
+            // Use the lower price (discounted price) for cart
+            const lowerPrice =
+              selectedProduct.discountedPrice || selectedProduct.discountPrice;
+            const higherPrice =
+              selectedProduct.salePrice ||
+              selectedProduct.price ||
+              selectedProduct.originalPrice ||
+              selectedProduct.regularPrice ||
+              selectedProduct.productPrice;
+            return lowerPrice || higherPrice || 0;
+          })()}
+          productId={String(selectedProduct.productId || selectedProduct.id)}
+          storeId={String(
+            selectedProduct.storeId || selectedProduct.store?.storeId
+          )}
         />
       )}
     </div>

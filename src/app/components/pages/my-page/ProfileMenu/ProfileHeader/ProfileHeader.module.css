@@ -22,6 +22,7 @@
   width: 50px;
   height: 50px;
   border-radius: 50%;
+  object-fit: cover;
 }
 
 .profileInfo {
@@ -32,6 +33,45 @@
 .username {
   font-weight: normal;
   font-size: 1.1rem;
+}
+
+.roleBadge {
+  display: inline-block;
+  background-color: #66bfa7;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pendingBadge {
+  display: inline-block;
+  background-color: #ffa726;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rejectedBadge {
+  display: inline-block;
+  background-color: #f44336;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .editButton {

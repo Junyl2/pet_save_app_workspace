@@ -1,4 +1,5 @@
-import FindIdForm from '@/app/components/pages/auth/find-id/FindIdForm';
+import SelectVerification from '../../../components/pages/auth/find-id/SelectVerification';
+
 export default function FindIdPage() {
-  return <FindIdForm />;
+  return <SelectVerification />;
 }

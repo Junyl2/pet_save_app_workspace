@@ -9,7 +9,8 @@ interface ShopInfoProps {
   shopName?: string;
   shopLocation?: string;
   shopImage?: string;
-  productId: number;
+  productId: string;
+  storeId?: string;
   sellerId?: number;
 }
 
@@ -18,14 +19,19 @@ export const ShopInfo = ({
   shopLocation,
   shopImage,
   productId,
+  storeId,
   sellerId = 1,
 }: ShopInfoProps) => {
-  const { favorites, toggleFavorite } = useFavorites();
-  const isFavorited = favorites.includes(productId);
+  const { toggleFavorite, isFavorited } = useFavorites();
+  const isProductFavorited = isFavorited(productId.toString());
   const router = useRouter();
 
   const handleShopClick = () => {
-    router.push(`/seller-details/${sellerId}`);
+    if (storeId) {
+      router.push(`/client/pages/seller-details/${storeId}`);
+    } else {
+      router.push(`/seller-details/${sellerId}`);
+    }
   };
 
   return (
@@ -35,7 +41,7 @@ export const ShopInfo = ({
         onClick={handleShopClick}
         style={{ cursor: 'pointer' }}
       >
-        {shopImage && (
+        {shopImage ? (
           <Image
             src={shopImage}
             alt={shopName || '판매처'}
@@ -43,6 +49,22 @@ export const ShopInfo = ({
             height={50}
             style={{ borderRadius: '50%', objectFit: 'cover' }}
           />
+        ) : (
+          <div
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: '50%',
+              backgroundColor: '#f0f0f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              color: '#666',
+            }}
+          >
+            {shopName ? shopName.charAt(0) : 'S'}
+          </div>
         )}
         <div className={styles.shopInfo}>
           <h2 className={styles.hospital}>
@@ -53,12 +75,12 @@ export const ShopInfo = ({
       </div>
 
       <button
-        onClick={() => toggleFavorite(productId)}
+        onClick={async () => await toggleFavorite(productId.toString())}
         className={styles.favoriteWrapper}
       >
         <Image
           src={
-            isFavorited
+            isProductFavorited
               ? '/images/products/heart-active.png'
               : '/images/products/heart-default.png'
           }

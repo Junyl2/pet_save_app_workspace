@@ -9,8 +9,8 @@ import { UsageInstructions } from './Usage/UsageInstructions';
 import { ProductActions } from './Actions/ProductActions';
 import { PreviewReview } from './Review/PreviewReview';
 /* import { useFavorites } from '@/app/context/FavoritesContext'; */
-import { productService } from '@/app/api/services/product-service/productService';
-import { Product } from '@/app/api/types/products/products';
+import { ProductService } from '@/app/api/services/client/productService/productService';
+import { ProductSummary } from '@/app/api/types/products/productSummary';
 import Loading from '../../ui/Loading/Loading';
 import styles from './ProductDetails.module.css';
 
@@ -19,7 +19,7 @@ export default function ProductDetails() {
   const productId = Number(id);
   /*  const { toggleFavorite } = useFavorites(); */
 
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ProductSummary | null>(null);
   const [loading, setLoading] = useState(true);
   /*  const [cartOpen, setCartOpen] = useState(false); */
 
@@ -27,9 +27,9 @@ export default function ProductDetails() {
     let isMounted = true;
     setLoading(true);
 
-    productService.getById(productId).then((res) => {
+    ProductService.getProductSummary(productId.toString()).then((res) => {
       if (!isMounted) return;
-      if (!res.error) setProduct(res.data);
+      if (!res.error && res.data) setProduct(res.data.data);
       setLoading(false);
     });
 
@@ -46,26 +46,29 @@ export default function ProductDetails() {
   return (
     <section className={styles.container}>
       <ProductHeader />
-      <ProductImage src={product.image} alt={product.name} />
+      <ProductImage
+        src={product.thumbnail || ''}
+        alt={product.productName || ''}
+      />
       <ShopInfo
-        shopName={product.shopName}
-        shopLocation={product.shopLocation || product.location}
-        shopImage={product.shopImage}
-        productId={product.id}
+        shopName={product.store.name || ''}
+        shopLocation={product.store.address || ''}
+        shopImage={product.store.profileUrl || ''}
+        productId={product.productId || ''}
       />
       <ProductInfo
-        name={product.name}
-        expiration={product.expiration}
-        price={product.price}
-        discountPrice={product.discountPrice}
-        details={product.details}
+        name={product.productName || ''}
+        expiration={product.expiryDate || ''}
+        price={product.salePrice || 0}
+        discountPrice={product.discountedPrice || 0}
+        details={product.description ? [product.description] : []}
       />
       <UsageInstructions />
-      <PreviewReview productId={product.id} />
+      <PreviewReview productId={product.productId || ''} />
       <ProductActions
-        productId={product.id}
-        productName={product.name}
-        productPrice={product.discountPrice || product.price}
+        productId={product.productId || ''}
+        productName={product.productName || ''}
+        productPrice={product.discountedPrice || product.salePrice || 0}
         onAddToCart={(quantity, name) => {
           /*    setCartOpen(true); */
           console.log('Added to cart:', quantity, name);
