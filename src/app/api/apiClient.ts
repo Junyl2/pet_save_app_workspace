@@ -471,8 +471,14 @@ axiosInstance.interceptors.response.use(
       } else {
         // No refresh token available or already retried
         console.log(
-          '🚨 No refresh token available or already retried - signaling auth invalid'
+          '🚨 No refresh token available or already retried - redirecting to login'
         );
+
+        // Redirect to login page directly
+        if (typeof window !== 'undefined') {
+          window.location.href = '/client/login';
+        }
+
         const authError = new AuthError(
           AUTH_ERROR_CODES.AUTH_INVALID,
           'No refresh token available',

@@ -88,12 +88,28 @@ export const ProductDrawer = ({
           iconTheme: { primary: '#66bfa7', secondary: '#fff' },
         });
         onClose();
+      } else if (
+        res.error === 'Authentication required' ||
+        res.error === 'No refresh token available'
+      ) {
+        // Don't show error toast - user is being redirected to login
+        onClose();
       } else {
         toast.error('장바구니 추가 실패: ' + (res.error || '알 수 없는 오류'));
       }
     } catch (err) {
       console.error(err);
-      toast.error('네트워크 오류로 장바구니 추가 실패');
+      // Don't show error toast for authentication errors - user is being redirected
+      if (
+        err instanceof Error &&
+        (err.message.includes('No refresh token available') ||
+          err.message.includes('401') ||
+          err.message.includes('Unauthorized'))
+      ) {
+        onClose();
+      } else {
+        toast.error('네트워크 오류로 장바구니 추가 실패');
+      }
     } finally {
       setLoading(false);
     }
