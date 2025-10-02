@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useCart } from '@/app/context/cartContext';
 import styles from './ShoppingCart.module.css';
 import Image from 'next/image';
 import { FiPlus, FiMinus } from 'react-icons/fi';
@@ -9,19 +8,60 @@ import { DeleteModal } from '../../ui/modal/DeleteModal/DeleteModal';
 import { useRouter } from 'next/navigation';
 import { cartService } from '@/app/api/services/client/cartService/cartService';
 import { CartItem, CartStore } from '@/app/api/types/cart/cart';
-import toast from 'react-hot-toast';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
+import Loading from '@/app/components/ui/Loading/Loading';
+import { useAuth } from '@/app/context/authContext';
 
 export default function ShoppingCartPage() {
   const router = useRouter();
-  const { cart, removeFromCart, increaseQuantity, decreaseQuantity } =
-    useCart();
-  const [selectedItems, setSelectedItems] = useState<number[]>([]);
-  const [deleteTarget, setDeleteTarget] = useState<null | { ids: number[] }>(
-    null
-  );
+  const { isLoggedIn } = useAuth();
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<null | {
+    cartItemIds: string[];
+    productIds: string[];
+    type: 'single' | 'batch';
+    reason?: 'quantity_decrease' | 'direct_delete';
+  }>(null);
   const [apiCartStores, setApiCartStores] = useState<CartStore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    isVisible: boolean;
+  }>({
+    message: '',
+    isVisible: false,
+  });
+
+  // Helper function to show toast
+  const showToast = (message: string) => {
+    setToast({ message, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToast((prev) => ({ ...prev, isVisible: false }));
+  };
+
+  // Helper function to refresh cart data
+  const refreshCartData = async () => {
+    try {
+      const response = await cartService.getCart();
+      if (response.data?.success && response.data.data?.stores) {
+        setApiCartStores(response.data.data.stores);
+      }
+    } catch (err) {
+      console.error('Failed to refresh cart data:', err);
+    }
+  };
+
+  // Check authentication and redirect if not logged in
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+  }, [isLoggedIn, router]);
 
   // Fetch cart data from API
   useEffect(() => {
@@ -35,22 +75,59 @@ export default function ShoppingCartPage() {
         console.log('Cart API Response:', response);
 
         if (response.data?.success && response.data.data?.stores) {
-          console.log('Setting cart stores:', response.data.data.stores);
+          console.log('Cart data received:', response.data.data);
+          console.log(
+            'Product IDs in cart:',
+            response.data.data.stores.map((store) =>
+              store.items.map((item) => ({
+                cartItemId: item.cartItemId,
+                productId: item.product.productId,
+                productName: item.product.productName,
+              }))
+            )
+          );
           setApiCartStores(response.data.data.stores);
+        } else if (response.error) {
+          // Check if the error indicates authentication issues
+          if (
+            response.error.includes('401') ||
+            response.error.includes('403') ||
+            response.error.includes('Unauthorized') ||
+            response.error.includes('Forbidden')
+          ) {
+            router.push('/login');
+            return;
+          }
+          setError('장바구니 데이터를 불러올 수 없습니다');
         } else {
-          console.log('Cart API failed:', response);
           setError('장바구니 데이터를 불러올 수 없습니다');
         }
       } catch (err) {
         console.error('Failed to fetch cart data:', err);
+
+        // Check if it's an authentication error
+        if (err && typeof err === 'object' && 'response' in err) {
+          const axiosError = err as any;
+          if (
+            axiosError.response?.status === 401 ||
+            axiosError.response?.status === 403
+          ) {
+            // User is not authenticated, redirect to login
+            router.push('/login');
+            return;
+          }
+        }
+
         setError('장바구니 데이터를 불러오는 중 오류가 발생했습니다');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchCartData();
-  }, []);
+    if (isLoggedIn) {
+      fetchCartData();
+    }
+  }, [isLoggedIn]);
 
   // Convert API cart stores to the format expected by the existing cart context
   const convertedCart = useMemo(() => {
@@ -60,7 +137,8 @@ export default function ShoppingCartPage() {
       store.items.forEach((item) => {
         allItems.push({
           product: {
-            id: parseInt(item.product.productId) || 0,
+            id: item.product.productId, // Use productId as string for API operations
+            cartItemId: item.cartItemId, // Keep cartItemId for reference
             name: item.product.productName,
             price: item.product.salePrice,
             image:
@@ -79,8 +157,8 @@ export default function ShoppingCartPage() {
     return allItems;
   }, [apiCartStores]);
 
-  // Use API cart data if available, otherwise fall back to context cart
-  const displayCart = apiCartStores.length > 0 ? convertedCart : cart;
+  // Use only API cart data - no fallback to context cart
+  const displayCart = convertedCart;
 
   // ✅ safe number helper
   const num = (v: unknown): number => {
@@ -92,41 +170,176 @@ export default function ShoppingCartPage() {
     return 0;
   };
 
-  // group by shop - use API store data if available, otherwise group by shop name
+  // group by shop - use only API store data
   const grouped = useMemo(() => {
-    if (apiCartStores.length > 0) {
-      // Use API store structure
-      const map: Record<string, any[]> = {};
-      apiCartStores.forEach((store) => {
-        const storeName = store.store.name;
-        map[storeName] = store.items.map((item) => ({
-          product: {
-            id: parseInt(item.product.productId) || 0,
-            name: item.product.productName,
-            price: item.product.salePrice,
-            image:
-              item.product.productThumbnail ||
-              '/images/products/placeholder.png',
-            shopName: store.store.name,
-            storeId: store.store.storeId,
-            discountPrice: item.product.discountedPrice,
-            expiration: item.product.expiryDate,
-          },
-          quantity: item.quantity,
-        }));
-      });
-      return map;
-    } else {
-      // Fallback to context cart grouping
-      const map: Record<string, any[]> = {};
-      displayCart.forEach((item) => {
-        const shop = item.product.shopName ?? '기타';
-        if (!map[shop]) map[shop] = [];
-        map[shop].push(item);
-      });
-      return map;
+    const map: Record<string, any[]> = {};
+    apiCartStores.forEach((store) => {
+      const storeName = store.store.name;
+      map[storeName] = store.items.map((item) => ({
+        product: {
+          id: item.product.productId, // Use productId as string for API operations
+          cartItemId: item.cartItemId, // Keep cartItemId for reference
+          name: item.product.productName,
+          price: item.product.salePrice,
+          image:
+            item.product.productThumbnail || '/images/products/placeholder.png',
+          shopName: store.store.name,
+          storeId: store.store.storeId,
+          discountPrice: item.product.discountedPrice,
+          expiration: item.product.expiryDate,
+        },
+        quantity: item.quantity,
+      }));
+    });
+    return map;
+  }, [apiCartStores]);
+
+  // Handle quantity update using API
+  const handleQuantityUpdate = async (
+    cartItemId: string,
+    newQuantity: number
+  ) => {
+    try {
+      setIsUpdating(true);
+      const response = await cartService.updateCartItemQuantity(
+        cartItemId,
+        newQuantity
+      );
+
+      if (response.data?.success) {
+        await refreshCartData();
+      } else {
+        showToast('수량 업데이트에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+      showToast('수량 업데이트 중 오류가 발생했습니다');
+    } finally {
+      setIsUpdating(false);
     }
-  }, [apiCartStores, displayCart]);
+  };
+
+  // Handle single item deletion using API
+  const handleSingleItemDelete = async (
+    cartItemId: string,
+    productId: string
+  ) => {
+    try {
+      setIsUpdating(true);
+      console.log(
+        'Attempting to delete single item with cartItemId:',
+        cartItemId,
+        'productId:',
+        productId
+      );
+
+      // Log current cart data before deletion
+      console.log('Current cart stores before deletion:', apiCartStores);
+      const allCartItemIds = apiCartStores.flatMap((store) =>
+        store.items.map((item) => ({
+          cartItemId: item.cartItemId,
+          productId: item.product.productId,
+          productName: item.product.productName,
+        }))
+      );
+      console.log('All available cart items before deletion:', allCartItemIds);
+
+      // Verify the cartItemId exists in current cart data
+      const itemExists = apiCartStores.some((store) =>
+        store.items.some((item) => item.cartItemId === cartItemId)
+      );
+
+      if (!itemExists) {
+        console.error('Cart item not found in current data:', cartItemId);
+        console.log(
+          'Available cartItemIds:',
+          allCartItemIds.map((item) => item.cartItemId)
+        );
+        showToast('장바구니 항목을 찾을 수 없습니다');
+        return;
+      }
+
+      console.log('Proceeding with deletion using cartItemId:', cartItemId);
+      const response = await cartService.deleteCartItem(cartItemId);
+      console.log('Delete response:', response);
+
+      // Check if deletion was successful
+      // The API returns empty string '' on successful deletion, or an error object on failure
+      const isSuccess =
+        (response.data as any) === '' || response.data?.success === true;
+
+      if (isSuccess && !response.error) {
+        console.log('Delete successful, refreshing cart data...');
+        await refreshCartData();
+        // Remove from selected items if it was selected
+        setSelectedItems((prev) => prev.filter((id) => id !== productId));
+        showToast('상품이 삭제되었습니다');
+      } else {
+        console.error(
+          'Delete failed:',
+          response.data,
+          'Error:',
+          response.error
+        );
+        showToast('상품 삭제에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+      showToast('상품 삭제 중 오류가 발생했습니다');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Handle batch deletion using API
+  const handleBatchDelete = async (
+    cartItemIds: string[],
+    productIds: string[]
+  ) => {
+    if (cartItemIds.length === 0) {
+      showToast('삭제할 항목을 찾을 수 없습니다');
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      console.log(
+        'Attempting to batch delete items with cartItemIds:',
+        cartItemIds,
+        'productIds:',
+        productIds
+      );
+      const response = await cartService.batchDeleteCartItems(cartItemIds);
+      console.log('Batch delete response:', response);
+
+      // Check if batch deletion was successful
+      // The API returns empty string '' on successful deletion, or an error object on failure
+      const isSuccess =
+        (response.data as any) === '' || response.data?.success === true;
+
+      if (isSuccess && !response.error) {
+        await refreshCartData();
+        // Remove from selected items
+        setSelectedItems((prev) =>
+          prev.filter((id) => !productIds.includes(id))
+        );
+        showToast(`${cartItemIds.length}개 상품이 삭제되었습니다`);
+      } else {
+        console.error(
+          'Batch delete failed:',
+          response.data,
+          'Error:',
+          response.error
+        );
+        showToast('상품 삭제에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('Failed to batch delete items:', error);
+      showToast('상품 삭제 중 오류가 발생했습니다');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleOrder = (items: typeof displayCart) => {
     const selected = items.filter(
@@ -178,11 +391,7 @@ export default function ShoppingCartPage() {
 
   // Show loading state
   if (isLoading) {
-    return (
-      <div className={styles.emptyContainer}>
-        <p>장바구니를 불러오는 중...</p>
-      </div>
-    );
+    return <Loading />;
   }
 
   // Show error state
@@ -216,29 +425,31 @@ export default function ShoppingCartPage() {
         const { original, discount, final } = calcStoreSummary(items);
         const hasSelection = final > 0;
 
-        const storeItemIds = items
+        const storeItemProductIds = items
           .map(({ product }) => product.id)
-          .filter((id): id is number => id !== undefined);
-        const isAllSelected = storeItemIds.every((id) =>
+          .filter((id): id is string => id !== undefined);
+        const isAllSelected = storeItemProductIds.every((id) =>
           selectedItems.includes(id)
         );
 
         const toggleSelectAllInStore = () => {
           if (isAllSelected) {
             setSelectedItems((prev) =>
-              prev.filter((id) => !storeItemIds.includes(id))
+              prev.filter((id) => !storeItemProductIds.includes(id))
             );
           } else {
             setSelectedItems((prev) => [
               ...prev,
-              ...storeItemIds.filter((id) => !prev.includes(id)),
+              ...storeItemProductIds.filter((id) => !prev.includes(id)),
             ]);
           }
         };
 
-        const toggleSelectItem = (id: number) => {
+        const toggleSelectItem = (productId: string) => {
           setSelectedItems((prev) =>
-            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+            prev.includes(productId)
+              ? prev.filter((i) => i !== productId)
+              : [...prev, productId]
           );
         };
 
@@ -258,14 +469,22 @@ export default function ShoppingCartPage() {
               </div>
 
               <button
-                onClick={() =>
+                onClick={() => {
+                  const productIds = items
+                    .map(({ product }) => product.id)
+                    .filter((id): id is string => id !== undefined);
+                  const cartItemIds = items
+                    .map(({ product }) => product.cartItemId)
+                    .filter((id): id is string => id !== undefined);
+
                   setDeleteTarget({
-                    ids: items
-                      .map(({ product }) => product.id)
-                      .filter((id): id is number => id !== undefined),
-                  })
-                }
+                    cartItemIds,
+                    productIds,
+                    type: 'batch',
+                  });
+                }}
                 className={styles.bulkDeleteButton}
+                disabled={isUpdating}
               >
                 묶음삭제
               </button>
@@ -280,7 +499,7 @@ export default function ShoppingCartPage() {
                   : null;
 
               return (
-                <div key={product.id} className={styles.item}>
+                <div key={product.cartItemId} className={styles.item}>
                   <div>
                     <input
                       type="checkbox"
@@ -329,10 +548,28 @@ export default function ShoppingCartPage() {
                       )}
                       <div className={styles.quantityControls}>
                         <button
-                          onClick={() =>
-                            product.id !== undefined &&
-                            decreaseQuantity(product.id)
-                          }
+                          onClick={() => {
+                            if (product.cartItemId) {
+                              if (quantity > 1) {
+                                // Decrease quantity
+                                handleQuantityUpdate(
+                                  product.cartItemId,
+                                  quantity - 1
+                                );
+                              } else if (quantity === 1) {
+                                // Remove item when quantity is 1
+                                if (product.id !== undefined) {
+                                  setDeleteTarget({
+                                    cartItemIds: [product.cartItemId],
+                                    productIds: [product.id],
+                                    type: 'single',
+                                    reason: 'quantity_decrease',
+                                  });
+                                }
+                              }
+                            }
+                          }}
+                          disabled={isUpdating}
                         >
                           <FiMinus size={18} color="rgba(0,0,0,0.4)" />
                         </button>
@@ -340,10 +577,15 @@ export default function ShoppingCartPage() {
                           {quantity}
                         </span>
                         <button
-                          onClick={() =>
-                            product.id !== undefined &&
-                            increaseQuantity(product.id)
-                          }
+                          onClick={() => {
+                            if (product.cartItemId) {
+                              handleQuantityUpdate(
+                                product.cartItemId,
+                                quantity + 1
+                              );
+                            }
+                          }}
+                          disabled={isUpdating}
                         >
                           <FiPlus size={18} color="rgba(0,0,0,0.4)" />
                         </button>
@@ -352,11 +594,29 @@ export default function ShoppingCartPage() {
                   </div>
                   <div className={styles.deleteButton}>
                     <button
-                      onClick={() =>
-                        product.id !== undefined &&
-                        setDeleteTarget({ ids: [product.id] })
-                      }
+                      onClick={() => {
+                        if (
+                          product.id !== undefined &&
+                          product.cartItemId !== undefined
+                        ) {
+                          console.log(
+                            'Setting delete target for single item:',
+                            {
+                              productId: product.id,
+                              cartItemId: product.cartItemId,
+                              productName: product.name,
+                            }
+                          );
+                          setDeleteTarget({
+                            cartItemIds: [product.cartItemId],
+                            productIds: [product.id],
+                            type: 'single',
+                            reason: 'direct_delete',
+                          });
+                        }
+                      }}
                       className={styles.oneDelete}
+                      disabled={isUpdating}
                     >
                       삭제
                     </button>
@@ -426,13 +686,37 @@ export default function ShoppingCartPage() {
       <DeleteModal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        modalTitle="상품을 삭제하시겠습니까?"
-        onDelete={() => {
+        modalTitle={
+          deleteTarget?.reason === 'quantity_decrease'
+            ? '수량을 0으로 줄이면 상품이 장바구니에서 제거됩니다. 계속하시겠습니까?'
+            : '상품을 삭제하시겠습니까?'
+        }
+        onDelete={async () => {
           if (deleteTarget) {
-            deleteTarget.ids.forEach((id) => removeFromCart(id));
+            if (deleteTarget.type === 'single') {
+              await handleSingleItemDelete(
+                deleteTarget.cartItemIds[0],
+                deleteTarget.productIds[0]
+              );
+            } else {
+              await handleBatchDelete(
+                deleteTarget.cartItemIds,
+                deleteTarget.productIds
+              );
+            }
+            setDeleteTarget(null);
           }
         }}
       />
+
+      {/* Custom Toast Message */}
+      {toast.isVisible && (
+        <ToastMessage
+          message={toast.message}
+          onClose={hideToast}
+          duration={1500}
+        />
+      )}
     </div>
   );
 }

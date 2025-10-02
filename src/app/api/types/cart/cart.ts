@@ -76,3 +76,20 @@ export interface AddToCartResponse {
   data: object;
   errorId?: string;
 }
+
+export interface UpdateCartItemQuantityRequest {
+  quantity: number;
+}
+
+export interface BatchDeleteCartItemsRequest {
+  cartItemIds: string[];
+}
+
+export interface CartOperationResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: object;
+  errorId?: string;
+}

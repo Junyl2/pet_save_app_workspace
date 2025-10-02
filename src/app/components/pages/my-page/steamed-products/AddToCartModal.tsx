@@ -91,6 +91,12 @@ export function AddToCartModal({
           style: { background: '#66bfa7' },
           iconTheme: { primary: '#66bfa7', secondary: '#fff' },
         });
+      } else if (
+        response.error === 'Authentication required' ||
+        response.error === 'No refresh token available'
+      ) {
+        // Don't show error toast - user is being redirected to login
+        onClose();
       } else {
         toast.error(
           '장바구니 추가 실패: ' + (response.error || '알 수 없는 오류')
@@ -98,7 +104,17 @@ export function AddToCartModal({
       }
     } catch (error) {
       console.error('Failed to add to cart:', error);
-      toast.error('네트워크 오류로 장바구니 추가 실패');
+      // Don't show error toast for authentication errors - user is being redirected
+      if (
+        error instanceof Error &&
+        (error.message.includes('No refresh token available') ||
+          error.message.includes('401') ||
+          error.message.includes('Unauthorized'))
+      ) {
+        onClose();
+      } else {
+        toast.error('네트워크 오류로 장바구니 추가 실패');
+      }
     } finally {
       setIsLoading(false);
     }
