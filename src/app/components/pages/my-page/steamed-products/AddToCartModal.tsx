@@ -9,7 +9,6 @@ import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { useRouter } from 'next/navigation';
 import { cartService } from '@/app/api/services/client/cartService/cartService';
 import { useUser } from '@/app/context/userContext';
-import toast from 'react-hot-toast';
 
 interface AddToCartModalProps {
   isOpen: boolean;
@@ -60,10 +59,11 @@ export function AddToCartModal({
   if (!product) return null;
 
   // Check if user is trying to add their own product to cart
-  const isOwnProduct =
+  const isOwnProduct = Boolean(
     user?.role === 'seller' &&
-    user?.storeId &&
-    (product as any).storeId === user.storeId;
+      user?.storeId &&
+      (product as any).storeId === user.storeId
+  );
 
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
@@ -87,10 +87,6 @@ export function AddToCartModal({
         await onAddToCart(product, quantity, shippingOption);
         onClose();
         setShowToast(true);
-        toast.success(`${product.name} 장바구니에 담겼습니다`, {
-          style: { background: '#66bfa7' },
-          iconTheme: { primary: '#66bfa7', secondary: '#fff' },
-        });
       } else if (
         response.error === 'Authentication required' ||
         response.error === 'No refresh token available'
@@ -98,9 +94,8 @@ export function AddToCartModal({
         // Don't show error toast - user is being redirected to login
         onClose();
       } else {
-        toast.error(
-          '장바구니 추가 실패: ' + (response.error || '알 수 없는 오류')
-        );
+        // Handle other errors silently or show custom toast if needed
+        console.error('Add to cart failed:', response.error);
       }
     } catch (error) {
       console.error('Failed to add to cart:', error);
@@ -113,7 +108,8 @@ export function AddToCartModal({
       ) {
         onClose();
       } else {
-        toast.error('네트워크 오류로 장바구니 추가 실패');
+        // Handle other errors silently or show custom toast if needed
+        console.error('Network error during add to cart:', error);
       }
     } finally {
       setIsLoading(false);
