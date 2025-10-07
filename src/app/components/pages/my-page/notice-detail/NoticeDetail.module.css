@@ -74,7 +74,7 @@
 }
 
 .contentList li::before {
-  content: "•";
+  content: '•';
   position: absolute;
   left: 0;
   color: #333;
@@ -142,7 +142,7 @@
 }
 
 .contactList li::before {
-  content: "•";
+  content: '•';
   position: absolute;
   left: 0;
   color: #333;
@@ -150,6 +150,55 @@
 }
 
 .contactList li:last-child {
+  margin-bottom: 0;
+}
+
+/* Content styling */
+.content {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.paragraph {
+  margin: 0 0 12px 0;
+}
+
+.subSectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin: 16px 0 8px 0;
+}
+
+.listItem {
+  margin: 0 0 6px 0;
+  padding-left: 16px;
+  position: relative;
+}
+
+.listItem::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #333;
+  font-weight: bold;
+}
+
+/* Image container */
+.imageContainer {
+  margin: 20px 0;
+}
+
+.noticeImage {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.noticeImage:last-child {
   margin-bottom: 0;
 }
 
