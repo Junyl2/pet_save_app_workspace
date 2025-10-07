@@ -76,7 +76,7 @@ export function AddToCartModal({
 
   const handleAddToCart = async () => {
     if (!product) return;
-
+                    
     setIsLoading(true);
     try {
       // Call the real API
@@ -87,6 +87,7 @@ export function AddToCartModal({
         await onAddToCart(product, quantity, shippingOption);
         onClose();
         setShowToast(true);
+
       } else if (
         response.error === 'Authentication required' ||
         response.error === 'No refresh token available'
@@ -108,8 +109,9 @@ export function AddToCartModal({
       ) {
         onClose();
       } else {
-        // Handle other errors silently or show custom toast if needed
+
         console.error('Network error during add to cart:', error);
+
       }
     } finally {
       setIsLoading(false);
