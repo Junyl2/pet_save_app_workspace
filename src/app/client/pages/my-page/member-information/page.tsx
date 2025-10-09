@@ -7,9 +7,11 @@ import Image from 'next/image';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
+import { DeliveryAddressService } from '@/app/api/services/client/memberService/member-information/deliveryAddressService';
 import { MemberInfo, MemberUpdateRequest } from '@/app/api/types/member/member';
 import { FileService } from '@/app/api/services/client/fileService/fileService';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
+import Loading from '@/app/components/ui/Loading/Loading';
 import styles from './MemberInformation.module.css';
 
 export default function MemberInformation() {
@@ -53,6 +55,58 @@ export default function MemberInformation() {
     }
   };
 
+  // Function to fetch default delivery address
+  const fetchDefaultDeliveryAddress = async () => {
+    try {
+      console.log('🔄 Fetching default delivery address...');
+      const response = await DeliveryAddressService.getDeliveryAddresses();
+
+      if (response.data?.success && response.data?.data) {
+        const addresses = response.data.data;
+        console.log('📍 All addresses:', addresses);
+
+        const defaultAddress = addresses.find((addr) => addr.default);
+        console.log('⭐ Default address found:', defaultAddress);
+
+        if (defaultAddress) {
+          const fullAddress = `${defaultAddress.roadAddress} ${defaultAddress.detailedAddress}`;
+          console.log('🏠 Full address:', fullAddress);
+
+          setFormData((prev) => ({
+            ...prev,
+            deliveryAddress: fullAddress,
+          }));
+        } else {
+          // If no default address is set, use the first valid address
+          const firstValidAddress = addresses.find(
+            (addr) => addr.roadAddress && addr.detailedAddress
+          );
+
+          if (firstValidAddress) {
+            const fullAddress = `${firstValidAddress.roadAddress} ${firstValidAddress.detailedAddress}`;
+            console.log('🏠 Using first valid address:', fullAddress);
+
+            setFormData((prev) => ({
+              ...prev,
+              deliveryAddress: fullAddress,
+            }));
+          } else {
+            console.log('❌ No valid addresses found');
+            setFormData((prev) => ({
+              ...prev,
+              deliveryAddress: '',
+            }));
+          }
+        }
+      } else {
+        console.log('❌ Failed to fetch addresses:', response.error);
+      }
+    } catch (error) {
+      console.error('💥 Error fetching default delivery address:', error);
+      // Don't show error to user, just leave delivery address empty
+    }
+  };
+
   // Fetch member information on component mount
   useEffect(() => {
     const fetchMemberInfo = async () => {
@@ -87,10 +141,11 @@ export default function MemberInformation() {
             name: memberData.name || '',
             phoneNumber: memberData.phoneNumber || '',
             birthDate: memberData.birthDate || '',
-            deliveryAddress: memberData.defaultDeliveryAddress
-              ? `${memberData.defaultDeliveryAddress.roadAddress} ${memberData.defaultDeliveryAddress.detailedAddress}`
-              : memberData.deliveryAddress || memberData.location || '',
+            deliveryAddress: '', // Will be populated by fetchDefaultDeliveryAddress
           });
+
+          // Fetch default delivery address
+          await fetchDefaultDeliveryAddress();
 
           // Load profile image if available
           if (memberData.profileFileId) {
@@ -177,16 +232,7 @@ export default function MemberInformation() {
   };
 
   if (isLoading) {
-    return (
-      <div className={styles.container}>
-        <ProductHeader />
-        <div className={styles.form}>
-          <div className={styles.formGroup}>
-            <div className={styles.label}>회원 정보를 불러오는 중...</div>
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (error) {
@@ -314,34 +360,41 @@ export default function MemberInformation() {
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>배송지 수정</label>
-          <div className={styles.inputWithIcon}>
-            <input
-              type="text"
-              className={styles.input}
-              value={formData.deliveryAddress}
-              onChange={(e) =>
-                handleInputChange('deliveryAddress', e.target.value)
-              }
-              placeholder="배송지를 입력하세요"
+          <div className={styles.labelWithArrow}>
+            <label className={styles.label}>비밀번호</label>
+            <FaChevronRight
+              onClick={() => router.push(PAGE_URLS.MEMBER_INFO_PASSWORD)}
+              className={styles.chevronIcon}
             />
-            <FaChevronRight className={styles.chevronIcon} />
           </div>
+          <input
+            type="password"
+            className={styles.input}
+            value="●●●●●●●●"
+            readOnly
+            placeholder="●●●●●●●●"
+          />
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>비밀번호</label>
-          <div className={styles.inputWithIcon}>
-            <input
-              type="password"
-              className={styles.input}
-              value="●●●●●●●●"
-              readOnly
-              placeholder="●●●●●●●●"
-              onClick={() => router.push(PAGE_URLS.MEMBER_INFO_PASSWORD)}
+          <div className={styles.labelWithArrow}>
+            <label className={styles.label}>배송지 수정</label>
+            <FaChevronRight
+              onClick={() =>
+                router.push(PAGE_URLS.MEMBER_INFO_DELIVERY_ADDRESS)
+              }
+              className={styles.chevronIcon}
             />
-            <FaChevronRight className={styles.chevronIcon} />
           </div>
+          <input
+            type="text"
+            className={styles.input}
+            value={formData.deliveryAddress}
+            readOnly
+            placeholder={
+              formData.deliveryAddress ? '' : '등록된 배송지가 없습니다'
+            }
+          />
         </div>
 
         <button type="submit" className={styles.submitBtn} disabled={isSaving}>

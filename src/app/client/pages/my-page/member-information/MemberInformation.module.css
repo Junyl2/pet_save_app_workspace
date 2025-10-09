@@ -117,6 +117,17 @@
   margin-bottom: 12px;
 }
 
+.labelWithArrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.labelWithArrow .label {
+  margin-bottom: 0;
+}
+
 .input {
   width: 100%;
   padding: 20px 16px;
@@ -184,11 +195,14 @@
 }
 
 .chevronIcon {
-  position: absolute;
-  right: 16px;
   font-size: 14px;
   color: #666;
-  pointer-events: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.chevronIcon:hover {
+  color: #7db59a;
 }
 
 .submitBtn {

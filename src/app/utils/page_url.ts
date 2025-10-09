@@ -25,6 +25,8 @@ export const PAGE_URLS = {
   // My Page sections
   MEMBER_INFORMATION: '/client/pages/my-page/member-information', // mypage - member information page
   MEMBER_INFO_PASSWORD: '/client/pages/my-page/member-information/password', // mypage - password change page
+  MEMBER_INFO_DELIVERY_ADDRESS:
+    '/client/pages/my-page/member-information/delivery-address', // mypage - delivery address page
   MYPAGE_POINTS: '/client/pages/my-page/points', // mypage - points page
   POINTS_HISTORY: '/client/pages/my-page/points/history', // mypage - points history page
   POINTS_GUIDE: '/client/pages/my-page/points/guide', // mypage - points guide page
