@@ -10,6 +10,7 @@ import BottomBar from '../../sections/BottomBar/BottomBar';
 import { useUser } from '@/app/context/userContext';
 import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
 import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
+import { baseURL } from '@/app/api/config';
 
 type InquiryType =
   | '전체'
@@ -36,20 +37,53 @@ const formatDate = (dateString: string): string => {
   return `${year}.${month}.${day}`;
 };
 
+// Helper function to construct proper file URL from file ID
+const constructFileUrl = (fileId: string | null | undefined): string => {
+  if (!fileId) return '/images/products/dogfood.png';
+
+  // If it's already a full URL, return as is
+  if (fileId.startsWith('http')) return fileId;
+
+  // If it's a relative path starting with /, return as is
+  if (fileId.startsWith('/')) return fileId;
+
+  // Otherwise, construct the full URL using the base URL
+  return `${baseURL}/files/${fileId}`;
+};
+
 // Helper function to transform API response to UI format
 const transformStoreInquiryToUI = (storeInquiry: any) => {
   console.log('🔍 Transforming inquiry:', storeInquiry);
+  console.log('🔍 Product data:', storeInquiry.product);
+  console.log('🔍 Direct productName:', storeInquiry.productName);
 
   try {
+    // Try both ways to get product name (nested and direct)
+    const productName =
+      storeInquiry.product?.productName ||
+      storeInquiry.productName ||
+      'Unknown Product';
+    const productPrice =
+      storeInquiry.product?.discountedPrice ||
+      storeInquiry.product?.salePrice ||
+      0;
+    const productImage = constructFileUrl(
+      storeInquiry.product?.productThumbnail
+    );
+
+    console.log('🔍 Extracted data:', {
+      productName,
+      productPrice,
+      productImage,
+    });
+
     return {
       id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0, // Convert UUID to number for compatibility
       inquiryId: storeInquiry.inquiryId, // Keep original inquiryId for routing
       date: storeInquiry.createdAt,
-      shopName: storeInquiry.inquirer?.name || 'Unknown',
-      shopLocation: storeInquiry.store?.address || 'Unknown address',
-      shopImage:
-        storeInquiry.product?.productThumbnail ||
-        '/images/products/dogfood.png',
+      productName,
+      productPrice,
+      productImage,
       category: storeInquiry.category,
       message: storeInquiry.content,
       responseMessage: storeInquiry.answer || '',
@@ -63,9 +97,9 @@ const transformStoreInquiryToUI = (storeInquiry: any) => {
       id: 0,
       inquiryId: storeInquiry.inquiryId || 'unknown',
       date: storeInquiry.createdAt || new Date().toISOString(),
-      shopName: 'Unknown',
-      shopLocation: 'Unknown address',
-      shopImage: '/images/products/dogfood.png',
+      productName: 'Unknown Product',
+      productPrice: 0,
+      productImage: '/images/products/dogfood.png',
       category: storeInquiry.category || 'OTHER',
       message: storeInquiry.content || 'No content',
       responseMessage: '',
@@ -141,6 +175,17 @@ export default function SellerInquiryDetails() {
             '🔍 First inquiry structure:',
             response.data.data.content[0]
           );
+
+          // Debug: Log specific product data from first inquiry
+          if (response.data.data.content[0]) {
+            const firstInquiry = response.data.data.content[0];
+            console.log('🔍 First inquiry product:', firstInquiry.product);
+            console.log(
+              '🔍 First inquiry productName:',
+              firstInquiry.productName
+            );
+            console.log('🔍 First inquiry content:', firstInquiry.content);
+          }
 
           // Transform API response to UI format
           const transformedInquiries = response.data.data.content.map(
@@ -317,7 +362,7 @@ export default function SellerInquiryDetails() {
               <div className={styles.itemRow}>
                 <div className={styles.thumbWrap}>
                   <Image
-                    src={q.shopImage || '/images/products/dogfood.png'}
+                    src={q.productImage || '/images/products/dogfood.png'}
                     alt=""
                     width={60}
                     height={60}
@@ -326,8 +371,12 @@ export default function SellerInquiryDetails() {
                   />
                 </div>
                 <div className={styles.meta}>
-                  <div className={styles.title}>{q.shopName}</div>
-                  <div className={styles.price}>{q.shopLocation}</div>
+                  <div className={styles.title}>{q.productName}</div>
+                  <div className={styles.price}>
+                    {q.productPrice
+                      ? `${q.productPrice.toLocaleString()}원`
+                      : '가격 정보 없음'}
+                  </div>
                   <div className={styles.snippet}>{q.message}</div>
                 </div>
               </div>

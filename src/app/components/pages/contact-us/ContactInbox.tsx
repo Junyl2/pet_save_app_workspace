@@ -27,6 +27,7 @@ const transformMyInquiryToContactInquiry = (
 ): ContactInquiry => {
   return {
     id: parseInt(myInquiry.inquiryId.split('-')[0], 16) || 0, // Convert UUID to number for compatibility
+    inquiryId: myInquiry.inquiryId,
     date: myInquiry.createdAt,
     shopName: myInquiry.store.name,
     shopLocation: myInquiry.store.address,
@@ -279,8 +280,9 @@ export default function ContactInbox({
               if (dropdownOpen) return; // prevent accidental clicks while dropdown open
               // add a shared state if needed for modal open
               if (isCompleted) {
+                const targetId = inq.inquiryId || inq.id.toString();
                 router.push(
-                  `/client/pages/my-page/history-inquiry/reply/${inq.id}`
+                  `/client/pages/my-page/history-inquiry/reply/${targetId}`
                 );
               } else {
                 // Use productId for waiting reply page routing
@@ -293,6 +295,17 @@ export default function ContactInbox({
               await contactService.deleteInquiry(inq.id);
               setInquiries((prev) => prev.filter((i) => i.id !== inq.id));
             }; */
+
+            const handleConfirmDelete = async () => {
+              const idForApi = inq.inquiryId;
+              if (!idForApi) return;
+              const res = await MemberInquiryService.deleteInquiry(idForApi);
+              if (!res.error) {
+                setInquiries((prev) => prev.filter((i) => i.id !== inq.id));
+              } else {
+                console.error('Failed to delete inquiry:', res.error);
+              }
+            };
 
             return (
               <div
@@ -316,7 +329,7 @@ export default function ContactInbox({
                     onMouseDown={(e) => e.stopPropagation()}
                     className={styles.dotMenu}
                   >
-                    <DotMenu mode="deletePage" />
+                    <DotMenu mode="deletePage" onDelete={handleConfirmDelete} />
                   </div>
                 )}
 
