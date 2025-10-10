@@ -5,7 +5,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { shopService } from '@/app/api/services/shops/shopService';
 import { Shop } from '@/app/api/types/shops/shops';
-import { StoreService } from '@/app/api/services/client/storeService/storeService';
+import {
+  StoreService,
+  LocationCoordinates,
+} from '@/app/api/services/client/storeService/storeService';
 import styles from './ShopList.module.css';
 import { FaPhone } from 'react-icons/fa6';
 import { ContactDrawer } from '../../ui/drawer/ContactDrawer/ContactDrawer';
@@ -22,35 +25,61 @@ export default function ShopList() {
     null
   );
   const [searchSubmitted, setSearchSubmitted] = useState(false);
-  const [testingAPI, setTestingAPI] = useState(false);
-  const [apiTestResult, setApiTestResult] = useState<string | null>(null);
+  const [currentLocation, setCurrentLocation] =
+    useState<LocationCoordinates | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [nearbyStores, setNearbyStores] = useState<any[] | null>(null);
 
   const router = useRouter();
 
-  // Test function for nearby stores API
-  const testNearbyStoresAPI = async () => {
-    setTestingAPI(true);
-    setApiTestResult(null);
+  // Function to get current location and search nearby stores
+  const handleCurrentLocationSearch = async () => {
+    setLocationLoading(true);
+    setLocationError(null);
+    setNearbyStores(null);
 
     try {
-      console.log('🧪 Testing nearby stores API...');
-      const response = await StoreService.testNearbyStoresAPI();
+      console.log('📍 Getting current location and searching nearby stores...');
 
-      if (response.error) {
-        console.error('❌ API Test Failed:', response.error);
-        setApiTestResult(`❌ API Test Failed: ${response.error}`);
-      } else {
-        console.log('✅ API Test Successful:', response.data);
-        const storeCount = response.data?.data?.totalElements || 0;
-        setApiTestResult(
-          `✅ API Test Successful! Found ${storeCount} stores nearby.`
-        );
+      // First, try to get current location
+      const locationResult = await StoreService.getCurrentLocation();
+
+      if (locationResult.error) {
+        console.error('❌ Location access failed:', locationResult.error);
+        setLocationError(locationResult.error);
+        return;
+      }
+
+      if (!locationResult.data) {
+        console.error('❌ No location data received');
+        setLocationError('위치 정보를 가져올 수 없습니다.');
+        return;
+      }
+
+      // Set the current location
+      setCurrentLocation(locationResult.data);
+      console.log('✅ Current location obtained:', locationResult.data);
+
+      // Now search for nearby stores
+      const result = await StoreService.searchNearbyStoresWithCurrentLocation({
+        radius: 10, // 10km radius
+        page: 0,
+        size: 20,
+      });
+
+      if (result.error) {
+        console.error('❌ Nearby stores search failed:', result.error);
+        setLocationError(result.error);
+      } else if (result.data) {
+        console.log('✅ Nearby stores found:', result.data);
+        setNearbyStores(result.data.data?.content || []);
       }
     } catch (error) {
-      console.error('💥 API Test Error:', error);
-      setApiTestResult(`💥 API Test Error: ${error}`);
+      console.error('💥 Current location search error:', error);
+      setLocationError('현재 위치를 가져오는 중 오류가 발생했습니다.');
     } finally {
-      setTestingAPI(false);
+      setLocationLoading(false);
     }
   };
 
@@ -66,7 +95,61 @@ export default function ShopList() {
     fetchShops();
   }, []);
 
+  // Check location permission status when component mounts
+  useEffect(() => {
+    const checkLocationPermission = async () => {
+      try {
+        // Check if geolocation is supported
+        if (!navigator.geolocation) {
+          console.log('📍 Geolocation is not supported by this browser');
+          setLocationError('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+          return;
+        }
+
+        // Check if we already have permission by trying to get current position
+        // This will trigger the permission dialog if not already granted
+        console.log('📍 Checking location permission...');
+        const locationResult = await StoreService.getCurrentLocation();
+
+        if (locationResult.data) {
+          console.log(
+            '✅ Location permission already granted, coordinates:',
+            locationResult.data
+          );
+          setCurrentLocation(locationResult.data);
+        } else if (locationResult.error === 'PERMISSION_DENIED') {
+          console.log('📍 Location permission denied by user');
+          setLocationError(
+            '위치 접근 권한이 필요합니다. "현재위치로 찾기" 버튼을 클릭하여 권한을 허용해주세요.'
+          );
+        } else {
+          console.log('📍 Location error:', locationResult.error);
+          setLocationError('위치 정보를 가져올 수 없습니다.');
+        }
+      } catch (error) {
+        console.error('💥 Location permission check error:', error);
+        setLocationError('위치 서비스 확인 중 오류가 발생했습니다.');
+      }
+    };
+
+    checkLocationPermission();
+  }, []);
+
   const filteredShops = useMemo(() => {
+    // If we have nearby stores from location search, show them instead of mock data
+    if (nearbyStores && nearbyStores.length > 0) {
+      const term = searchTerm.trim().toLowerCase();
+      if (!term) return nearbyStores;
+
+      return nearbyStores.filter(
+        (store: any) =>
+          store.storeName?.toLowerCase().includes(term) ||
+          store.roadAddress?.toLowerCase().includes(term) ||
+          store.businessName?.toLowerCase().includes(term)
+      );
+    }
+
+    // Fallback to original mock data
     if (!shops) return [];
     const term = searchTerm.trim().toLowerCase();
     if (!term) return shops;
@@ -76,7 +159,7 @@ export default function ShopList() {
         shop.name.toLowerCase().includes(term) ||
         shop.location.toLowerCase().includes(term)
     );
-  }, [shops, searchTerm]);
+  }, [shops, searchTerm, nearbyStores]);
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
@@ -101,7 +184,46 @@ export default function ShopList() {
     <>
       <TopBar onSearch={handleSearch} />
 
-      {/*   <button className={styles.currentBtn}>
+      {/* Location Permission Request Banner */}
+      {!currentLocation && !locationLoading && (
+        <div
+          style={{
+            padding: '15px',
+            backgroundColor: '#e3f2fd',
+            border: '1px solid #2196f3',
+            borderRadius: '8px',
+            margin: '10px',
+            textAlign: 'center',
+          }}
+        >
+          <p
+            style={{ margin: '0 0 10px 0', color: '#1976d2', fontSize: '14px' }}
+          >
+            📍 주변 상점을 찾기 위해 위치 접근 권한이 필요합니다
+          </p>
+          <button
+            onClick={handleCurrentLocationSearch}
+            disabled={locationLoading}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#2196f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: locationLoading ? 'not-allowed' : 'pointer',
+              fontSize: '14px',
+            }}
+          >
+            {locationLoading ? '위치 검색 중...' : '위치 권한 허용하기'}
+          </button>
+        </div>
+      )}
+
+      <button
+        className={styles.currentBtn}
+        onClick={handleCurrentLocationSearch}
+        disabled={locationLoading}
+      >
         <Image
           src="/images/icons/mage_location.png"
           alt="Location Icon"
@@ -109,44 +231,60 @@ export default function ShopList() {
           width={16}
           className="object-contain"
         />
-        현재위치로 찾기
-      </button> */}
+        {locationLoading ? '위치 검색 중...' : '현재위치로 찾기'}
+      </button>
 
       <div className={styles.container}>
-        {/* API Test Button */}
-        <div style={{ padding: '10px', textAlign: 'center' }}>
-          <button
-            onClick={testNearbyStoresAPI}
-            disabled={testingAPI}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: testingAPI ? '#ccc' : '#66bfa7',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: testingAPI ? 'not-allowed' : 'pointer',
-              marginBottom: '10px',
-            }}
-          >
-            {testingAPI ? 'Testing API...' : 'Test Nearby Stores API'}
-          </button>
-          {apiTestResult && (
-            <div
-              style={{
-                padding: '10px',
-                backgroundColor: apiTestResult.includes('✅')
-                  ? '#d4edda'
-                  : '#f8d7da',
-                color: apiTestResult.includes('✅') ? '#155724' : '#721c24',
-                borderRadius: '5px',
-                marginTop: '10px',
-                fontSize: '14px',
-              }}
-            >
-              {apiTestResult}
-            </div>
-          )}
-        </div>
+        {/* Location Status */}
+        {(currentLocation || locationError || nearbyStores) && (
+          <div style={{ padding: '10px', textAlign: 'center' }}>
+            {currentLocation && (
+              <div
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#d4edda',
+                  color: '#155724',
+                  borderRadius: '5px',
+                  marginBottom: '10px',
+                  fontSize: '14px',
+                }}
+              >
+                📍 현재 위치: {currentLocation.lat.toFixed(6)},{' '}
+                {currentLocation.long.toFixed(6)}
+              </div>
+            )}
+
+            {locationError && (
+              <div
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#f8d7da',
+                  color: '#721c24',
+                  borderRadius: '5px',
+                  marginBottom: '10px',
+                  fontSize: '14px',
+                }}
+              >
+                ❌ {locationError}
+              </div>
+            )}
+
+            {nearbyStores && nearbyStores.length > 0 && (
+              <div
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#d1ecf1',
+                  color: '#0c5460',
+                  borderRadius: '5px',
+                  marginBottom: '10px',
+                  fontSize: '14px',
+                }}
+              >
+                ✅ 주변 상점 {nearbyStores.length}개 발견
+              </div>
+            )}
+          </div>
+        )}
 
         {isEmptySearch ? (
           <SearchState
@@ -162,33 +300,60 @@ export default function ShopList() {
           />
         ) : (
           <div className={styles.list}>
-            {filteredShops.map((shop) => (
-              <div
-                key={shop.id}
-                className={styles.shopCard}
-                onClick={() => handleCardClick(shop.id)}
-              >
-                <button
-                  className={styles.phoneButton}
-                  onClick={(e) => handlePhoneClick(e, shop.phoneNumber)}
-                >
-                  <FaPhone size={22} color="#66BFA7" className={styles.phone} />
-                </button>
+            {filteredShops.map((shop, index) => {
+              // Handle both mock data and real API data
+              const isApiData = nearbyStores && nearbyStores.length > 0;
+              const shopId = isApiData
+                ? (shop as any).storeId
+                : (shop as Shop).id;
+              const shopName = isApiData
+                ? (shop as any).storeName
+                : (shop as Shop).name;
+              const shopLocation = isApiData
+                ? (shop as any).roadAddress
+                : (shop as Shop).location;
+              const shopDistance = isApiData
+                ? `${(shop as any).distance?.toFixed(1)}km`
+                : (shop as Shop).distance;
+              const shopImage = isApiData
+                ? '/images/shops/shop1.png'
+                : (shop as Shop).image; // Default image for API data
+              const shopPhone = isApiData
+                ? '02-1234-5678'
+                : (shop as Shop).phoneNumber; // Default phone for API data
 
-                <Image
-                  src={shop.image}
-                  alt={shop.name}
-                  width={80}
-                  height={80}
-                  className={styles.shopImage}
-                />
-                <div className={styles.shopInfo}>
-                  <h3 className={styles.shopName}>{shop.name}</h3>
-                  <p className={styles.shopLocation}>{shop.location}</p>
-                  <p className={styles.shopDistance}>{shop.distance}</p>
+              return (
+                <div
+                  key={isApiData ? shopId : shopId}
+                  className={styles.shopCard}
+                  onClick={() => handleCardClick(shopId)}
+                >
+                  <button
+                    className={styles.phoneButton}
+                    onClick={(e) => handlePhoneClick(e, shopPhone)}
+                  >
+                    <FaPhone
+                      size={22}
+                      color="#66BFA7"
+                      className={styles.phone}
+                    />
+                  </button>
+
+                  <Image
+                    src={shopImage}
+                    alt={shopName}
+                    width={80}
+                    height={80}
+                    className={styles.shopImage}
+                  />
+                  <div className={styles.shopInfo}>
+                    <h3 className={styles.shopName}>{shopName}</h3>
+                    <p className={styles.shopLocation}>{shopLocation}</p>
+                    <p className={styles.shopDistance}>{shopDistance}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         <SellerPanel />
