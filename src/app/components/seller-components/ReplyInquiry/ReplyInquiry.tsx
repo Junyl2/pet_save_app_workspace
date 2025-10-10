@@ -8,6 +8,7 @@ import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeade
 import { useUser } from '@/app/context/userContext';
 import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
 import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
+import { SellerInquiryService } from '@/app/api/services/client/seller/seller-inquiry/sellerInquiryService';
 
 // Helper function to format date from YYYY-MM-DD to YY.MM.DD
 const formatDate = (dateString: string): string => {
@@ -127,22 +128,21 @@ export default function ReplyInquiry() {
     setIsSubmitting(true);
 
     try {
-      // Here you would typically make an API call to submit the reply
-      // For now, we'll simulate the API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const inquiryId = inquiry?.inquiryId as string | undefined;
+      if (!inquiryId) throw new Error('유효하지 않은 문의 ID 입니다.');
 
-      // Update the inquiry status in mock data (in real app, this would be handled by API)
-      /*   const updatedInquiries = mockContactInquiries.map((inq) =>
-        inq.id === inquiry?.id
-          ? { ...inq, responseMessage: replyText, status: '답변 완료' as const }
-          : inq
-      ); */
-
-      // In a real app, you would update the backend here
-      console.log('Reply submitted:', {
-        inquiryId: inquiry?.id,
-        reply: replyText,
-      });
+      // If already answered, update; otherwise, create answer
+      if (inquiry.status === '답변 완료') {
+        const res = await SellerInquiryService.updateInquiryAnswer(inquiryId, {
+          answer: replyText,
+        });
+        if (res.error) throw new Error(res.error);
+      } else {
+        const res = await SellerInquiryService.answerInquiry(inquiryId, {
+          answer: replyText,
+        });
+        if (res.error) throw new Error(res.error);
+      }
 
       alert('답변이 성공적으로 등록되었습니다.');
       router.push('/client/seller/pages/seller-inquiry-details');

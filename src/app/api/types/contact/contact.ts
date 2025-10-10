@@ -1,5 +1,6 @@
 export type ContactInquiry = {
   id: number;
+  inquiryId?: string; // backend UUID for delete API
   date: string;
   shopName: string;
   shopLocation: string;

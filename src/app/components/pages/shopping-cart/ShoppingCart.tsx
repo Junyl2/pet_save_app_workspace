@@ -688,7 +688,7 @@ export default function ShoppingCartPage() {
         onClose={() => setDeleteTarget(null)}
         modalTitle={
           deleteTarget?.reason === 'quantity_decrease'
-            ? '수량을 0으로 줄이면 상품이 장바구니에서 제거됩니다. 계속하시겠습니까?'
+            ? '이 상품을 삭제하시겠습니까?'
             : '상품을 삭제하시겠습니까?'
         }
         onDelete={async () => {

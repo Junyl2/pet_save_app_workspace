@@ -146,3 +146,16 @@ export interface InquiryListResponse {
   };
   errorId?: string;
 }
+
+/**
+ * Types for DELETE /api/pet-save/inquiries/{inquiryId}
+ * 문의 삭제 | Delete inquiry
+ */
+export interface DeleteInquiryResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: object; // API returns an empty object payload
+  errorId?: string;
+}

@@ -4,6 +4,7 @@ import {
   MyInquiry,
   MyInquiriesResponse,
   MyInquiriesParams,
+  DeleteInquiryResponse,
 } from '../../../../types/member/inquiry-details/inquiry';
 
 export interface CreateInquiryRequest {
@@ -97,6 +98,39 @@ export class MemberInquiryService {
         data: null,
         error:
           error instanceof Error ? error.message : 'Failed to get my inquiries',
+      };
+    }
+  }
+
+  /**
+   * Delete an inquiry
+   * DELETE /api/pet-save/inquiries/{inquiryId}
+   */
+  static async deleteInquiry(
+    inquiryId: string
+  ): Promise<ApiResponse<DeleteInquiryResponse>> {
+    try {
+      console.log('[MemberInquiryService] Deleting inquiry:', inquiryId);
+      const response = await apiClient.delete<DeleteInquiryResponse>(
+        `/inquiries/${inquiryId}`
+      );
+
+      if (response.error) {
+        console.error(
+          '[MemberInquiryService] Failed to delete inquiry:',
+          response.error
+        );
+      } else {
+        console.log('[MemberInquiryService] Inquiry deleted:', response.data);
+      }
+
+      return response;
+    } catch (error) {
+      console.error('[MemberInquiryService] Error deleting inquiry:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to delete inquiry',
       };
     }
   }
