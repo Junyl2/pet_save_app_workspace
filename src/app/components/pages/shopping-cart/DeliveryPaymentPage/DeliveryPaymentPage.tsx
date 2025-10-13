@@ -68,6 +68,14 @@ export default function DeliveryPaymentPage() {
   useEffect(() => {
     const saved = localStorage.getItem('checkoutItems');
     if (saved) setOrderItems(JSON.parse(saved));
+
+    // Check for stored delivery option from direct order
+    const storedDeliveryOption = localStorage.getItem('selectedDeliveryOption');
+    if (storedDeliveryOption) {
+      setDeliveryOption(storedDeliveryOption as 'delivery' | 'pickup');
+      // Clear the stored option after using it
+      localStorage.removeItem('selectedDeliveryOption');
+    }
   }, []);
 
   const { itemCount, subtotal, discountAmount } = useMemo(() => {

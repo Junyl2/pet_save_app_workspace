@@ -9,6 +9,7 @@ import { MyInquiry } from '@/app/api/types/member/inquiry-details/inquiry';
 import { DotMenu } from '@/app/components/ui/DotMenu/DotMenu';
 import toast from 'react-hot-toast';
 import { useRouter, usePathname } from 'next/navigation';
+import Loading from '@/app/components/ui/Loading/Loading';
 
 type InquiryReplyProps = {
   inquiryId: string;
@@ -73,11 +74,12 @@ export default function InquiryReply({ inquiryId }: InquiryReplyProps) {
   if (loading) {
     return (
       <>
-        <ProductHeader />
+        {/*       <ProductHeader />
         <div className={styles.page}>
           <div className={styles.skelCard} />
           <div className={styles.skelCardTall} />
-        </div>
+        </div> */}
+        <Loading />
       </>
     );
   }

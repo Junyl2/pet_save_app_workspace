@@ -4,12 +4,14 @@ import Image from 'next/image';
 import { FiMoreHorizontal } from 'react-icons/fi';
 import styles from './ProductImage.module.css';
 import ReportModal from '@/app/components/ui/modal/ReportModal/ReportModal';
+import { ProductSummary } from '@/app/api/types/products/productSummary';
 
 interface ProductImageProps {
   src: string;
   alt: string;
   currentIndex?: number;
   totalCount?: number;
+  product?: ProductSummary;
 }
 
 export const ProductImage = ({
@@ -17,6 +19,7 @@ export const ProductImage = ({
   alt,
   currentIndex = 1,
   totalCount = 1,
+  product,
 }: ProductImageProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -57,7 +60,11 @@ export const ProductImage = ({
       )}
 
       {/* Report Modal */}
-      <ReportModal show={reportOpen} onClose={() => setReportOpen(false)} />
+      <ReportModal
+        show={reportOpen}
+        onClose={() => setReportOpen(false)}
+        product={product}
+      />
 
       {/* Image index indicator */}
       <div className={styles.indexIndicator}>

@@ -1171,7 +1171,7 @@ export default function SellerInformation({
               !canSubmit ||
               user?.businessApprovalStatus === 'PENDING' /* ||
               user?.businessApprovalStatus === 'REJECTED' */ ||
-              user?.businessApprovalStatus === null
+              false
             }
           >
             {isSubmitting
@@ -1179,7 +1179,7 @@ export default function SellerInformation({
               : user?.businessApprovalStatus === 'PENDING'
               ? '승인 대기 중'
               : user?.businessApprovalStatus === null
-              ? '작성중'
+              ? 'Join membership'
               : /*  : user?.businessApprovalStatus === 'REJECTED'
               ? '승인 거부됨' */
                 '회원가입'}

@@ -7,10 +7,16 @@ import { FiPlus, FiMinus } from 'react-icons/fi';
 import { DeleteModal } from '../../ui/modal/DeleteModal/DeleteModal';
 import { useRouter } from 'next/navigation';
 import { cartService } from '@/app/api/services/client/cartService/cartService';
+import { orderService } from '@/app/api/services/client/memberService/order/orderService';
 import { CartItem, CartStore } from '@/app/api/types/cart/cart';
+import {
+  CheckoutRequest,
+  ShippingOption,
+} from '@/app/api/types/member/order/order';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import Loading from '@/app/components/ui/Loading/Loading';
 import { useAuth } from '@/app/context/authContext';
+import toast from 'react-hot-toast';
 
 export default function ShoppingCartPage() {
   const router = useRouter();
@@ -26,7 +32,8 @@ export default function ShoppingCartPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [toast, setToast] = useState<{
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{
     message: string;
     isVisible: boolean;
   }>({
@@ -36,11 +43,11 @@ export default function ShoppingCartPage() {
 
   // Helper function to show toast
   const showToast = (message: string) => {
-    setToast({ message, isVisible: true });
+    setToastMessage({ message, isVisible: true });
   };
 
   const hideToast = () => {
-    setToast((prev) => ({ ...prev, isVisible: false }));
+    setToastMessage((prev) => ({ ...prev, isVisible: false }));
   };
 
   // Helper function to refresh cart data
@@ -53,6 +60,59 @@ export default function ShoppingCartPage() {
     } catch (err) {
       console.error('Failed to refresh cart data:', err);
     }
+  };
+
+  // Helper function to format date to Korean format (YY.MM.DD)
+  // Example: "2025-09-27T00:00:00" -> "25.09.27"
+  const formatKoreanDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+
+    try {
+      const date = new Date(dateString);
+      const year = date.getFullYear().toString().slice(-2); // Get last 2 digits of year
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${year}.${month}.${day}`;
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return dateString; // Return original if formatting fails
+    }
+  };
+
+  // Helper function to check if a product is expired
+  const isProductExpired = (expiryDate: string | null | undefined): boolean => {
+    if (!expiryDate) return false;
+
+    try {
+      const expiry = new Date(expiryDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day
+      return expiry < today;
+    } catch (error) {
+      console.error('Error parsing expiry date:', expiryDate, error);
+      return false;
+    }
+  };
+
+  // Helper function to filter out expired products
+  const filterExpiredProducts = (items: typeof displayCart) => {
+    const validItems = items.filter(({ product }) => {
+      if (isProductExpired(product.expiration)) {
+        console.log(
+          `Product ${product.name} is expired: ${formatKoreanDate(
+            product.expiration
+          )}`
+        );
+        return false;
+      }
+      return true;
+    });
+
+    const expiredItems = items.filter(({ product }) =>
+      isProductExpired(product.expiration)
+    );
+
+    return { validItems, expiredItems };
   };
 
   // Check authentication and redirect if not logged in
@@ -83,6 +143,7 @@ export default function ShoppingCartPage() {
                 cartItemId: item.cartItemId,
                 productId: item.product.productId,
                 productName: item.product.productName,
+                expiryDate: item.product.expiryDate,
               }))
             )
           );
@@ -341,14 +402,125 @@ export default function ShoppingCartPage() {
     }
   };
 
-  const handleOrder = (items: typeof displayCart) => {
+  const handleOrder = async (items: typeof displayCart) => {
     const selected = items.filter(
       ({ product }) =>
         product.id !== undefined && selectedItems.includes(product.id)
     );
     if (selected.length === 0) return;
-    localStorage.setItem('checkoutItems', JSON.stringify(selected));
-    router.push('/shopping-cart/delivery-payment');
+
+    // Check for expired products before proceeding
+    const { validItems, expiredItems } = filterExpiredProducts(selected);
+
+    if (expiredItems.length > 0) {
+      // Remove expired products from selected items
+      const expiredProductIds = expiredItems
+        .map(({ product }) => product.id)
+        .filter((id): id is string => id !== undefined);
+      setSelectedItems((prev) =>
+        prev.filter((id) => !expiredProductIds.includes(id))
+      );
+
+      // If no valid items left, return
+      if (validItems.length === 0) {
+        return;
+      }
+    }
+
+    setIsCheckoutLoading(true);
+    try {
+      // First, refresh cart data to ensure we have the latest product availability
+      await refreshCartData();
+
+      // Use valid items (non-expired) for checkout
+      const itemsToCheckout = validItems.length > 0 ? validItems : selected;
+
+      // Get cart item IDs for valid items
+      const cartItemIds = itemsToCheckout
+        .map(({ product }) => product.cartItemId)
+        .filter((id): id is string => id !== undefined);
+
+      if (cartItemIds.length === 0) {
+        showToast('주문할 상품을 찾을 수 없습니다');
+        return;
+      }
+
+      // Create checkout request with hardcoded values as requested
+      const checkoutRequest: CheckoutRequest = {
+        cartItemIds,
+        shippingOption: 'DELIVERY', // Hardcoded for now
+        deliveryAddress: '서울시 강남구 테헤란로 123', // Hardcoded for now
+        usePointsAmount: 0, // Hardcoded for now as mentioned in requirements
+        paymentDetails: {
+          method: 'BANK',
+          bankName: '국민은행',
+          depositorName: '홍길동',
+          receiptType: 'TAX_INVOICE',
+          issuanceType: 'TAX_INVOICE_ISSUANCE',
+          issueNumber: '1234567',
+          businessNumber: '123-45-67890',
+          businessName: '주식회사 잉키',
+          representativeName: '홍길동',
+          businessAddress: '서울시 강남구 테헤란로 123',
+          businessType: '서비스업',
+          businessCategory: '소프트웨어 개발',
+          businessEmail: 'business@petsave.com',
+        },
+      };
+
+      // Call the checkout API
+      const response = await orderService.checkoutCart(checkoutRequest);
+
+      if (!response.error && response.data?.success) {
+        // Store order data for delivery payment page (in case needed for display)
+        localStorage.setItem('checkoutItems', JSON.stringify(itemsToCheckout));
+
+        toast.success('주문이 생성되었습니다. 결제 페이지로 이동합니다.', {
+          style: { background: '#66bfa7' },
+          iconTheme: { primary: '#66bfa7', secondary: '#fff' },
+        });
+
+        // Navigate to delivery payment page
+        router.push('/shopping-cart/delivery-payment');
+      } else if (
+        response.error === 'Authentication required' ||
+        response.error === 'No refresh token available'
+      ) {
+        // Don't show error toast - user is being redirected to login
+        return;
+      } else {
+        // Handle API response errors (like product not available)
+        const errorMessage =
+          response.data?.resultMsg || response.error || '알 수 없는 오류';
+        toast.error('주문 생성 실패: ' + errorMessage);
+
+        // If the error is about product availability, refresh cart to remove unavailable items
+        if (
+          response.data?.resultMsg?.includes('구매할 수 없습니다') ||
+          response.data?.resultMsg?.includes('상품은 현재')
+        ) {
+          console.log(
+            'Product availability issue detected, refreshing cart...'
+          );
+          await refreshCartData();
+        }
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      // Don't show error toast for authentication errors - user is being redirected
+      if (
+        err instanceof Error &&
+        (err.message.includes('No refresh token available') ||
+          err.message.includes('401') ||
+          err.message.includes('Unauthorized'))
+      ) {
+        return;
+      } else {
+        toast.error('네트워크 오류로 주문 생성 실패');
+      }
+    } finally {
+      setIsCheckoutLoading(false);
+    }
   };
 
   // calculate per-store summary safely
@@ -358,7 +530,12 @@ export default function ShoppingCartPage() {
     let final = 0;
 
     items.forEach(({ product, quantity }) => {
-      if (product.id === undefined || !selectedItems.includes(product.id))
+      // Only include non-expired products that are selected
+      if (
+        product.id === undefined ||
+        !selectedItems.includes(product.id) ||
+        isProductExpired(product.expiration)
+      )
         return;
 
       const base = num(product.price);
@@ -425,22 +602,25 @@ export default function ShoppingCartPage() {
         const { original, discount, final } = calcStoreSummary(items);
         const hasSelection = final > 0;
 
-        const storeItemProductIds = items
+        // Only consider non-expired products for select all functionality
+        const validStoreItemProductIds = items
+          .filter(({ product }) => !isProductExpired(product.expiration))
           .map(({ product }) => product.id)
           .filter((id): id is string => id !== undefined);
-        const isAllSelected = storeItemProductIds.every((id) =>
-          selectedItems.includes(id)
-        );
+
+        const isAllSelected =
+          validStoreItemProductIds.length > 0 &&
+          validStoreItemProductIds.every((id) => selectedItems.includes(id));
 
         const toggleSelectAllInStore = () => {
           if (isAllSelected) {
             setSelectedItems((prev) =>
-              prev.filter((id) => !storeItemProductIds.includes(id))
+              prev.filter((id) => !validStoreItemProductIds.includes(id))
             );
           } else {
             setSelectedItems((prev) => [
               ...prev,
-              ...storeItemProductIds.filter((id) => !prev.includes(id)),
+              ...validStoreItemProductIds.filter((id) => !prev.includes(id)),
             ]);
           }
         };
@@ -470,10 +650,14 @@ export default function ShoppingCartPage() {
 
               <button
                 onClick={() => {
-                  const productIds = items
+                  // Only include non-expired products in batch delete
+                  const validItems = items.filter(
+                    ({ product }) => !isProductExpired(product.expiration)
+                  );
+                  const productIds = validItems
                     .map(({ product }) => product.id)
                     .filter((id): id is string => id !== undefined);
-                  const cartItemIds = items
+                  const cartItemIds = validItems
                     .map(({ product }) => product.cartItemId)
                     .filter((id): id is string => id !== undefined);
 
@@ -499,7 +683,14 @@ export default function ShoppingCartPage() {
                   : null;
 
               return (
-                <div key={product.cartItemId} className={styles.item}>
+                <div
+                  key={product.cartItemId}
+                  className={`${styles.item} ${
+                    isProductExpired(product.expiration)
+                      ? styles.expiredItem
+                      : ''
+                  }`}
+                >
                   <div>
                     <input
                       type="checkbox"
@@ -511,6 +702,7 @@ export default function ShoppingCartPage() {
                         product.id !== undefined && toggleSelectItem(product.id)
                       }
                       className={styles.checkbox}
+                      disabled={isProductExpired(product.expiration)}
                     />
                   </div>
                   <div className={styles.left}>
@@ -530,7 +722,18 @@ export default function ShoppingCartPage() {
                     <div className={styles.info}>
                       <h3>{product.name}</h3>
                       <p>{product.shopName}</p>
-                      {product.expiration && <p>{product.expiration}까지</p>}
+                      {product.expiration && (
+                        <p
+                          className={
+                            isProductExpired(product.expiration)
+                              ? styles.expiredDate
+                              : ''
+                          }
+                        >
+                          {formatKoreanDate(product.expiration)}까지
+                          {isProductExpired(product.expiration) && ' (만료됨)'}
+                        </p>
+                      )}
                     </div>
 
                     <div className={styles.priceSection}>
@@ -642,21 +845,24 @@ export default function ShoppingCartPage() {
                 <span>{final.toLocaleString()}원</span>
               </div>
               <button
-                disabled={!hasSelection}
+                disabled={!hasSelection || isCheckoutLoading}
                 onClick={() => handleOrder(items)}
                 className={
-                  !hasSelection ? styles.disabledButton : styles.enabledButton
+                  !hasSelection || isCheckoutLoading
+                    ? styles.disabledButton
+                    : styles.enabledButton
                 }
               >
-                총{' '}
-                {
-                  items.filter(
-                    ({ product }) =>
-                      product.id !== undefined &&
-                      selectedItems.includes(product.id)
-                  ).length
-                }
-                건 주문하기
+                {isCheckoutLoading
+                  ? '주문 처리 중...'
+                  : `총 ${
+                      items.filter(
+                        ({ product }) =>
+                          product.id !== undefined &&
+                          selectedItems.includes(product.id) &&
+                          !isProductExpired(product.expiration)
+                      ).length
+                    }건 주문하기`}
               </button>
             </div>
           </div>
@@ -670,15 +876,24 @@ export default function ShoppingCartPage() {
           <p>{globalSummary.final.toLocaleString()}원</p>
         </div>
         <button
-          disabled={selectedItems.length === 0}
+          disabled={selectedItems.length === 0 || isCheckoutLoading}
           onClick={() => handleOrder(displayCart)}
           className={
-            selectedItems.length === 0
+            selectedItems.length === 0 || isCheckoutLoading
               ? styles.disabledButton
               : styles.enabledButton
           }
         >
-          총 {selectedItems.length}건 주문하기
+          {isCheckoutLoading
+            ? '주문 처리 중...'
+            : `총 ${
+                displayCart.filter(
+                  ({ product }) =>
+                    product.id !== undefined &&
+                    selectedItems.includes(product.id) &&
+                    !isProductExpired(product.expiration)
+                ).length
+              }건 주문하기`}
         </button>
       </div>
 
@@ -710,9 +925,9 @@ export default function ShoppingCartPage() {
       />
 
       {/* Custom Toast Message */}
-      {toast.isVisible && (
+      {toastMessage.isVisible && (
         <ToastMessage
-          message={toast.message}
+          message={toastMessage.message}
           onClose={hideToast}
           duration={1500}
         />

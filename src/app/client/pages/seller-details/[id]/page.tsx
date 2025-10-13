@@ -128,7 +128,7 @@ export default function SellerDetailsPage() {
               수정하기
             </button>
           ) : (
-            <DotMenu />
+            <DotMenu storeId={storeId} storeName={store.businessName} />
           )}
 
           {profileImage && (

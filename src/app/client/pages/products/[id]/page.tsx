@@ -70,7 +70,11 @@ export default function ProductDetailPage() {
   return (
     <section className={styles.container}>
       <ProductHeader />
-      <ProductImage src={product.thumbnail} alt={product.productName} />
+      <ProductImage
+        src={product.thumbnail}
+        alt={product.productName}
+        product={product}
+      />
       <ShopInfo
         shopName={product.store.name}
         shopLocation={product.store.address}
