@@ -49,6 +49,7 @@ export default function ProductDetails() {
       <ProductImage
         src={product.thumbnail || ''}
         alt={product.productName || ''}
+        product={product}
       />
       <ShopInfo
         shopName={product.store.name || ''}

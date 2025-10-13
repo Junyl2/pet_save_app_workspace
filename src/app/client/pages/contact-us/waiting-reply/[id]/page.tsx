@@ -142,7 +142,6 @@ export default function DeleteInquiryPage() {
   return (
     <>
       <ProductHeader />
-
       <div className={styles.container}>
         {/* User profile */}
         <div className={styles.userProfile}>

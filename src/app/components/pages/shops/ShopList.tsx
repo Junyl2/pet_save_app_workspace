@@ -35,19 +35,48 @@ export default function ShopList() {
 
   // Function to get current location and search nearby stores
   const handleCurrentLocationSearch = async () => {
+    console.log('🔘 Button clicked! Starting location search...');
     setLocationLoading(true);
     setLocationError(null);
     setNearbyStores(null);
 
     try {
-      console.log('📍 Getting current location and searching nearby stores...');
+      console.log('📍 Testing basic geolocation...');
+      if (!navigator.geolocation) {
+        setLocationError('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+        return;
+      }
 
-      // First, try to get current location
+      console.log('📍 Requesting location...');
+
+      // Get current location
       const locationResult = await StoreService.getCurrentLocation();
 
       if (locationResult.error) {
         console.error('❌ Location access failed:', locationResult.error);
-        setLocationError(locationResult.error);
+        let errorMessage: string;
+
+        switch (locationResult.error) {
+          case 'PERMISSION_DENIED':
+            errorMessage =
+              '위치 접근 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.';
+            break;
+          case 'POSITION_UNAVAILABLE':
+            errorMessage =
+              '위치 정보를 가져올 수 없습니다. GPS가 활성화되어 있는지 확인해주세요.';
+            break;
+          case 'TIMEOUT':
+            errorMessage =
+              '위치 정보 요청 시간이 초과되었습니다. 다시 시도해주세요.';
+            break;
+          case 'UNKNOWN_ERROR':
+            errorMessage = '알 수 없는 오류가 발생했습니다. 다시 시도해주세요.';
+            break;
+          default:
+            errorMessage = '위치 정보를 가져오는 중 오류가 발생했습니다.';
+        }
+
+        setLocationError(errorMessage);
         return;
       }
 
@@ -95,44 +124,12 @@ export default function ShopList() {
     fetchShops();
   }, []);
 
-  // Check location permission status when component mounts
+  // Check if geolocation is supported when component mounts
   useEffect(() => {
-    const checkLocationPermission = async () => {
-      try {
-        // Check if geolocation is supported
-        if (!navigator.geolocation) {
-          console.log('📍 Geolocation is not supported by this browser');
-          setLocationError('이 브라우저는 위치 서비스를 지원하지 않습니다.');
-          return;
-        }
-
-        // Check if we already have permission by trying to get current position
-        // This will trigger the permission dialog if not already granted
-        console.log('📍 Checking location permission...');
-        const locationResult = await StoreService.getCurrentLocation();
-
-        if (locationResult.data) {
-          console.log(
-            '✅ Location permission already granted, coordinates:',
-            locationResult.data
-          );
-          setCurrentLocation(locationResult.data);
-        } else if (locationResult.error === 'PERMISSION_DENIED') {
-          console.log('📍 Location permission denied by user');
-          setLocationError(
-            '위치 접근 권한이 필요합니다. "현재위치로 찾기" 버튼을 클릭하여 권한을 허용해주세요.'
-          );
-        } else {
-          console.log('📍 Location error:', locationResult.error);
-          setLocationError('위치 정보를 가져올 수 없습니다.');
-        }
-      } catch (error) {
-        console.error('💥 Location permission check error:', error);
-        setLocationError('위치 서비스 확인 중 오류가 발생했습니다.');
-      }
-    };
-
-    checkLocationPermission();
+    if (!navigator.geolocation) {
+      console.log('📍 Geolocation is not supported by this browser');
+      setLocationError('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+    }
   }, []);
 
   const filteredShops = useMemo(() => {
@@ -184,38 +181,23 @@ export default function ShopList() {
     <>
       <TopBar onSearch={handleSearch} />
 
-      {/* Location Permission Request Banner */}
-      {!currentLocation && !locationLoading && (
+      {/* Location Error Banner - Only show if there's an error */}
+      {locationError && (
         <div
           style={{
             padding: '15px',
-            backgroundColor: '#e3f2fd',
-            border: '1px solid #2196f3',
+            backgroundColor: '#f8d7da',
+            border: '1px solid #f5c6cb',
             borderRadius: '8px',
             margin: '10px',
             textAlign: 'center',
           }}
         >
           <p
-            style={{ margin: '0 0 10px 0', color: '#1976d2', fontSize: '14px' }}
+            style={{ margin: '0 0 10px 0', color: '#721c24', fontSize: '14px' }}
           >
-            📍 주변 상점을 찾기 위해 위치 접근 권한이 필요합니다
+            ❌ {locationError}
           </p>
-          <button
-            onClick={handleCurrentLocationSearch}
-            disabled={locationLoading}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#2196f3',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: locationLoading ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
-            }}
-          >
-            {locationLoading ? '위치 검색 중...' : '위치 권한 허용하기'}
-          </button>
         </div>
       )}
 
@@ -223,13 +205,32 @@ export default function ShopList() {
         className={styles.currentBtn}
         onClick={handleCurrentLocationSearch}
         disabled={locationLoading}
+        style={{
+          cursor: locationLoading ? 'not-allowed' : 'pointer',
+          opacity: locationLoading ? 0.6 : 1,
+          backgroundColor: '#66bfa7',
+          color: 'white',
+          padding: '12px 20px',
+          border: 'none',
+          borderRadius: '6px',
+          fontSize: '14px',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          width: '100%',
+          margin: '10px 0',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          transition: 'all 0.2s ease',
+        }}
       >
         <Image
           src="/images/icons/mage_location.png"
           alt="Location Icon"
           height={16}
           width={16}
-          className="object-contain"
+          style={{ objectFit: 'contain' }}
         />
         {locationLoading ? '위치 검색 중...' : '현재위치로 찾기'}
       </button>
