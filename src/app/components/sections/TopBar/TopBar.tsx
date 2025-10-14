@@ -335,7 +335,10 @@ export default function TopBar({ onSearch }: TopBarProps) {
       <div className={styles.inner}>
         {/* Logo / Back / Location */}
         <div className={styles.logoWrapper}>
-          {pathname === '/client/pages/homepage' ? (
+          {pathname === '/client/pages/homepage' ||
+          pathname ===
+            '/client/seller/pages/seller-product-list/refund-request' ||
+          pathname === '/client/seller/pages/seller-product-list' ? (
             isLoggedIn ? (
               <div
                 className={styles.userLocation}
@@ -370,7 +373,10 @@ export default function TopBar({ onSearch }: TopBarProps) {
       {/* Search */}
 
       {pathname !== PAGE_URLS.SHOPPING_CART &&
-        pathname !== PAGE_URLS.ORDER_CONFIRMATION && (
+        pathname !== PAGE_URLS.ORDER_CONFIRMATION &&
+        pathname !==
+          '/client/seller/pages/seller-product-list/refund-request' &&
+        pathname !== '/client/seller/pages/seller-product-list' && (
           <div className={styles.searchWrapper}>
             <form onSubmit={handleSubmit} className={styles.searchForm}>
               <button

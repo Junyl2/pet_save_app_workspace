@@ -235,7 +235,18 @@ export default function DeliveryPaymentPage() {
         canPay={canPay}
       />
 
-      <PayButton totalDue={totalDue} canPay={canPay} handlePay={handlePay} />
+      <PayButton
+        totalDue={totalDue}
+        canPay={canPay}
+        handlePay={handlePay}
+        orderItems={orderItems}
+        deliveryOption={deliveryOption}
+        usePoints={usePoints}
+        paymentMethod={{
+          payCategory,
+          quickBrand,
+        }}
+      />
     </div>
   );
 }

@@ -5,11 +5,7 @@ import { FiPlus, FiMinus, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import styles from './ProductDrawer.module.css';
 import { cartService } from '@/app/api/services/client/cartService/cartService';
-import { orderService } from '@/app/api/services/client/memberService/order/orderService';
-import {
-  DirectOrderRequest,
-  ShippingOption,
-} from '@/app/api/types/member/order/order';
+import { ShippingOption } from '@/app/api/types/member/order/order';
 import toast from 'react-hot-toast';
 import { useCart } from '@/app/context/cartContext';
 import { useUser } from '@/app/context/userContext';
@@ -29,6 +25,7 @@ interface ProductDrawerProps {
   setQuantity: (q: number) => void;
   onClose: () => void;
   onAddToCart?: (quantity: number, productName: string) => void;
+  mode?: 'buy' | 'cart'; // 'buy' for buy now, 'cart' for add to cart
 }
 
 type DeliveryOption = '배송' | '픽업';
@@ -45,6 +42,7 @@ export const ProductDrawer = ({
   setQuantity,
   onClose,
   onAddToCart,
+  mode = 'buy', // Default to buy mode
 }: ProductDrawerProps) => {
   const drawerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
@@ -131,96 +129,46 @@ export const ProductDrawer = ({
   const handleBuyNow = async () => {
     setLoading(true);
     try {
-      // Create direct order request
-      const directOrderRequest: DirectOrderRequest = {
-        productId: String(product.id),
-        quantity,
-        shippingOption: convertDeliveryOption(deliveryOption),
-        deliveryAddress:
-          deliveryOption === '배송' ? '서울시 강남구 테헤란로 123' : undefined, // Hardcoded for now
-        usePointsAmount: 0, // Hardcoded for now as mentioned in requirements
-        paymentDetails: {
-          method: 'BANK',
-          bankName: '국민은행',
-          depositorName: '홍길동',
-          receiptType: 'TAX_INVOICE',
-          issuanceType: 'TAX_INVOICE_ISSUANCE',
-          issueNumber: '1234567',
-          businessNumber: '123-45-67890',
-          businessName: '주식회사 잉키',
-          representativeName: '홍길동',
-          businessAddress: '서울시 강남구 테헤란로 123',
-          businessType: '서비스업',
-          businessCategory: '소프트웨어 개발',
-          businessEmail: 'business@petsave.com',
-        },
-      };
-
-      // Call the direct order API
-      const res = await orderService.createDirectOrder(directOrderRequest);
-
-      if (!res.error && res.data?.success) {
-        // Prepare order data for delivery payment page
-        const orderData = [
-          {
-            product: {
-              id:
-                typeof product.id === 'number'
-                  ? product.id
-                  : parseInt(String(product.id)),
-              name: product.name,
-              price: rawPrice,
-              discountPrice: null,
-              brand: 'Pet Save',
-              image: '/images/products/dog-snack.png', // Default image
-            },
-            quantity,
+      // Prepare order data for delivery payment page (direct purchase)
+      const orderData = [
+        {
+          product: {
+            id:
+              typeof product.id === 'number'
+                ? product.id
+                : parseInt(String(product.id)),
+            name: product.name,
+            price: rawPrice,
+            discountPrice: null,
+            brand: 'Pet Save',
+            image: '/images/products/dog-snack.png', // Default image
           },
-        ];
+          quantity,
+          // Mark this as a direct purchase (not from cart)
+          isDirectPurchase: true,
+          productId: String(product.id),
+        },
+      ];
 
-        // Store order data in localStorage for delivery payment page
-        localStorage.setItem('checkoutItems', JSON.stringify(orderData));
+      // Store order data in localStorage for delivery payment page
+      localStorage.setItem('checkoutItems', JSON.stringify(orderData));
 
-        // Store delivery option for the payment page
-        localStorage.setItem(
-          'selectedDeliveryOption',
-          deliveryOption === '배송' ? 'delivery' : 'pickup'
-        );
+      // Store delivery option for the payment page
+      localStorage.setItem(
+        'selectedDeliveryOption',
+        deliveryOption === '배송' ? 'delivery' : 'pickup'
+      );
 
-        toast.success('주문이 생성되었습니다. 결제 페이지로 이동합니다.', {
-          style: { background: '#66bfa7' },
-          iconTheme: { primary: '#66bfa7', secondary: '#fff' },
-        });
+      // Store that this is a direct purchase
+      localStorage.setItem('isDirectPurchase', 'true');
 
-        onClose();
+      onClose();
 
-        // Navigate to delivery payment page
-        router.push(PAGE_URLS.DELIVERY_PAYMENT);
-      } else if (
-        res.error === 'Authentication required' ||
-        res.error === 'No refresh token available'
-      ) {
-        // Don't show error toast - user is being redirected to login
-        onClose();
-      } else {
-        // Handle API response errors (like product not available)
-        const errorMessage =
-          res.data?.resultMsg || res.error || '알 수 없는 오류';
-        toast.error('주문 생성 실패: ' + errorMessage);
-      }
+      // Navigate to delivery payment page
+      router.push(PAGE_URLS.DELIVERY_PAYMENT);
     } catch (err) {
       console.error(err);
-      // Don't show error toast for authentication errors - user is being redirected
-      if (
-        err instanceof Error &&
-        (err.message.includes('No refresh token available') ||
-          err.message.includes('401') ||
-          err.message.includes('Unauthorized'))
-      ) {
-        onClose();
-      } else {
-        toast.error('네트워크 오류로 주문 생성 실패');
-      }
+      toast.error('주문 페이지로 이동 중 오류가 발생했습니다');
     } finally {
       setLoading(false);
     }
@@ -264,53 +212,71 @@ export const ProductDrawer = ({
 
         <div className={styles.divider}></div>
 
-        {/* Delivery Option */}
-        <div className={styles.deliveryOption}>
-          <button
-            className={styles.dropdownBtn}
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            disabled={loading}
-          >
-            배송 옵션 선택
-            {dropdownOpen ? (
-              <FiChevronUp size={18} className={styles.chevronIcon} />
-            ) : (
-              <FiChevronDown size={18} className={styles.chevronIcon} />
-            )}
-          </button>
+        {/* Delivery Option - Only show for buy mode */}
+        {mode === 'buy' && (
+          <>
+            <div className={styles.deliveryOption}>
+              <button
+                className={styles.dropdownBtn}
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                disabled={loading}
+              >
+                배송 옵션 선택
+                {dropdownOpen ? (
+                  <FiChevronUp size={18} className={styles.chevronIcon} />
+                ) : (
+                  <FiChevronDown size={18} className={styles.chevronIcon} />
+                )}
+              </button>
 
-          {dropdownOpen && (
-            <div className={styles.dropdownList}>
-              {(['배송', '픽업'] as DeliveryOption[]).map((option) => (
-                <label key={option} className={styles.dropdownItem}>
-                  <input
-                    type="checkbox"
-                    checked={deliveryOption === option}
-                    onChange={() => setDeliveryOption(option)}
-                    className={styles.checkbox}
-                  />
-                  <span className={styles.checkboxLabel}>{option}</span>
-                </label>
-              ))}
+              {dropdownOpen && (
+                <div className={styles.dropdownList}>
+                  {(['배송', '픽업'] as DeliveryOption[]).map((option) => (
+                    <label key={option} className={styles.dropdownItem}>
+                      <input
+                        type="checkbox"
+                        checked={deliveryOption === option}
+                        onChange={() => setDeliveryOption(option)}
+                        className={styles.checkbox}
+                      />
+                      <span className={styles.checkboxLabel}>{option}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div className={styles.divider}></div>
+            <div className={styles.divider}></div>
+          </>
+        )}
 
-        {/* Buy Now Button */}
+        {/* Action Buttons */}
         <div className={styles.addBtnWrapper}>
-          <button
-            className={styles.addBtn}
-            onClick={handleBuyNow}
-            disabled={loading || !!isOwnProduct}
-          >
-            {loading
-              ? '구매 중...'
-              : isOwnProduct
-              ? '본인 상품은 구매할 수 없습니다'
-              : '바로 구매'}
-          </button>
+          {mode === 'buy' ? (
+            <button
+              className={styles.addBtn}
+              onClick={handleBuyNow}
+              disabled={loading || !!isOwnProduct}
+            >
+              {loading
+                ? '구매 중...'
+                : isOwnProduct
+                ? '본인 상품은 구매할 수 없습니다'
+                : '바로 구매'}
+            </button>
+          ) : (
+            <button
+              className={styles.addBtn}
+              onClick={handleAddToCart}
+              disabled={loading || !!isOwnProduct}
+            >
+              {loading
+                ? '담는 중...'
+                : isOwnProduct
+                ? '본인 상품은 구매할 수 없습니다'
+                : '장바구니 담기'}
+            </button>
+          )}
         </div>
       </div>
     </div>
