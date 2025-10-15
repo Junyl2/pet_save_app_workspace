@@ -8,6 +8,7 @@ export interface ReviewCreateDto {
 
 // Review search parameters
 export interface ReviewSearchParams {
+  productId?: string;
   minRating?: number;
   maxRating?: number;
   page?: number; // Default: 0
@@ -18,15 +19,27 @@ export interface ReviewSearchParams {
 
 // Review response data
 export interface Review {
-  id: string;
-  productId: string;
-  productName: string;
+  reviewId: string;
+  product: {
+    productId: string;
+    productName: string;
+    productNumber: string;
+    productThumbnail: string;
+    quantity: number;
+    category: string[];
+    salePrice: number;
+    discountedPrice: number;
+    expiryDate: string;
+  };
+  reviewer: {
+    memberId: string;
+    name: string;
+    profileImageUrl: string | null;
+  };
   rating: number;
   content: string;
-  imageFileIds: string[];
-  userId: string;
-  username: string;
-  profileImage?: string;
+  productName: string;
+  imageUrls: string[];
   createdAt: string;
   updatedAt: string;
 }

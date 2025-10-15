@@ -56,12 +56,15 @@
   color: #f5a623; /* star color */
   margin: 0;
 }
-
+.productName {
+  margin: 0;
+}
 /* Review content */
 .content {
   font-size: 14px;
   color: #333;
   line-height: 1.4;
+  margin: 0;
 }
 /* images */
 .images {
@@ -104,7 +107,6 @@
 
 .authorDate {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 0.2rem;
 }

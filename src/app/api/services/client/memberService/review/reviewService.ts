@@ -25,6 +25,9 @@ export class ReviewService {
   ): Promise<ApiResponse<ReviewSearchResponse>> {
     const queryParams = new URLSearchParams();
 
+    if (params?.productId) {
+      queryParams.append('productId', params.productId);
+    }
     if (params?.minRating !== undefined) {
       queryParams.append('minRating', params.minRating.toString());
     }
@@ -47,6 +50,32 @@ export class ReviewService {
     const url = `/reviews${
       queryParams.toString() ? `?${queryParams.toString()}` : ''
     }`;
-    return apiClient.get<ReviewSearchResponse>(url);
+
+    const response = await apiClient.get<{
+      success: boolean;
+      status: number;
+      resultMsg: string;
+      divisionCode: string | null;
+      data: ReviewSearchResponse;
+    }>(url);
+
+    if (response.error) {
+      return { data: null, error: response.error };
+    }
+
+    // Handle the wrapped API response structure
+    const apiResponse = response.data;
+    if (!apiResponse?.success) {
+      return {
+        data: null,
+        error: apiResponse?.resultMsg || 'Failed to fetch reviews',
+      };
+    }
+
+    // Return the actual data from the nested structure
+    return {
+      data: apiResponse.data,
+      error: undefined,
+    };
   }
 }

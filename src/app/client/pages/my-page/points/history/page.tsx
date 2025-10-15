@@ -1,5 +1,8 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
+import { PointsService } from '@/app/api/services/client/memberService/points/pointsService';
+import { PointsTransaction as ApiPointsTransaction } from '@/app/api/types/member/points/points';
 import styles from './PointsHistory.module.css';
 
 interface PointTransaction {
@@ -14,90 +17,100 @@ interface PointTransaction {
 }
 
 export default function PointsHistoryPage() {
-  const pointHistory: PointTransaction[] = [
-    {
-      id: 1,
-      date: '2025.07.30',
-      type: 'earned',
-      description: '구매확정',
-      amount: 100,
-      expiryDate: '2026.07.30 소멸',
-      subtitle: '로얄캐닌 강아지 사료 1kg',
-    },
-    {
-      id: 2,
-      date: '2025.07.22',
-      type: 'earned',
-      description: '리뷰작성',
-      amount: 50,
-      expiryDate: '2026.07.22 소멸',
-      subtitle: 'ANF 유기농 6Free 연어 강아지 사료',
-    },
-    {
-      id: 3,
-      date: '2025.07.15',
-      type: 'used',
-      description: '포인트 사용',
-      amount: -2500,
-      status: '사용 완료',
-      subtitle: '배송비 결제',
-    },
-    // Duplicate entries to show more history
-    {
-      id: 4,
-      date: '2025.07.30',
-      type: 'earned',
-      description: '구매확정',
-      amount: 100,
-      expiryDate: '2026.07.30 소멸',
-      subtitle: '로얄캐닌 강아지 사료 1kg',
-    },
-    {
-      id: 5,
-      date: '2025.07.22',
-      type: 'earned',
-      description: '리뷰작성',
-      amount: 50,
-      expiryDate: '2026.07.22 소멸',
-      subtitle: 'ANF 유기농 6Free 연어 강아지 사료',
-    },
-    {
-      id: 6,
-      date: '2025.07.15',
-      type: 'used',
-      description: '포인트 사용',
-      amount: -2500,
-      status: '사용 완료',
-      subtitle: '배송비 결제',
-    },
-    {
-      id: 7,
-      date: '2025.07.30',
-      type: 'earned',
-      description: '구매확정',
-      amount: 100,
-      expiryDate: '2026.07.30 소멸',
-      subtitle: '로얄캐닌 강아지 사료 1kg',
-    },
-    {
-      id: 8,
-      date: '2025.07.22',
-      type: 'earned',
-      description: '리뷰작성',
-      amount: 50,
-      expiryDate: '2026.07.22 소멸',
-      subtitle: 'ANF 유기농 6Free 연어 강아지 사료',
-    },
-    {
-      id: 9,
-      date: '2025.07.15',
-      type: 'used',
-      description: '포인트 사용',
-      amount: -2500,
-      status: '사용 완료',
-      subtitle: '배송비 결제',
-    },
-  ];
+  const [pointHistory, setPointHistory] = useState<PointTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expiringPoints, setExpiringPoints] = useState(0);
+
+  useEffect(() => {
+    const fetchPointsHistory = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch points stats for current points and expiring points calculation
+        const statsResponse = await PointsService.getPointsStats();
+        if (statsResponse.data) {
+          // For now, we'll calculate expiring points from history
+          // In the future, this could be a separate API endpoint
+        }
+
+        // Fetch points history for the list and expiring calculation
+        const response = await PointsService.getPointsHistory({ size: 50 });
+
+        if (
+          response.data &&
+          response.data.success &&
+          response.data.data &&
+          response.data.data.content
+        ) {
+          // Calculate expiring points (within 7 days)
+          const sevenDaysFromNow = new Date();
+          sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+          const expiringAmount = response.data.data.content
+            .filter(
+              (transaction) =>
+                transaction.type === 'EARNED' &&
+                new Date(transaction.expiryDate) <= sevenDaysFromNow
+            )
+            .reduce((sum, transaction) => sum + transaction.amount, 0);
+
+          setExpiringPoints(expiringAmount);
+
+          // Transform API data to match existing UI structure
+          const transformedHistory: PointTransaction[] =
+            response.data.data.content.map((transaction, index) => ({
+              id: index + 1,
+              date: new Date(transaction.createdAt)
+                .toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                })
+                .replace(/\./g, '.')
+                .replace(/\s/g, ''),
+              type: transaction.type === 'EARNED' ? 'earned' : 'used',
+              description: transaction.title,
+              amount:
+                transaction.type === 'EARNED'
+                  ? transaction.amount
+                  : -transaction.amount,
+              expiryDate:
+                transaction.type === 'EARNED'
+                  ? `${new Date(transaction.expiryDate)
+                      .toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                      })
+                      .replace(/\./g, '.')
+                      .replace(/\s/g, '')} 소멸`
+                  : undefined,
+              status: transaction.type === 'USED' ? '사용 완료' : undefined,
+              subtitle:
+                transaction.product?.productName ||
+                (transaction.type === 'USED' ? '포인트 사용' : '포인트 적립'),
+            }));
+
+          setPointHistory(transformedHistory);
+        } else {
+          console.error('History API response error:', response.error);
+          console.error('History API response data:', response.data);
+          // No fallback data - keep empty arrays
+          setPointHistory([]);
+          setExpiringPoints(0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch points history:', error);
+        // No fallback data - keep empty arrays
+        setPointHistory([]);
+        setExpiringPoints(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPointsHistory();
+  }, []);
 
   return (
     <>
@@ -107,7 +120,9 @@ export default function PointsHistoryPage() {
         {/* Period Filter */}
         <div className={styles.filterSection}>
           <span className={styles.filterLabel}>7일 이내 소멸 예정</span>
-          <span className={styles.filterValue}>0원</span>
+          <span className={styles.filterValue}>
+            {expiringPoints.toLocaleString()}원
+          </span>
         </div>
         <div className={styles.divider}></div>
 
