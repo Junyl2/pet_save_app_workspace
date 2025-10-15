@@ -265,7 +265,7 @@ export default function SellerProductListPage() {
       <div className={styles.pageWrap}>
         {/* Top Tab Header (상품 리스트 / 반품/교환 요청) */}
         <div
-          style={{
+          /*    style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -274,39 +274,44 @@ export default function SellerProductListPage() {
             backgroundColor: '#ffffff',
             borderBottom: '1px solid rgba(0,0,0,0.1)',
             boxSizing: 'border-box',
-          }}
+          }} */
+          className={styles.topBarLabel}
         >
-          <Link
-            href="/client/seller/pages/seller-product-list"
-            style={{
-              color:
-                pathname === '/client/seller/pages/seller-product-list'
-                  ? 'rgb(102, 191, 167)'
-                  : 'rgba(0,0,0,0.6)',
-              fontSize: 14,
-              lineHeight: '16px',
-              fontWeight: 500,
-              textDecoration: 'none',
-            }}
-          >
-            상품 리스트
-          </Link>
-          <Link
-            href="/client/seller/pages/seller-product-list/refund-request"
-            style={{
-              color:
-                pathname ===
-                '/client/seller/pages/seller-product-list/refund-request'
-                  ? 'rgb(102, 191, 167)'
-                  : 'rgba(0,0,0,0.6)',
-              fontSize: 14,
-              lineHeight: '16px',
-              fontWeight: 500,
-              textDecoration: 'none',
-            }}
-          >
-            반품/교환 요청
-          </Link>
+          <div>
+            <Link
+              href="/client/seller/pages/seller-product-list"
+              style={{
+                color:
+                  pathname === '/client/seller/pages/seller-product-list'
+                    ? 'rgb(102, 191, 167)'
+                    : 'rgba(0,0,0,0.6)',
+                fontSize: 14,
+                lineHeight: '16px',
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
+              상품 리스트
+            </Link>
+          </div>
+          <div>
+            <Link
+              href="/client/seller/pages/seller-product-list/refund-request"
+              style={{
+                color:
+                  pathname ===
+                  '/client/seller/pages/seller-product-list/refund-request'
+                    ? 'rgb(102, 191, 167)'
+                    : 'rgba(0,0,0,0.6)',
+                fontSize: 14,
+                lineHeight: '16px',
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
+              반품/교환 요청
+            </Link>
+          </div>
         </div>
 
         <div className={styles.summaryRow}>

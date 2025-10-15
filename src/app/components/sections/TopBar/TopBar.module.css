@@ -11,6 +11,18 @@
   box-sizing: border-box;
   z-index: 1500;
 }
+.sellerTopBar {
+  background: #fff;
+  /* margin-left: -1rem;
+  margin-right: -1rem; */
+  padding-bottom: 0.5rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 1500;
+}
 .shoppingCartTopbar {
   background: #fff;
   /*  border-bottom: 1px solid #e5e7eb; */
@@ -64,7 +76,8 @@
 @media (min-width: 1025px) {
   .topbar,
   .shopTopBar,
-  .shoppingCartTopbar {
+  .shoppingCartTopbar,
+  .sellerTopBar {
     max-width: 468px;
     left: 50%;
     transform: translateX(-50%);

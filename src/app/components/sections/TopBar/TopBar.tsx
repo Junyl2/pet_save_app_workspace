@@ -329,6 +329,11 @@ export default function TopBar({ onSearch }: TopBarProps) {
           ? styles.shopTopBar
           : pathname === '/shopping-cart'
           ? styles.shoppingCartTopbar
+          : pathname === '/client/seller/pages/seller-product-list'
+          ? styles.sellerTopBar
+          : pathname ===
+            '/client/seller/pages/seller-product-list/refund-request'
+          ? styles.sellerTopBar
           : styles.topbar
       }
     >
