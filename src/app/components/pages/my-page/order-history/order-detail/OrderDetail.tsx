@@ -200,6 +200,17 @@ export default function OrderDetail() {
     setIsExchangeRefundOpen(false);
   };
 
+  const handleWriteReview = () => {
+    // Navigate to write review page with the first product's ID
+    // Note: If there are multiple products in the order, this will use the first one
+    // In a future enhancement, you could show a product selection modal
+    if (orderItems.length > 0) {
+      router.push(
+        `/client/pages/my-page/reviews/write?productId=${orderItems[0].productId}`
+      );
+    }
+  };
+
   const renderActions = (status: string) => {
     switch (status) {
       case 'PAID':
@@ -243,7 +254,25 @@ export default function OrderDetail() {
         );
 
       case 'DELIVERY_STARTED':
+        return (
+          <button
+            onClick={handleTrackDelivery}
+            className={styles.secondaryButton}
+          >
+            배송 조회
+          </button>
+        );
+
       case 'PREPARING':
+        return (
+          <button
+            onClick={handleTrackDelivery}
+            className={styles.secondaryButton}
+          >
+            배송 조회
+          </button>
+        );
+
       case 'CANCELLED':
       case 'REFUNDED':
       default:
@@ -373,7 +402,9 @@ export default function OrderDetail() {
       {/* Extra Actions */}
       <div className={styles.actionsSection}>
         <div className={styles.additionalActions}>
-          <button className={styles.actionButton}>리뷰 쓰기</button>
+          <button className={styles.actionButton} onClick={handleWriteReview}>
+            리뷰 쓰기
+          </button>
           <button className={styles.actionButton}>문의하기</button>
           <button className={styles.actionButton}>주문내역 삭제</button>
         </div>
