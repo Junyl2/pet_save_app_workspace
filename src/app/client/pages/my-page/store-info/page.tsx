@@ -10,7 +10,7 @@ export default function StoreInfoPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to ChangeSellerProfile with the current user's storeId
+    // Redirect directly to ChangeSellerProfile with the current user's storeId
     if (user?.storeId) {
       router.push(`${PAGE_URLS.SELLER_STORE_INFO}?storeId=${user.storeId}`);
     } else {

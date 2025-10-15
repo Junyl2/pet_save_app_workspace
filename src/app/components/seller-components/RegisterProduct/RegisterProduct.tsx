@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './RegisterProduct.module.css';
-import { FaChevronDown, FaChevronUp, FaRedo } from 'react-icons/fa';
+import { FaChevronDown, FaChevronUp, FaRedo, FaTimes } from 'react-icons/fa';
 import { CiImageOn } from 'react-icons/ci';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { FileProductService } from '@/app/api/services/client/productService/fileProductService';
@@ -18,15 +18,18 @@ import { Category } from '@/app/api/types/category/category';
 export default function RegisterProductForm() {
   const router = useRouter();
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploadedFileId, setUploadedFileId] = useState<string | null>(null);
-  const [uploadedFileEncryptedId, setUploadedFileEncryptedId] = useState<
-    string | null
-  >(null);
+  // Multiple file upload states
+  const [uploadedFiles, setUploadedFiles] = useState<
+    Array<{
+      file: File;
+      preview: string;
+      fileId: string;
+      encryptedId: string;
+      isUploading: boolean;
+      uploadError: string | null;
+    }>
+  >([]);
   const [imageFileIds, setImageFileIds] = useState<string[]>([]); // Stores encryptedIds, not fileIds
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState<number | ''>('');
@@ -96,18 +99,14 @@ export default function RegisterProductForm() {
     fetchInitialData();
   }, []);
 
-  // Update preview when a file is selected
+  // Clean up preview URLs when component unmounts
   useEffect(() => {
-    if (!imageFile) {
-      setImagePreview(null);
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(imageFile);
-    setImagePreview(objectUrl);
-
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [imageFile]);
+    return () => {
+      uploadedFiles.forEach((file) => {
+        URL.revokeObjectURL(file.preview);
+      });
+    };
+  }, [uploadedFiles]);
 
   // Debug selectedCategoryId changes
   useEffect(() => {
@@ -125,17 +124,26 @@ export default function RegisterProductForm() {
     console.log('imageFileIds state changed:', imageFileIds);
   }, [imageFileIds]);
 
-  // Handle file upload
-  const handleFileUpload = async (file: File) => {
-    setUploadError(null);
-    setUploadedFileId(null);
-    setUploadedFileEncryptedId(null);
-    setImageFileIds([]); // Clear previous file IDs
+  // Handle multiple file upload
+  const handleFileUpload = async (file: File, index: number) => {
+    const preview = URL.createObjectURL(file);
 
-    // Start immediate upload
-    setIsUploading(true);
+    // Add file to state with uploading status
+    setUploadedFiles((prev) => {
+      const newFiles = [...prev];
+      newFiles[index] = {
+        file,
+        preview,
+        fileId: '',
+        encryptedId: '',
+        isUploading: true,
+        uploadError: null,
+      };
+      return newFiles;
+    });
+
     try {
-      console.log('Starting immediate file upload...');
+      console.log('Starting file upload for index:', index);
       const uploadResponse = await FileProductService.uploadFile({
         file,
         metadata: {
@@ -150,61 +158,95 @@ export default function RegisterProductForm() {
       }
 
       const uploadedFile = uploadResponse.data.data;
-      setUploadedFileId(uploadedFile.fileId);
-      setUploadedFileEncryptedId(uploadedFile.encryptedId);
 
-      // Update imageFileIds state with the encrypted ID (backend expects this)
-      setImageFileIds([uploadedFile.encryptedId]);
+      // Update the specific file in state
+      setUploadedFiles((prev) => {
+        const newFiles = [...prev];
+        newFiles[index] = {
+          ...newFiles[index],
+          fileId: uploadedFile.fileId,
+          encryptedId: uploadedFile.encryptedId,
+          isUploading: false,
+          uploadError: null,
+        };
+        return newFiles;
+      });
+
+      // Update imageFileIds with all encrypted IDs
+      setImageFileIds((prev) => {
+        const newIds = [...prev];
+        newIds[index] = uploadedFile.encryptedId;
+        return newIds.filter((id) => id); // Remove empty strings
+      });
 
       console.log('File uploaded successfully:', uploadedFile);
-      console.log('Uploaded file details:', {
-        fileId: uploadedFile.fileId,
-        encryptedId: uploadedFile.encryptedId,
-        filename: uploadedFile.filename,
-        originalFilename: uploadedFile.originalFilename,
-        isAttached: uploadedFile.isAttached,
-        entityType: uploadedFile.entityType,
-        entityId: uploadedFile.entityId,
-      });
-      console.log('Updated imageFileIds state with encryptedId:', [
-        uploadedFile.encryptedId,
-      ]);
-
-      // Wait a moment for file processing on backend
-      await new Promise((resolve) => setTimeout(resolve, 2000));
     } catch (error) {
       console.error('File upload failed:', error);
-      setUploadError(
-        error instanceof Error ? error.message : '파일 업로드에 실패했습니다.'
-      );
-      // Clear file IDs on error
-      setImageFileIds([]);
-    } finally {
-      setIsUploading(false);
+
+      // Update the specific file with error
+      setUploadedFiles((prev) => {
+        const newFiles = [...prev];
+        newFiles[index] = {
+          ...newFiles[index],
+          isUploading: false,
+          uploadError:
+            error instanceof Error
+              ? error.message
+              : '파일 업로드에 실패했습니다.',
+        };
+        return newFiles;
+      });
     }
   };
 
-  // Handle file selection and immediate upload
-  const handleFileSelect = async (file: File | null) => {
-    setImageFile(file);
+  // Handle multiple file selection
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
 
-    if (!file) {
-      setImagePreview(null);
-      setUploadError(null);
-      setUploadedFileId(null);
-      setUploadedFileEncryptedId(null);
-      setImageFileIds([]); // Clear file IDs when no file selected
-      return;
-    }
+    const newFiles = Array.from(files);
+    const currentLength = uploadedFiles.length;
 
-    await handleFileUpload(file);
+    // Create preview URLs for new files
+    const newFileObjects = newFiles.map((file, index) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      fileId: '',
+      encryptedId: '',
+      isUploading: true,
+      uploadError: null,
+    }));
+
+    // Add new files to state
+    setUploadedFiles((prev) => [...prev, ...newFileObjects]);
+
+    // Upload each file
+    newFiles.forEach((file, index) => {
+      handleFileUpload(file, currentLength + index);
+    });
   };
 
-  // Handle retry upload
-  const handleRetryUpload = async () => {
-    if (imageFile) {
-      await handleFileUpload(imageFile);
+  // Handle file deletion
+  const handleFileDelete = async (index: number) => {
+    const fileToDelete = uploadedFiles[index];
+
+    // If file was uploaded successfully, delete it from server
+    if (fileToDelete.encryptedId) {
+      try {
+        await FileProductService.deleteFile(fileToDelete.encryptedId);
+        console.log('File deleted from server:', fileToDelete.encryptedId);
+      } catch (error) {
+        console.error('Failed to delete file from server:', error);
+      }
     }
+
+    // Clean up preview URL
+    URL.revokeObjectURL(fileToDelete.preview);
+
+    // Remove file from state
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+
+    // Update imageFileIds
+    setImageFileIds((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -223,7 +265,7 @@ export default function RegisterProductForm() {
         return;
       }
       // Validate image upload
-      if (!imageFile) {
+      if (uploadedFiles.length === 0) {
         setError('이미지를 첨부해주세요');
         return;
       }
@@ -234,17 +276,17 @@ export default function RegisterProductForm() {
         alert(errorMsg);
         return;
       }
-      if (!uploadedFileId || !uploadedFileEncryptedId) {
-        setError(
-          '이미지 업로드가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.'
-        );
-        return;
-      }
-      if (isUploading) {
+
+      // Check if any files are still uploading
+      const isAnyUploading = uploadedFiles.some((file) => file.isUploading);
+      if (isAnyUploading) {
         setError('이미지 업로드 중입니다. 잠시 후 다시 시도해주세요.');
         return;
       }
-      if (uploadError) {
+
+      // Check if any files have upload errors
+      const hasUploadErrors = uploadedFiles.some((file) => file.uploadError);
+      if (hasUploadErrors) {
         setError('이미지 업로드에 실패했습니다. 다른 이미지를 선택해주세요.');
         return;
       }
@@ -275,31 +317,37 @@ export default function RegisterProductForm() {
         return;
       }
 
-      console.log('Using already uploaded file:', uploadedFileId);
-      console.log('Using encrypted ID:', uploadedFileEncryptedId);
+      console.log('Using uploaded files:', uploadedFiles.length);
       console.log(
         'Using imageFileIds (encryptedIds) for product creation:',
         imageFileIds
       );
 
-      // Verify file info using encryptedId
+      // Verify file info using encryptedIds
       console.log('Getting file info to verify...');
-      const fileInfoResponse = await FileProductService.getFileInfo(
-        uploadedFileEncryptedId
-      );
-      if (fileInfoResponse.data) {
-        console.log('File info retrieved successfully:', fileInfoResponse.data);
-        const fileData = fileInfoResponse.data.data;
-        console.log('File details:', {
-          fileId: fileData.fileId,
-          encryptedId: fileData.encryptedId,
-          isAttached: fileData.isAttached,
-          entityType: fileData.entityType,
-          entityId: fileData.entityId,
-        });
-      } else {
-        console.warn('Could not retrieve file info:', fileInfoResponse.error);
-        throw new Error(`File verification failed: ${fileInfoResponse.error}`);
+      for (const encryptedId of imageFileIds) {
+        const fileInfoResponse = await FileProductService.getFileInfo(
+          encryptedId
+        );
+        if (fileInfoResponse.data) {
+          console.log(
+            'File info retrieved successfully:',
+            fileInfoResponse.data
+          );
+          const fileData = fileInfoResponse.data.data;
+          console.log('File details:', {
+            fileId: fileData.fileId,
+            encryptedId: fileData.encryptedId,
+            isAttached: fileData.isAttached,
+            entityType: fileData.entityType,
+            entityId: fileData.entityId,
+          });
+        } else {
+          console.warn('Could not retrieve file info:', fileInfoResponse.error);
+          throw new Error(
+            `File verification failed: ${fileInfoResponse.error}`
+          );
+        }
       }
 
       // Step 1: Try creating product WITH image file ID first
@@ -456,119 +504,169 @@ export default function RegisterProductForm() {
         </div>
       )}
       <form className={styles.form} onSubmit={handleSubmit}>
-        {/* Image Upload */}
+        {/* Multiple Image Upload */}
         <div className={styles.fileUploadWrapper}>
           <input
             type="file"
             id="fileUpload"
             accept="image/*"
-            onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+            multiple
+            onChange={(e) => handleFileSelect(e.target.files)}
             className={styles.hiddenFileInput}
-            disabled={isUploading}
+            disabled={uploadedFiles.some((file) => file.isUploading)}
           />
 
-          {imagePreview ? (
-            <div key="image-preview" style={{ position: 'relative' }}>
-              <img
-                src={imagePreview}
-                alt="preview"
-                className={styles.imagePreview}
-              />
-              {isUploading && (
-                <div
-                  key="uploading-overlay"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '14px',
-                  }}
-                >
-                  업로드 중...
+          {/* Upload Button */}
+          <div key="file-upload-label" className={styles.labelWrapper}>
+            <CiImageOn size={16} color="rgba(0,0,0,0.4)" />
+            <label htmlFor="fileUpload" className={styles.fileUploadLabel}>
+              {uploadedFiles.some((file) => file.isUploading)
+                ? '업로드 중...'
+                : '사진 첨부하기 (여러 개 선택 가능)'}
+            </label>
+          </div>
+
+          {/* Image Previews */}
+          {uploadedFiles.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '12px',
+                marginTop: '16px',
+                justifyContent: 'flex-start',
+              }}
+            >
+              {uploadedFiles.map((file, index) => (
+                <div key={index} style={{ position: 'relative' }}>
+                  <img
+                    src={file.preview}
+                    alt={`preview-${index}`}
+                    className={styles.imagePreview}
+                    style={{
+                      width: '120px',
+                      height: '120px',
+                      objectFit: 'cover',
+                      borderRadius: '8px',
+                      border: '2px solid #e0e0e0',
+                    }}
+                  />
+
+                  {/* Delete Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleFileDelete(index)}
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      backgroundColor: '#f44336',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '24px',
+                      height: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      zIndex: 1,
+                    }}
+                  >
+                    <FaTimes size={10} />
+                  </button>
+
+                  {/* Upload Status Overlay */}
+                  {file.isUploading && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '12px',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      업로드 중...
+                    </div>
+                  )}
+
+                  {/* Success Status */}
+                  {file.encryptedId &&
+                    !file.isUploading &&
+                    !file.uploadError && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: '4px',
+                          left: '4px',
+                          backgroundColor: '#4CAF50',
+                          color: 'white',
+                          padding: '2px 6px',
+                          borderRadius: '3px',
+                          fontSize: '10px',
+                        }}
+                      >
+                        ✓ 완료
+                      </div>
+                    )}
+
+                  {/* Error Status */}
+                  {file.uploadError && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '4px',
+                        left: '4px',
+                        backgroundColor: '#f44336',
+                        color: 'white',
+                        padding: '2px 6px',
+                        borderRadius: '3px',
+                        fontSize: '10px',
+                      }}
+                    >
+                      ✗ 실패
+                    </div>
+                  )}
                 </div>
-              )}
-              {uploadedFileId && !isUploading && imageFileIds.length > 0 && (
-                <div
-                  key="upload-success"
-                  style={{
-                    position: 'absolute',
-                    top: '5px',
-                    right: '5px',
-                    backgroundColor: '#4CAF50',
-                    color: 'white',
-                    padding: '2px 6px',
-                    borderRadius: '3px',
-                    fontSize: '12px',
-                  }}
-                >
-                  ✓ 업로드 완료
-                </div>
-              )}
-              {uploadError && (
-                <div
-                  key="upload-error"
-                  style={{
-                    position: 'absolute',
-                    top: '5px',
-                    right: '5px',
-                    backgroundColor: '#f44336',
-                    color: 'white',
-                    padding: '2px 6px',
-                    borderRadius: '3px',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  ✗ 업로드 실패
-                </div>
-              )}
-            </div>
-          ) : (
-            <div key="file-upload-label" className={styles.labelWrapper}>
-              <CiImageOn size={16} color="rgba(0,0,0,0.4)" />
-              <label htmlFor="fileUpload" className={styles.fileUploadLabel}>
-                {isUploading ? '업로드 중...' : '사진 첨부하기'}
-              </label>
+              ))}
             </div>
           )}
 
-          {uploadError && (
+          {/* Error Messages */}
+          {uploadedFiles.some((file) => file.uploadError) && (
             <div
-              key="upload-error-message"
               style={{
                 color: '#d32f2f',
                 fontSize: '12px',
-                marginTop: '8px',
+                marginTop: '12px',
                 padding: '8px',
                 backgroundColor: '#ffebee',
                 borderRadius: '6px',
                 border: '1px solid #ffcdd2',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
               }}
             >
-              <div style={{ fontWeight: '500' }}>
-                업로드 실패: {uploadError}
+              <div style={{ fontWeight: '500', marginBottom: '4px' }}>
+                업로드 실패한 파일이 있습니다:
               </div>
-              <button
-                type="button"
-                onClick={handleRetryUpload}
-                disabled={isUploading}
-                className={styles.retryButton}
-              >
-                <FaRedo size={12} style={{ marginRight: '4px' }} />
-                {isUploading ? '재시도 중...' : '다시 시도'}
-              </button>
+              {uploadedFiles
+                .filter((file) => file.uploadError)
+                .map((file, index) => (
+                  <div
+                    key={index}
+                    style={{ fontSize: '11px', marginLeft: '8px' }}
+                  >
+                    • {file.file.name}: {file.uploadError}
+                  </div>
+                ))}
             </div>
           )}
         </div>

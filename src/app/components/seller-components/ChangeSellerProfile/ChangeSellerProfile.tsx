@@ -7,7 +7,12 @@ import styles from './ChangeSellerProfile.module.css';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import { sellerService } from '@/app/api/services/seller/serller-details/sellerService';
 import { shopService } from '@/app/api/services/shops/shopService';
-import { StoreService } from '@/app/api/services/client/storeService/storeService';
+import {
+  StoreService,
+  UpdateStoreRequest,
+} from '@/app/api/services/client/storeService/storeService';
+import defaultProfile from '@/app/constats/defaultProfile';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 
 type SellerProfile = {
   businessName: string;
@@ -98,6 +103,8 @@ Props) {
   });
 
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const [form, setForm] = useState<SellerProfile>({
     businessName: initial?.businessName ?? 'ㅇㅇ 동물병원',
@@ -105,9 +112,7 @@ Props) {
     openTime: initial?.openTime ?? '09:00',
     closeTime: initial?.closeTime ?? '18:00',
     address: initial?.address ?? '서울 관악구 신림로70길 23',
-    avatarUrl:
-      initial?.avatarUrl ??
-      'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=300&auto=format&fit=crop',
+    avatarUrl: initial?.avatarUrl ?? defaultProfile.image,
   });
 
   // 2) load existing data for this shop/owner + any saved overrides
@@ -187,8 +192,8 @@ Props) {
             sellerData?.phoneNumber ||
             override.phone ||
             '',
-          openTime: storeData?.openingHours || override.openTime || '09:00',
-          closeTime: storeData?.closingHours || override.closeTime || '18:00',
+          openTime: storeData?.closingHours || override.openTime || '09:00',
+          closeTime: storeData?.openingHours || override.closeTime || '18:00',
           address:
             storeData?.roadAddress && storeData?.detailedAddress
               ? `${storeData.roadAddress} ${storeData.detailedAddress}`
@@ -201,7 +206,7 @@ Props) {
             storeData?.businessProfileImage ??
             sellerData?.products?.[0]?.shopImage ??
             override.avatarUrl ??
-            form.avatarUrl,
+            defaultProfile.image,
         };
 
         console.log('Mapped form data:', mapped);
@@ -231,15 +236,61 @@ Props) {
     e.currentTarget.value = '';
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // persist for THIS owner/shop
-    if (storeId) {
+    if (!storeId) {
+      console.error('No store ID available for update');
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      // Parse address to separate road address and detailed address
+      const addressParts = form.address.split(' ');
+      const roadAddress = addressParts.slice(0, -1).join(' ') || form.address;
+      const detailedAddress = addressParts[addressParts.length - 1] || '';
+
+      // Prepare update data for the API
+      // Note: API field names are swapped, so we need to send them in reverse
+      const updateData: UpdateStoreRequest = {
+        businessName: form.businessName,
+        roadAddress: roadAddress,
+        detailedAddress: detailedAddress,
+        zipCode: '00000', // Default zip code - you might want to make this configurable
+        businessPhoneNumber: form.phone,
+        allowPhoneInquiries: true, // Default to true - you might want to make this configurable
+        businessOpeningTime: `${form.closeTime}:00`, // Send closeTime as openingHours (API field swap)
+        businessClosingTime: `${form.openTime}:00`, // Send openTime as closingHours (API field swap)
+        // businessLogoFileId will be handled separately if needed for file uploads
+      };
+
+      console.log('Updating store with data:', updateData);
+      console.log('Form times debug:', {
+        formOpenTime: form.openTime,
+        formCloseTime: form.closeTime,
+        sentAsOpeningTime: `${form.closeTime}:00`,
+        sentAsClosingTime: `${form.openTime}:00`,
+      });
+
+      // Call the new API to update store information
+      const response = await StoreService.updateStore(storeId, updateData);
+
+      if (response.error) {
+        console.error('Failed to update store:', response.error);
+        console.error('Request data that failed:', updateData);
+        // You might want to show an error message to the user here
+        return;
+      }
+
+      console.log('Store updated successfully:', response.data);
+
+      // Persist for THIS owner/shop in localStorage as backup
       const lsKey = `seller:profile:${storeId}`;
       localStorage.setItem(lsKey, JSON.stringify(form));
 
-      // also sync basic fields to mock shop service (so lists reflect it)
+      // Also sync basic fields to mock shop service (so lists reflect it)
       try {
         const numericStoreId = Number(storeId);
         if (Number.isFinite(numericStoreId)) {
@@ -256,14 +307,17 @@ Props) {
       } catch {
         // ignore in mock
       }
-    }
 
-    onSubmit?.(form);
-    console.log('Form submitted:', form);
+      onSubmit?.(form);
+      console.log('Form submitted successfully:', form);
 
-    // go back to seller details (optional UX)
-    if (storeId) {
-      router.push(`/seller-details/${storeId}`);
+      // Show success toast
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error updating store:', error);
+      // You might want to show an error message to the user here
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -385,12 +439,24 @@ Props) {
           </div>
 
           <div className={styles.ctaBar}>
-            <button type="submit" className={styles.ctaBtn}>
-              수정 완료하기
+            <button
+              type="submit"
+              className={styles.ctaBtn}
+              disabled={isUpdating}
+            >
+              {isUpdating ? '업데이트 중...' : '수정 완료하기'}
             </button>
           </div>
         </form>
       </div>
+
+      {showToast && (
+        <ToastMessage
+          message="업체 정보가 성공적으로 업데이트되었습니다."
+          onClose={() => setShowToast(false)}
+          duration={3000}
+        />
+      )}
     </>
   );
 }
