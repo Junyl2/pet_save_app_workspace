@@ -42,7 +42,6 @@ export default function DeleteInquiryPage() {
   const [inquiry, setInquiry] = useState<ContactInquiry | null>(null);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<MemberInfo | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     if (!productId) return;
@@ -91,7 +90,6 @@ export default function DeleteInquiryPage() {
   // Fetch user profile data
   useEffect(() => {
     const fetchUserProfile = async () => {
-      setProfileLoading(true);
       try {
         const response = await MemberService.getMyInfo();
         if (response.data && !response.error) {
@@ -101,8 +99,6 @@ export default function DeleteInquiryPage() {
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
-      } finally {
-        setProfileLoading(false);
       }
     };
     fetchUserProfile();

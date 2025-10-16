@@ -19,8 +19,25 @@ const formatDate = (dateString: string): string => {
   return `${year}.${month}.${day}`;
 };
 
+// Interface for the transformed inquiry data used in UI
+interface TransformedInquiry {
+  id: number;
+  inquiryId: string;
+  date: string;
+  shopName: string;
+  shopLocation: string;
+  shopImage: string;
+  category: string;
+  message: string;
+  responseMessage: string;
+  status: string;
+  answering: boolean;
+}
+
 // Helper function to transform API response to UI format
-const transformStoreInquiryToUI = (storeInquiry: any) => {
+const transformStoreInquiryToUI = (
+  storeInquiry: StoreInquiry
+): TransformedInquiry => {
   return {
     id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0,
     inquiryId: storeInquiry.inquiryId,
@@ -57,7 +74,7 @@ export default function ReplyInquiry() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useUser();
-  const [inquiry, setInquiry] = useState<any>(null);
+  const [inquiry, setInquiry] = useState<TransformedInquiry | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -129,7 +146,8 @@ export default function ReplyInquiry() {
 
     try {
       const inquiryId = inquiry?.inquiryId as string | undefined;
-      if (!inquiryId) throw new Error('유효하지 않은 문의 ID 입니다.');
+      if (!inquiryId || !inquiry)
+        throw new Error('유효하지 않은 문의 ID 입니다.');
 
       // If already answered, update; otherwise, create answer
       if (inquiry.status === '답변 완료') {

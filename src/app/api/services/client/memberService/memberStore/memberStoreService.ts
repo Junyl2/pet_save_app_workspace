@@ -1,7 +1,6 @@
 import { apiClient, ApiResponse } from '../../../../apiClient';
 import { StoreApiResponse } from '../../../../types/member/store/store';
 import {
-  StoreInquiry,
   StoreInquiriesResponse,
   StoreInquiriesParams,
 } from '../../../../types/member/store/storeInquiry';

@@ -61,7 +61,10 @@ const ProfileMenu = () => {
 
           {/* Show Store Information for sellers with storeId */}
           {user?.role === 'seller' && !!user?.storeId && (
-            <ProfileItem label="사업장 정보" route={PAGE_URLS.STORE_INFO} />
+            <ProfileItem
+              label="사업장 정보"
+              route={`${PAGE_URLS.SELLER_STORE_INFO}?storeId=${user.storeId}`}
+            />
           )}
 
           <ProfileItem

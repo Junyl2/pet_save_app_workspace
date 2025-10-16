@@ -7,6 +7,7 @@ import styles from './ProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
 import { Product, ProductPageInfo } from '@/app/api/types/products/products';
 import { ProductService } from '@/app/api/services/client/productService/productService';
+import { SellerProductListService } from '@/app/api/services/client/productService/sellerProductListService';
 import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
 import { Pagination } from '../../ui/Pagination';
@@ -58,25 +59,48 @@ export const ProductGrid = ({
       console.log('fetchProducts called with currentPage:', currentPage);
       setLoading(true);
       try {
-        const searchParams = {
-          keyword: searchTerm.trim() || undefined,
-          categoryName: category || undefined,
-          registrationStatus: 'ONSALE' as const,
-          page: currentPage,
-          size: 10,
-          sortBy: 'createdAt' as const,
-          direction: 'desc' as const,
-        };
+        let res;
 
-        console.log('API call params:', searchParams);
-        const res = await ProductService.searchProducts(searchParams);
+        if (storeId) {
+          // Use store-specific API when storeId is provided
+          const storeParams = {
+            storeId,
+            keyword: searchTerm.trim() || undefined,
+            categoryName: category || undefined,
+            registrationStatus: 'ONSALE' as const,
+            page: currentPage,
+            size: 10,
+            sortBy: 'createdAt' as const,
+            direction: 'desc' as const,
+          };
+
+          console.log('Store API call params:', storeParams);
+          res = await SellerProductListService.getProductsByStoreId(
+            storeParams
+          );
+        } else {
+          // Use general product search API
+          const searchParams = {
+            keyword: searchTerm.trim() || undefined,
+            categoryName: category || undefined,
+            registrationStatus: 'ONSALE' as const,
+            page: currentPage,
+            size: 10,
+            sortBy: 'createdAt' as const,
+            direction: 'desc' as const,
+          };
+
+          console.log('General API call params:', searchParams);
+          res = await ProductService.searchProducts(searchParams);
+        }
+
         if (!isMounted) return;
 
         if (res.error) {
           console.error('Failed to fetch products:', res.error);
           setProducts([]);
         } else {
-          let filtered = res.data?.data?.content || [];
+          const filtered = res.data?.data?.content || [];
 
           // Update pagination info - API returns pagination in pageInfo object
           const apiPageInfo = res.data?.data?.pageInfo;
@@ -98,6 +122,7 @@ export const ProductGrid = ({
 
           // Debug pagination info
           console.log('Pagination Debug:', {
+            storeId,
             totalPages,
             totalElements,
             currentPage,
@@ -108,25 +133,38 @@ export const ProductGrid = ({
 
           // Debug: Log the first product to see the actual API structure
           if (filtered.length > 0) {
-            console.log('First product from API:', filtered[0]);
-            console.log('Product keys:', Object.keys(filtered[0]));
+            const firstProduct = filtered[0] as Product & {
+              thumbnail?: string;
+              image?: string;
+              images?: string[];
+              price?: number;
+              originalPrice?: number;
+              discountPrice?: number;
+              discountedPrice?: number;
+              salePrice?: number;
+              productPrice?: number;
+              regularPrice?: number;
+            };
+            console.log('First product from API:', firstProduct);
+            console.log('Product keys:', Object.keys(firstProduct));
+            console.log('Image fields:', {
+              thumbnail: firstProduct.thumbnail,
+              image: firstProduct.image,
+              images: firstProduct.images,
+            });
             console.log('Price fields:', {
-              price: filtered[0].price,
-              originalPrice: filtered[0].originalPrice,
-              discountPrice: filtered[0].discountPrice,
-              discountedPrice: filtered[0].discountedPrice,
-              salePrice: filtered[0].salePrice,
-              productPrice: filtered[0].productPrice,
-              regularPrice: filtered[0].regularPrice,
+              price: firstProduct.price,
+              originalPrice: firstProduct.originalPrice,
+              discountPrice: firstProduct.discountPrice,
+              discountedPrice: firstProduct.discountedPrice,
+              salePrice: firstProduct.salePrice,
+              productPrice: firstProduct.productPrice,
+              regularPrice: firstProduct.regularPrice,
             });
           }
 
-          // Filter by storeId if provided
-          if (storeId) {
-            filtered = filtered.filter(
-              (p) => p.storeId === storeId || p.store?.storeId === storeId
-            );
-          }
+          // No need to filter by storeId when using store-specific API
+          // The API already returns only products for that store
 
           console.log('Setting products:', filtered.length, 'products');
           console.log('First product ID:', filtered[0]?.productId);
@@ -204,17 +242,38 @@ export const ProductGrid = ({
               style={{ cursor: 'pointer' }}
             >
               <div className={styles.imageWrapper}>
-                <Image
-                  src={
-                    product.image ||
+                {(() => {
+                  // Check for thumbnail first, then image, then first image from images array
+                  const productWithImages = product as Product & {
+                    images?: string[];
+                  };
+                  const imageUrl =
                     product.thumbnail ||
-                    '/images/products/placeholder.png'
-                  }
-                  alt={product.name || product.productName || 'Product'}
-                  width={120}
-                  height={120}
-                  className={styles.image}
-                />
+                    product.image ||
+                    (productWithImages.images &&
+                    productWithImages.images.length > 0
+                      ? productWithImages.images[0]
+                      : null);
+
+                  return imageUrl ? (
+                    <Image
+                      src={imageUrl}
+                      alt={product.name || product.productName || 'Product'}
+                      width={120}
+                      height={120}
+                      className={styles.image}
+                      unoptimized={imageUrl.includes('211.107.13.167')}
+                      onError={(e) => {
+                        console.warn('Image failed to load:', imageUrl);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className={styles.imagePlaceholder}>
+                      <span>No Image</span>
+                    </div>
+                  );
+                })()}
               </div>
               <div className={styles.content}>
                 <div className={styles.header}>
@@ -318,8 +377,10 @@ export const ProductGrid = ({
         })}
       </div>
 
-      {/* Pagination */}
-      <Pagination pageInfo={pageInfo} onPageChange={handlePageChange} />
+      {/* Pagination - show if there are multiple pages */}
+      {pageInfo.totalPages > 1 && (
+        <Pagination pageInfo={pageInfo} onPageChange={handlePageChange} />
+      )}
 
       {/* cart modal */}
       {selectedProduct && (

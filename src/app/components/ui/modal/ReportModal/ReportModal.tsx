@@ -35,7 +35,6 @@ export default function ReportModal({
   onClose,
   product,
   storeId,
-  storeName,
 }: ReportModalProps) {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

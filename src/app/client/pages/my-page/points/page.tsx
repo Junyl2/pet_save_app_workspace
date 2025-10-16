@@ -1,10 +1,11 @@
 'use client';
-/* import { useState } from 'react'; */
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaChevronRight } from 'react-icons/fa';
 import Image from 'next/image';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { PAGE_URLS } from '@/app/utils/page_url';
+import { PointsService } from '@/app/api/services/client/memberService/points/pointsService';
 import styles from './Points.module.css';
 
 interface PointTransaction {
@@ -28,34 +29,100 @@ interface RewardProduct {
 
 export default function PointsPage() {
   const router = useRouter();
-  const currentPoints = 445;
+  const [currentPoints, setCurrentPoints] = useState(0);
+  const [pointHistory, setPointHistory] = useState<PointTransaction[]>([]);
 
-  const pointHistory: PointTransaction[] = [
-    {
-      id: 1,
-      date: '2025.07.30',
-      type: 'earned',
-      description: '구매확정',
-      amount: 100,
-      expiryDate: '2026.07.30 소멸',
-    },
-    {
-      id: 2,
-      date: '2025.07.22',
-      type: 'earned',
-      description: '리뷰작성',
-      amount: 50,
-      expiryDate: '2026.07.22 소멸',
-    },
-    {
-      id: 3,
-      date: '2025.07.15',
-      type: 'used',
-      description: '포인트 사용',
-      amount: -2500,
-      status: '사용 완료',
-    },
-  ];
+  useEffect(() => {
+    const fetchPointsData = async () => {
+      try {
+        // Fetch points stats for current points
+        console.log('Calling PointsService.getPointsStats()...');
+        const statsResponse = await PointsService.getPointsStats();
+        console.log('Stats API response:', statsResponse);
+        console.log('Stats API response.data:', statsResponse.data);
+        console.log('Stats API response.error:', statsResponse.error);
+
+        if (statsResponse.data) {
+          console.log(
+            'Stats API response.data.success:',
+            statsResponse.data.success
+          );
+          console.log('Stats API response.data.data:', statsResponse.data.data);
+
+          if (statsResponse.data.success && statsResponse.data.data) {
+            setCurrentPoints(statsResponse.data.data.totalUsablePoints);
+            console.log(
+              'Current points set to:',
+              statsResponse.data.data.totalUsablePoints
+            );
+          } else {
+            console.error('Stats API response structure issue');
+          }
+        } else {
+          console.error('Stats API response error:', statsResponse.error);
+        }
+
+        // Fetch points history for the list
+        const historyResponse = await PointsService.getPointsHistory({
+          size: 3,
+        });
+
+        console.log('History API response:', historyResponse);
+        if (
+          historyResponse.data &&
+          historyResponse.data.success &&
+          historyResponse.data.data &&
+          historyResponse.data.data.content
+        ) {
+          // Transform API data to match existing UI structure
+          const transformedHistory: PointTransaction[] =
+            historyResponse.data.data.content.map((transaction, index) => ({
+              id: index + 1,
+              date: new Date(transaction.createdAt)
+                .toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                })
+                .replace(/\./g, '.')
+                .replace(/\s/g, ''),
+              type: transaction.type === 'EARNED' ? 'earned' : 'used',
+              description: transaction.title,
+              amount:
+                transaction.type === 'EARNED'
+                  ? transaction.amount
+                  : -transaction.amount,
+              expiryDate:
+                transaction.type === 'EARNED'
+                  ? `${new Date(transaction.expiryDate)
+                      .toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                      })
+                      .replace(/\./g, '.')
+                      .replace(/\s/g, '')} 소멸`
+                  : undefined,
+              status: transaction.type === 'USED' ? '사용 완료' : undefined,
+            }));
+
+          setPointHistory(transformedHistory);
+        } else {
+          console.error('History API response error:', historyResponse.error);
+          console.error('History API response data:', historyResponse.data);
+          // Keep empty array if API fails - no fallback data
+          setPointHistory([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch points data:', error);
+        // No fallback data - keep current state
+      } finally {
+        // Loading state removed as it's not used in UI
+      }
+    };
+
+    fetchPointsData();
+  }, []);
 
   const rewardProducts: RewardProduct[] = [
     {

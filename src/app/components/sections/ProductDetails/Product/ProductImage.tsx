@@ -33,6 +33,11 @@ export const ProductImage = ({
         fill
         style={{ objectFit: 'contain' }}
         className={styles.image}
+        unoptimized={src.includes('211.107.13.167')}
+        onError={(e) => {
+          console.warn('Image failed to load:', src);
+          e.currentTarget.style.display = 'none';
+        }}
       />
 
       {/* Horizontal three-dot menu */}

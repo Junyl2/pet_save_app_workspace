@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useParams, usePathname } from 'next/navigation';
 import { StoreService } from '@/app/api/services/client/storeService/storeService';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
+import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
+import defaultProfile from '@/app/constats/defaultProfile';
 import { StoreInfo } from '@/app/api/types/member/store/store';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { ProductGrid } from '@/app/components/sections/ProductGrid/ProductGrid';
@@ -62,13 +64,38 @@ export default function SellerDetailsPage() {
     }
     (async () => {
       try {
-        const response = await StoreService.getStoreSummary(storeId);
+        let response;
+
+        // If viewing own store, use MemberStoreService for detailed info
+        if (currentUserStoreId && currentUserStoreId === storeId) {
+          console.log('Fetching own store details using MemberStoreService...');
+          response = await MemberStoreService.getMyStore();
+        } else {
+          // For other stores, use StoreService
+          console.log('Fetching store details using StoreService...');
+          response = await StoreService.getStoreSummary(storeId);
+        }
+
         if (response.error) {
           setError(response.error);
           return;
         }
         if (response.data?.data) {
           setStore(response.data.data);
+          console.log('Store details loaded:', response.data.data);
+          console.log(
+            'Store profile image:',
+            response.data.data.businessProfileImage
+          );
+          console.log('Store phone:', response.data.data.businessPhoneNumber);
+          console.log(
+            'Store hours:',
+            response.data.data.openingHours,
+            '-',
+            response.data.data.closingHours
+          );
+          console.log('Product count:', response.data.data.numberOfProducts);
+          console.log('Average rating:', response.data.data.averageRating);
         } else {
           setError('상점 정보를 찾을 수 없습니다.');
         }
@@ -80,7 +107,7 @@ export default function SellerDetailsPage() {
         setError(message);
       }
     })();
-  }, [storeId]);
+  }, [storeId, currentUserStoreId]);
 
   // Decide ownership by comparing current user's storeId with URL storeId
   const isOwner = useMemo(() => {
@@ -106,8 +133,37 @@ export default function SellerDetailsPage() {
 
   if (!store) return <Loading />;
 
-  const profileImage = '/images/default-shop.png'; // Default image since StoreInfo doesn't have image field
-  /*   const categories: string[] = [];  */
+  // Use real store data from API
+  const profileImage = store.businessProfileImage || defaultProfile.image;
+  const phoneNumber = store.businessPhoneNumber || '전화번호 없음';
+  // Display business hours - API field names seem to be swapped
+  const getBusinessHours = () => {
+    if (!store.openingHours || !store.closingHours) {
+      return '영업시간 정보 없음';
+    }
+
+    // Based on API response, openingHours is actually closing time and closingHours is opening time
+    const actualOpening = store.closingHours; // This is the real opening time
+    const actualClosing = store.openingHours; // This is the real closing time
+
+    return `${actualOpening} - ${actualClosing}`;
+  };
+
+  const businessHours = getBusinessHours();
+
+  // Debug: Log the actual values to see what's happening
+  console.log('Business hours debug:', {
+    rawOpeningHours: store.openingHours,
+    rawClosingHours: store.closingHours,
+    actualOpening: store.closingHours,
+    actualClosing: store.openingHours,
+    businessHours: businessHours,
+  });
+  const fullAddress = store.detailedAddress
+    ? `${store.roadAddress} ${store.detailedAddress}`
+    : store.roadAddress;
+  const productCount = store.numberOfProducts ?? 0;
+  const averageRating = store.averageRating ?? 0;
 
   const goToEditProfile = () => {
     router.push(`/client/seller/pages/change-profile?storeId=${storeId}`);
@@ -147,22 +203,34 @@ export default function SellerDetailsPage() {
           <div className={styles.sellerMoreDetails}>
             <div className={styles.details}>
               <IoCallOutline size={18} color="rgba(0,0,0,0.8)" />
-              <p className={styles.phone}>{store.businessEmail}</p>
+              <p className={styles.phone}>{phoneNumber}</p>
               <button
                 className={styles.callButton}
-                onClick={() => alert(`Contacting ${store.businessEmail}`)}
+                onClick={() => {
+                  if (phoneNumber !== '전화번호 없음') {
+                    alert(`연락처: ${phoneNumber}`);
+                  } else {
+                    alert('전화번호 정보가 없습니다.');
+                  }
+                }}
               >
                 연락하기
               </button>
             </div>
             <div className={styles.details}>
               <LuAlarmClock size={18} color="rgba(0,0,0,0.8)" />
-              <p className={styles.workingHours}>09:00 - 18:00</p>
+              <p className={styles.workingHours}>{businessHours}</p>
             </div>
             <div className={styles.details}>
               <IoLocationOutline size={18} color="rgba(0,0,0,0.8)" />
-              <p className={styles.location}>{store.roadAddress}</p>
+              <p className={styles.location}>{fullAddress}</p>
             </div>
+            {store.businessEmail && (
+              <div className={styles.details}>
+                <IoCallOutline size={18} color="rgba(0,0,0,0.8)" />
+                <p className={styles.email}>{store.businessEmail}</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -172,14 +240,16 @@ export default function SellerDetailsPage() {
           <p className={styles.review}>
             <span className={styles.reviewLabel}>등록된 상품</span>
             <span className={styles.reviewQuantity}>
-              <BsBoxSeam size={16} color="#B5DB58" />0 개
+              <BsBoxSeam size={16} color="#B5DB58" />
+              {productCount} 개
             </span>
           </p>
           <div className={styles.separator}></div>
           <p className={styles.review}>
-            <span className={styles.reviewLabel}>리뷰</span>
+            <span className={styles.reviewLabel}>평점</span>
             <span className={styles.reviewQuantity}>
-              <FaStar size={16} color="#FFC71F" />0
+              <FaStar size={16} color="#FFC71F" />
+              {averageRating > 0 ? averageRating.toFixed(1) : '평점 없음'}
             </span>
           </p>
         </div>

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import styles from './ShopInfo.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
 import { useRouter } from 'next/navigation';
+import defaultProfile from '@/app/constats/defaultProfile';
 
 interface ShopInfoProps {
   shopName?: string;
@@ -41,31 +42,13 @@ export const ShopInfo = ({
         onClick={handleShopClick}
         style={{ cursor: 'pointer' }}
       >
-        {shopImage ? (
-          <Image
-            src={shopImage}
-            alt={shopName || '판매처'}
-            width={50}
-            height={50}
-            style={{ borderRadius: '50%', objectFit: 'cover' }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: '50%',
-              backgroundColor: '#f0f0f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              color: '#666',
-            }}
-          >
-            {shopName ? shopName.charAt(0) : 'S'}
-          </div>
-        )}
+        <Image
+          src={shopImage || defaultProfile.image}
+          alt={shopName || '판매처'}
+          width={50}
+          height={50}
+          style={{ borderRadius: '50%', objectFit: 'cover' }}
+        />
         <div className={styles.shopInfo}>
           <h2 className={styles.hospital}>
             <strong>{shopName || '판매처 없음'}</strong>

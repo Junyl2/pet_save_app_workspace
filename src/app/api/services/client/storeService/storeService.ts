@@ -16,6 +16,21 @@ export interface LocationCoordinates {
 }
 
 /**
+ * Update store information request interface
+ */
+export interface UpdateStoreRequest {
+  businessLogoFileId?: string;
+  businessName: string;
+  roadAddress: string;
+  detailedAddress?: string;
+  zipCode: string;
+  businessPhoneNumber: string;
+  allowPhoneInquiries: boolean;
+  businessOpeningTime: string;
+  businessClosingTime: string;
+}
+
+/**
  * Location error types
  */
 export type LocationError =
@@ -284,6 +299,51 @@ export class StoreService {
         return '알 수 없는 오류가 발생했습니다. 다시 시도해주세요.';
       default:
         return '위치 정보를 가져오는 중 오류가 발생했습니다.';
+    }
+  }
+
+  /**
+   * Update store information
+   * Endpoint: PUT /api/pet-save/stores/{storeId}
+   * @param storeId - Store ID (UUID)
+   * @param updateData - Store information to update
+   */
+  static async updateStore(
+    storeId: string,
+    updateData: UpdateStoreRequest
+  ): Promise<ApiResponse<object>> {
+    try {
+      console.log('🔄 Updating store information:', {
+        storeId,
+        updateData,
+      });
+
+      const response = await apiClient.put<object>(
+        `/stores/${storeId}`,
+        updateData
+      );
+
+      if (response.error) {
+        console.error('❌ Update store failed:', response.error);
+        console.error('❌ Request data:', updateData);
+        return response;
+      }
+
+      console.log('✅ Store information updated successfully:', {
+        storeId,
+        businessName: updateData.businessName,
+      });
+
+      return response;
+    } catch (error) {
+      console.error('💥 Update store service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update store information',
+      };
     }
   }
 

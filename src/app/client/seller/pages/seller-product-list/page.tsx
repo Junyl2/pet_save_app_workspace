@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { FaChevronDown, FaTimes } from 'react-icons/fa';
 import styles from './styles.module.css';
-import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
+import TopBar from '@/app/components/sections/TopBar/TopBar';
 import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
 import { SellerProductListService } from '@/app/api/services/client/productService/sellerProductListService';
 import { ProductService } from '@/app/api/services/client/productService/productService';
@@ -38,11 +40,13 @@ function formatPrice(value: number) {
 }
 
 export default function SellerProductListPage() {
+  const pathname = usePathname();
   const [filter, setFilter] = useState<ProductStatus>('판매중');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState<string | null>(
     null
   );
+  const [statusChanging, setStatusChanging] = useState<string | null>(null);
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [deleteModalOpen, setDeleteModalOpen] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,13 +54,59 @@ export default function SellerProductListPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
 
-  const filteredProducts = useMemo(() => {
-    const filtered = products.filter(
-      (p) => getDisplayStatus(p.registrationStatus) === filter
+  const updateProductStatusLocally = (
+    productId: string,
+    nextStatus: RegistrationStatus
+  ) => {
+    setProducts((prev) =>
+      prev.map((prod) =>
+        prod.productId === productId
+          ? { ...prod, registrationStatus: nextStatus }
+          : prod
+      )
     );
-    console.log('[SellerProductListPage] Filtered products:', filtered);
+  };
+
+  const handleChangeStatus = async (
+    productId: string,
+    target: ProductStatus
+  ) => {
+    try {
+      setStatusChanging(productId);
+      setError(null); // Clear any previous errors
+
+      if (target === '판매완료') {
+        const res = await ProductService.markSoldOut(productId);
+        if (res.error) {
+          setError('상품을 판매완료로 변경하지 못했습니다.');
+          return;
+        }
+        updateProductStatusLocally(productId, 'SOLD_OUT');
+      } else {
+        const res = await ProductService.markOnSale(productId);
+        if (res.error) {
+          setError('상품을 판매중으로 변경하지 못했습니다.');
+          return;
+        }
+        updateProductStatusLocally(productId, 'ONSALE');
+      }
+    } catch (err) {
+      console.error('Error changing product status:', err);
+      setError('상태 변경 중 오류가 발생했습니다.');
+    } finally {
+      setStatusChanging(null);
+      setStatusDropdownOpen(null);
+    }
+  };
+
+  // Since we're now doing server-side filtering, products are already filtered
+  const filteredProducts = useMemo(() => {
+    console.log(
+      '[SellerProductListPage] Products (already filtered by server):',
+      products
+    );
     console.log('[SellerProductListPage] Current filter:', filter);
-    return filtered;
+    return products;
   }, [products, filter]);
 
   // Fetch products for the current seller's store
@@ -87,7 +137,10 @@ export default function SellerProductListPage() {
           );
         }
 
-        // Then fetch products for this store
+        // Convert filter to API registration status
+        const registrationStatus = filter === '판매중' ? 'ONSALE' : 'SOLD_OUT';
+
+        // Then fetch products for this store with filter
         const productsResponse =
           await SellerProductListService.getProductsByStoreId({
             storeId: memberData.storeId,
@@ -95,6 +148,7 @@ export default function SellerProductListPage() {
             size: 10,
             sortBy: 'createdAt',
             direction: 'desc',
+            registrationStatus: registrationStatus,
           });
 
         if (productsResponse.error || !productsResponse.data) {
@@ -130,12 +184,17 @@ export default function SellerProductListPage() {
     };
 
     fetchProducts();
-  }, [currentPage]);
+  }, [currentPage, filter]);
 
   const handlePageChange = (page: number) => {
     console.log('[SellerProductListPage] Page change requested:', page);
     setCurrentPage(page);
   };
+
+  // Reset to page 0 when filter changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [filter]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -190,7 +249,7 @@ export default function SellerProductListPage() {
   if (loading) {
     return (
       <>
-        <ProductHeader />
+        <TopBar />
         <div className={styles.pageWrap}>
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             상품 목록을 불러오는 중...
@@ -204,7 +263,7 @@ export default function SellerProductListPage() {
   if (error) {
     return (
       <>
-        <ProductHeader />
+        <TopBar />
         <div className={styles.pageWrap}>
           <div style={{ textAlign: 'center', padding: '2rem', color: 'red' }}>
             {error}
@@ -217,9 +276,60 @@ export default function SellerProductListPage() {
 
   return (
     <>
-      <ProductHeader />
+      <TopBar />
 
       <div className={styles.pageWrap}>
+        {/* Top Tab Header (상품 리스트 / 반품/교환 요청) */}
+        <div
+          /*    style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            height: 48,
+            padding: '0 16px',
+            backgroundColor: '#ffffff',
+            borderBottom: '1px solid rgba(0,0,0,0.1)',
+            boxSizing: 'border-box',
+          }} */
+          className={styles.topBarLabel}
+        >
+          <div>
+            <Link
+              href="/client/seller/pages/seller-product-list"
+              style={{
+                color:
+                  pathname === '/client/seller/pages/seller-product-list'
+                    ? 'rgb(102, 191, 167)'
+                    : 'rgba(0,0,0,0.6)',
+                fontSize: 14,
+                lineHeight: '16px',
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
+              상품 리스트
+            </Link>
+          </div>
+          <div>
+            <Link
+              href="/client/seller/pages/seller-product-list/refund-request"
+              style={{
+                color:
+                  pathname ===
+                  '/client/seller/pages/seller-product-list/refund-request'
+                    ? 'rgb(102, 191, 167)'
+                    : 'rgba(0,0,0,0.6)',
+                fontSize: 14,
+                lineHeight: '16px',
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
+              반품/교환 요청
+            </Link>
+          </div>
+        </div>
+
         <div className={styles.summaryRow}>
           <span className={styles.lengthLabel}>
             총 상품수 {pageInfo?.totalElements || filteredProducts.length}개
@@ -301,12 +411,15 @@ export default function SellerProductListPage() {
                       <button
                         className={styles.statusPill}
                         onClick={() => {
-                          setStatusDropdownOpen(
-                            statusDropdownOpen === p.productId
-                              ? null
-                              : p.productId
-                          );
+                          if (statusChanging !== p.productId) {
+                            setStatusDropdownOpen(
+                              statusDropdownOpen === p.productId
+                                ? null
+                                : p.productId
+                            );
+                          }
                         }}
+                        disabled={statusChanging === p.productId}
                       >
                         <span
                           className={
@@ -315,7 +428,9 @@ export default function SellerProductListPage() {
                               : undefined
                           }
                         >
-                          {displayStatus}
+                          {statusChanging === p.productId
+                            ? '변경 중...'
+                            : displayStatus}
                         </span>
                         <FaChevronDown className={styles.downIcon} />
                       </button>
@@ -324,27 +439,27 @@ export default function SellerProductListPage() {
                         <div className={styles.statusDropdown}>
                           <button
                             className={styles.statusDropdownItem}
-                            onClick={() => {
-                              console.log(
-                                'Change status to 판매중 for:',
-                                p.productId
-                              );
-                              setStatusDropdownOpen(null);
-                            }}
+                            onClick={() =>
+                              handleChangeStatus(p.productId, '판매중')
+                            }
+                            disabled={statusChanging === p.productId}
                           >
-                            판매중
+                            {statusChanging === p.productId
+                              ? '변경 중...'
+                              : '판매중'}
                           </button>
                           <button
                             className={styles.statusDropdownItem}
-                            onClick={() => {
-                              console.log(
-                                'Change status to 판매완료 for:',
-                                p.productId
-                              );
-                              setStatusDropdownOpen(null);
-                            }}
+                            onClick={() =>
+                              handleChangeStatus(p.productId, '판매완료')
+                            }
+                            disabled={statusChanging === p.productId}
                           >
-                            <span className={styles.dimText}>판매완료</span>
+                            <span className={styles.dimText}>
+                              {statusChanging === p.productId
+                                ? '변경 중...'
+                                : '판매완료'}
+                            </span>
                           </button>
                         </div>
                       )}

@@ -7,16 +7,10 @@ import { FiPlus, FiMinus } from 'react-icons/fi';
 import { DeleteModal } from '../../ui/modal/DeleteModal/DeleteModal';
 import { useRouter } from 'next/navigation';
 import { cartService } from '@/app/api/services/client/cartService/cartService';
-import { orderService } from '@/app/api/services/client/memberService/order/orderService';
-import { CartItem, CartStore } from '@/app/api/types/cart/cart';
-import {
-  CheckoutRequest,
-  ShippingOption,
-} from '@/app/api/types/member/order/order';
+import { CartStore } from '@/app/api/types/cart/cart';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import Loading from '@/app/components/ui/Loading/Loading';
 import { useAuth } from '@/app/context/authContext';
-import toast from 'react-hot-toast';
 
 export default function ShoppingCartPage() {
   const router = useRouter();
@@ -32,7 +26,6 @@ export default function ShoppingCartPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<{
     message: string;
     isVisible: boolean;
@@ -168,7 +161,7 @@ export default function ShoppingCartPage() {
 
         // Check if it's an authentication error
         if (err && typeof err === 'object' && 'response' in err) {
-          const axiosError = err as any;
+          const axiosError = err as { response?: { status?: number } };
           if (
             axiosError.response?.status === 401 ||
             axiosError.response?.status === 403
@@ -188,11 +181,27 @@ export default function ShoppingCartPage() {
     if (isLoggedIn) {
       fetchCartData();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, router]);
+
+  // Interface for cart item structure
+  interface CartItem {
+    product: {
+      id: string;
+      cartItemId: string;
+      name: string;
+      price: number;
+      image: string;
+      shopName: string;
+      storeId: string;
+      discountPrice: number | null;
+      expiration: string | null;
+    };
+    quantity: number;
+  }
 
   // Convert API cart stores to the format expected by the existing cart context
   const convertedCart = useMemo(() => {
-    const allItems: any[] = [];
+    const allItems: CartItem[] = [];
 
     apiCartStores.forEach((store) => {
       store.items.forEach((item) => {
@@ -233,7 +242,7 @@ export default function ShoppingCartPage() {
 
   // group by shop - use only API store data
   const grouped = useMemo(() => {
-    const map: Record<string, any[]> = {};
+    const map: Record<string, CartItem[]> = {};
     apiCartStores.forEach((store) => {
       const storeName = store.store.name;
       map[storeName] = store.items.map((item) => ({
@@ -325,9 +334,8 @@ export default function ShoppingCartPage() {
       console.log('Delete response:', response);
 
       // Check if deletion was successful
-      // The API returns empty string '' on successful deletion, or an error object on failure
-      const isSuccess =
-        (response.data as any) === '' || response.data?.success === true;
+      // The API returns success: true on successful deletion
+      const isSuccess = response.data?.success === true;
 
       if (isSuccess && !response.error) {
         console.log('Delete successful, refreshing cart data...');
@@ -374,9 +382,8 @@ export default function ShoppingCartPage() {
       console.log('Batch delete response:', response);
 
       // Check if batch deletion was successful
-      // The API returns empty string '' on successful deletion, or an error object on failure
-      const isSuccess =
-        (response.data as any) === '' || response.data?.success === true;
+      // The API returns success: true on successful deletion
+      const isSuccess = response.data?.success === true;
 
       if (isSuccess && !response.error) {
         await refreshCartData();
@@ -402,7 +409,7 @@ export default function ShoppingCartPage() {
     }
   };
 
-  const handleOrder = async (items: typeof displayCart) => {
+  const handleOrder = (items: typeof displayCart) => {
     const selected = items.filter(
       ({ product }) =>
         product.id !== undefined && selectedItems.includes(product.id)
@@ -412,115 +419,21 @@ export default function ShoppingCartPage() {
     // Check for expired products before proceeding
     const { validItems, expiredItems } = filterExpiredProducts(selected);
 
+    // If there are expired items, show a warning but don't remove them from selection
     if (expiredItems.length > 0) {
-      // Remove expired products from selected items
-      const expiredProductIds = expiredItems
-        .map(({ product }) => product.id)
-        .filter((id): id is string => id !== undefined);
-      setSelectedItems((prev) =>
-        prev.filter((id) => !expiredProductIds.includes(id))
-      );
-
-      // If no valid items left, return
-      if (validItems.length === 0) {
-        return;
-      }
+      console.log('Warning: Some selected items are expired:', expiredItems);
+      // Don't modify selectedItems state - let user see expired items in delivery-payment page
     }
 
-    setIsCheckoutLoading(true);
-    try {
-      // First, refresh cart data to ensure we have the latest product availability
-      await refreshCartData();
+    // Use valid items (non-expired) for checkout, but keep all selected items in localStorage
+    // The delivery-payment page can handle showing warnings for expired items
+    const itemsToCheckout = validItems.length > 0 ? validItems : selected;
 
-      // Use valid items (non-expired) for checkout
-      const itemsToCheckout = validItems.length > 0 ? validItems : selected;
+    // Store order data for delivery payment page
+    localStorage.setItem('checkoutItems', JSON.stringify(itemsToCheckout));
 
-      // Get cart item IDs for valid items
-      const cartItemIds = itemsToCheckout
-        .map(({ product }) => product.cartItemId)
-        .filter((id): id is string => id !== undefined);
-
-      if (cartItemIds.length === 0) {
-        showToast('주문할 상품을 찾을 수 없습니다');
-        return;
-      }
-
-      // Create checkout request with hardcoded values as requested
-      const checkoutRequest: CheckoutRequest = {
-        cartItemIds,
-        shippingOption: 'DELIVERY', // Hardcoded for now
-        deliveryAddress: '서울시 강남구 테헤란로 123', // Hardcoded for now
-        usePointsAmount: 0, // Hardcoded for now as mentioned in requirements
-        paymentDetails: {
-          method: 'BANK',
-          bankName: '국민은행',
-          depositorName: '홍길동',
-          receiptType: 'TAX_INVOICE',
-          issuanceType: 'TAX_INVOICE_ISSUANCE',
-          issueNumber: '1234567',
-          businessNumber: '123-45-67890',
-          businessName: '주식회사 잉키',
-          representativeName: '홍길동',
-          businessAddress: '서울시 강남구 테헤란로 123',
-          businessType: '서비스업',
-          businessCategory: '소프트웨어 개발',
-          businessEmail: 'business@petsave.com',
-        },
-      };
-
-      // Call the checkout API
-      const response = await orderService.checkoutCart(checkoutRequest);
-
-      if (!response.error && response.data?.success) {
-        // Store order data for delivery payment page (in case needed for display)
-        localStorage.setItem('checkoutItems', JSON.stringify(itemsToCheckout));
-
-        toast.success('주문이 생성되었습니다. 결제 페이지로 이동합니다.', {
-          style: { background: '#66bfa7' },
-          iconTheme: { primary: '#66bfa7', secondary: '#fff' },
-        });
-
-        // Navigate to delivery payment page
-        router.push('/shopping-cart/delivery-payment');
-      } else if (
-        response.error === 'Authentication required' ||
-        response.error === 'No refresh token available'
-      ) {
-        // Don't show error toast - user is being redirected to login
-        return;
-      } else {
-        // Handle API response errors (like product not available)
-        const errorMessage =
-          response.data?.resultMsg || response.error || '알 수 없는 오류';
-        toast.error('주문 생성 실패: ' + errorMessage);
-
-        // If the error is about product availability, refresh cart to remove unavailable items
-        if (
-          response.data?.resultMsg?.includes('구매할 수 없습니다') ||
-          response.data?.resultMsg?.includes('상품은 현재')
-        ) {
-          console.log(
-            'Product availability issue detected, refreshing cart...'
-          );
-          await refreshCartData();
-        }
-      }
-    } catch (err) {
-      console.error('Checkout error:', err);
-      // Don't show error toast for authentication errors - user is being redirected
-      if (
-        err instanceof Error &&
-        (err.message.includes('No refresh token available') ||
-          err.message.includes('401') ||
-          err.message.includes('Unauthorized'))
-      ) {
-        return;
-      } else {
-        toast.error('네트워크 오류로 주문 생성 실패');
-      }
-    } finally {
-      setIsCheckoutLoading(false);
-    }
+    // Navigate to delivery payment page
+    router.push('/shopping-cart/delivery-payment');
   };
 
   // calculate per-store summary safely
@@ -845,24 +758,20 @@ export default function ShoppingCartPage() {
                 <span>{final.toLocaleString()}원</span>
               </div>
               <button
-                disabled={!hasSelection || isCheckoutLoading}
+                disabled={!hasSelection}
                 onClick={() => handleOrder(items)}
                 className={
-                  !hasSelection || isCheckoutLoading
-                    ? styles.disabledButton
-                    : styles.enabledButton
+                  !hasSelection ? styles.disabledButton : styles.enabledButton
                 }
               >
-                {isCheckoutLoading
-                  ? '주문 처리 중...'
-                  : `총 ${
-                      items.filter(
-                        ({ product }) =>
-                          product.id !== undefined &&
-                          selectedItems.includes(product.id) &&
-                          !isProductExpired(product.expiration)
-                      ).length
-                    }건 주문하기`}
+                {`총 ${
+                  items.filter(
+                    ({ product }) =>
+                      product.id !== undefined &&
+                      selectedItems.includes(product.id) &&
+                      !isProductExpired(product.expiration)
+                  ).length
+                }건 주문하기`}
               </button>
             </div>
           </div>
@@ -876,24 +785,22 @@ export default function ShoppingCartPage() {
           <p>{globalSummary.final.toLocaleString()}원</p>
         </div>
         <button
-          disabled={selectedItems.length === 0 || isCheckoutLoading}
+          disabled={selectedItems.length === 0}
           onClick={() => handleOrder(displayCart)}
           className={
-            selectedItems.length === 0 || isCheckoutLoading
+            selectedItems.length === 0
               ? styles.disabledButton
               : styles.enabledButton
           }
         >
-          {isCheckoutLoading
-            ? '주문 처리 중...'
-            : `총 ${
-                displayCart.filter(
-                  ({ product }) =>
-                    product.id !== undefined &&
-                    selectedItems.includes(product.id) &&
-                    !isProductExpired(product.expiration)
-                ).length
-              }건 주문하기`}
+          {`총 ${
+            displayCart.filter(
+              ({ product }) =>
+                product.id !== undefined &&
+                selectedItems.includes(product.id) &&
+                !isProductExpired(product.expiration)
+            ).length
+          }건 주문하기`}
         </button>
       </div>
 

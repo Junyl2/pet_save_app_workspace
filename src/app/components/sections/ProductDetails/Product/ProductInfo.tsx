@@ -65,7 +65,9 @@ ProductInfoProps) => {
         <section className={styles.section}>
           <h3>상품 상세내용</h3>
           {details.map((detail, idx) => (
-            <p key={idx}>{detail}</p>
+            <p className={styles.detail} key={idx}>
+              {detail}
+            </p>
           ))}
         </section>
       )}

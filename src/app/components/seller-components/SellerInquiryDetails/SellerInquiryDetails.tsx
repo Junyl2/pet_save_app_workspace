@@ -51,8 +51,25 @@ const constructFileUrl = (fileId: string | null | undefined): string => {
   return `${baseURL}/files/${fileId}`;
 };
 
+// Interface for the transformed inquiry data used in UI
+interface TransformedInquiry {
+  id: number;
+  inquiryId: string;
+  date: string;
+  productName: string;
+  productPrice: number;
+  productImage: string;
+  category: string;
+  message: string;
+  responseMessage: string;
+  status: InquiryStatus;
+  answering: boolean;
+}
+
 // Helper function to transform API response to UI format
-const transformStoreInquiryToUI = (storeInquiry: any) => {
+const transformStoreInquiryToUI = (
+  storeInquiry: StoreInquiry
+): TransformedInquiry => {
   console.log('🔍 Transforming inquiry:', storeInquiry);
   console.log('🔍 Product data:', storeInquiry.product);
   console.log('🔍 Direct productName:', storeInquiry.productName);
@@ -138,7 +155,7 @@ export default function SellerInquiryDetails() {
   const ddRef = useRef<HTMLDivElement | null>(null);
 
   // API data state
-  const [inquiries, setInquiries] = useState<any[]>([]);
+  const [inquiries, setInquiries] = useState<TransformedInquiry[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Check if user is approved seller
@@ -229,7 +246,7 @@ export default function SellerInquiryDetails() {
     setOpen(false);
   };
 
-  const handleInquiryClick = (inquiry: any) => {
+  const handleInquiryClick = (inquiry: TransformedInquiry) => {
     // Use the actual inquiryId from the API response
     router.push(`/client/seller/pages/reply-inquiry?id=${inquiry.inquiryId}`);
   };

@@ -5,31 +5,11 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { FaStar, FaCamera } from 'react-icons/fa';
 import styles from './WriteReview.module.css';
-
-// Mock product data - in real app, this would come from API
-const mockProducts = [
-  {
-    id: 1,
-    name: '탐사 강아지 고구마말랭이 간식',
-    store: '○○ 동물병원',
-    purchaseDate: '25.07.30',
-    image: '/images/products/dog-snack.png',
-  },
-  {
-    id: 2,
-    name: '굿데이 건강한 육포 강아지 간식',
-    store: '펫프렌즈',
-    purchaseDate: '25.07.28',
-    image: '/images/products/dog-snack2.png',
-  },
-  {
-    id: 3,
-    name: '씨엔앨 고양이 짜먹는 간식',
-    store: '강아지대통령',
-    purchaseDate: '25.07.25',
-    image: '/images/products/dogfood.png',
-  },
-];
+import { ProductService } from '@/app/api/services/client/productService/productService';
+import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
+import { ProductSummary } from '@/app/api/types/products/productSummary';
+import { ReviewCreateDto } from '@/app/api/types/member/review/review';
+import Loading from '@/app/components/ui/Loading/Loading';
 
 type NewImage = { id: string; file: File; url: string };
 
@@ -39,15 +19,57 @@ export default function WriteReviewPage() {
   const productId = searchParams.get('productId');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Find product by ID (default to first product if not found)
-  const product =
-    mockProducts.find((p) => p.id.toString() === productId) || mockProducts[0];
-
+  const [product, setProduct] = useState<ProductSummary | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [rating, setRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState<string>('');
   const [attachedImages, setAttachedImages] = useState<NewImage[]>([]);
   const [hoveredStar, setHoveredStar] = useState<number>(0);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+
+  // Fetch product data
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    setError(null);
+
+    const fetchProduct = async () => {
+      if (!productId) {
+        setError('상품 ID가 필요합니다.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await ProductService.getProductSummary(productId);
+
+        if (!isMounted) return;
+
+        if (response.error) {
+          setError('상품을 불러올 수 없습니다.');
+        } else if (response.data?.data) {
+          setProduct(response.data.data);
+        } else {
+          setError('상품 정보를 찾을 수 없습니다.');
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Failed to fetch product:', err);
+        setError('상품을 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        if (!isMounted) return;
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [productId]);
 
   const handleStarClick = (starIndex: number) => setRating(starIndex);
   const handleStarHover = (starIndex: number) => setHoveredStar(starIndex);
@@ -81,17 +103,59 @@ export default function WriteReviewPage() {
     };
   }, [attachedImages]);
 
-  const handleSubmit = () => {
-    if (rating > 0 && reviewText.trim()) {
-      setShowSuccessMessage(true);
-      setTimeout(() => {
-        setShowSuccessMessage(false);
-        router.push('/client/pages/my-page/reviews');
-      }, 3000);
+  const handleSubmit = async () => {
+    if (!productId || rating <= 0 || !reviewText.trim() || submitting) {
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const reviewData: ReviewCreateDto = {
+        productId,
+        rating,
+        content: reviewText.trim(),
+        // Note: imageFileIds would need to be uploaded first via file upload API
+        // For now, we'll leave it empty as the API documentation shows it's optional
+        imageFileIds: [],
+      };
+
+      const response = await ReviewService.createReview(reviewData);
+
+      if (response.error) {
+        console.error('Failed to create review:', response.error);
+        alert('리뷰 등록에 실패했습니다. 다시 시도해주세요.');
+      } else {
+        setShowSuccessMessage(true);
+        setTimeout(() => {
+          setShowSuccessMessage(false);
+          router.push('/client/pages/my-page/reviews');
+        }, 3000);
+      }
+    } catch (err) {
+      console.error('Error creating review:', err);
+      alert('리뷰 등록 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const isFormValid = rating > 0 && reviewText.trim().length > 0;
+  const isFormValid = rating > 0 && reviewText.trim().length > 0 && !submitting;
+
+  if (loading) return <Loading />;
+
+  if (error || !product) {
+    return (
+      <div className={styles.container}>
+        <ProductHeader />
+        <div className={styles.content}>
+          <p className={styles.error}>
+            {error || '상품을 불러올 수 없습니다.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -101,13 +165,28 @@ export default function WriteReviewPage() {
         {/* Product Info */}
         <div className={styles.productSection}>
           <div className={styles.productImage}>
-            <img src={product.image} alt={product.name} />
+            <img
+              src={product.thumbnail || '/images/products/noresult.png'}
+              alt={product.productName}
+            />
           </div>
           <div className={styles.productInfo}>
-            <div className={styles.productName}>{product.name}</div>
-            <div className={styles.productStore}>{product.store}</div>
+            <div className={styles.productName}>{product.productName}</div>
+            <div className={styles.productStore}>
+              {product.store?.name || '상점 정보 없음'}
+            </div>
             <div className={styles.purchaseDate}>
-              {product.purchaseDate} 주문
+              {product.createdAt
+                ? new Date(product.createdAt)
+                    .toLocaleDateString('ko-KR', {
+                      year: '2-digit',
+                      month: '2-digit',
+                      day: '2-digit',
+                    })
+                    .replace(/\./g, '.')
+                    .replace(/\s/g, '')
+                : '날짜 정보 없음'}{' '}
+              주문
             </div>
           </div>
         </div>
@@ -195,7 +274,7 @@ export default function WriteReviewPage() {
           onClick={handleSubmit}
           disabled={!isFormValid}
         >
-          등록하기
+          {submitting ? '등록 중...' : '등록하기'}
         </button>
       </div>
 

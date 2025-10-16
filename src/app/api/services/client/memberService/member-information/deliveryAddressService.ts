@@ -1,6 +1,5 @@
 import { apiClient } from '@/app/api/apiClient';
 import {
-  DeliveryAddress,
   CreateDeliveryAddressRequest,
   UpdateDeliveryAddressRequest,
   DeliveryAddressListResponse,

@@ -25,6 +25,7 @@ ProductActionsProps) => {
   const route = useRouter();
   const [showDrawer, setShowDrawer] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [drawerMode, setDrawerMode] = useState<'buy' | 'cart'>('buy');
   /*   const [onMessageProduct, setOnMessageProduct] = useState(false); */
   const [activeProduct, setActiveProduct] = useState<{
     id: string | number;
@@ -36,10 +37,12 @@ ProductActionsProps) => {
   const openDrawer = (
     id: string | number,
     name: string,
-    price: number | string
+    price: number | string,
+    mode: 'buy' | 'cart'
   ) => {
     setActiveProduct({ id, name, price, storeId });
     setQuantity(1);
+    setDrawerMode(mode);
     setShowDrawer(true);
   };
 
@@ -64,14 +67,18 @@ ProductActionsProps) => {
         </button>
 
         <button
-          onClick={() => openDrawer(productId, productName, productPrice)}
+          onClick={() =>
+            openDrawer(productId, productName, productPrice, 'cart')
+          }
           className={styles.addToCart}
         >
           장바구니 담기
         </button>
 
         <button
-          onClick={() => openDrawer(productId, productName, productPrice)}
+          onClick={() =>
+            openDrawer(productId, productName, productPrice, 'buy')
+          }
           className={styles.purchaseButton}
         >
           구매하기
@@ -86,6 +93,7 @@ ProductActionsProps) => {
         setQuantity={setQuantity}
         onClose={() => setShowDrawer(false)}
         onAddToCart={onAddToCart}
+        mode={drawerMode}
       />
     </div>
   );

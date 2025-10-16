@@ -28,7 +28,7 @@ export default function AddressBlock() {
         } else {
           setAddressText('');
         }
-      } catch (e) {
+      } catch {
         setAddressText('');
       }
     };

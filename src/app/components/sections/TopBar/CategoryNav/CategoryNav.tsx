@@ -43,7 +43,9 @@ export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
 
           // Set first category as active if available
           if (fetchedCategories.length > 0) {
-            setActive(fetchedCategories[0].categoryName);
+            const firstCategory = fetchedCategories[0].categoryName;
+            setActive(firstCategory);
+            onSelectCategory(firstCategory); // Notify parent component
           }
         }
       } catch (err) {
@@ -57,7 +59,7 @@ export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
     };
 
     fetchCategories();
-  }, []);
+  }, [onSelectCategory]);
 
   const handleSelect = (cat: string, index: number) => {
     setActive(cat);

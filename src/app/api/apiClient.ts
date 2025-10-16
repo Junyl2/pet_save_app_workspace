@@ -101,7 +101,6 @@ const isPublicEndpoint = (
     '/address/search',
     '/address/search/zip-code',
     '/categories',
-    '/stores', // Only for browsing, not user-specific operations
   ];
 
   // Special handling for products endpoints
@@ -121,6 +120,28 @@ const isPublicEndpoint = (
     });
 
     return isProductsBrowsing;
+  }
+
+  // Special handling for stores endpoints
+  // Only GET requests to /stores (browsing) are public
+  // POST, PUT, DELETE, PATCH requests to /stores require authentication
+  if (url.startsWith('/stores')) {
+    const isGetRequest = !method || method.toLowerCase() === 'get';
+    const isStoresBrowsing =
+      isGetRequest &&
+      (url === '/stores' ||
+        url.startsWith('/stores?') ||
+        url.startsWith('/stores/nearby'));
+
+    console.log('🔍 Stores endpoint classification:', {
+      url,
+      method: method || 'GET',
+      isGetRequest,
+      isStoresBrowsing,
+      isPublic: isStoresBrowsing,
+    });
+
+    return isStoresBrowsing;
   }
 
   // Check if URL starts with any public endpoint
