@@ -59,7 +59,7 @@ export default function CategoryNav({ onSelectCategory }: CategoryNavProps) {
     };
 
     fetchCategories();
-  }, []);
+  }, [onSelectCategory]);
 
   const handleSelect = (cat: string, index: number) => {
     setActive(cat);

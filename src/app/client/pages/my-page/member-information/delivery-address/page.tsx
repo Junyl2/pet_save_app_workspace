@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { FaChevronRight, FaPlus } from 'react-icons/fa';
+import { FaPlus } from 'react-icons/fa';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { DeliveryAddressService } from '@/app/api/services/client/memberService/member-information/deliveryAddressService';
 import {
@@ -14,7 +13,6 @@ import Loading from '@/app/components/ui/Loading/Loading';
 import styles from './DeliveryAddress.module.css';
 
 export default function DeliveryAddressPage() {
-  const router = useRouter();
   const [addresses, setAddresses] = useState<DeliveryAddress[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -228,7 +226,7 @@ export default function DeliveryAddressPage() {
         setToastType('error');
         setToastMessage('배송지 추가에 실패했습니다.');
       }
-    } catch (error) {
+    } catch {
       setToastType('error');
       setToastMessage('배송지 추가에 실패했습니다.');
     } finally {
@@ -312,7 +310,7 @@ export default function DeliveryAddressPage() {
         setToastType('error');
         setToastMessage('배송지 수정에 실패했습니다.');
       }
-    } catch (error) {
+    } catch {
       setToastType('error');
       setToastMessage('배송지 수정에 실패했습니다.');
     } finally {

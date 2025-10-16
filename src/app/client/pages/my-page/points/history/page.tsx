@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { PointsService } from '@/app/api/services/client/memberService/points/pointsService';
-import { PointsTransaction as ApiPointsTransaction } from '@/app/api/types/member/points/points';
 import styles from './PointsHistory.module.css';
 
 interface PointTransaction {
@@ -18,14 +17,11 @@ interface PointTransaction {
 
 export default function PointsHistoryPage() {
   const [pointHistory, setPointHistory] = useState<PointTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
   const [expiringPoints, setExpiringPoints] = useState(0);
 
   useEffect(() => {
     const fetchPointsHistory = async () => {
       try {
-        setLoading(true);
-
         // Fetch points stats for current points and expiring points calculation
         const statsResponse = await PointsService.getPointsStats();
         if (statsResponse.data) {
@@ -105,7 +101,7 @@ export default function PointsHistoryPage() {
         setPointHistory([]);
         setExpiringPoints(0);
       } finally {
-        setLoading(false);
+        // Loading state removed as it's not used in UI
       }
     };
 

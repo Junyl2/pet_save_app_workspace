@@ -1,7 +1,6 @@
 import { InquiryFileService } from './inquiryFileService';
 import { apiClient, ApiResponse } from '../../../../apiClient';
 import {
-  MyInquiry,
   MyInquiriesResponse,
   MyInquiriesParams,
   DeleteInquiryResponse,

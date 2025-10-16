@@ -29,7 +29,16 @@ export default function ShopList() {
     useState<LocationCoordinates | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [nearbyStores, setNearbyStores] = useState<any[] | null>(null);
+  // Interface for nearby store data from API
+  interface NearbyStore {
+    storeId: string;
+    storeName: string;
+    roadAddress: string;
+    businessName: string;
+    distance?: number;
+  }
+
+  const [nearbyStores, setNearbyStores] = useState<NearbyStore[] | null>(null);
 
   const router = useRouter();
 
@@ -139,7 +148,7 @@ export default function ShopList() {
       if (!term) return nearbyStores;
 
       return nearbyStores.filter(
-        (store: any) =>
+        (store: NearbyStore) =>
           store.storeName?.toLowerCase().includes(term) ||
           store.roadAddress?.toLowerCase().includes(term) ||
           store.businessName?.toLowerCase().includes(term)
@@ -301,20 +310,20 @@ export default function ShopList() {
           />
         ) : (
           <div className={styles.list}>
-            {filteredShops.map((shop, index) => {
+            {filteredShops.map((shop) => {
               // Handle both mock data and real API data
               const isApiData = nearbyStores && nearbyStores.length > 0;
               const shopId = isApiData
-                ? (shop as any).storeId
+                ? (shop as NearbyStore).storeId
                 : (shop as Shop).id;
               const shopName = isApiData
-                ? (shop as any).storeName
+                ? (shop as NearbyStore).storeName
                 : (shop as Shop).name;
               const shopLocation = isApiData
-                ? (shop as any).roadAddress
+                ? (shop as NearbyStore).roadAddress
                 : (shop as Shop).location;
               const shopDistance = isApiData
-                ? `${(shop as any).distance?.toFixed(1)}km`
+                ? `${(shop as NearbyStore).distance?.toFixed(1)}km`
                 : (shop as Shop).distance;
               const shopImage = isApiData
                 ? '/images/shops/shop1.png'
@@ -327,7 +336,7 @@ export default function ShopList() {
                 <div
                   key={isApiData ? shopId : shopId}
                   className={styles.shopCard}
-                  onClick={() => handleCardClick(shopId)}
+                  onClick={() => handleCardClick(Number(shopId))}
                 >
                   <button
                     className={styles.phoneButton}

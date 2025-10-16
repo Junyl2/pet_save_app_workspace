@@ -161,7 +161,7 @@ export default function ShoppingCartPage() {
 
         // Check if it's an authentication error
         if (err && typeof err === 'object' && 'response' in err) {
-          const axiosError = err as any;
+          const axiosError = err as { response?: { status?: number } };
           if (
             axiosError.response?.status === 401 ||
             axiosError.response?.status === 403
@@ -181,11 +181,27 @@ export default function ShoppingCartPage() {
     if (isLoggedIn) {
       fetchCartData();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, router]);
+
+  // Interface for cart item structure
+  interface CartItem {
+    product: {
+      id: string;
+      cartItemId: string;
+      name: string;
+      price: number;
+      image: string;
+      shopName: string;
+      storeId: string;
+      discountPrice: number | null;
+      expiration: string | null;
+    };
+    quantity: number;
+  }
 
   // Convert API cart stores to the format expected by the existing cart context
   const convertedCart = useMemo(() => {
-    const allItems: any[] = [];
+    const allItems: CartItem[] = [];
 
     apiCartStores.forEach((store) => {
       store.items.forEach((item) => {
@@ -226,7 +242,7 @@ export default function ShoppingCartPage() {
 
   // group by shop - use only API store data
   const grouped = useMemo(() => {
-    const map: Record<string, any[]> = {};
+    const map: Record<string, CartItem[]> = {};
     apiCartStores.forEach((store) => {
       const storeName = store.store.name;
       map[storeName] = store.items.map((item) => ({
@@ -318,9 +334,8 @@ export default function ShoppingCartPage() {
       console.log('Delete response:', response);
 
       // Check if deletion was successful
-      // The API returns empty string '' on successful deletion, or an error object on failure
-      const isSuccess =
-        (response.data as any) === '' || response.data?.success === true;
+      // The API returns success: true on successful deletion
+      const isSuccess = response.data?.success === true;
 
       if (isSuccess && !response.error) {
         console.log('Delete successful, refreshing cart data...');
@@ -367,9 +382,8 @@ export default function ShoppingCartPage() {
       console.log('Batch delete response:', response);
 
       // Check if batch deletion was successful
-      // The API returns empty string '' on successful deletion, or an error object on failure
-      const isSuccess =
-        (response.data as any) === '' || response.data?.success === true;
+      // The API returns success: true on successful deletion
+      const isSuccess = response.data?.success === true;
 
       if (isSuccess && !response.error) {
         await refreshCartData();

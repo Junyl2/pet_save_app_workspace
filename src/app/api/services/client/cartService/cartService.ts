@@ -3,7 +3,6 @@ import {
   AddToCartRequest,
   AddToCartResponse,
   CartResponse,
-  CartItem,
   UpdateCartItemQuantityRequest,
   BatchDeleteCartItemsRequest,
   CartOperationResponse,

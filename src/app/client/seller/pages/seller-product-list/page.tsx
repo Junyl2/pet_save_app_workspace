@@ -46,6 +46,7 @@ export default function SellerProductListPage() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState<string | null>(
     null
   );
+  const [statusChanging, setStatusChanging] = useState<string | null>(null);
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [deleteModalOpen, setDeleteModalOpen] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +72,9 @@ export default function SellerProductListPage() {
     target: ProductStatus
   ) => {
     try {
+      setStatusChanging(productId);
+      setError(null); // Clear any previous errors
+
       if (target === '판매완료') {
         const res = await ProductService.markSoldOut(productId);
         if (res.error) {
@@ -86,20 +90,23 @@ export default function SellerProductListPage() {
         }
         updateProductStatusLocally(productId, 'ONSALE');
       }
-    } catch (e) {
+    } catch (err) {
+      console.error('Error changing product status:', err);
       setError('상태 변경 중 오류가 발생했습니다.');
     } finally {
+      setStatusChanging(null);
       setStatusDropdownOpen(null);
     }
   };
 
+  // Since we're now doing server-side filtering, products are already filtered
   const filteredProducts = useMemo(() => {
-    const filtered = products.filter(
-      (p) => getDisplayStatus(p.registrationStatus) === filter
+    console.log(
+      '[SellerProductListPage] Products (already filtered by server):',
+      products
     );
-    console.log('[SellerProductListPage] Filtered products:', filtered);
     console.log('[SellerProductListPage] Current filter:', filter);
-    return filtered;
+    return products;
   }, [products, filter]);
 
   // Fetch products for the current seller's store
@@ -130,7 +137,10 @@ export default function SellerProductListPage() {
           );
         }
 
-        // Then fetch products for this store
+        // Convert filter to API registration status
+        const registrationStatus = filter === '판매중' ? 'ONSALE' : 'SOLD_OUT';
+
+        // Then fetch products for this store with filter
         const productsResponse =
           await SellerProductListService.getProductsByStoreId({
             storeId: memberData.storeId,
@@ -138,6 +148,7 @@ export default function SellerProductListPage() {
             size: 10,
             sortBy: 'createdAt',
             direction: 'desc',
+            registrationStatus: registrationStatus,
           });
 
         if (productsResponse.error || !productsResponse.data) {
@@ -173,12 +184,17 @@ export default function SellerProductListPage() {
     };
 
     fetchProducts();
-  }, [currentPage]);
+  }, [currentPage, filter]);
 
   const handlePageChange = (page: number) => {
     console.log('[SellerProductListPage] Page change requested:', page);
     setCurrentPage(page);
   };
+
+  // Reset to page 0 when filter changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [filter]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -395,12 +411,15 @@ export default function SellerProductListPage() {
                       <button
                         className={styles.statusPill}
                         onClick={() => {
-                          setStatusDropdownOpen(
-                            statusDropdownOpen === p.productId
-                              ? null
-                              : p.productId
-                          );
+                          if (statusChanging !== p.productId) {
+                            setStatusDropdownOpen(
+                              statusDropdownOpen === p.productId
+                                ? null
+                                : p.productId
+                            );
+                          }
                         }}
+                        disabled={statusChanging === p.productId}
                       >
                         <span
                           className={
@@ -409,7 +428,9 @@ export default function SellerProductListPage() {
                               : undefined
                           }
                         >
-                          {displayStatus}
+                          {statusChanging === p.productId
+                            ? '변경 중...'
+                            : displayStatus}
                         </span>
                         <FaChevronDown className={styles.downIcon} />
                       </button>
@@ -421,16 +442,24 @@ export default function SellerProductListPage() {
                             onClick={() =>
                               handleChangeStatus(p.productId, '판매중')
                             }
+                            disabled={statusChanging === p.productId}
                           >
-                            판매중
+                            {statusChanging === p.productId
+                              ? '변경 중...'
+                              : '판매중'}
                           </button>
                           <button
                             className={styles.statusDropdownItem}
                             onClick={() =>
                               handleChangeStatus(p.productId, '판매완료')
                             }
+                            disabled={statusChanging === p.productId}
                           >
-                            <span className={styles.dimText}>판매완료</span>
+                            <span className={styles.dimText}>
+                              {statusChanging === p.productId
+                                ? '변경 중...'
+                                : '판매완료'}
+                            </span>
                           </button>
                         </div>
                       )}

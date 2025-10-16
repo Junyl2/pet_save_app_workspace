@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ContactInquiry } from '@/app/api/types/contact/contact';
 import { contactService } from '@/app/api/services/contact-service/contactService';
 import { MemberInquiryService } from '@/app/api/services/client/memberService/inquiry-details/memberInquiryService';
@@ -89,7 +89,7 @@ export default function ContactInbox({
     }
   };
 
-  const fetchInquiries = async (range: RangeLabel) => {
+  const fetchInquiries = useCallback(async (range: RangeLabel) => {
     setLoading(true);
     try {
       const dateParams = getDateRangeParams(range);
@@ -161,7 +161,7 @@ export default function ContactInbox({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Client-side date filtering as backup
   const applyClientSideDateFilter = (
@@ -196,7 +196,7 @@ export default function ContactInbox({
 
   useEffect(() => {
     fetchInquiries(selectedRange);
-  }, [selectedRange]);
+  }, [selectedRange, fetchInquiries]);
 
   const handleSelectRange = (option: RangeLabel) => {
     setSelectedRange(option);

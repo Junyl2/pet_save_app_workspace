@@ -45,9 +45,9 @@ export default function ViewReviewPage() {
 
         if (response.error) {
           setError('리뷰를 불러올 수 없습니다.');
-        } else if (response.data?.data?.content) {
-          const foundReview = response.data.data.content.find(
-            (r) => r.id === reviewId
+        } else if (response.data?.content) {
+          const foundReview = response.data.content.find(
+            (r) => r.reviewId === reviewId
           );
           if (foundReview) {
             setReview(foundReview);
@@ -140,15 +140,16 @@ export default function ViewReviewPage() {
               <div className={styles.profileImage}>
                 <img
                   src={
-                    review.profileImage || '/images/icons/profile-default.png'
+                    review.reviewer.profileImageUrl ||
+                    '/images/icons/profile-default.png'
                   }
                   alt="Profile"
                 />
               </div>
               <div className={styles.userDetails}>
-                <div className={styles.username}>{review.username}</div>
+                <div className={styles.username}>{review.reviewer.name}</div>
                 <div className={styles.userIdAndDate}>
-                  {review.userId} |{' '}
+                  {review.reviewer.memberId} |{' '}
                   {new Date(review.createdAt)
                     .toLocaleDateString('ko-KR', {
                       year: 'numeric',
@@ -179,14 +180,14 @@ export default function ViewReviewPage() {
           </div>
 
           {/* Product Name */}
-          <div className={styles.productName}>{review.productName}</div>
+          <div className={styles.productName}>{review.product.productName}</div>
 
           {/* Review Images (stable keys) */}
-          {review.imageFileIds && review.imageFileIds.length > 0 && (
+          {review.imageUrls && review.imageUrls.length > 0 && (
             <div className={styles.imagesContainer}>
-              {review.imageFileIds.map((imageId) => (
-                <div key={imageId} className={styles.reviewImage}>
-                  <img src={`/api/files/${imageId}`} alt="Review image" />
+              {review.imageUrls.map((imageUrl, index) => (
+                <div key={index} className={styles.reviewImage}>
+                  <img src={imageUrl} alt="Review image" />
                 </div>
               ))}
             </div>

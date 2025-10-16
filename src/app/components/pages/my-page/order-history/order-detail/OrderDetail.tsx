@@ -1,6 +1,6 @@
 // app/components/pages/my-page/order-history/[orderId]/OrderDetail.tsx
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import DateRange from '@/app/components/ui/DateRange/DateRange';
 import styles from './OrderDetail.module.css';
@@ -9,7 +9,6 @@ import { PAGE_URLS } from '@/app/utils/page_url';
 import { ExchangeRefundModal } from '../exchange-refund-modal/ExchangeRefundModal';
 import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
 import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
-import { OrderItem } from '@/app/components/types/order';
 
 export enum OrderStatus {
   ORDERED = '주문 완료',
@@ -40,13 +39,7 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (orderId) {
-      fetchOrderDetails();
-    }
-  }, [orderId]);
-
-  const fetchOrderDetails = async () => {
+  const fetchOrderDetails = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -70,7 +63,13 @@ export default function OrderDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderId]);
+
+  useEffect(() => {
+    if (orderId) {
+      fetchOrderDetails();
+    }
+  }, [orderId, fetchOrderDetails]);
 
   if (loading) {
     return (

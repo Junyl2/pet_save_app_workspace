@@ -39,7 +39,6 @@ export default function PayButton({
   totalDue,
   canPay,
   handlePay,
-  orderItems,
   deliveryOption,
   usePoints,
   paymentMethod,
@@ -129,7 +128,10 @@ export default function PayButton({
       } else {
         // Handle cart checkout
         const cartItemIds = checkoutItems
-          .map((item: any) => item.product.cartItemId)
+          .map(
+            (item: { product: { cartItemId: string } }) =>
+              item.product.cartItemId
+          )
           .filter((id: string) => id !== undefined);
 
         if (cartItemIds.length === 0) {

@@ -4,7 +4,10 @@ import Image from 'next/image';
 import { IoStarSharp } from 'react-icons/io5';
 import { FiMoreHorizontal } from 'react-icons/fi';
 import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
-import { Review } from '@/app/api/types/member/review/review';
+import {
+  Review,
+  ReviewSearchParams,
+} from '@/app/api/types/member/review/review';
 import ReportModal from '@/app/components/ui/modal/ReportModal/ReportModal';
 import styles from './CustomerReviews.module.css';
 
@@ -45,13 +48,19 @@ export const CustomerReviews = ({ productId }: CustomerReviewsProps) => {
       setLoading(true);
       setError(null);
       try {
-        const res = await ReviewService.searchReviews({
-          productId: productId,
+        const searchParams: ReviewSearchParams = {
           page: 0,
           size: 50, // Get more reviews for the full page
           sortBy: 'createdAt',
           direction: 'desc',
-        });
+        };
+
+        // Only add productId filter if it's provided and not empty
+        if (productId && productId.trim() !== '') {
+          searchParams.productId = productId;
+        }
+
+        const res = await ReviewService.searchReviews(searchParams);
         if (res.error) {
           setError(res.error);
         } else {

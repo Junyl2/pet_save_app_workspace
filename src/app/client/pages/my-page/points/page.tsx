@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { PointsService } from '@/app/api/services/client/memberService/points/pointsService';
-import { PointsTransaction as ApiPointsTransaction } from '@/app/api/types/member/points/points';
 import styles from './Points.module.css';
 
 interface PointTransaction {
@@ -32,13 +31,10 @@ export default function PointsPage() {
   const router = useRouter();
   const [currentPoints, setCurrentPoints] = useState(0);
   const [pointHistory, setPointHistory] = useState<PointTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPointsData = async () => {
       try {
-        setLoading(true);
-
         // Fetch points stats for current points
         console.log('Calling PointsService.getPointsStats()...');
         const statsResponse = await PointsService.getPointsStats();
@@ -121,7 +117,7 @@ export default function PointsPage() {
         console.error('Failed to fetch points data:', error);
         // No fallback data - keep current state
       } finally {
-        setLoading(false);
+        // Loading state removed as it's not used in UI
       }
     };
 

@@ -100,7 +100,7 @@ export const ProductGrid = ({
           console.error('Failed to fetch products:', res.error);
           setProducts([]);
         } else {
-          let filtered = res.data?.data?.content || [];
+          const filtered = res.data?.data?.content || [];
 
           // Update pagination info - API returns pagination in pageInfo object
           const apiPageInfo = res.data?.data?.pageInfo;
@@ -133,21 +133,33 @@ export const ProductGrid = ({
 
           // Debug: Log the first product to see the actual API structure
           if (filtered.length > 0) {
-            console.log('First product from API:', filtered[0]);
-            console.log('Product keys:', Object.keys(filtered[0]));
+            const firstProduct = filtered[0] as Product & {
+              thumbnail?: string;
+              image?: string;
+              images?: string[];
+              price?: number;
+              originalPrice?: number;
+              discountPrice?: number;
+              discountedPrice?: number;
+              salePrice?: number;
+              productPrice?: number;
+              regularPrice?: number;
+            };
+            console.log('First product from API:', firstProduct);
+            console.log('Product keys:', Object.keys(firstProduct));
             console.log('Image fields:', {
-              thumbnail: filtered[0].thumbnail,
-              image: filtered[0].image,
-              images: filtered[0].images,
+              thumbnail: firstProduct.thumbnail,
+              image: firstProduct.image,
+              images: firstProduct.images,
             });
             console.log('Price fields:', {
-              price: filtered[0].price,
-              originalPrice: filtered[0].originalPrice,
-              discountPrice: filtered[0].discountPrice,
-              discountedPrice: filtered[0].discountedPrice,
-              salePrice: filtered[0].salePrice,
-              productPrice: filtered[0].productPrice,
-              regularPrice: filtered[0].regularPrice,
+              price: firstProduct.price,
+              originalPrice: firstProduct.originalPrice,
+              discountPrice: firstProduct.discountPrice,
+              discountedPrice: firstProduct.discountedPrice,
+              salePrice: firstProduct.salePrice,
+              productPrice: firstProduct.productPrice,
+              regularPrice: firstProduct.regularPrice,
             });
           }
 
@@ -232,11 +244,15 @@ export const ProductGrid = ({
               <div className={styles.imageWrapper}>
                 {(() => {
                   // Check for thumbnail first, then image, then first image from images array
+                  const productWithImages = product as Product & {
+                    images?: string[];
+                  };
                   const imageUrl =
                     product.thumbnail ||
                     product.image ||
-                    (product.images && product.images.length > 0
-                      ? product.images[0]
+                    (productWithImages.images &&
+                    productWithImages.images.length > 0
+                      ? productWithImages.images[0]
                       : null);
 
                   return imageUrl ? (
@@ -246,6 +262,11 @@ export const ProductGrid = ({
                       width={120}
                       height={120}
                       className={styles.image}
+                      unoptimized={imageUrl.includes('211.107.13.167')}
+                      onError={(e) => {
+                        console.warn('Image failed to load:', imageUrl);
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   ) : (
                     <div className={styles.imagePlaceholder}>

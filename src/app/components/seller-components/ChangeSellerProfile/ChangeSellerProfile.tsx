@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useId, useMemo, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { FaCamera, FaChevronDown } from 'react-icons/fa';
 import styles from './ChangeSellerProfile.module.css';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
@@ -80,7 +80,6 @@ Props) {
   const closeId = useId();
   const addressId = useId();
 
-  const router = useRouter();
   const params = useSearchParams();
 
   // 1) identify which shop/owner we're editing
@@ -218,7 +217,6 @@ Props) {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId]);
 
   const handleChange =

@@ -5,7 +5,6 @@ import { FiPlus, FiMinus, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import styles from './ProductDrawer.module.css';
 import { cartService } from '@/app/api/services/client/cartService/cartService';
-import { ShippingOption } from '@/app/api/types/member/order/order';
 import toast from 'react-hot-toast';
 import { useCart } from '@/app/context/cartContext';
 import { useUser } from '@/app/context/userContext';
@@ -31,9 +30,9 @@ interface ProductDrawerProps {
 type DeliveryOption = '배송' | '픽업';
 
 // Convert Korean delivery option to API shipping option
-const convertDeliveryOption = (option: DeliveryOption): ShippingOption => {
+/* const convertDeliveryOption = (option: DeliveryOption): ShippingOption => {
   return option === '배송' ? 'DELIVERY' : 'PICKUP';
-};
+}; */
 
 export const ProductDrawer = ({
   show,

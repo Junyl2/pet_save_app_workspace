@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import DateRange from '@/app/components/ui/DateRange/DateRange';
 import styles from './OrderTracking.module.css';
 import { useParams } from 'next/navigation';
@@ -65,14 +65,7 @@ export default function OrderTracking(props: OrderTrackingProps = {}) {
   // ✅ Find order from shared mockOrders (same as OrderDetail)
   const order = mockOrders.find((o) => o.orderNumber === orderId);
 
-  useEffect(() => {
-    if (orderId) {
-      console.log('OrderTracking loaded for orderId:', orderId, order);
-      fetchTrackingData();
-    }
-  }, [orderId, order]);
-
-  const fetchTrackingData = async () => {
+  const fetchTrackingData = useCallback(async () => {
     if (!orderId) return;
 
     try {
@@ -141,7 +134,14 @@ export default function OrderTracking(props: OrderTrackingProps = {}) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderId]);
+
+  useEffect(() => {
+    if (orderId) {
+      console.log('OrderTracking loaded for orderId:', orderId, order);
+      fetchTrackingData();
+    }
+  }, [orderId, order, fetchTrackingData]);
 
   if (loading) {
     return (
@@ -177,7 +177,6 @@ export default function OrderTracking(props: OrderTrackingProps = {}) {
 
   // ✅ Extract real order data from API
   const orderNumber = orderItem.orderNumber;
-  const status = orderItem.status;
 
   // Format date from order number
   const formatDate = (orderNumber: string): string => {

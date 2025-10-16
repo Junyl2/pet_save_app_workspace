@@ -231,7 +231,7 @@ export default function AddressList() {
         } else {
           setApiAddresses([]);
         }
-      } catch (e) {
+      } catch {
         setApiAddresses([]);
       }
     };

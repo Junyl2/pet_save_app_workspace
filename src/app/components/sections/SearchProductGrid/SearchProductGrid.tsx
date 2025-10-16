@@ -272,6 +272,18 @@ export default function SearchProductGrid({
                     width={162}
                     height={147}
                     className={styles.image}
+                    unoptimized={(
+                      product.image ||
+                      product.thumbnail ||
+                      ''
+                    ).includes('211.107.13.167')}
+                    onError={(e) => {
+                      console.warn(
+                        'Image failed to load:',
+                        product.image || product.thumbnail
+                      );
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
                   <div className={styles.icons}>
                     <button

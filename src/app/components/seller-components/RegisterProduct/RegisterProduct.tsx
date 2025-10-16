@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './RegisterProduct.module.css';
-import { FaChevronDown, FaChevronUp, FaRedo, FaTimes } from 'react-icons/fa';
+import { FaChevronDown, FaChevronUp, FaTimes } from 'react-icons/fa';
 import { CiImageOn } from 'react-icons/ci';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { FileProductService } from '@/app/api/services/client/productService/fileProductService';
@@ -27,6 +27,7 @@ export default function RegisterProductForm() {
       encryptedId: string;
       isUploading: boolean;
       uploadError: string | null;
+      retryCount: number;
     }>
   >([]);
   const [imageFileIds, setImageFileIds] = useState<string[]>([]); // Stores encryptedIds, not fileIds
@@ -124,8 +125,12 @@ export default function RegisterProductForm() {
     console.log('imageFileIds state changed:', imageFileIds);
   }, [imageFileIds]);
 
-  // Handle multiple file upload
-  const handleFileUpload = async (file: File, index: number) => {
+  // Handle multiple file upload with retry logic
+  const handleFileUpload = async (
+    file: File,
+    index: number,
+    retryCount = 0
+  ) => {
     const preview = URL.createObjectURL(file);
 
     // Add file to state with uploading status
@@ -138,12 +143,15 @@ export default function RegisterProductForm() {
         encryptedId: '',
         isUploading: true,
         uploadError: null,
+        retryCount,
       };
       return newFiles;
     });
 
     try {
-      console.log('Starting file upload for index:', index);
+      console.log(
+        `Starting file upload for index: ${index}, retry: ${retryCount}`
+      );
       const uploadResponse = await FileProductService.uploadFile({
         file,
         metadata: {
@@ -168,6 +176,7 @@ export default function RegisterProductForm() {
           encryptedId: uploadedFile.encryptedId,
           isUploading: false,
           uploadError: null,
+          retryCount,
         };
         return newFiles;
       });
@@ -181,21 +190,32 @@ export default function RegisterProductForm() {
 
       console.log('File uploaded successfully:', uploadedFile);
     } catch (error) {
-      console.error('File upload failed:', error);
+      console.error(`File upload failed (retry ${retryCount}):`, error);
 
-      // Update the specific file with error
-      setUploadedFiles((prev) => {
-        const newFiles = [...prev];
-        newFiles[index] = {
-          ...newFiles[index],
-          isUploading: false,
-          uploadError:
-            error instanceof Error
-              ? error.message
-              : '파일 업로드에 실패했습니다.',
-        };
-        return newFiles;
-      });
+      // If retry count is less than 3, retry with exponential backoff
+      if (retryCount < 3) {
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(`Retrying upload in ${delay}ms...`);
+
+        setTimeout(() => {
+          handleFileUpload(file, index, retryCount + 1);
+        }, delay);
+      } else {
+        // Update the specific file with error after max retries
+        setUploadedFiles((prev) => {
+          const newFiles = [...prev];
+          newFiles[index] = {
+            ...newFiles[index],
+            isUploading: false,
+            uploadError:
+              error instanceof Error
+                ? error.message
+                : '파일 업로드에 실패했습니다.',
+            retryCount,
+          };
+          return newFiles;
+        });
+      }
     }
   };
 
@@ -207,13 +227,14 @@ export default function RegisterProductForm() {
     const currentLength = uploadedFiles.length;
 
     // Create preview URLs for new files
-    const newFileObjects = newFiles.map((file, index) => ({
+    const newFileObjects = newFiles.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
       fileId: '',
       encryptedId: '',
       isUploading: true,
       uploadError: null,
+      retryCount: 0,
     }));
 
     // Add new files to state
@@ -520,13 +541,11 @@ export default function RegisterProductForm() {
           <div key="file-upload-label" className={styles.labelWrapper}>
             <CiImageOn size={16} color="rgba(0,0,0,0.4)" />
             <label htmlFor="fileUpload" className={styles.fileUploadLabel}>
-              {uploadedFiles.some((file) => file.isUploading)
-                ? '업로드 중...'
-                : '사진 첨부하기 (여러 개 선택 가능)'}
+              사진 첨부하기 (여러 개 선택 가능)
             </label>
           </div>
 
-          {/* Image Previews */}
+          {/* Image Previews - positioned at bottom left */}
           {uploadedFiles.length > 0 && (
             <div
               style={{
@@ -535,6 +554,7 @@ export default function RegisterProductForm() {
                 gap: '12px',
                 marginTop: '16px',
                 justifyContent: 'flex-start',
+                alignSelf: 'flex-start',
               }}
             >
               {uploadedFiles.map((file, index) => (
@@ -556,11 +576,12 @@ export default function RegisterProductForm() {
                   <button
                     type="button"
                     onClick={() => handleFileDelete(index)}
+                    disabled={file.isUploading}
                     style={{
                       position: 'absolute',
                       top: '4px',
                       right: '4px',
-                      backgroundColor: '#f44336',
+                      backgroundColor: file.isUploading ? '#ccc' : '#f44336',
                       color: 'white',
                       border: 'none',
                       borderRadius: '50%',
@@ -569,7 +590,7 @@ export default function RegisterProductForm() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: 'pointer',
+                      cursor: file.isUploading ? 'not-allowed' : 'pointer',
                       fontSize: '12px',
                       zIndex: 1,
                     }}
@@ -586,16 +607,23 @@ export default function RegisterProductForm() {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        backgroundColor: 'rgba(0,0,0,0.7)',
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: 'white',
                         fontSize: '12px',
                         borderRadius: '8px',
+                        gap: '4px',
                       }}
                     >
-                      업로드 중...
+                      <div>업로드 중...</div>
+                      {file.retryCount > 0 && (
+                        <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                          재시도 {file.retryCount}/3
+                        </div>
+                      )}
                     </div>
                   )}
 
