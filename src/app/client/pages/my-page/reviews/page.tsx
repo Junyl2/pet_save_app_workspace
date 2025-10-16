@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { FaStar } from 'react-icons/fa';
+import ReviewSkeleton from '@/app/components/ui/SkeletonLoading/ReviewSkeleton/ReviewSkeleton';
 import styles from './Reviews.module.css';
 
 // Mock data for products available for review
@@ -89,6 +90,7 @@ const mockWrittenReviews = [
 export default function ReviewsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'write' | 'my-reviews'>('write');
+  const [loading, setLoading] = useState(true);
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('ko-KR') + '원';
@@ -102,6 +104,15 @@ export default function ReviewsPage() {
     router.push(`/client/pages/my-page/reviews/edit?reviewId=${reviewId}`);
   };
 
+  // Simulate loading for demonstration
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, index) => (
       <FaStar
@@ -112,6 +123,15 @@ export default function ReviewsPage() {
       />
     ));
   };
+
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <ProductHeader />
+        <ReviewSkeleton activeTab={activeTab} />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

@@ -627,6 +627,12 @@ export default function ShoppingCartPage() {
                         alt={product.name || 'Product Image'}
                         width={80}
                         height={80}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          objectPosition: 'center',
+                        }}
                       />
                     </div>
                   </div>

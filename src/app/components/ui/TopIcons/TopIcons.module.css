@@ -36,3 +36,24 @@
   cursor: pointer;
   color: rgba(0, 0, 0, 0.4);
 }
+
+.cartBadge {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  background-color: #fff;
+  border: 0.5px solid #66bfa7;
+  color: #66bfa7;
+  border-radius: 50%;
+  min-width: 13px;
+  height: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}

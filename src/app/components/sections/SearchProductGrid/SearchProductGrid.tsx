@@ -264,9 +264,7 @@ export default function SearchProductGrid({
                 <div className={styles.imageWrapper}>
                   <Image
                     src={
-                      product.image ||
-                      product.thumbnail ||
-                      '/images/products/placeholder.png'
+                      product.image || product.thumbnail || '/placeholder.png'
                     }
                     alt={product.name || product.productName || 'Product'}
                     width={162}
@@ -277,13 +275,6 @@ export default function SearchProductGrid({
                       product.thumbnail ||
                       ''
                     ).includes('211.107.13.167')}
-                    onError={(e) => {
-                      console.warn(
-                        'Image failed to load:',
-                        product.image || product.thumbnail
-                      );
-                      e.currentTarget.style.display = 'none';
-                    }}
                   />
                   <div className={styles.icons}>
                     <button
@@ -291,14 +282,14 @@ export default function SearchProductGrid({
                       onClick={(e) => handleCartClick(e, product)}
                     >
                       <Image
-                        src="/images/icons/Cart.png"
+                        src="/images/products/search-cart.svg"
                         alt="Cart Icon"
-                        width={24}
-                        height={22}
+                        width={26}
+                        height={26}
                         className="object-contain"
                       />
                     </button>
-                    <button
+                    {/*    <button
                       onClick={async (e) => {
                         e.stopPropagation();
                         const productId = product.productId || product.id;
@@ -321,7 +312,7 @@ export default function SearchProductGrid({
                         height={22}
                         className="object-contain"
                       />
-                    </button>
+                    </button> */}
                   </div>
                 </div>
                 <div className={styles.content}>

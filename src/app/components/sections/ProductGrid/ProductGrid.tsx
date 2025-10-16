@@ -242,38 +242,24 @@ export const ProductGrid = ({
               style={{ cursor: 'pointer' }}
             >
               <div className={styles.imageWrapper}>
-                {(() => {
-                  // Check for thumbnail first, then image, then first image from images array
-                  const productWithImages = product as Product & {
-                    images?: string[];
-                  };
-                  const imageUrl =
+                <Image
+                  src={
                     product.thumbnail ||
                     product.image ||
-                    (productWithImages.images &&
-                    productWithImages.images.length > 0
-                      ? productWithImages.images[0]
-                      : null);
-
-                  return imageUrl ? (
-                    <Image
-                      src={imageUrl}
-                      alt={product.name || product.productName || 'Product'}
-                      width={120}
-                      height={120}
-                      className={styles.image}
-                      unoptimized={imageUrl.includes('211.107.13.167')}
-                      onError={(e) => {
-                        console.warn('Image failed to load:', imageUrl);
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <div className={styles.imagePlaceholder}>
-                      <span>No Image</span>
-                    </div>
-                  );
-                })()}
+                    (product as Product & { images?: string[] }).images?.[0] ||
+                    '/placeholder.png'
+                  }
+                  alt={product.name || product.productName || 'Product'}
+                  width={120}
+                  height={120}
+                  className={styles.image}
+                  unoptimized={(
+                    product.thumbnail ||
+                    product.image ||
+                    (product as Product & { images?: string[] }).images?.[0] ||
+                    ''
+                  ).includes('211.107.13.167')}
+                />
               </div>
               <div className={styles.content}>
                 <div className={styles.header}>

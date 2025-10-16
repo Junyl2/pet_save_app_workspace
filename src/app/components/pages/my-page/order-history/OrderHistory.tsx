@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import FilterBar from '../../../sections/FilterBar/FilterBar';
 import styles from './OrderHistory.module.css';
 import OrderHistoryItem from './order-history-item/OrderHistoryItem';
+import OrderHistorySkeleton from '../../../ui/SkeletonLoading/OrderHistorySkeleton';
 import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
 import {
   OrderItemResponse,
@@ -112,7 +113,9 @@ export default function OrderHistory() {
       <div className={styles.container}>
         <div className={styles.inner}>
           <FilterBar />
-          <div className={styles.loading}>주문 내역을 불러오는 중...</div>
+          <div className={styles.list}>
+            <OrderHistorySkeleton count={5} />
+          </div>
         </div>
       </div>
     );

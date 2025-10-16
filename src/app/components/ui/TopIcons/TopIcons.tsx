@@ -3,10 +3,12 @@ import styles from './TopIcons.module.css';
 import { useRouter, usePathname } from 'next/navigation';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import Image from 'next/image';
+import { useCartQuantity } from '@/app/components/hooks/use-cart-quantity';
 
 export const TopIcons = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { totalProducts } = useCartQuantity();
 
   return (
     <div className={styles.icons}>
@@ -49,6 +51,7 @@ export const TopIcons = () => {
           <button
             className={styles.iconBtn}
             onClick={() => router.push('/shopping-cart')}
+            style={{ position: 'relative' }}
           >
             <Image
               src="/images/icons/Cart.png"
@@ -56,6 +59,11 @@ export const TopIcons = () => {
               width={27}
               height={30}
             />
+            {totalProducts > 0 && (
+              <span className={styles.cartBadge}>
+                {totalProducts > 99 ? '99+' : totalProducts}
+              </span>
+            )}
           </button>
         )}
     </div>
