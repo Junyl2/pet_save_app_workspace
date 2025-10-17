@@ -1,5 +1,5 @@
 .container {
-  min-height: 100vh;
+  min-height: calc(100vh - 60px);
   background-color: #ffffff;
   padding-top: 60px;
   margin-top: 30px;
@@ -10,9 +10,13 @@
 }
 
 .tabContainer {
+  position: sticky;
+  top: 60px;
   display: flex;
   border-bottom: 1px solid #e5e5e5;
   margin: 0 -16px 0 -16px;
+  background-color: #fff;
+  z-index: 500;
 }
 
 .tab {
@@ -153,29 +157,29 @@
   .container {
     padding-top: 50px;
   }
-  
+
   .tab {
     font-size: 15px;
     padding: 14px 0;
   }
-  
+
   .productItem {
     padding: 14px 0;
   }
-  
+
   .productImage {
     width: 50px;
     height: 50px;
   }
-  
+
   .productName {
     font-size: 13px;
   }
-  
+
   .productPrice {
     font-size: 15px;
   }
-  
+
   .reviewButton {
     padding: 6px 12px;
     font-size: 13px;
@@ -298,28 +302,28 @@
   .reviewItem {
     padding: 14px 0;
   }
-  
+
   .reviewImage {
     width: 50px;
     height: 50px;
   }
-  
+
   .reviewProductName {
     font-size: 13px;
   }
-  
+
   .star {
     font-size: 12px;
   }
-  
+
   .reviewDate {
     font-size: 11px;
   }
-  
+
   .reviewPreview {
     font-size: 12px;
   }
-  
+
   .viewButton {
     padding: 6px 12px;
     font-size: 13px;
@@ -462,33 +466,33 @@
     padding: 16px 12px;
     margin: 0 -12px;
   }
-  
+
   .profileImage {
     width: 40px;
     height: 40px;
   }
-  
+
   .username {
     font-size: 15px;
   }
-  
+
   .userIdAndDate {
     font-size: 11px;
   }
-  
+
   .detailedReview .reviewProductName {
     font-size: 16px;
   }
-  
+
   .reviewImageItem {
     width: 100px;
     height: 100px;
   }
-  
+
   .reviewTextContent {
     font-size: 15px;
   }
-  
+
   .editButton {
     padding: 6px 12px;
     font-size: 13px;

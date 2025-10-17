@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { mockOrders } from '@/app/components/data/mockOrders';
 import ProductSection from '@/app/components/sections/ProductSection/ProductSection';
 import Steps from '@/app/components/ui/steps/Steps';
+import OrderTrackingSkeleton from '@/app/components/ui/SkeletonLoading/OrderTrackingSkeleton/OrderTrackingSkeleton';
 import { deliveryTrackingService } from '@/app/api/services/client/memberService/order/deliveryTrackingService';
 import {
   DeliveryTrackingData,
@@ -144,11 +145,7 @@ export default function OrderTracking(props: OrderTrackingProps = {}) {
   }, [orderId, order, fetchTrackingData]);
 
   if (loading) {
-    return (
-      <div className={styles.container}>
-        <p>배송 정보를 불러오는 중...</p>
-      </div>
-    );
+    return <OrderTrackingSkeleton />;
   }
 
   if (error) {

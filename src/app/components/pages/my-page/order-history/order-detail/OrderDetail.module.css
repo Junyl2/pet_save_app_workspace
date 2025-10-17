@@ -2,7 +2,7 @@
 
 .container {
   background-color: #f9fafb;
-  min-height: 100vh;
+  min-height: calc(100vh - 60px);
   margin: 60px -16px 0;
 }
 

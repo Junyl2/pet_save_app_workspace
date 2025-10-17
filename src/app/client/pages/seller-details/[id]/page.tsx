@@ -1,7 +1,12 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter, useParams, usePathname } from 'next/navigation';
+import {
+  useRouter,
+  useParams,
+  usePathname,
+  useSearchParams,
+} from 'next/navigation';
 import { StoreService } from '@/app/api/services/client/storeService/storeService';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
@@ -20,20 +25,32 @@ import Loading from '@/app/components/ui/Loading/Loading';
 import Image from 'next/image';
 
 export default function SellerDetailsPage() {
-  const [store, setStore] = useState<StoreInfo | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [currentUserStoreId, setCurrentUserStoreId] = useState<string | null>(
-    null
-  );
-  const [error, setError] = useState<string | null>(null);
-
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Get storeId from route or fallback to last segment
   const params = useParams<{ id?: string }>();
   const pathname = usePathname();
   const lastSeg = pathname?.split('/').filter(Boolean).at(-1);
   const storeId = params?.id ?? lastSeg ?? '';
+
+  // Get current page and category from URL parameters
+  const currentPage = parseInt(searchParams.get('page') || '0', 10);
+  const urlCategory = searchParams.get('category') || '';
+
+  const [store, setStore] = useState<StoreInfo | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>(urlCategory);
+  const [currentUserStoreId, setCurrentUserStoreId] = useState<string | null>(
+    null
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  // Sync URL category with state
+  useEffect(() => {
+    if (urlCategory !== selectedCategory) {
+      setSelectedCategory(urlCategory);
+    }
+  }, [urlCategory, selectedCategory]);
 
   // Get current user's store ID
   useEffect(() => {
@@ -169,6 +186,32 @@ export default function SellerDetailsPage() {
     router.push(`/client/seller/pages/change-profile?storeId=${storeId}`);
   };
 
+  // Handle page change by updating URL
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (page === 0) {
+      params.delete('page');
+    } else {
+      params.set('page', page.toString());
+    }
+    const newUrl = params.toString() ? `?${params.toString()}` : '';
+    router.push(`/client/pages/seller-details/${storeId}${newUrl}`);
+  };
+
+  // Handle category change by updating URL
+  const handleCategoryChange = (category: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (category === '') {
+      params.delete('category');
+    } else {
+      params.set('category', category);
+    }
+    // Reset to page 0 when changing category
+    params.delete('page');
+    const newUrl = params.toString() ? `?${params.toString()}` : '';
+    router.push(`/client/pages/seller-details/${storeId}${newUrl}`);
+  };
+
   return (
     <>
       <ProductHeader />
@@ -256,12 +299,17 @@ export default function SellerDetailsPage() {
 
         <div className={styles.categoryWrapper}>
           <h2 className={styles.categoryLabel}>이 스토의 상품 보기</h2>
-          <CategoryNav onSelectCategory={setSelectedCategory} />
+          <CategoryNav
+            onSelectCategory={handleCategoryChange}
+            currentCategory={selectedCategory}
+          />
         </div>
 
         <ProductGrid
           category={selectedCategory}
           storeId={storeId}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
           onProductClick={(product) => {
             const productId = product.productId || product.id;
             if (productId) {

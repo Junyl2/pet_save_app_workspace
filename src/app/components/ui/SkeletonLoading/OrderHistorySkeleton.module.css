@@ -1,0 +1,125 @@
+/* Base skeleton animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* Card container - matches OrderHistoryItem layout */
+.card {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -16px; /* cancel out .app-content padding */
+  padding: 12px 16px; /* consistent inner spacing */
+  border-bottom: 1px solid #eee;
+}
+
+/* Header skeleton */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.statusSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 20px;
+}
+
+.detailButtonSkeleton {
+  composes: skeleton;
+  width: 70px;
+  height: 16px;
+}
+
+/* Body skeleton */
+.body {
+  display: flex;
+  gap: 12px;
+}
+
+.imageWrapper {
+  flex-shrink: 0;
+  width: 108px;
+  height: 108px;
+  overflow: hidden;
+  border-radius: 6px;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.imageSkeleton {
+  composes: skeleton;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+}
+
+/* Details skeleton */
+.details {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex: 1;
+  gap: 0.4rem;
+}
+
+.orderNumberSkeleton {
+  composes: skeleton;
+  width: 140px;
+  height: 16px;
+}
+
+.nameSkeleton {
+  composes: skeleton;
+  width: 180px;
+  height: 18px;
+  margin: 2px 0;
+}
+
+.brandSkeleton {
+  composes: skeleton;
+  width: 100px;
+  height: 14px;
+}
+
+.priceSkeleton {
+  composes: skeleton;
+  width: 120px;
+  height: 16px;
+}
+
+.dateSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 12px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .nameSkeleton {
+    width: 150px;
+  }
+
+  .orderNumberSkeleton {
+    width: 120px;
+  }
+
+  .priceSkeleton {
+    width: 100px;
+  }
+}

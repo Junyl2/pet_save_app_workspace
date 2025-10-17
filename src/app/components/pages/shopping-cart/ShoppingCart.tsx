@@ -334,10 +334,11 @@ export default function ShoppingCartPage() {
       console.log('Delete response:', response);
 
       // Check if deletion was successful
-      // The API returns success: true on successful deletion
-      const isSuccess = response.data?.success === true;
+      // If there's no error, consider it successful (HTTP 200/204)
+      // Also check for explicit success field if present
+      const isSuccess = !response.error && response.data?.success !== false;
 
-      if (isSuccess && !response.error) {
+      if (isSuccess) {
         console.log('Delete successful, refreshing cart data...');
         await refreshCartData();
         // Remove from selected items if it was selected
@@ -382,10 +383,11 @@ export default function ShoppingCartPage() {
       console.log('Batch delete response:', response);
 
       // Check if batch deletion was successful
-      // The API returns success: true on successful deletion
-      const isSuccess = response.data?.success === true;
+      // If there's no error, consider it successful (HTTP 200/204)
+      // Also check for explicit success field if present
+      const isSuccess = !response.error && response.data?.success !== false;
 
-      if (isSuccess && !response.error) {
+      if (isSuccess) {
         await refreshCartData();
         // Remove from selected items
         setSelectedItems((prev) =>
@@ -627,6 +629,12 @@ export default function ShoppingCartPage() {
                         alt={product.name || 'Product Image'}
                         width={80}
                         height={80}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          objectPosition: 'center',
+                        }}
                       />
                     </div>
                   </div>
