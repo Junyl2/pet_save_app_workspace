@@ -27,14 +27,17 @@ export default function ReviewSkeleton({
 
         {/* Content based on active tab */}
         {activeTab === 'write' ? (
-          <div className={styles.writeReviewSection}>
+          <div key="write-skeleton" className={styles.writeReviewSection}>
             {/* Section Title Skeleton */}
             <div className={styles.sectionTitleSkeleton}></div>
 
             {/* Product List Skeleton */}
             <div className={styles.productList}>
               {Array.from({ length: 6 }, (_, index) => (
-                <div key={index} className={styles.productItem}>
+                <div
+                  key={`write-product-${index}`}
+                  className={styles.productItem}
+                >
                   <div className={styles.productImageSkeleton}></div>
 
                   <div className={styles.productInfo}>
@@ -49,11 +52,14 @@ export default function ReviewSkeleton({
             </div>
           </div>
         ) : (
-          <div className={styles.myReviewsSection}>
+          <div key="my-reviews-skeleton" className={styles.myReviewsSection}>
             {/* Review Item Skeleton */}
             <div className={styles.detailedReviewContainer}>
               {Array.from({ length: 2 }, (_, index) => (
-                <div key={index} className={styles.detailedReview}>
+                <div
+                  key={`my-review-${index}`}
+                  className={styles.detailedReview}
+                >
                   {/* Review Header Skeleton */}
                   <div className={styles.reviewHeader}>
                     <div className={styles.userInfo}>
@@ -64,7 +70,7 @@ export default function ReviewSkeleton({
                           <div className={styles.starsContainer}>
                             {Array.from({ length: 5 }, (_, starIndex) => (
                               <div
-                                key={starIndex}
+                                key={`star-${index}-${starIndex}`}
                                 className={styles.starSkeleton}
                               ></div>
                             ))}
@@ -84,7 +90,7 @@ export default function ReviewSkeleton({
                   <div className={styles.reviewImagesContainer}>
                     {Array.from({ length: 3 }, (_, imageIndex) => (
                       <div
-                        key={imageIndex}
+                        key={`image-${index}-${imageIndex}`}
                         className={styles.reviewImageItemSkeleton}
                       ></div>
                     ))}

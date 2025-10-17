@@ -1,5 +1,5 @@
 .container {
-  min-height: 100vh;
+  min-height: calc(100vh - 60px);
   background-color: #ffffff;
   padding-top: 60px;
 }
@@ -10,9 +10,13 @@
 
 /* Tab Navigation */
 .tabContainer {
+  position: sticky;
+  top: 60px;
   display: flex;
   border-bottom: 1px solid #e5e5e5;
-  margin-bottom: 20px;
+  margin: 0 -16px 0 -16px;
+  background-color: #fff;
+  z-index: 500;
 }
 
 .tab {
@@ -26,7 +30,6 @@
   cursor: pointer;
   position: relative;
   transition: color 0.2s ease;
-  
 }
 
 .tab:hover {
@@ -63,7 +66,6 @@
   align-items: flex-start;
   margin-bottom: 16px;
   position: relative;
-  
 }
 
 .userInfo {
@@ -236,42 +238,42 @@
   .container {
     padding-top: 50px;
   }
-  
+
   .content {
     padding: 0 12px;
   }
-  
+
   .reviewContainer {
     padding: 16px;
   }
-  
+
   .tab {
     font-size: 15px;
     padding: 14px 0;
   }
-  
+
   .profileImage {
     width: 36px;
     height: 36px;
   }
-  
+
   .username {
     font-size: 15px;
   }
-  
+
   .userIdAndDate {
     font-size: 11px;
   }
-  
+
   .productName {
     font-size: 16px;
   }
-  
+
   .reviewImage {
     width: 100px;
     height: 100px;
   }
-  
+
   .reviewText {
     font-size: 15px;
   }

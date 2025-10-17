@@ -5,7 +5,30 @@ import { useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { FaStar } from 'react-icons/fa';
 import ReviewSkeleton from '@/app/components/ui/SkeletonLoading/ReviewSkeleton/ReviewSkeleton';
+import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
+import {
+  Review,
+  ReviewSearchParams,
+} from '@/app/api/types/member/review/review';
 import styles from './Reviews.module.css';
+
+// Helper function to get Korean rating comment
+const getRatingComment = (rating: number): string => {
+  switch (rating) {
+    case 5:
+      return '매우 만족';
+    case 4:
+      return '만족해요';
+    case 3:
+      return '보통이에요';
+    case 2:
+      return '불만족';
+    case 1:
+      return '매우 불만족';
+    default:
+      return '보통';
+  }
+};
 
 // Mock data for products available for review
 const mockProducts = [
@@ -67,30 +90,13 @@ const mockProducts = [
   },
 ];
 
-// Mock data for written reviews
-const mockWrittenReviews = [
-  {
-    id: 1,
-    productName: '탐사 강아지 고구마말랭이 간식',
-    rating: 5,
-    reviewText:
-      '우리 강아지가 너무 잘 먹어요! 고구마 말랭이라 건강에도 좋고, 말랑해서 먹기도 편해 보여요. 간식 줄 때마다 꼬리를 흔들며 좋아하네요. 재구매 의사 100%입니다!',
-    images: [
-      '/images/products/dog-snack.png',
-      '/images/products/dog-snack2.png',
-      '/images/products/dogfood.png',
-    ],
-    username: '만족해요',
-    userId: 'petsave100000',
-    date: '2025.08.10',
-    profileImage: '/images/icons/apple.png',
-  },
-];
-
 export default function ReviewsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'write' | 'my-reviews'>('write');
   const [loading, setLoading] = useState(true);
+  const [writtenReviews, setWrittenReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('ko-KR') + '원';
@@ -100,8 +106,37 @@ export default function ReviewsPage() {
     router.push(`/client/pages/my-page/reviews/write?productId=${productId}`);
   };
 
-  const handleEditReview = (reviewId: number) => {
+  const handleEditReview = (reviewId: string) => {
     router.push(`/client/pages/my-page/reviews/edit?reviewId=${reviewId}`);
+  };
+
+  // Fetch written reviews from API
+  const fetchWrittenReviews = async () => {
+    setReviewsLoading(true);
+    setReviewsError(null);
+    try {
+      const searchParams: ReviewSearchParams = {
+        page: 0,
+        size: 50,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      };
+
+      const response = await ReviewService.searchReviews(searchParams);
+      if (response.error) {
+        setReviewsError(response.error);
+      } else {
+        setWrittenReviews(response.data?.content || []);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setReviewsError(err.message);
+      } else {
+        setReviewsError('알 수 없는 에러가 발생했습니다.');
+      }
+    } finally {
+      setReviewsLoading(false);
+    }
   };
 
   // Simulate loading for demonstration
@@ -112,6 +147,21 @@ export default function ReviewsPage() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Fetch reviews when component mounts
+  useEffect(() => {
+    fetchWrittenReviews();
+  }, []);
+
+  // Reset loading when tab changes to prevent DOM issues
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [activeTab]);
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, index) => (
@@ -124,7 +174,7 @@ export default function ReviewsPage() {
     ));
   };
 
-  if (loading) {
+  if (loading || (activeTab === 'my-reviews' && reviewsLoading)) {
     return (
       <div className={styles.container}>
         <ProductHeader />
@@ -160,7 +210,7 @@ export default function ReviewsPage() {
 
         {/* Content based on active tab */}
         {activeTab === 'write' ? (
-          <div className={styles.writeReviewSection}>
+          <div key="write-tab" className={styles.writeReviewSection}>
             <div className={styles.sectionTitle}>
               쓸 수 있는 리뷰 {mockProducts.length}개
             </div>
@@ -191,35 +241,46 @@ export default function ReviewsPage() {
             </div>
           </div>
         ) : (
-          <div className={styles.myReviewsSection}>
-            {mockWrittenReviews.length > 0 ? (
+          <div key="my-reviews-tab" className={styles.myReviewsSection}>
+            {reviewsError ? (
+              <div className={styles.emptyState}>에러: {reviewsError}</div>
+            ) : writtenReviews.length > 0 ? (
               <div className={styles.detailedReviewContainer}>
-                {mockWrittenReviews.map((review) => (
-                  <div key={review.id} className={styles.detailedReview}>
+                {writtenReviews.map((review) => (
+                  <div key={review.reviewId} className={styles.detailedReview}>
                     {/* Review Header */}
                     <div className={styles.reviewHeader}>
                       <div className={styles.userInfo}>
                         <div className={styles.profileImage}>
-                          <img src={review.profileImage} alt="Profile" />
+                          <img
+                            src={
+                              review.reviewer.profileImageUrl ||
+                              '/images/icons/profile-default.png'
+                            }
+                            alt="Profile"
+                          />
                         </div>
                         <div className={styles.userDetails}>
                           <div className={styles.usernameAndRating}>
                             <span className={styles.username}>
-                              {review.username}
+                              {getRatingComment(review.rating)}
                             </span>
                             <div className={styles.starsContainer}>
                               {renderStars(review.rating)}
                             </div>
                           </div>
                           <div className={styles.userIdAndDate}>
-                            {review.userId} | {review.date}
+                            {review.reviewer.name} |{' '}
+                            {new Date(review.createdAt).toLocaleDateString(
+                              'ko-KR'
+                            )}
                           </div>
                         </div>
                       </div>
 
                       <button
                         className={styles.editButton}
-                        onClick={() => handleEditReview(review.id)}
+                        onClick={() => handleEditReview(review.reviewId)}
                       >
                         수정하기
                       </button>
@@ -231,10 +292,13 @@ export default function ReviewsPage() {
                     </div>
 
                     {/* Review Images (stable keys) */}
-                    {review.images && review.images.length > 0 && (
+                    {review.imageUrls && review.imageUrls.length > 0 && (
                       <div className={styles.reviewImagesContainer}>
-                        {review.images.map((image) => (
-                          <div key={image} className={styles.reviewImageItem}>
+                        {review.imageUrls.map((image, imageIndex) => (
+                          <div
+                            key={`${review.reviewId}-image-${imageIndex}`}
+                            className={styles.reviewImageItem}
+                          >
                             <img src={image} alt="Review image" />
                           </div>
                         ))}
@@ -243,7 +307,7 @@ export default function ReviewsPage() {
 
                     {/* Review Text */}
                     <div className={styles.reviewTextContent}>
-                      {review.reviewText}
+                      {review.content}
                     </div>
                   </div>
                 ))}

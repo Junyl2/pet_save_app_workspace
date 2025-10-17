@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import styles from './SearchProductGrid.module.css';
-import { useFavorites } from '@/app/context/FavoritesContext';
+/* import { useFavorites } from '@/app/context/FavoritesContext'; */
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
 import {
   Product,
@@ -22,7 +22,7 @@ export default function SearchProductGrid({
   searchTerm?: string;
   onSearchSubmit?: () => void;
 }) {
-  const { /*  favorites,  */ toggleFavorite, isFavorited } = useFavorites();
+  /*  const {  toggleFavorite, isFavorited } = useFavorites(); */
   const router = useRouter();
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);

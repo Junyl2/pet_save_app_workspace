@@ -18,6 +18,8 @@ interface ProductGridProps {
   category?: string;
   searchTerm?: string;
   storeId?: string;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
   onProductClick?: (product: Product) => void;
   onAddToCart?: (product: Product) => void;
 }
@@ -27,6 +29,8 @@ export const ProductGrid = ({
   category,
   searchTerm = '',
   storeId,
+  currentPage: externalCurrentPage,
+  onPageChange: externalOnPageChange,
   onProductClick,
   onAddToCart,
 }: ProductGridProps) => {
@@ -35,7 +39,7 @@ export const ProductGrid = ({
 
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
   const [loading, setLoading] = useState(!initialProducts);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(externalCurrentPage || 0);
   const [pageInfo, setPageInfo] = useState<ProductPageInfo>({
     totalElements: 0,
     totalPages: 0,
@@ -49,6 +53,16 @@ export const ProductGrid = ({
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+
+  // Sync external currentPage with internal state
+  useEffect(() => {
+    if (
+      externalCurrentPage !== undefined &&
+      externalCurrentPage !== currentPage
+    ) {
+      setCurrentPage(externalCurrentPage);
+    }
+  }, [externalCurrentPage, currentPage]);
 
   useEffect(() => {
     if (initialProducts) return;
@@ -188,11 +202,12 @@ export const ProductGrid = ({
   }, [category, searchTerm, storeId, initialProducts, currentPage]);
 
   // Reset pagination when category or search term changes (but not when currentPage changes)
+  // Only reset if we're not using external pagination control
   useEffect(() => {
-    if (initialProducts) return;
+    if (initialProducts || externalOnPageChange) return;
     console.log('Category or search term changed, resetting to page 0');
     setCurrentPage(0);
-  }, [category, searchTerm, storeId, initialProducts]);
+  }, [category, searchTerm, storeId, initialProducts, externalOnPageChange]);
 
   // Debug useEffect to track currentPage changes
   useEffect(() => {
@@ -201,7 +216,11 @@ export const ProductGrid = ({
 
   const handlePageChange = (page: number) => {
     console.log('ProductGrid: handlePageChange called with page:', page);
-    setCurrentPage(page);
+    if (externalOnPageChange) {
+      externalOnPageChange(page);
+    } else {
+      setCurrentPage(page);
+    }
   };
 
   if (loading) return <ProductSkeleton count={5} />;
