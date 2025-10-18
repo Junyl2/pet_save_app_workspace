@@ -30,6 +30,16 @@ export default function CategoryNav({
   // Properly typed refs array
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
+  // Store the callback in a ref to avoid dependency issues
+  const onSelectCategoryRef = useRef(onSelectCategory);
+  const currentCategoryRef = useRef(currentCategory);
+
+  // Update refs when props change
+  useEffect(() => {
+    onSelectCategoryRef.current = onSelectCategory;
+    currentCategoryRef.current = currentCategory;
+  }, [onSelectCategory, currentCategory]);
+
   // Sync currentCategory prop with active state
   useEffect(() => {
     if (currentCategory && currentCategory !== active) {
@@ -54,10 +64,10 @@ export default function CategoryNav({
           setLoading(false);
 
           // Set first category as active if available and no currentCategory is set
-          if (categoriesCache.length > 0 && !currentCategory) {
+          if (categoriesCache.length > 0 && !currentCategoryRef.current) {
             const firstCategory = categoriesCache[0].categoryName;
             setActive(firstCategory);
-            onSelectCategory(firstCategory);
+            onSelectCategoryRef.current(firstCategory);
           }
           return;
         }
@@ -94,10 +104,10 @@ export default function CategoryNav({
           setCategories(fetchedCategories);
 
           // Set first category as active if available and no currentCategory is set
-          if (fetchedCategories.length > 0 && !currentCategory) {
+          if (fetchedCategories.length > 0 && !currentCategoryRef.current) {
             const firstCategory = fetchedCategories[0].categoryName;
             setActive(firstCategory);
-            onSelectCategory(firstCategory); // Notify parent component
+            onSelectCategoryRef.current(firstCategory); // Notify parent component
           }
         }
       } catch (err) {
