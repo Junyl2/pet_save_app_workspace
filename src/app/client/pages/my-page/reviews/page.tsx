@@ -8,9 +8,10 @@ import ReviewSkeleton from '@/app/components/ui/SkeletonLoading/ReviewSkeleton/R
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import {
   fetchReviews,
+  fetchMyReviews,
   ReviewCacheKey,
 } from '@/app/redux/slices/cache/reviewSlice';
-import { Review } from '@/app/api/types/member/review/review';
+/* import { Review } from '@/app/api/types/member/review/review'; */
 import styles from './Reviews.module.css';
 
 // Helper function to get Korean rating comment
@@ -101,6 +102,9 @@ export default function ReviewsPage() {
 
   // Get current cache key for reviews
   const getCurrentCacheKey = (): string => {
+    if (activeTab === 'my-reviews') {
+      return `my_reviews_0_50_createdAt_desc`;
+    }
     return `all_all_all_0_50_createdAt_desc`;
   };
 
@@ -123,15 +127,25 @@ export default function ReviewsPage() {
 
   // Fetch reviews using Redux
   useEffect(() => {
-    const cacheKeyParams: ReviewCacheKey = {
-      page: 0,
-      size: 50,
-      sortBy: 'createdAt',
-      direction: 'desc',
-    };
-
-    dispatch(fetchReviews(cacheKeyParams));
-  }, [dispatch]);
+    if (activeTab === 'my-reviews') {
+      dispatch(
+        fetchMyReviews({
+          page: 0,
+          size: 50,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        })
+      );
+    } else {
+      const cacheKeyParams: ReviewCacheKey = {
+        page: 0,
+        size: 50,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      };
+      dispatch(fetchReviews(cacheKeyParams));
+    }
+  }, [dispatch, activeTab]);
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, index) => (

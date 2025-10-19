@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { MemberInfo, MemberApiResponse } from '@/app/api/types/member/member';
+import { MemberInfo } from '@/app/api/types/member/member';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 
 export interface CachedUserData {

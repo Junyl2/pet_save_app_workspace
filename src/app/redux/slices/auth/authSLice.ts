@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthService } from '@/app/api/services/client/auth/authService';
-import { LogoutResponse } from '@/app/api/types/auth/Login';
+/* import { LogoutResponse } from '@/app/api/types/auth/Login'; */
 import { clearCache as clearProductCache } from '../cache/productSlice';
 import { clearOrderCache } from '../cache/orderSlice';
 import { clearCache as clearReviewCache } from '../cache/reviewSlice';
@@ -28,7 +28,7 @@ const initialState: AuthState = {
 // Async thunk for logout
 export const logoutUser = createAsyncThunk(
   'auth/logout',
-  async (_, { dispatch, rejectWithValue }) => {
+  async (_, { dispatch }) => {
     try {
       console.log('Starting logout process...');
 

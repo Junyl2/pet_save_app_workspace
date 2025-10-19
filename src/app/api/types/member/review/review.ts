@@ -58,3 +58,11 @@ export interface ReviewSearchResponse {
     hasPrevious: boolean;
   };
 }
+
+// My reviews parameters
+export interface MyReviewsParams {
+  page?: number; // Default: 0
+  size?: number; // Default: 10
+  sortBy?: 'createdAt'; // Default: createdAt
+  direction?: 'asc' | 'desc'; // Default: desc
+}

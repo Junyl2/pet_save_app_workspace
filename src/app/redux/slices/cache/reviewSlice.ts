@@ -3,6 +3,7 @@ import {
   Review,
   ReviewSearchParams,
   ReviewSearchResponse,
+  MyReviewsParams,
 } from '@/app/api/types/member/review/review';
 import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
 
@@ -110,6 +111,55 @@ export const fetchReviews = createAsyncThunk(
   }
 );
 
+// Async thunk for fetching my reviews
+export const fetchMyReviews = createAsyncThunk(
+  'reviews/fetchMyReviews',
+  async (params: MyReviewsParams, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { reviews: ReviewState };
+      const cacheKey = `my_reviews_${params.page || 0}_${params.size || 10}_${
+        params.sortBy || 'createdAt'
+      }_${params.direction || 'desc'}`;
+      const cachedData = state.reviews.cache[cacheKey];
+
+      // Return cached data if it exists and is valid
+      if (cachedData && isCacheValid(cachedData.timestamp)) {
+        return { cacheKey, data: cachedData, fromCache: true };
+      }
+
+      const res = await ReviewService.getMyReviews(params);
+
+      if (res.error) {
+        throw new Error(res.error);
+      }
+
+      const reviews = res.data?.content || [];
+      const pageInfo = res.data?.pageInfo || {
+        totalElements: 0,
+        totalPages: 0,
+        currentPage: 0,
+        pageSize: 10,
+        first: true,
+        last: false,
+        hasNext: false,
+        hasPrevious: false,
+      };
+
+      const data: CachedReviewData = {
+        reviews,
+        pageInfo,
+        timestamp: Date.now(),
+      };
+
+      return { cacheKey, data, fromCache: false };
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : 'Failed to fetch my reviews'
+      );
+    }
+  }
+);
+
 const reviewSlice = createSlice({
   name: 'reviews',
   initialState,
@@ -151,6 +201,24 @@ const reviewSlice = createSlice({
         }
       })
       .addCase(fetchReviews.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(fetchMyReviews.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchMyReviews.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.currentCacheKey = action.payload.cacheKey;
+
+        // Only update cache if data is not from cache
+        if (!action.payload.fromCache) {
+          state.cache[action.payload.cacheKey] = action.payload.data;
+        }
+      })
+      .addCase(fetchMyReviews.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

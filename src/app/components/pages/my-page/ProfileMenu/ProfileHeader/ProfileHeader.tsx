@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from './ProfileHeader.module.css';
 import Image from 'next/image';
 import { PAGE_URLS } from '@/app/utils/page_url';
-import { MemberInfo } from '@/app/api/types/member/member';
+/* import { MemberInfo } from '@/app/api/types/member/member'; */
 import { useUser } from '@/app/context/userContext';
 import { FileService } from '@/app/api/services/client/fileService/fileService';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';

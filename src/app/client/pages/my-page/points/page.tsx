@@ -38,7 +38,7 @@ export default function PointsPage() {
   const dispatch = useDispatch<AppDispatch>();
 
   // Redux state
-  const { statsCache, historyCache, loading, error } = useSelector(
+  const { loading } = useSelector(
     (state: RootState) => state.points
   );
 

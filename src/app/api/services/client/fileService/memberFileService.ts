@@ -6,7 +6,7 @@ import {
   MemberMultipleFileUploadResponse,
   MemberFileAttachResponse,
   MemberFileInfoResponse,
-  MemberFileListResponse,
+  /*   MemberFileListResponse, */
   MemberFileDeleteResponse,
 } from '../../../types/file/memberFile';
 import { isAxiosError, AxiosError, AxiosResponse } from 'axios';
