@@ -9,7 +9,7 @@ import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/P
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 import { DeliveryAddressService } from '@/app/api/services/client/memberService/member-information/deliveryAddressService';
 import { MemberInfo, MemberUpdateRequest } from '@/app/api/types/member/member';
-import { FileService } from '@/app/api/services/client/fileService/fileService';
+import { MemberFileService } from '@/app/api/services/client/fileService/memberFileService';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import Loading from '@/app/components/ui/Loading/Loading';
 import styles from './MemberInformation.module.css';
@@ -34,13 +34,16 @@ export default function MemberInformation() {
   const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [isUploadingProfile, setIsUploadingProfile] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Function to get profile image URL
   const getProfileImageUrl = async (profileFileId: string | undefined) => {
     if (!profileFileId) return null;
 
     try {
-      const response = await FileService.getFile(profileFileId, {
+      const response = await MemberFileService.getFile(profileFileId, {
         disposition: 'inline',
         type: 'original',
       });
@@ -166,6 +169,15 @@ export default function MemberInformation() {
     fetchMemberInfo();
   }, []);
 
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   // Handle form input changes
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -229,6 +241,135 @@ export default function MemberInformation() {
   // Handle toast close
   const handleToastClose = () => {
     setToastMessage(null);
+  };
+
+  // Handle file selection and preview
+  const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setToastType('error');
+      setToastMessage('지원되지 않는 파일 형식입니다. (JPEG, PNG, GIF만 허용)');
+      event.target.value = '';
+      return;
+    }
+
+    // Validate file size (5MB limit for profile images)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setToastType('error');
+      setToastMessage('파일 크기가 5MB를 초과합니다.');
+      event.target.value = '';
+      return;
+    }
+
+    // Set selected file and create preview
+    setSelectedFile(file);
+    const preview = URL.createObjectURL(file);
+    setPreviewUrl(preview);
+    setProfileImage(preview);
+  };
+
+  // Handle profile image upload
+  const handleProfileImageUpload = async () => {
+    if (!selectedFile || !memberInfo) return;
+
+    try {
+      setIsUploadingProfile(true);
+      setError(null);
+
+      console.log('🔄 Uploading profile image...');
+
+      // Upload the file using MemberFileService
+      const uploadResult = await MemberFileService.uploadFile(selectedFile, {
+        entityType: 'member',
+        entityId: memberInfo.memberId,
+      });
+
+      if (uploadResult.error) {
+        setToastType('error');
+        setToastMessage(uploadResult.error);
+        return;
+      }
+
+      if (uploadResult.data) {
+        console.log(
+          '✅ Profile image uploaded successfully:',
+          uploadResult.data
+        );
+
+        // Attach the file to the member entity
+        const attachResult = await MemberFileService.attachFiles(
+          memberInfo.memberId,
+          [uploadResult.data.fileId]
+        );
+
+        if (attachResult.error) {
+          setToastType('error');
+          setToastMessage(attachResult.error);
+          return;
+        }
+
+        // Note: Backend should automatically update profileImageUrl when file is attached
+        // If not, we'll rely on the file service to provide the image URL
+        console.log(
+          'File attached successfully. Backend should update profileImageUrl automatically.'
+        );
+
+        // Refresh member info to get updated profileImageUrl from backend
+        try {
+          const refreshResponse = await MemberService.getMyInfo();
+          if (refreshResponse.data?.success && refreshResponse.data?.data) {
+            setMemberInfo(refreshResponse.data.data);
+            console.log(
+              '✅ Member info refreshed with updated profileImageUrl:',
+              refreshResponse.data.data.profileImageUrl
+            );
+          }
+        } catch (refreshError) {
+          console.warn('Failed to refresh member info:', refreshError);
+          // Fallback: Update local state with file data
+          setMemberInfo((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  profileFileId: uploadResult.data?.encryptedId,
+                  profileImageUrl: uploadResult.data?.url,
+                }
+              : null
+          );
+        }
+
+        setToastType('success');
+        setToastMessage('프로필 사진이 성공적으로 변경되었습니다.');
+
+        // Clean up preview states
+        setSelectedFile(null);
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+          setPreviewUrl(null);
+        }
+      }
+    } catch (error) {
+      console.error('💥 Error uploading profile image:', error);
+      setToastType('error');
+      setToastMessage('프로필 사진 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsUploadingProfile(false);
+    }
+  };
+
+  // Handle profile image button click
+  const handleProfileImageClick = () => {
+    const fileInput = document.getElementById(
+      'profile-image-input'
+    ) as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
   };
 
   if (isLoading) {
@@ -305,10 +446,62 @@ export default function MemberInformation() {
             />
           )}
         </div>
-        <button className={styles.profileEditBtn}>
-          <span className={styles.cameraIcon}>📷</span>
-          프로필 사진 변경
-        </button>
+
+        {/* Hidden file input */}
+        <input
+          id="profile-image-input"
+          type="file"
+          accept="image/jpeg,image/png,image/gif"
+          onChange={handleFileSelection}
+          style={{ display: 'none' }}
+        />
+
+        {selectedFile ? (
+          <div className={styles.uploadActions}>
+            <button
+              className={styles.uploadBtn}
+              onClick={handleProfileImageUpload}
+              disabled={isUploadingProfile}
+            >
+              {isUploadingProfile ? '업로드 중...' : '업로드하기'}
+            </button>
+            <button
+              className={styles.cancelBtn}
+              onClick={() => {
+                setSelectedFile(null);
+                if (previewUrl) {
+                  URL.revokeObjectURL(previewUrl);
+                  setPreviewUrl(null);
+                }
+                // Reset to original profile image
+                if (memberInfo?.profileFileId) {
+                  getProfileImageUrl(memberInfo.profileFileId).then(
+                    setProfileImage
+                  );
+                } else {
+                  setProfileImage(null);
+                }
+                // Reset file input
+                const fileInput = document.getElementById(
+                  'profile-image-input'
+                ) as HTMLInputElement;
+                if (fileInput) fileInput.value = '';
+              }}
+              disabled={isUploadingProfile}
+            >
+              취소
+            </button>
+          </div>
+        ) : (
+          <button
+            className={styles.profileEditBtn}
+            onClick={handleProfileImageClick}
+            disabled={isUploadingProfile}
+          >
+            <span className={styles.cameraIcon}>📷</span>
+            프로필 사진 변경
+          </button>
+        )}
       </div>
 
       {/* Member Information Form */}
