@@ -158,9 +158,9 @@ export class StoreService {
       }
 
       console.log('✅ Nearby stores search successful:', {
-        totalStores: response.data?.data?.totalElements || 0,
-        currentPage: response.data?.data?.number || 0,
-        totalPages: response.data?.data?.totalPages || 0,
+        totalStores: response.data?.data?.pageInfo?.totalElements || 0,
+        currentPage: response.data?.data?.pageInfo?.currentPage || 0,
+        totalPages: response.data?.data?.pageInfo?.totalPages || 0,
         storesFound: response.data?.data?.content?.length || 0,
       });
 

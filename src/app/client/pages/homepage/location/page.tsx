@@ -193,9 +193,23 @@ export default function LocationPage() {
             y: '',
           },
         };
+
+        // Store the current location coordinates in localStorage
+        localStorage.setItem('selectedLocationLat', latitude.toString());
+        localStorage.setItem('selectedLocationLong', longitude.toString());
+        localStorage.setItem('selectedLocation', convertedAddress.address_name);
+
+        // Dispatch custom event to notify TopBar of location change
+        window.dispatchEvent(new CustomEvent('locationChanged'));
+
         setAddresses([convertedAddress]);
         setSearch('');
         toast.success('현재 위치를 찾았습니다.');
+
+        // Navigate back to homepage after a short delay
+        setTimeout(() => {
+          router.push('/client/pages/homepage');
+        }, 1000);
       } else if (response.error) {
         console.error('Error getting current location:', response.error);
         toast.error('현재 위치를 찾을 수 없습니다.');
@@ -297,7 +311,7 @@ export default function LocationPage() {
               width={16}
               className="object-contain"
             />
-            {isLoading ? '위치 찾는 중...' : '현재위치로 찾기'}
+            현재위치로 찾기
           </button>
         </div>
       </div>
