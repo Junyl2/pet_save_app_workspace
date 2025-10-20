@@ -30,6 +30,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [locationLoaded, setLocationLoaded] = useState<boolean>(false);
 
   /** Format address to show only first 2 parts */
   const formatAddress = useCallback((address: string): string => {
@@ -40,10 +41,38 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
   /** Load selected location from localStorage */
   const loadSelectedLocation = useCallback(() => {
+    console.log('🔄 TopBar - Loading selected location from localStorage...');
+
     const savedLocation = localStorage.getItem('selectedLocation');
+    const savedLat = localStorage.getItem('selectedLocationLat');
+    const savedLong = localStorage.getItem('selectedLocationLong');
+
+    console.log('📍 TopBar - localStorage values:', {
+      savedLocation,
+      savedLat,
+      savedLong,
+    });
+
     if (savedLocation) {
+      console.log('✅ TopBar - Setting selected location:', savedLocation);
       setSelectedLocation(savedLocation);
+
+      // Console log the lat and long for the selected address
+      if (savedLat && savedLong) {
+        console.log('📍 TopBar - Selected location coordinates:', {
+          address: savedLocation,
+          latitude: parseFloat(savedLat),
+          longitude: parseFloat(savedLong),
+          lat: parseFloat(savedLat),
+          long: parseFloat(savedLong),
+        });
+      }
+    } else {
+      console.log('⚠️ TopBar - No saved location found in localStorage');
     }
+
+    // Mark location as loaded regardless of whether it was found
+    setLocationLoaded(true);
   }, []);
 
   /** Determine storage key based on path */
@@ -166,6 +195,13 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
   /** Load selected location on component mount */
   useEffect(() => {
+    console.log('🔄 TopBar - Component mounted, loading selected location...');
+    loadSelectedLocation();
+  }, [loadSelectedLocation]);
+
+  /** Also load selected location on page refresh */
+  useEffect(() => {
+    console.log('🔄 TopBar - Page load effect, loading selected location...');
     loadSelectedLocation();
   }, [loadSelectedLocation]);
 
@@ -349,7 +385,10 @@ export default function TopBar({ onSearch }: TopBarProps) {
                 className={styles.userLocation}
                 onClick={() => router.push('/client/pages/homepage/location')}
               >
-                <span>{formatAddress(selectedLocation) || '내 위치 선택'}</span>
+                <span>
+                  {formatAddress(selectedLocation) ||
+                    (locationLoaded ? '내 위치 선택' : '로딩 중...')}
+                </span>
                 <FaChevronDown className={styles.dropdownIcon} />
               </div>
             ) : (

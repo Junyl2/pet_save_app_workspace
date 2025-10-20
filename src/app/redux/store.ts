@@ -1,17 +1,19 @@
 import { configureStore } from '@reduxjs/toolkit';
 import productReducer from './slices/cache/productSlice';
 import orderReducer from './slices/cache/orderSlice';
+import pointsReducer from './slices/cache/pointsSlice';
 import reviewReducer from './slices/cache/reviewSlice';
 import userReducer from './slices/cache/userSlice';
-import pointsReducer from './slices/cache/pointsSlice';
+import loadingReducer from './slices/auth/ui/loadingSlice';
 
 export const store = configureStore({
   reducer: {
     products: productReducer,
     orders: orderReducer,
+    points: pointsReducer,
     reviews: reviewReducer,
     user: userReducer,
-    points: pointsReducer,
+    loading: loadingReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
