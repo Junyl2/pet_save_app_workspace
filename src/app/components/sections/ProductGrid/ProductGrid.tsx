@@ -128,12 +128,29 @@ export const ProductGrid = ({
     const handleLocationChange = () => {
       console.log('📍 Location changed, invalidating product cache');
       dispatch(invalidateCacheForLocationChange());
+
+      // Re-fetch store details for all products when location changes
+      if (products.length > 0) {
+        console.log('🔄 Re-fetching store details due to location change');
+        const uniqueStoreIds = new Set<string>();
+        products.forEach((product) => {
+          const productStoreId = product.storeId || product.store?.storeId;
+          if (productStoreId) {
+            uniqueStoreIds.add(String(productStoreId));
+          }
+        });
+
+        uniqueStoreIds.forEach((storeId) => {
+          console.log('🔍 Re-fetching details for storeId:', storeId);
+          fetchStoreDetails(storeId);
+        });
+      }
     };
 
     window.addEventListener('locationChanged', handleLocationChange);
     return () =>
       window.removeEventListener('locationChanged', handleLocationChange);
-  }, [dispatch]);
+  }, [dispatch, products, fetchStoreDetails]);
 
   // Background revalidation when data becomes stale
   useEffect(() => {

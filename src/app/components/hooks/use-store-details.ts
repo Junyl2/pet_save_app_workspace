@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { StoreService } from '@/app/api/services/client/storeService/storeService';
 import { StoreInfo } from '@/app/api/types/member/store/store';
 
@@ -24,6 +24,19 @@ export const useStoreDetails = (): UseStoreDetailsReturn => {
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<Record<string, string | null>>({});
 
+  // Listen for location changes and clear store details cache
+  useEffect(() => {
+    const handleLocationChange = () => {
+      console.log('📍 Location changed, clearing store details cache');
+      setStoreDetails({});
+      setError({});
+    };
+
+    window.addEventListener('locationChanged', handleLocationChange);
+    return () =>
+      window.removeEventListener('locationChanged', handleLocationChange);
+  }, []);
+
   /**
    * Fetch store details by storeId
    * @param storeId - The store ID to fetch details for
@@ -40,9 +53,30 @@ export const useStoreDetails = (): UseStoreDetailsReturn => {
     setError((prev) => ({ ...prev, [storeId]: null }));
 
     try {
+      // Get user's selected location coordinates from localStorage
+      const savedLat = localStorage.getItem('selectedLocationLat');
+      const savedLong = localStorage.getItem('selectedLocationLong');
+
+      console.log('📍 Using location coordinates:', {
+        lat: savedLat ? parseFloat(savedLat) : 'Not available',
+        long: savedLong ? parseFloat(savedLong) : 'Not available',
+      });
+
+      // If no location is selected, we can't calculate distance
+      if (!savedLat || !savedLong) {
+        console.warn(
+          '⚠️ No location selected, cannot fetch store details with distance'
+        );
+        setError((prev) => ({ ...prev, [storeId]: 'Location not selected' }));
+        setLoading((prev) => ({ ...prev, [storeId]: false }));
+        return;
+      }
+
       // Use the store search endpoint to get store details
       // Call without keyword to get all stores with distance calculation
       const response = await StoreService.searchStores({
+        lat: parseFloat(savedLat),
+        long: parseFloat(savedLong),
         page: 0,
         size: 10, // Get more results to find the specific store
         sortBy: 'distance', // Sort by distance to get closest stores

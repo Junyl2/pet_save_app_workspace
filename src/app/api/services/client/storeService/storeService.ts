@@ -358,13 +358,9 @@ export class StoreService {
     params: StoreSearchRequest
   ): Promise<ApiResponse<StoreSearchApiResponse>> {
     try {
-      // Get user's selected location coordinates from localStorage
-      const selectedLat = localStorage.getItem('selectedLocationLat');
-      const selectedLong = localStorage.getItem('selectedLocationLong');
-
-      // Use user's selected location if available, otherwise use params
-      const lat = selectedLat ? parseFloat(selectedLat) : params.lat;
-      const long = selectedLong ? parseFloat(selectedLong) : params.long;
+      // Use provided coordinates
+      const lat = params.lat;
+      const long = params.long;
 
       console.log('🔍 Searching stores:', {
         keyword: params.keyword,
@@ -375,8 +371,7 @@ export class StoreService {
         size: params.size || 10,
         sortBy: params.sortBy || 'createdAt',
         direction: params.direction || 'desc',
-        userLocation:
-          selectedLat && selectedLong ? 'from localStorage' : 'from params',
+        userLocation: 'from params',
       });
 
       // Build query parameters

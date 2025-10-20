@@ -16,17 +16,27 @@ export interface NearbyStoresRequest {
  */
 export interface NearbyStoreInfo {
   storeId: string;
-  storeName: string;
+  storeNumber: string;
+  ownerId: string;
   businessName: string;
   roadAddress: string;
   detailedAddress: string;
   zipCode: string;
+  businessPhoneNumber: string | null;
   businessEmail: string;
-  distance: number; // Distance in km
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'REJECTED';
+  businessRegistrationCopy: string | null;
+  businessProfileImage: string | null;
+  status: 'APPROVED' | 'PENDING' | 'REJECTED';
+  averageRating: number;
+  phoneInquiryAllowed: boolean;
+  verifiedAt: string;
+  openingHours: string;
+  closingHours: string;
+  numberOfProducts: number;
+  distanceKm: number; // Distance in km
   createdAt: string;
   updatedAt: string;
-  memberId: string;
+  verified: boolean;
 }
 
 /**
@@ -36,34 +46,18 @@ export interface NearbyStoresApiResponse {
   success: boolean;
   status: number;
   resultMsg: string;
-  divisionCode: string;
+  divisionCode: string | null;
   data: {
     content: NearbyStoreInfo[];
-    pageable: {
-      sort: {
-        empty: boolean;
-        sorted: boolean;
-        unsorted: boolean;
-      };
-      offset: number;
+    pageInfo: {
+      totalElements: number;
+      totalPages: number;
+      currentPage: number;
       pageSize: number;
-      pageNumber: number;
-      paged: boolean;
-      unpaged: boolean;
+      first: boolean;
+      last: boolean;
+      hasNext: boolean;
+      hasPrevious: boolean;
     };
-    totalElements: number;
-    totalPages: number;
-    last: boolean;
-    size: number;
-    number: number;
-    sort: {
-      empty: boolean;
-      sorted: boolean;
-      unsorted: boolean;
-    };
-    numberOfElements: number;
-    first: boolean;
-    empty: boolean;
   };
-  errorId: string | null;
 }
