@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { FaStar } from 'react-icons/fa';
 import ReviewSkeleton from '@/app/components/ui/SkeletonLoading/ReviewSkeleton/ReviewSkeleton';
-import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
+import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import {
-  Review,
-  ReviewSearchParams,
-} from '@/app/api/types/member/review/review';
+  fetchReviews,
+  fetchMyReviews,
+  ReviewCacheKey,
+} from '@/app/redux/slices/cache/reviewSlice';
+/* import { Review } from '@/app/api/types/member/review/review'; */
 import styles from './Reviews.module.css';
 
 // Helper function to get Korean rating comment
@@ -92,11 +94,24 @@ const mockProducts = [
 
 export default function ReviewsPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState<'write' | 'my-reviews'>('write');
-  const [loading, setLoading] = useState(true);
-  const [writtenReviews, setWrittenReviews] = useState<Review[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsError, setReviewsError] = useState<string | null>(null);
+
+  // Redux state
+  const { cache, loading, error } = useAppSelector((state) => state.reviews);
+
+  // Get current cache key for reviews
+  const getCurrentCacheKey = (): string => {
+    if (activeTab === 'my-reviews') {
+      return `my_reviews_0_50_createdAt_desc`;
+    }
+    return `all_all_all_0_50_createdAt_desc`;
+  };
+
+  // Get current reviews from cache
+  const currentCacheKeyString = getCurrentCacheKey();
+  const cachedData = cache[currentCacheKeyString];
+  const writtenReviews = cachedData?.reviews || [];
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('ko-KR') + '원';
@@ -110,58 +125,27 @@ export default function ReviewsPage() {
     router.push(`/client/pages/my-page/reviews/edit?reviewId=${reviewId}`);
   };
 
-  // Fetch written reviews from API
-  const fetchWrittenReviews = async () => {
-    setReviewsLoading(true);
-    setReviewsError(null);
-    try {
-      const searchParams: ReviewSearchParams = {
+  // Fetch reviews using Redux
+  useEffect(() => {
+    if (activeTab === 'my-reviews') {
+      dispatch(
+        fetchMyReviews({
+          page: 0,
+          size: 50,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        })
+      );
+    } else {
+      const cacheKeyParams: ReviewCacheKey = {
         page: 0,
         size: 50,
         sortBy: 'createdAt',
         direction: 'desc',
       };
-
-      const response = await ReviewService.searchReviews(searchParams);
-      if (response.error) {
-        setReviewsError(response.error);
-      } else {
-        setWrittenReviews(response.data?.content || []);
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setReviewsError(err.message);
-      } else {
-        setReviewsError('알 수 없는 에러가 발생했습니다.');
-      }
-    } finally {
-      setReviewsLoading(false);
+      dispatch(fetchReviews(cacheKeyParams));
     }
-  };
-
-  // Simulate loading for demonstration
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Fetch reviews when component mounts
-  useEffect(() => {
-    fetchWrittenReviews();
-  }, []);
-
-  // Reset loading when tab changes to prevent DOM issues
-  useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [activeTab]);
+  }, [dispatch, activeTab]);
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, index) => (
@@ -174,7 +158,10 @@ export default function ReviewsPage() {
     ));
   };
 
-  if (loading || (activeTab === 'my-reviews' && reviewsLoading)) {
+  // Show loading only if we don't have cached data and are loading
+  const shouldShowLoading =
+    loading && !cachedData && activeTab === 'my-reviews';
+  if (shouldShowLoading) {
     return (
       <div className={styles.container}>
         <ProductHeader />
@@ -242,8 +229,8 @@ export default function ReviewsPage() {
           </div>
         ) : (
           <div key="my-reviews-tab" className={styles.myReviewsSection}>
-            {reviewsError ? (
-              <div className={styles.emptyState}>에러: {reviewsError}</div>
+            {error ? (
+              <div className={styles.emptyState}>에러: {error}</div>
             ) : writtenReviews.length > 0 ? (
               <div className={styles.detailedReviewContainer}>
                 {writtenReviews.map((review) => (

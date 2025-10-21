@@ -5,13 +5,16 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './ProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
-import { Product, ProductPageInfo } from '@/app/api/types/products/products';
-import { ProductService } from '@/app/api/services/client/productService/productService';
-import { SellerProductListService } from '@/app/api/services/client/productService/sellerProductListService';
+import { Product } from '@/app/api/types/products/products';
 import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
 import { Pagination } from '../../ui/Pagination';
 import { formatAddressForDisplay } from '@/app/utils/address-utils';
+import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
+import {
+  fetchProducts,
+  ProductCacheKey,
+} from '@/app/redux/slices/cache/productSlice';
 
 interface ProductGridProps {
   products?: Product[];
@@ -36,11 +39,27 @@ export const ProductGrid = ({
 }: ProductGridProps) => {
   const { toggleFavorite, isFavorited } = useFavorites();
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
-  const [products, setProducts] = useState<Product[]>(initialProducts || []);
-  const [loading, setLoading] = useState(!initialProducts);
+  // Redux state
+  const { cache, loading } = useAppSelector((state) => state.products);
+
   const [currentPage, setCurrentPage] = useState(externalCurrentPage || 0);
-  const [pageInfo, setPageInfo] = useState<ProductPageInfo>({
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  // Get current cache key
+  const getCurrentCacheKey = (): string => {
+    return `${storeId || 'general'}_${category || 'all'}_${
+      searchTerm || ''
+    }_${currentPage}`;
+  };
+
+  // Get current products and page info from cache
+  const currentCacheKeyString = getCurrentCacheKey();
+  const cachedData = cache[currentCacheKeyString];
+  const products = cachedData?.products || initialProducts || [];
+  const pageInfo = cachedData?.pageInfo || {
     totalElements: 0,
     totalPages: 0,
     currentPage: 0,
@@ -49,10 +68,7 @@ export const ProductGrid = ({
     last: false,
     hasNext: false,
     hasPrevious: false,
-  });
-
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [cartOpen, setCartOpen] = useState(false);
+  };
 
   // Sync external currentPage with internal state
   useEffect(() => {
@@ -64,142 +80,20 @@ export const ProductGrid = ({
     }
   }, [externalCurrentPage, currentPage]);
 
+  // Fetch products using Redux
   useEffect(() => {
     if (initialProducts) return;
 
-    let isMounted = true;
-
-    const fetchProducts = async () => {
-      console.log('fetchProducts called with currentPage:', currentPage);
-      setLoading(true);
-      try {
-        let res;
-
-        if (storeId) {
-          // Use store-specific API when storeId is provided
-          const storeParams = {
-            storeId,
-            keyword: searchTerm.trim() || undefined,
-            categoryName: category || undefined,
-            registrationStatus: 'ONSALE' as const,
-            page: currentPage,
-            size: 10,
-            sortBy: 'createdAt' as const,
-            direction: 'desc' as const,
-          };
-
-          console.log('Store API call params:', storeParams);
-          res = await SellerProductListService.getProductsByStoreId(
-            storeParams
-          );
-        } else {
-          // Use general product search API
-          const searchParams = {
-            keyword: searchTerm.trim() || undefined,
-            categoryName: category || undefined,
-            registrationStatus: 'ONSALE' as const,
-            page: currentPage,
-            size: 10,
-            sortBy: 'createdAt' as const,
-            direction: 'desc' as const,
-          };
-
-          console.log('General API call params:', searchParams);
-          res = await ProductService.searchProducts(searchParams);
-        }
-
-        if (!isMounted) return;
-
-        if (res.error) {
-          console.error('Failed to fetch products:', res.error);
-          setProducts([]);
-        } else {
-          const filtered = res.data?.data?.content || [];
-
-          // Update pagination info - API returns pagination in pageInfo object
-          const apiPageInfo = res.data?.data?.pageInfo;
-          const totalPages = apiPageInfo?.totalPages || 0;
-          const totalElements = apiPageInfo?.totalElements || 0;
-
-          setPageInfo(
-            apiPageInfo || {
-              totalElements: 0,
-              totalPages: 0,
-              currentPage: 0,
-              pageSize: 10,
-              first: true,
-              last: false,
-              hasNext: false,
-              hasPrevious: false,
-            }
-          );
-
-          // Debug pagination info
-          console.log('Pagination Debug:', {
-            storeId,
-            totalPages,
-            totalElements,
-            currentPage,
-            contentLength: filtered.length,
-            pageInfo: apiPageInfo,
-            fullApiResponse: res.data?.data,
-          });
-
-          // Debug: Log the first product to see the actual API structure
-          if (filtered.length > 0) {
-            const firstProduct = filtered[0] as Product & {
-              thumbnail?: string;
-              image?: string;
-              images?: string[];
-              price?: number;
-              originalPrice?: number;
-              discountPrice?: number;
-              discountedPrice?: number;
-              salePrice?: number;
-              productPrice?: number;
-              regularPrice?: number;
-            };
-            console.log('First product from API:', firstProduct);
-            console.log('Product keys:', Object.keys(firstProduct));
-            console.log('Image fields:', {
-              thumbnail: firstProduct.thumbnail,
-              image: firstProduct.image,
-              images: firstProduct.images,
-            });
-            console.log('Price fields:', {
-              price: firstProduct.price,
-              originalPrice: firstProduct.originalPrice,
-              discountPrice: firstProduct.discountPrice,
-              discountedPrice: firstProduct.discountedPrice,
-              salePrice: firstProduct.salePrice,
-              productPrice: firstProduct.productPrice,
-              regularPrice: firstProduct.regularPrice,
-            });
-          }
-
-          // No need to filter by storeId when using store-specific API
-          // The API already returns only products for that store
-
-          console.log('Setting products:', filtered.length, 'products');
-          console.log('First product ID:', filtered[0]?.productId);
-          setProducts(filtered);
-        }
-      } catch (error) {
-        console.error('Failed to fetch products:', error);
-        if (!isMounted) return;
-        setProducts([]);
-      } finally {
-        if (!isMounted) return;
-        setLoading(false);
-      }
+    const cacheKeyParams: ProductCacheKey = {
+      category,
+      searchTerm,
+      storeId,
+      page: currentPage,
     };
 
-    fetchProducts();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [category, searchTerm, storeId, initialProducts, currentPage]);
+    console.log('Dispatching fetchProducts with params:', cacheKeyParams);
+    dispatch(fetchProducts(cacheKeyParams));
+  }, [category, searchTerm, storeId, currentPage, initialProducts, dispatch]);
 
   // Reset pagination when category or search term changes (but not when currentPage changes)
   // Only reset if we're not using external pagination control
@@ -223,7 +117,9 @@ export const ProductGrid = ({
     }
   };
 
-  if (loading) return <ProductSkeleton count={5} />;
+  // Show loading only if we don't have cached data and are loading
+  const shouldShowLoading = loading && !cachedData && !initialProducts;
+  if (shouldShowLoading) return <ProductSkeleton count={5} />;
 
   if (products.length === 0)
     return (

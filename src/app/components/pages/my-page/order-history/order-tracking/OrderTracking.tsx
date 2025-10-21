@@ -8,12 +8,13 @@ import ProductSection from '@/app/components/sections/ProductSection/ProductSect
 import Steps from '@/app/components/ui/steps/Steps';
 import OrderTrackingSkeleton from '@/app/components/ui/SkeletonLoading/OrderTrackingSkeleton/OrderTrackingSkeleton';
 import { deliveryTrackingService } from '@/app/api/services/client/memberService/order/deliveryTrackingService';
+import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
 import {
   DeliveryTrackingData,
   DeliveryInfoData,
 } from '@/app/api/types/member/order/deliveryTracking';
-import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
-import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
+import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
+import { fetchOrderDetails } from '@/app/redux/slices/cache/orderSlice';
 
 interface TrackingEvent {
   date: string;
@@ -51,6 +52,12 @@ interface OrderTrackingProps {
 export default function OrderTracking(props: OrderTrackingProps = {}) {
   const params = useParams();
   const orderId = props.orderId || (params?.orderId as string);
+  const dispatch = useAppDispatch();
+
+  // Redux state
+  const { orderDetailsCache, loading: orderLoading } = useAppSelector(
+    (state) => state.orders
+  );
 
   // State for API data
   const [trackingData, setTrackingData] = useState<DeliveryTrackingData | null>(
@@ -59,9 +66,12 @@ export default function OrderTracking(props: OrderTrackingProps = {}) {
   const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfoData | null>(
     null
   );
-  const [orderItem, setOrderItem] = useState<OrderItemResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Get cached order data
+  const cachedOrderData = orderDetailsCache[orderId];
+  const orderItem = cachedOrderData?.orderItems?.[0] || null;
 
   // ✅ Find order from shared mockOrders (same as OrderDetail)
   const order = mockOrders.find((o) => o.orderNumber === orderId);
@@ -73,25 +83,31 @@ export default function OrderTracking(props: OrderTrackingProps = {}) {
       setLoading(true);
       setError(null);
 
-      // First, get order details to find the orderItemId
-      const orderResponse = await orderDetailsService.getOrderDetails(orderId);
+      let firstOrderItem = orderItem;
 
-      if (orderResponse.error) {
-        setError(orderResponse.error);
-        return;
+      // Use cached order data if available, otherwise fetch it
+      if (!firstOrderItem) {
+        // First, get order details to find the orderItemId
+        const orderResponse = await orderDetailsService.getOrderDetails(
+          orderId
+        );
+
+        if (orderResponse.error) {
+          setError(orderResponse.error);
+          return;
+        }
+
+        if (
+          !orderResponse.data?.data?.content ||
+          orderResponse.data.data.content.length === 0
+        ) {
+          setError('주문 정보를 찾을 수 없습니다.');
+          return;
+        }
+
+        // Get the first order item (they should all have the same order info)
+        firstOrderItem = orderResponse.data.data.content[0];
       }
-
-      if (
-        !orderResponse.data?.data?.content ||
-        orderResponse.data.data.content.length === 0
-      ) {
-        setError('주문 정보를 찾을 수 없습니다.');
-        return;
-      }
-
-      // Get the first order item (they should all have the same order info)
-      const firstOrderItem = orderResponse.data.data.content[0];
-      setOrderItem(firstOrderItem);
 
       // Get delivery info using orderItemId
       const deliveryInfoResponse =
@@ -135,16 +151,26 @@ export default function OrderTracking(props: OrderTrackingProps = {}) {
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, orderItem]);
+
+  // Fetch order details using Redux
+  useEffect(() => {
+    if (orderId) {
+      console.log('Dispatching fetchOrderDetails for orderId:', orderId);
+      dispatch(fetchOrderDetails(orderId));
+    }
+  }, [orderId, dispatch]);
 
   useEffect(() => {
     if (orderId) {
       console.log('OrderTracking loaded for orderId:', orderId, order);
       fetchTrackingData();
     }
-  }, [orderId, order, fetchTrackingData]);
+  }, [orderId, order, fetchTrackingData, orderItem]);
 
-  if (loading) {
+  // Show loading only if we don't have cached order data and are loading
+  const shouldShowLoading = (loading || orderLoading) && !cachedOrderData;
+  if (shouldShowLoading) {
     return <OrderTrackingSkeleton />;
   }
 

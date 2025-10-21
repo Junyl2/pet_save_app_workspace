@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProfileHeader from './ProfileHeader/ProfileHeader';
 import ProfileSection from './ProfileSection/ProfileSection';
 import ProfileItem from './ProfileItem/ProfileItem';
@@ -9,29 +9,37 @@ import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
 import { useUser } from '@/app/context/userContext';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import LogoutModal from '@/app/components/ui/modal/LogoutModal/LogoutModal';
+import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
+import { fetchUserInfo } from '@/app/redux/slices/cache/userSlice';
 
 const ProfileMenu = () => {
-  const { user, refreshUserData } = useUser();
+  const { user } = useUser();
+  const dispatch = useAppDispatch();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const hasRefreshed = useRef(false);
 
-  // Refresh user data when component mounts to get latest business status
+  // Redux state
+  const { userInfo } = useAppSelector((state) => state.user);
+
+  // Fetch user info using Redux when component mounts
   useEffect(() => {
-    if (hasRefreshed.current) return; // guard to ensure "run once"
-    hasRefreshed.current = true;
-
-    console.log('🔄 ProfileMenu mounted, refreshing user data...');
-    refreshUserData();
-  }, [refreshUserData]); // Include refreshUserData but guard prevents infinite loop
+    dispatch(fetchUserInfo());
+  }, [dispatch]);
 
   // Debug logging for user state
   useEffect(() => {
     console.log('🔍 ProfileMenu - User State Debug:');
-    console.log('  - User:', user);
-    console.log('  - Role:', user?.role);
-    console.log('  - Business Approval Status:', user?.businessApprovalStatus);
-    console.log('  - Should show seller options:', user?.role === 'seller');
-  }, [user]);
+    console.log('  - User (context):', user);
+    console.log('  - UserInfo (Redux):', userInfo);
+    console.log('  - Role:', userInfo?.role || user?.role);
+    console.log(
+      '  - Business Approval Status:',
+      userInfo?.businessApprovalStatus || user?.businessApprovalStatus
+    );
+    console.log(
+      '  - Should show seller options:',
+      (userInfo?.role || user?.role) === 'seller'
+    );
+  }, [user, userInfo]);
 
   return (
     <>
@@ -47,7 +55,9 @@ const ProfileMenu = () => {
           />
 
           {/* Show Business option depending on role and approval status */}
-          {user?.role === 'seller' || user?.businessApprovalStatus ? (
+          {(userInfo?.role || user?.role) === 'seller' ||
+          userInfo?.businessApprovalStatus ||
+          user?.businessApprovalStatus ? (
             <ProfileItem
               label="사업자 정보 보기"
               route={PAGE_URLS.BUSINESS_INFORMATION}
@@ -60,12 +70,15 @@ const ProfileMenu = () => {
           )}
 
           {/* Show Store Information for sellers with storeId */}
-          {user?.role === 'seller' && !!user?.storeId && (
-            <ProfileItem
-              label="사업장 정보"
-              route={`${PAGE_URLS.SELLER_STORE_INFO}?storeId=${user.storeId}`}
-            />
-          )}
+          {(userInfo?.role || user?.role) === 'seller' &&
+            !!(userInfo?.storeId || user?.storeId) && (
+              <ProfileItem
+                label="사업장 정보"
+                route={`${PAGE_URLS.SELLER_STORE_INFO}?storeId=${
+                  userInfo?.storeId || user?.storeId
+                }`}
+              />
+            )}
 
           <ProfileItem
             label="약관 및 정책"

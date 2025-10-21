@@ -33,10 +33,8 @@ export default function ViewReviewPage() {
       }
 
       try {
-        // Since there's no direct API to get a single review by ID,
-        // we'll search for reviews and find the specific one
-        // In a real implementation, you might want to add a userId filter
-        const response = await ReviewService.searchReviews({
+        // Use the new getMyReviews endpoint to get the user's reviews
+        const response = await ReviewService.getMyReviews({
           page: 0,
           size: 100, // Get more reviews to find the specific one
         });

@@ -1,14 +1,14 @@
 // app/components/pages/my-page/order-history/[orderId]/OrderDetail.tsx
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import DateRange from '@/app/components/ui/DateRange/DateRange';
 import styles from './OrderDetail.module.css';
 import { useRouter } from 'next/navigation';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { ExchangeRefundModal } from '../exchange-refund-modal/ExchangeRefundModal';
-import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
-import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
+import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
+import { fetchOrderDetails } from '@/app/redux/slices/cache/orderSlice';
 
 export enum OrderStatus {
   ORDERED = '주문 완료',
@@ -30,48 +30,31 @@ export default function OrderDetail() {
   const params = useParams();
   const orderId = params?.orderId as string;
   const router = useRouter();
+  const dispatch = useAppDispatch();
+
+  // Redux state
+  const { orderDetailsCache, loading, error } = useAppSelector(
+    (state) => state.orders
+  );
 
   // Order Exchange/Refund Modal
   const [isExchangeRefundOpen, setIsExchangeRefundOpen] = useState(false);
 
-  // API state
-  const [orderItems, setOrderItems] = useState<OrderItemResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Get cached order data
+  const cachedData = orderDetailsCache[orderId];
+  const orderItems = cachedData?.orderItems || [];
 
-  const fetchOrderDetails = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await orderDetailsService.getOrderDetails(orderId);
-
-      if (response.error) {
-        setError(response.error);
-        return;
-      }
-
-      if (response.data?.data?.content) {
-        setOrderItems(response.data.data.content);
-      } else {
-        setOrderItems([]);
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to fetch order details'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [orderId]);
-
+  // Fetch order details using Redux
   useEffect(() => {
     if (orderId) {
-      fetchOrderDetails();
+      console.log('Dispatching fetchOrderDetails for orderId:', orderId);
+      dispatch(fetchOrderDetails(orderId));
     }
-  }, [orderId, fetchOrderDetails]);
+  }, [orderId, dispatch]);
 
-  if (loading) {
+  // Show loading only if we don't have cached data and are loading
+  const shouldShowLoading = loading && !cachedData;
+  if (shouldShowLoading) {
     return (
       <div className={styles.container}>
         <p>주문 내역을 불러오는 중...</p>
