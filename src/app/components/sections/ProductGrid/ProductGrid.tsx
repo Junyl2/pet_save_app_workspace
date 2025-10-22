@@ -18,6 +18,7 @@ import {
   ProductCacheKey,
 } from '@/app/redux/slices/cache/productSlice';
 import { useStoreDetails } from '../../hooks/use-store-details';
+import { useLocationState } from '../../hooks/use-location-state';
 
 interface ProductGridProps {
   products?: Product[];
@@ -51,6 +52,9 @@ export const ProductGrid = ({
     getStoreDetails,
     isLoading: isStoreLoading,
   } = useStoreDetails();
+
+  // Location state hook
+  const { isLocationAvailable } = useLocationState();
 
   // Redux state
   const { cache, loading, backgroundLoading, isStale } = useAppSelector(
@@ -130,7 +134,7 @@ export const ProductGrid = ({
       dispatch(invalidateCacheForLocationChange());
 
       // Re-fetch store details for all products when location changes
-      if (products.length > 0) {
+      if (products.length > 0 && isLocationAvailable) {
         console.log('🔄 Re-fetching store details due to location change');
         const uniqueStoreIds = new Set<string>();
         products.forEach((product) => {
@@ -150,7 +154,7 @@ export const ProductGrid = ({
     window.addEventListener('locationChanged', handleLocationChange);
     return () =>
       window.removeEventListener('locationChanged', handleLocationChange);
-  }, [dispatch, products, fetchStoreDetails]);
+  }, [dispatch, products, fetchStoreDetails, isLocationAvailable]);
 
   // Background revalidation when data becomes stale
   useEffect(() => {
@@ -179,6 +183,12 @@ export const ProductGrid = ({
   useEffect(() => {
     if (products.length === 0) return;
 
+    // Check if location is available before attempting to fetch store details
+    if (!isLocationAvailable) {
+      console.log('⚠️ No location selected, skipping store details fetch');
+      return;
+    }
+
     console.log('🔄 Fetching store details for products:', products.length);
 
     // Get unique store IDs from products
@@ -198,7 +208,13 @@ export const ProductGrid = ({
         fetchStoreDetails(storeId);
       }
     });
-  }, [products, fetchStoreDetails, storeDetails, isStoreLoading]);
+  }, [
+    products,
+    storeDetails,
+    isStoreLoading,
+    fetchStoreDetails,
+    isLocationAvailable,
+  ]);
 
   const handlePageChange = (page: number) => {
     console.log('ProductGrid: handlePageChange called with page:', page);

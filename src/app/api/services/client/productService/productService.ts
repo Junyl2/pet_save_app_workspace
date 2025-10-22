@@ -9,7 +9,10 @@ import {
   ProductSearchParams,
   ProductSearchResponse,
 } from '@/app/api/types/products/products';
-import { ProductSummaryResponse } from '@/app/api/types/products/productSummary';
+import {
+  ProductSummaryResponse,
+  ProductDetailsResponse,
+} from '@/app/api/types/products/productSummary';
 
 /**
  * Product Service
@@ -40,6 +43,34 @@ export class ProductService {
     } else {
       console.log(
         '[ProductService] Product created successfully:',
+        response.data
+      );
+    }
+
+    return response;
+  }
+
+  /**
+   * Get product details by ID
+   * GET /api/pet-save/products/{productId}/details
+   */
+  static async getProductDetails(
+    productId: string
+  ): Promise<ApiResponse<ProductDetailsResponse>> {
+    console.log('[ProductService] Getting product details for ID:', productId);
+
+    const response = await apiClient.get<ProductDetailsResponse>(
+      `${this.BASE_URL}/${productId}/details`
+    );
+
+    if (response.error) {
+      console.error(
+        '[ProductService] Failed to get product details:',
+        response.error
+      );
+    } else {
+      console.log(
+        '[ProductService] Product details retrieved successfully:',
         response.data
       );
     }

@@ -3,10 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import {
-  StoreService,
-  LocationCoordinates,
-} from '@/app/api/services/client/storeService/storeService';
+import { StoreService } from '@/app/api/services/client/storeService/storeService';
 import { AddressService } from '@/app/api/services/client/addressService/addressService';
 import { NearbyStoreInfo } from '@/app/api/types/stores/nearby';
 import styles from './ShopList.module.css';
@@ -20,31 +17,27 @@ import SellerPanel from '../../seller-components/SellerPanel/SellerPanel';
 export default function ShopList() {
   const [stores, setStores] = useState<NearbyStoreInfo[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedShopPhone, setSelectedShopPhone] = useState<string | null>(
     null
   );
-  const [searchSubmitted, setSearchSubmitted] = useState(false);
-  const [currentLocation, setCurrentLocation] =
-    useState<LocationCoordinates | null>(null);
+
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+
   const [addressSearchLoading, setAddressSearchLoading] = useState(false);
   const [addressSearchError, setAddressSearchError] = useState<string | null>(
     null
   );
-  const [searchedAddress, setSearchedAddress] = useState<string | null>(null);
 
   const router = useRouter();
 
-  // Function to get current location and search nearby stores
+  // Get current location and search nearby stores
   const handleCurrentLocationSearch = async () => {
     console.log('🔘 Button clicked! Starting location search...');
     setLocationLoading(true);
     setLocationError(null);
     setStores([]);
-    setSearchedAddress(null);
     setHasSearched(true);
 
     try {
@@ -55,8 +48,6 @@ export default function ShopList() {
       }
 
       console.log('📍 Requesting location...');
-
-      // Get current location
       const locationResult = await StoreService.getCurrentLocation();
 
       if (locationResult.error) {
@@ -93,13 +84,11 @@ export default function ShopList() {
         return;
       }
 
-      // Set the current location
-      setCurrentLocation(locationResult.data);
       console.log('✅ Current location obtained:', locationResult.data);
 
       // Now search for nearby stores
       const result = await StoreService.searchNearbyStoresWithCurrentLocation({
-        radius: 10, // 10km radius
+        radius: 10,
         page: 0,
         size: 20,
       });
@@ -119,7 +108,7 @@ export default function ShopList() {
     }
   };
 
-  // Function to search address and get nearby stores
+  // Search by address and get nearby stores
   const handleAddressSearch = async (addressKeyword: string) => {
     if (!addressKeyword.trim()) {
       setAddressSearchError('주소를 입력해주세요.');
@@ -130,9 +119,6 @@ export default function ShopList() {
     setAddressSearchLoading(true);
     setAddressSearchError(null);
     setStores([]);
-    setSearchedAddress(null);
-    setCurrentLocation(null);
-    setLocationError(null);
     setHasSearched(true);
 
     try {
@@ -148,14 +134,11 @@ export default function ShopList() {
         setAddressSearchError(result.error);
       } else if (result.data) {
         console.log('✅ Address search successful:', result.data);
-        setSearchedAddress(result.data.address);
-        setCurrentLocation(result.data.coordinates);
-        setStores(result.data.stores);
+        setStores(result.data.stores as NearbyStoreInfo[]);
         // Clear the search term after successful address search to show all stores
         setSearchTerm('');
         console.log('🔍 Stores set after address search:', {
           storesCount: result.data.stores.length,
-          searchedAddress: result.data.address,
           searchTermCleared: true,
         });
       }
@@ -178,41 +161,24 @@ export default function ShopList() {
   const filteredStores = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
 
+    // Keep logs minimal to avoid pulling extra deps into the closure
     console.log('🔍 Filtering stores:', {
       term,
-      searchedAddress,
       storesLength: stores.length,
-      hasSearched,
-      addressSearchLoading,
     });
 
-    // If no search term, show all stores
-    if (!term) {
-      console.log('🔍 No search term, returning all stores');
-      return stores;
-    }
+    if (!term) return stores;
 
-    // Filter stores based on the search term
-    const filtered = stores.filter(
+    return stores.filter(
       (store) =>
         store.businessName?.toLowerCase().includes(term) ||
         store.roadAddress?.toLowerCase().includes(term)
     );
-
-    console.log('🔍 Filtered stores by search term:', {
-      originalCount: stores.length,
-      filteredCount: filtered.length,
-      term,
-    });
-
-    return filtered;
   }, [stores, searchTerm]);
 
   const handleSearch = (term: string) => {
     console.log('🔍 handleSearch called with term:', term);
     setSearchTerm(term);
-    setSearchSubmitted(true);
-    // Trigger address search when user searches
     if (term.trim()) {
       handleAddressSearch(term);
     }
@@ -229,7 +195,7 @@ export default function ShopList() {
 
   const isEmptySearch = !hasSearched && !searchTerm.trim();
   const noMatches = hasSearched && filteredStores.length === 0;
-  const isLoading = loading || locationLoading || addressSearchLoading;
+  const isLoading = locationLoading || addressSearchLoading;
 
   // Debug logging
   console.log('🔍 ShopList render state:', {
@@ -323,7 +289,7 @@ export default function ShopList() {
                     handlePhoneClick(e, store.businessEmail || '02-1234-5678')
                   }
                 >
-                  <FaPhone size={22} color="#66BFA7" className={styles.phone} />
+                  <FaPhone size={22} className={styles.phone} />
                 </button>
 
                 <Image

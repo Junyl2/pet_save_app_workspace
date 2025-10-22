@@ -114,6 +114,10 @@ type FlexibleAddressResult = {
 export class AddressService {
   private static readonly BASE_URL = '/address';
 
+  // Rate limiting for zip code searches to prevent 429 errors
+  private static readonly RATE_LIMIT_DURATION = 3000; // 3 seconds between requests
+  private static lastZipCodeRequestTime = 0;
+
   /**
    * Search addresses by keyword using GET method
    * @param keyword - Search keyword for address
@@ -981,7 +985,7 @@ export class AddressService {
     data: {
       address: string;
       coordinates: { lat: number; long: number };
-      stores: any[];
+      stores: unknown[];
     } | null;
     error: string | null;
   }> {
@@ -1082,7 +1086,7 @@ export class AddressService {
   }
 
   /**
-   * Search zip code by coordinates using GET method
+   * Search zip code by coordinates using GET method with rate limiting
    * @param x - Longitude coordinate
    * @param y - Latitude coordinate
    * @returns Promise<ZipCodeSearchServiceResponse>
@@ -1104,6 +1108,20 @@ export class AddressService {
           error: '유효한 좌표 형식이 아닙니다.',
         };
       }
+
+      // Rate limiting - prevent too many requests
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastZipCodeRequestTime;
+      if (timeSinceLastRequest < this.RATE_LIMIT_DURATION) {
+        console.log(
+          '⏱️ Rate limiting zip code request - too soon since last request'
+        );
+        return {
+          error: '요청이 너무 빈번합니다. 잠시 후 다시 시도해주세요.',
+        };
+      }
+
+      this.lastZipCodeRequestTime = now;
 
       const params = new URLSearchParams({
         x: x.toString(),

@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './ProfileHeader.module.css';
 import Image from 'next/image';
 import { PAGE_URLS } from '@/app/utils/page_url';
-import { FileService } from '@/app/api/services/client/fileService/fileService';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import {
   fetchUserInfo,
@@ -16,8 +15,6 @@ import {
 const ProfileHeader = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
-
-  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   // Redux state
   const { userInfo, loading, error, isStale } = useAppSelector(
@@ -45,31 +42,8 @@ const ProfileHeader = () => {
     dispatch(checkStaleStatus());
   }, [dispatch, userInfo]);
 
-  // Load profile image when userInfo changes
-  useEffect(() => {
-    const loadProfileImage = async () => {
-      if (userInfo?.profileFileId) {
-        try {
-          const imageResponse = await FileService.getFile(
-            userInfo.profileFileId,
-            {
-              disposition: 'inline',
-              type: 'original',
-            }
-          );
-
-          if (imageResponse.data) {
-            const imageUrl = URL.createObjectURL(imageResponse.data);
-            setProfileImage(imageUrl);
-          }
-        } catch (imageError) {
-          console.error('Error loading profile image:', imageError);
-        }
-      }
-    };
-
-    loadProfileImage();
-  }, [userInfo]);
+  const profileImageUrl =
+    userInfo?.profileImageUrl || '/images/icons/profile-default.png';
 
   // Show loading state only on first visit when no user info
   if (loading && !userInfo) {
@@ -118,7 +92,6 @@ const ProfileHeader = () => {
     {
       label: '주문 내역',
       route: PAGE_URLS.ORDER_HISTORY,
-
       icon: '/images/icons/mypage-note.svg',
     },
     {
@@ -137,11 +110,6 @@ const ProfileHeader = () => {
       icon: '/images/icons/mypage-star.svg',
     },
   ];
-  // Note: Profile image loading removed since User type doesn't include profileFileId
-  // If profile image is needed, it should be loaded separately from member info
-
-  // Default no-profile-picture placeholder
-  const defaultProfileSrc = '/images/icons/profile-default.png';
 
   return (
     <div className={styles.profileHeader}>
@@ -149,7 +117,7 @@ const ProfileHeader = () => {
       <div className={styles.topRow}>
         <div className={styles.profileImage}>
           <Image
-            src={profileImage || defaultProfileSrc}
+            src={profileImageUrl}
             alt="Profile"
             width={100}
             height={100}
@@ -158,13 +126,7 @@ const ProfileHeader = () => {
         </div>
         <div className={styles.profileInfo}>
           <div>
-            <span className={styles.username}>
-              {userInfo?.name ||
-                /* userInfo?.nickname ||
-                userInfo?.username ||
-                user?.username || */
-                '...'}
-            </span>
+            <span className={styles.username}>{userInfo?.name || '...'}</span>
             {userInfo?.role === 'seller' && (
               <span className={styles.roleBadge}>판매자</span>
             )}
