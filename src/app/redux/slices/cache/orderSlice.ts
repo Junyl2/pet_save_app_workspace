@@ -9,11 +9,13 @@ import { orderDetailsService } from '@/app/api/services/client/memberService/ord
 export interface CachedOrderData {
   orderItems: OrderItemResponse[];
   timestamp: number;
+  lastFetched: number;
 }
 
 export interface CachedOrderHistoryData {
   data: OrderHistoryApiResponse;
   timestamp: number;
+  lastFetched: number;
 }
 
 interface OrderState {
@@ -22,20 +24,26 @@ interface OrderState {
   // Cache for order history by query params
   orderHistoryCache: Record<string, CachedOrderHistoryData>;
   loading: boolean;
+  backgroundLoading: boolean;
   error: string | null;
   currentOrderId: string | null;
+  currentCacheKey: string | null;
+  isStale: boolean;
 }
 
 const initialState: OrderState = {
   orderDetailsCache: {},
   orderHistoryCache: {},
   loading: false,
+  backgroundLoading: false,
   error: null,
   currentOrderId: null,
+  currentCacheKey: null,
+  isStale: false,
 };
 
-// Cache duration: 5 minutes
-const CACHE_DURATION = 5 * 60 * 1000;
+// Cache duration: 10 seconds (configurable) - much faster for better UX
+const CACHE_DURATION = 10 * 1000;
 
 // Helper function to create cache key for order history
 const createOrderHistoryCacheKey = (
@@ -64,6 +72,11 @@ const isCacheValid = (timestamp: number): boolean => {
   return Date.now() - timestamp < CACHE_DURATION;
 };
 
+// Helper function to check if cache is stale
+const isCacheStale = (timestamp: number): boolean => {
+  return Date.now() - timestamp >= CACHE_DURATION;
+};
+
 // Async thunk for fetching order details
 export const fetchOrderDetails = createAsyncThunk(
   'orders/fetchOrderDetails',
@@ -90,6 +103,7 @@ export const fetchOrderDetails = createAsyncThunk(
       const data: CachedOrderData = {
         orderItems: response.data.data.content,
         timestamp: Date.now(),
+        lastFetched: Date.now(),
       };
 
       return { orderId, data, fromCache: false };
@@ -131,12 +145,86 @@ export const fetchOrderHistory = createAsyncThunk(
       const data: CachedOrderHistoryData = {
         data: response.data,
         timestamp: Date.now(),
+        lastFetched: Date.now(),
       };
 
       return { cacheKey, data, fromCache: false };
     } catch (error) {
       return rejectWithValue(
         error instanceof Error ? error.message : 'Failed to fetch order history'
+      );
+    }
+  }
+);
+
+// Background revalidation thunk for order history
+export const revalidateOrderHistoryInBackground = createAsyncThunk(
+  'orders/revalidateOrderHistoryInBackground',
+  async (params: OrderHistoryQueryParams | undefined, { rejectWithValue }) => {
+    try {
+      console.log('🔄 Background revalidating order history...');
+      const response = await orderDetailsService.getMyOrderHistory(params);
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      if (!response.data) {
+        throw new Error('No order history data found');
+      }
+
+      const cacheKey = createOrderHistoryCacheKey(params);
+      const data: CachedOrderHistoryData = {
+        data: response.data,
+        timestamp: Date.now(),
+        lastFetched: Date.now(),
+      };
+
+      console.log(
+        '✅ Background revalidation completed, new data:',
+        response.data
+      );
+      return { cacheKey, data, fromCache: false };
+    } catch (error) {
+      console.error('❌ Background revalidation failed:', error);
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : 'Background revalidation failed'
+      );
+    }
+  }
+);
+
+// Manual refresh thunk for order history
+export const refreshOrderHistory = createAsyncThunk(
+  'orders/refreshOrderHistory',
+  async (params: OrderHistoryQueryParams | undefined, { rejectWithValue }) => {
+    try {
+      console.log('🔄 Manual refresh of order history...');
+      const response = await orderDetailsService.getMyOrderHistory(params);
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      if (!response.data) {
+        throw new Error('No order history data found');
+      }
+
+      const cacheKey = createOrderHistoryCacheKey(params);
+      const data: CachedOrderHistoryData = {
+        data: response.data,
+        timestamp: Date.now(),
+        lastFetched: Date.now(),
+      };
+
+      return { cacheKey, data, fromCache: false };
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : 'Failed to refresh order history'
       );
     }
   }
@@ -150,6 +238,7 @@ const orderSlice = createSlice({
       state.orderDetailsCache = {};
       state.orderHistoryCache = {};
       state.currentOrderId = null;
+      state.isStale = false;
     },
     clearOrderDetailsCache: (state) => {
       state.orderDetailsCache = {};
@@ -163,6 +252,18 @@ const orderSlice = createSlice({
     },
     setCurrentOrderId: (state, action: PayloadAction<string | null>) => {
       state.currentOrderId = action.payload;
+    },
+    setStale: (state, action: PayloadAction<boolean>) => {
+      state.isStale = action.payload;
+    },
+    checkStaleStatus: (state) => {
+      const currentCacheKey = state.currentCacheKey;
+      if (currentCacheKey && state.orderHistoryCache[currentCacheKey]) {
+        const cachedData = state.orderHistoryCache[currentCacheKey];
+        state.isStale = isCacheStale(cachedData.timestamp);
+      } else {
+        state.isStale = false;
+      }
     },
   },
   extraReducers: (builder) => {
@@ -194,14 +295,66 @@ const orderSlice = createSlice({
       .addCase(fetchOrderHistory.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
+        state.currentCacheKey = action.payload.cacheKey;
 
         // Only update cache if data is not from cache
         if (!action.payload.fromCache) {
           state.orderHistoryCache[action.payload.cacheKey] =
             action.payload.data;
         }
+
+        // Check if data is stale
+        if (action.payload.fromCache) {
+          const cachedData = state.orderHistoryCache[action.payload.cacheKey];
+          state.isStale = cachedData
+            ? isCacheStale(cachedData.timestamp)
+            : false;
+        } else {
+          state.isStale = false;
+        }
       })
       .addCase(fetchOrderHistory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Background Revalidation
+      .addCase(revalidateOrderHistoryInBackground.pending, (state) => {
+        state.backgroundLoading = true;
+      })
+      .addCase(
+        revalidateOrderHistoryInBackground.fulfilled,
+        (state, action) => {
+          state.backgroundLoading = false;
+          state.error = null;
+
+          // Always update cache with fresh data
+          if (!action.payload.fromCache) {
+            state.orderHistoryCache[action.payload.cacheKey] =
+              action.payload.data;
+            state.isStale = false;
+          }
+        }
+      )
+      .addCase(revalidateOrderHistoryInBackground.rejected, (state, action) => {
+        state.backgroundLoading = false;
+        // Don't set error for background revalidation failures
+        console.warn('Background revalidation failed:', action.payload);
+      })
+      // Manual Refresh
+      .addCase(refreshOrderHistory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(refreshOrderHistory.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.currentCacheKey = action.payload.cacheKey;
+
+        // Always update cache with fresh data
+        state.orderHistoryCache[action.payload.cacheKey] = action.payload.data;
+        state.isStale = false;
+      })
+      .addCase(refreshOrderHistory.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -214,5 +367,7 @@ export const {
   clearOrderHistoryCache,
   clearCacheForOrder,
   setCurrentOrderId,
+  setStale,
+  checkStaleStatus,
 } = orderSlice.actions;
 export default orderSlice.reducer;

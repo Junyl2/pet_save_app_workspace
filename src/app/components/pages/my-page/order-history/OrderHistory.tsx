@@ -8,7 +8,11 @@ import OrderHistorySkeleton from '../../../ui/SkeletonLoading/OrderHistorySkelet
 import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
 import { OrderItem } from '@/app/components/types/order';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
-import { fetchOrderHistory } from '@/app/redux/slices/cache/orderSlice';
+import {
+  fetchOrderHistory,
+  revalidateOrderHistoryInBackground,
+  checkStaleStatus,
+} from '@/app/redux/slices/cache/orderSlice';
 
 export default function OrderHistory() {
   const dispatch = useAppDispatch();
@@ -22,11 +26,55 @@ export default function OrderHistory() {
   const cachedData = orderHistoryCache['default']; // Default cache key for no params
   const orders = cachedData?.data?.data?.content || [];
 
-  // Fetch order history using Redux
+  // Fetch order history using Redux with smart caching
   useEffect(() => {
     console.log('Dispatching fetchOrderHistory with default params');
     dispatch(fetchOrderHistory());
   }, [dispatch]);
+
+  // Trigger background revalidation on component mount if data is stale
+  useEffect(() => {
+    if (cachedData) {
+      const now = Date.now();
+      const cacheAge = now - cachedData.timestamp;
+      const isDataStale = cacheAge >= 10 * 1000; // 10 seconds in milliseconds
+
+      if (isDataStale) {
+        console.log(
+          '🚀 Component mounted with stale data, triggering immediate revalidation...'
+        );
+        dispatch(revalidateOrderHistoryInBackground());
+      }
+    }
+  }, [cachedData, dispatch]); // Include dependencies
+
+  // Background revalidation effect - trigger immediately if data exists and is stale
+  useEffect(() => {
+    if (cachedData) {
+      const now = Date.now();
+      const cacheAge = now - cachedData.timestamp;
+      const isDataStale = cacheAge >= 10 * 1000; // 10 seconds in milliseconds
+
+      console.log('🔍 Checking cache age:', {
+        cacheAge: Math.round(cacheAge / 1000),
+        seconds: 'seconds old',
+        isDataStale: isDataStale,
+        timestamp: new Date(cachedData.timestamp).toLocaleTimeString(),
+      });
+
+      if (isDataStale) {
+        console.log('🔄 Data is stale, triggering background revalidation...');
+        dispatch(revalidateOrderHistoryInBackground());
+      } else {
+        console.log('✅ Data is fresh, no revalidation needed');
+      }
+    }
+  }, [dispatch, cachedData]);
+
+  // Check stale status when component mounts or data changes
+  useEffect(() => {
+    dispatch(checkStaleStatus());
+  }, [dispatch, cachedData]);
 
   // Convert API order item data to format expected by OrderHistoryItem
   const convertToOrderItem = (orderItem: OrderItemResponse): OrderItem => {
@@ -89,7 +137,7 @@ export default function OrderHistory() {
       .replace(/\s/g, '');
   };
 
-  // Show loading only if we don't have cached data and are loading
+  // Show loading only if we don't have cached data and are loading (not background loading)
   const shouldShowLoading = loading && !cachedData;
   if (shouldShowLoading) {
     return (

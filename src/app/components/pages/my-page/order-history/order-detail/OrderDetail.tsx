@@ -121,7 +121,7 @@ export default function OrderDetail() {
     address:
       shippingOption === 'DELIVERY'
         ? mainOrderItem.customer.address
-        : mainOrderItem.delivery.receiverAddress,
+        : mainOrderItem.delivery?.receiverAddress || '배송지 정보 없음',
     detailAddress: '',
   };
 

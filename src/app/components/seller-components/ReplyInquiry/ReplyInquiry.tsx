@@ -9,6 +9,7 @@ import { useUser } from '@/app/context/userContext';
 import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
 import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
 import { SellerInquiryService } from '@/app/api/services/client/seller/seller-inquiry/sellerInquiryService';
+import defaultProfile from '@/app/constats/defaultProfile';
 
 // Helper function to format date from YYYY-MM-DD to YY.MM.DD
 const formatDate = (dateString: string): string => {
@@ -24,9 +25,9 @@ interface TransformedInquiry {
   id: number;
   inquiryId: string;
   date: string;
-  shopName: string;
-  shopLocation: string;
-  shopImage: string;
+  name: string;
+  profileImageUrl: string;
+  productName: string;
   category: string;
   message: string;
   responseMessage: string;
@@ -42,10 +43,9 @@ const transformStoreInquiryToUI = (
     id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0,
     inquiryId: storeInquiry.inquiryId,
     date: storeInquiry.createdAt,
-    shopName: storeInquiry.inquirer?.name || 'Unknown',
-    shopLocation: storeInquiry.store?.address || 'Unknown address',
-    shopImage:
-      storeInquiry.product?.productThumbnail || '/images/products/dogfood.png',
+    name: storeInquiry.inquirer?.name || 'Unknown',
+    profileImageUrl: storeInquiry.inquirer?.profileImageUrl || '',
+    productName: storeInquiry.product?.productName || '상품명 없음',
     category: storeInquiry.category,
     message: storeInquiry.content,
     responseMessage: storeInquiry.answer || '',
@@ -62,8 +62,9 @@ const mapApiCategoryToUI = (apiCategory: string): string => {
     case 'DELIVERY':
       return '배송 문의';
     case 'EXCHANGE_RETURN':
-      return '교환/ 환불 문의';
+      return '교환/환불 문의';
     case 'PAYMENT':
+      return '결제 문의';
     case 'OTHER':
     default:
       return '기타 문의';
@@ -202,17 +203,19 @@ export default function ReplyInquiry() {
             <div className={styles.userInfo}>
               <div className={styles.userProfile}>
                 <Image
-                  src={inquiry.shopImage || '/images/logo/pet-saves.png'}
-                  alt={inquiry.shopName || '사용자'}
+                  src={inquiry.profileImageUrl || defaultProfile.image}
+                  alt={inquiry.name || '사용자'}
                   width={30}
                   height={30}
                   className={styles.profileImage}
                 />
-                <span className={styles.userName}>{inquiry.shopName}</span>
+                <span className={styles.userName}>{inquiry.name}</span>
               </div>
+
+              {/* Meta line: Category | ProductName | Date */}
               <div className={styles.inquiryMeta}>
-                {mapApiCategoryToUI(inquiry.category)} | [{inquiry.shopLocation}
-                ] | {formatDate(inquiry.date)}
+                {mapApiCategoryToUI(inquiry.category)} | {inquiry.productName} |{' '}
+                {formatDate(inquiry.date)}
               </div>
             </div>
           </div>

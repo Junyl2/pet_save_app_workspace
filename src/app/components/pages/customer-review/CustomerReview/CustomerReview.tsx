@@ -64,7 +64,12 @@ export const CustomerReviews = ({ productId }: CustomerReviewsProps) => {
         if (res.error) {
           setError(res.error);
         } else {
-          setReviews(res.data?.content || []);
+          const allReviews = res.data?.content || [];
+          // Filter reviews to only show those for the current productId
+          const filteredReviews = allReviews.filter(
+            (review) => review.product?.productId === productId
+          );
+          setReviews(filteredReviews);
         }
       } catch (err: unknown) {
         if (err instanceof Error) {

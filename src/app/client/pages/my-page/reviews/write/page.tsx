@@ -7,6 +7,7 @@ import { FaStar, FaCamera } from 'react-icons/fa';
 import styles from './WriteReview.module.css';
 import { ProductService } from '@/app/api/services/client/productService/productService';
 import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
+import { ReviewFileService } from '@/app/api/services/client/fileService/reviewFileService';
 import { ProductSummary } from '@/app/api/types/products/productSummary';
 import { ReviewCreateDto } from '@/app/api/types/member/review/review';
 import Loading from '@/app/components/ui/Loading/Loading';
@@ -28,6 +29,8 @@ export default function WriteReviewPage() {
   const [hoveredStar, setHoveredStar] = useState<number>(0);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [uploadingFiles, setUploadingFiles] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
 
   // Fetch product data
   useEffect(() => {
@@ -104,20 +107,59 @@ export default function WriteReviewPage() {
   }, [attachedImages]);
 
   const handleSubmit = async () => {
-    if (!productId || rating <= 0 || !reviewText.trim() || submitting) {
+    if (
+      !productId ||
+      rating <= 0 ||
+      !reviewText.trim() ||
+      submitting ||
+      uploadingFiles
+    ) {
       return;
     }
 
     setSubmitting(true);
+    let uploadedFileIds: string[] = [];
 
     try {
+      // First, upload files if any are attached
+      if (attachedImages.length > 0) {
+        setUploadingFiles(true);
+        setUploadProgress('이미지 업로드 중...');
+
+        const files = attachedImages.map((img) => img.file);
+        const uploadResponse = await ReviewFileService.uploadMultipleFiles(
+          files,
+          {
+            entityType: 'review',
+            entityId: productId,
+          }
+        );
+
+        if (uploadResponse.error || !uploadResponse.data?.data) {
+          throw new Error(
+            uploadResponse.error || '파일 업로드에 실패했습니다.'
+          );
+        }
+
+        // Ensure we have valid encrypted IDs (use encryptedId instead of fileId)
+        uploadedFileIds = uploadResponse.data.data
+          .filter((fileData) => fileData.encryptedId)
+          .map((fileData) => fileData.encryptedId);
+
+        // If we had files but none were uploaded successfully, show error
+        if (attachedImages.length > 0 && uploadedFileIds.length === 0) {
+          throw new Error('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+        }
+
+        setUploadProgress('리뷰 등록 중...');
+      }
+
+      // Create review with uploaded file IDs (encryptedId)
       const reviewData: ReviewCreateDto = {
         productId,
         rating,
         content: reviewText.trim(),
-        // Note: imageFileIds would need to be uploaded first via file upload API
-        // For now, we'll leave it empty as the API documentation shows it's optional
-        imageFileIds: [],
+        imageFileIds: uploadedFileIds, // Use the encrypted IDs from upload
       };
 
       const response = await ReviewService.createReview(reviewData);
@@ -134,13 +176,23 @@ export default function WriteReviewPage() {
       }
     } catch (err) {
       console.error('Error creating review:', err);
-      alert('리뷰 등록 중 오류가 발생했습니다. 다시 시도해주세요.');
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : '리뷰 등록 중 오류가 발생했습니다.';
+      alert(errorMessage);
     } finally {
       setSubmitting(false);
+      setUploadingFiles(false);
+      setUploadProgress('');
     }
   };
 
-  const isFormValid = rating > 0 && reviewText.trim().length > 0 && !submitting;
+  const isFormValid =
+    rating > 0 &&
+    reviewText.trim().length > 0 &&
+    !submitting &&
+    !uploadingFiles;
 
   if (loading) return <Loading />;
 
@@ -274,7 +326,11 @@ export default function WriteReviewPage() {
           onClick={handleSubmit}
           disabled={!isFormValid}
         >
-          {submitting ? '등록 중...' : '등록하기'}
+          {uploadingFiles
+            ? uploadProgress
+            : submitting
+            ? '등록 중...'
+            : '등록하기'}
         </button>
       </div>
 

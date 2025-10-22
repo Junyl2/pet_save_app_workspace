@@ -24,6 +24,7 @@ export default function LocationPage() {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [lastSearchTime, setLastSearchTime] = useState<number>(0);
 
   // Fetch initial popular locations on page load
   useEffect(() => {
@@ -54,51 +55,76 @@ export default function LocationPage() {
     fetchInitialLocations();
   }, []);
 
-  // Search addresses by keyword
-  const searchAddresses = useCallback(async (keyword: string) => {
-    if (!keyword.trim()) {
-      // If search is empty, show initial locations
-      const response = await AddressService.searchAddressByKeyword(
-        '서울',
-        1,
-        15
-      );
-      if (response.data?.documents) {
-        setAddresses(response.data.documents);
+  // Search addresses by keyword with request throttling
+  const searchAddresses = useCallback(
+    async (keyword: string) => {
+      const now = Date.now();
+      const timeSinceLastSearch = now - lastSearchTime;
+
+      // Throttle requests - minimum 1 second between requests
+      if (timeSinceLastSearch < 1000) {
+        console.log('⏱️ Request throttled - too soon since last search');
+        return;
       }
+
+      if (!keyword.trim()) {
+        // If search is empty, show initial locations
+        const response = await AddressService.searchAddressByKeyword(
+          '서울',
+          1,
+          15
+        );
+        if (response.data?.documents) {
+          setAddresses(response.data.documents);
+        }
+        return;
+      }
+
+      setIsSearching(true);
+      setLastSearchTime(now);
+
+      try {
+        console.log('🔍 Searching addresses for:', keyword);
+        const response = await AddressService.searchAddressByKeyword(
+          keyword.trim(),
+          1,
+          15
+        );
+
+        if (response.data?.documents) {
+          setAddresses(response.data.documents);
+          console.log(
+            '✅ Address search successful:',
+            response.data.documents.length,
+            'results'
+          );
+        } else if (response.error) {
+          console.error('❌ Error searching addresses:', response.error);
+          toast.error('주소 검색에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('💥 Error searching addresses:', error);
+        toast.error('주소 검색에 실패했습니다.');
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [lastSearchTime]
+  );
+
+  // Handle search input change with improved debouncing
+  useEffect(() => {
+    // Skip search if already searching, if search term is too short, or if loading
+    if (isSearching || isLoading || search.trim().length < 2) {
       return;
     }
 
-    setIsSearching(true);
-    try {
-      const response = await AddressService.searchAddressByKeyword(
-        keyword.trim(),
-        1,
-        15
-      );
-
-      if (response.data?.documents) {
-        setAddresses(response.data.documents);
-      } else if (response.error) {
-        console.error('Error searching addresses:', response.error);
-        toast.error('주소 검색에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('Error searching addresses:', error);
-      toast.error('주소 검색에 실패했습니다.');
-    } finally {
-      setIsSearching(false);
-    }
-  }, []);
-
-  // Handle search input change with debouncing
-  useEffect(() => {
     const timeoutId = setTimeout(() => {
       searchAddresses(search);
-    }, 300); // 300ms debounce
+    }, 500); // Increased to 500ms debounce
 
     return () => clearTimeout(timeoutId);
-  }, [search, searchAddresses]);
+  }, [search, searchAddresses, isSearching, isLoading]);
 
   // Get current location
   const getCurrentLocation = useCallback(async () => {
@@ -121,59 +147,64 @@ export default function LocationPage() {
 
       const { latitude, longitude } = position.coords;
 
-      // Search for address using coordinates
-      const response = await AddressService.searchZipCodeByCoordinates(
-        longitude,
-        latitude
-      );
+      // Create a simple address object for current location without API call
+      const currentLocationAddress: AddressSearchResult = {
+        address_name: `현재 위치 (${latitude.toFixed(4)}, ${longitude.toFixed(
+          4
+        )})`,
+        y: latitude.toString(),
+        x: longitude.toString(),
+        address_type: 'ROAD',
+        address: {
+          address_name: `현재 위치 (${latitude.toFixed(4)}, ${longitude.toFixed(
+            4
+          )})`,
+          region_1depth_name: '',
+          region_2depth_name: '',
+          region_3depth_name: '',
+          region_3depth_h_name: '',
+          h_code: '',
+          b_code: '',
+          mountain_yn: '',
+          main_address_no: '',
+          sub_address_no: '',
+          x: longitude.toString(),
+          y: latitude.toString(),
+        },
+        road_address: {
+          address_name: `현재 위치 (${latitude.toFixed(4)}, ${longitude.toFixed(
+            4
+          )})`,
+          region_1depth_name: '',
+          region_2depth_name: '',
+          region_3depth_name: '',
+          road_name: '',
+          underground_yn: '',
+          main_building_no: '',
+          sub_building_no: '',
+          building_name: '',
+          zone_no: '',
+          x: longitude.toString(),
+          y: latitude.toString(),
+        },
+      };
 
-      if (response.data?.documents && response.data.documents.length > 0) {
-        const currentAddress = response.data.documents[0];
-        // Convert ZipCodeSearchResult to AddressSearchResult format
-        const convertedAddress: AddressSearchResult = {
-          address_name:
-            currentAddress.road_address?.address_name ||
-            currentAddress.address?.address_name ||
-            '',
-          y: currentAddress.road_address?.y || currentAddress.address?.y || '',
-          x: currentAddress.road_address?.x || currentAddress.address?.x || '',
-          address_type: 'ROAD',
-          address: currentAddress.address || {
-            address_name: '',
-            region_1depth_name: '',
-            region_2depth_name: '',
-            region_3depth_name: '',
-            region_3depth_h_name: '',
-            h_code: '',
-            b_code: '',
-            mountain_yn: '',
-            main_address_no: '',
-            sub_address_no: '',
-            x: '',
-            y: '',
-          },
-          road_address: currentAddress.road_address || {
-            address_name: '',
-            region_1depth_name: '',
-            region_2depth_name: '',
-            region_3depth_name: '',
-            road_name: '',
-            underground_yn: '',
-            main_building_no: '',
-            sub_building_no: '',
-            building_name: '',
-            zone_no: '',
-            x: '',
-            y: '',
-          },
-        };
-        setAddresses([convertedAddress]);
-        setSearch('');
-        toast.success('현재 위치를 찾았습니다.');
-      } else if (response.error) {
-        console.error('Error getting current location:', response.error);
-        toast.error('현재 위치를 찾을 수 없습니다.');
-      }
+      // Store the current location coordinates in localStorage
+      localStorage.setItem('selectedLocationLat', latitude.toString());
+      localStorage.setItem('selectedLocationLong', longitude.toString());
+      localStorage.setItem('selectedLocation', '현재 위치');
+
+      // Dispatch custom event to notify TopBar of location change
+      window.dispatchEvent(new CustomEvent('locationChanged'));
+
+      setAddresses([currentLocationAddress]);
+      setSearch('');
+      toast.success('현재 위치를 찾았습니다.');
+
+      // Navigate back to homepage after a short delay
+      setTimeout(() => {
+        router.push('/client/pages/homepage');
+      }, 1000);
     } catch (error) {
       console.error('Error getting current location:', error);
       if (error instanceof GeolocationPositionError) {
@@ -196,11 +227,23 @@ export default function LocationPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   // Handle address selection
   const handleAddressSelect = useCallback(
     (address: AddressSearchResult) => {
+      // Console log the latitude and longitude
+      const lat = parseFloat(address.y);
+      const long = parseFloat(address.x);
+      console.log('📍 Selected address coordinates:', {
+        address: address.address_name,
+        roadAddress: address.road_address?.address_name,
+        latitude: lat,
+        longitude: long,
+        lat: lat,
+        long: long,
+      });
+
       // Format address for display (first 2 parts)
       const addressParts =
         address.road_address?.address_name?.split(' ') ||
@@ -208,8 +251,10 @@ export default function LocationPage() {
         [];
       const formattedAddress = addressParts.slice(0, 2).join(' ');
 
-      // Store selected address in localStorage
+      // Store selected address and coordinates in localStorage
       localStorage.setItem('selectedLocation', formattedAddress);
+      localStorage.setItem('selectedLocationLat', lat.toString());
+      localStorage.setItem('selectedLocationLong', long.toString());
 
       // Dispatch custom event to notify TopBar of location change
       window.dispatchEvent(new CustomEvent('locationChanged'));
@@ -257,7 +302,7 @@ export default function LocationPage() {
               width={16}
               className="object-contain"
             />
-            {isLoading ? '위치 찾는 중...' : '현재위치로 찾기'}
+            현재위치로 찾기
           </button>
         </div>
       </div>

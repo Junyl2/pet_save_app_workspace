@@ -1,0 +1,98 @@
+/* --- Base shimmer --- */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e7e7e7 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 5px;
+}
+
+/* --- Match CategoryNav layout --- */
+.wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  position: fixed;
+  top: 138px;
+  left: 0;
+  z-index: 500;
+  background-color: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.sellerNav {
+  width: 100%;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  background-color: #f2f4f7;
+}
+
+.wrapper::-webkit-scrollbar,
+.sellerNav::-webkit-scrollbar {
+  display: none;
+}
+
+.container {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sellerContainer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 0rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Filter button box (24x24 icon in the real UI; here a pill box) */
+.filter {
+  flex: 0 0 auto;
+  width: 40px;
+  min-height: 32px;
+  border: 1px solid #f0f0f0;
+  border-radius: 5px;
+  background-color: #fff;
+}
+
+/* Category pill boxes */
+.item {
+  flex: 0 0 auto;
+  min-width: 72px; /* width overridden inline for variety */
+  min-height: 32px;
+  border: 1px solid #f0f0f0;
+  border-radius: 5px;
+  background-color: #fff;
+}
+
+/* Desktop centering to mirror .wrapper in CategoryNav */
+@media (min-width: 1024px) {
+  .wrapper {
+    max-width: 468px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+/* Tablet center justification matches your CategoryNav tablet rule */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container {
+    justify-content: center;
+  }
+}

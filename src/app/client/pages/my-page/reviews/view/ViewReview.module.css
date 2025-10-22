@@ -1,12 +1,14 @@
 .container {
   min-height: calc(100vh - 60px);
-  background-color: #ffffff;
-  padding-top: 60px;
+  background-color: #f2f4f7;
+  margin-top: 71.59px;
+  margin-left: -1rem;
+  margin-right: -1rem;
 }
 
-.content {
+/* .content {
   padding: 0 16px;
-}
+} */
 
 /* Tab Navigation */
 .tabContainer {
@@ -14,8 +16,8 @@
   top: 60px;
   display: flex;
   border-bottom: 1px solid #e5e5e5;
-  margin: 0 -16px 0 -16px;
   background-color: #fff;
+  padding-top: 10px;
   z-index: 500;
 }
 
@@ -54,9 +56,9 @@
 /* Review Container */
 .reviewContainer {
   background-color: #ffffff;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
+  /*  padding: 20px; */
+  /*  margin-bottom: 20px; */
+  padding: 1rem 1rem;
 }
 
 /* Review Header */
@@ -97,10 +99,21 @@
   gap: 4px;
 }
 
+.usernameAndRating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .username {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+}
+
+.starsContainer {
+  display: flex;
+  gap: 2px;
 }
 
 .userIdAndDate {
@@ -161,17 +174,8 @@
 }
 
 /* Rating */
-.ratingContainer {
-  margin-bottom: 16px;
-}
-
-.stars {
-  display: flex;
-  gap: 4px;
-}
-
 .star {
-  font-size: 20px;
+  font-size: 14px;
 }
 
 .starFilled {
@@ -259,6 +263,10 @@
 
   .username {
     font-size: 15px;
+  }
+
+  .star {
+    font-size: 12px;
   }
 
   .userIdAndDate {

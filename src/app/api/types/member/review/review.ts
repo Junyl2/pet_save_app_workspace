@@ -66,3 +66,120 @@ export interface MyReviewsParams {
   sortBy?: 'createdAt'; // Default: createdAt
   direction?: 'asc' | 'desc'; // Default: desc
 }
+
+// File upload metadata
+export interface FileUploadMetadata {
+  entityType?: string;
+  entityId?: string;
+  [key: string]: unknown;
+}
+
+// Single file upload request
+export interface FileUploadRequest {
+  file: File;
+  metadata?: FileUploadMetadata;
+}
+
+// Multiple file upload request
+export interface MultipleFileUploadRequest {
+  files: File[];
+  metadata?: FileUploadMetadata;
+}
+
+// File upload response data
+export interface FileUploadData {
+  fileId: string;
+  encryptedId: string;
+  filename: string;
+  originalFilename: string;
+  mimeType: string;
+  fileSize: number;
+  fileExtension: string;
+  url: string;
+  uploadedAt: string;
+  isAttached: boolean;
+  entityType: string;
+  entityId: string;
+  width?: number;
+  height?: number;
+  hasThumbnail: boolean;
+  documentType?: string;
+  pageCount?: number;
+  isTextExtractable?: boolean;
+}
+
+// Single file upload response
+export interface FileUploadResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: FileUploadData;
+  errorId: string | null;
+}
+
+// Multiple file upload response
+export interface MultipleFileUploadResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: FileUploadData[];
+  errorId: string | null;
+}
+
+// File attachment request
+export interface FileAttachmentRequest {
+  entityId: string;
+  fileIds: string[];
+}
+
+// File attachment response
+export interface FileAttachmentResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: Record<string, unknown>;
+  errorId: string | null;
+}
+
+// File info response
+export interface FileInfoResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: FileUploadData;
+  errorId: string | null;
+}
+
+// File list response
+export interface FileListResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: FileUploadData[];
+  errorId: string | null;
+}
+
+// File delete response
+export interface FileDeleteResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: Record<string, unknown>;
+  errorId: string | null;
+}
+
+// File download options
+export interface FileDownloadOptions {
+  disposition?: 'inline' | 'attachment';
+  type?: 'original' | 'thumbnail';
+  headers?: {
+    'If-None-Match'?: string;
+    'If-Modified-Since'?: string;
+  };
+}

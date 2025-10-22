@@ -114,6 +114,10 @@ type FlexibleAddressResult = {
 export class AddressService {
   private static readonly BASE_URL = '/address';
 
+  // Rate limiting for zip code searches to prevent 429 errors
+  private static readonly RATE_LIMIT_DURATION = 3000; // 3 seconds between requests
+  private static lastZipCodeRequestTime = 0;
+
   /**
    * Search addresses by keyword using GET method
    * @param keyword - Search keyword for address
@@ -965,7 +969,124 @@ export class AddressService {
   }
 
   /**
-   * Search zip code by coordinates using GET method
+   * Search address and get nearby stores in one operation
+   * @param keyword - Address search keyword
+   * @param radius - Search radius in km (default: 10)
+   * @param page - Page number (default: 0)
+   * @param size - Results per page (default: 20)
+   * @returns Promise with nearby stores or error
+   */
+  static async searchAddressAndNearbyStores(
+    keyword: string,
+    radius: number = 10,
+    page: number = 0,
+    size: number = 20
+  ): Promise<{
+    data: {
+      address: string;
+      coordinates: { lat: number; long: number };
+      stores: unknown[];
+    } | null;
+    error: string | null;
+  }> {
+    try {
+      console.log('🔍 Starting address search and nearby stores lookup:', {
+        keyword,
+        radius,
+        page,
+        size,
+      });
+
+      // Step 1: Search for address
+      const addressResponse = await this.searchAddressByKeywordPost({
+        keyword,
+        currentPage: 1,
+        countPerPage: 1, // Only need the first result
+      });
+
+      if (addressResponse.error) {
+        console.error('❌ Address search failed:', addressResponse.error);
+        return { data: null, error: addressResponse.error };
+      }
+
+      if (
+        !addressResponse.data?.documents ||
+        addressResponse.data.documents.length === 0
+      ) {
+        console.error('❌ No address results found');
+        return { data: null, error: '검색된 주소가 없습니다.' };
+      }
+
+      // Get the first result
+      const firstResult = addressResponse.data.documents[0];
+      const coordinates = this.extractCoordinates(firstResult);
+
+      if (!coordinates.x || !coordinates.y) {
+        console.error('❌ No coordinates found in address result');
+        return { data: null, error: '주소에서 좌표를 찾을 수 없습니다.' };
+      }
+
+      const lat = parseFloat(coordinates.y);
+      const long = parseFloat(coordinates.x);
+
+      if (isNaN(lat) || isNaN(long)) {
+        console.error('❌ Invalid coordinates:', { lat, long });
+        return { data: null, error: '유효하지 않은 좌표입니다.' };
+      }
+
+      console.log('✅ Address found with coordinates:', {
+        address: firstResult.address_name,
+        lat,
+        long,
+      });
+
+      // Step 2: Search nearby stores using coordinates
+      const { StoreService } = await import('../storeService/storeService');
+      const nearbyResponse = await StoreService.searchNearbyStores({
+        lat,
+        long,
+        radius,
+        page,
+        size,
+      });
+
+      if (nearbyResponse.error) {
+        console.error('❌ Nearby stores search failed:', nearbyResponse.error);
+        return { data: null, error: nearbyResponse.error };
+      }
+
+      if (!nearbyResponse.data?.data?.content) {
+        console.error('❌ No nearby stores found');
+        return { data: null, error: '주변 상점을 찾을 수 없습니다.' };
+      }
+
+      console.log('✅ Nearby stores found:', {
+        address: firstResult.address_name,
+        storesCount: nearbyResponse.data.data.content.length,
+      });
+
+      return {
+        data: {
+          address: firstResult.address_name,
+          coordinates: { lat, long },
+          stores: nearbyResponse.data.data.content,
+        },
+        error: null,
+      };
+    } catch (error) {
+      console.error('💥 Address and nearby stores search error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : '주소 검색 중 오류가 발생했습니다.',
+      };
+    }
+  }
+
+  /**
+   * Search zip code by coordinates using GET method with rate limiting
    * @param x - Longitude coordinate
    * @param y - Latitude coordinate
    * @returns Promise<ZipCodeSearchServiceResponse>
@@ -987,6 +1108,20 @@ export class AddressService {
           error: '유효한 좌표 형식이 아닙니다.',
         };
       }
+
+      // Rate limiting - prevent too many requests
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastZipCodeRequestTime;
+      if (timeSinceLastRequest < this.RATE_LIMIT_DURATION) {
+        console.log(
+          '⏱️ Rate limiting zip code request - too soon since last request'
+        );
+        return {
+          error: '요청이 너무 빈번합니다. 잠시 후 다시 시도해주세요.',
+        };
+      }
+
+      this.lastZipCodeRequestTime = now;
 
       const params = new URLSearchParams({
         x: x.toString(),
