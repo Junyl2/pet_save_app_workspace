@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { StoreService } from '@/app/api/services/client/storeService/storeService';
 import { AddressService } from '@/app/api/services/client/addressService/addressService';
 import { NearbyStoreInfo } from '@/app/api/types/stores/nearby';
 import styles from './ShopList.module.css';
@@ -11,8 +10,28 @@ import { FaPhone } from 'react-icons/fa6';
 import { ContactDrawer } from '../../ui/drawer/ContactDrawer/ContactDrawer';
 import TopBar from '../../sections/TopBar/TopBar';
 import SearchState from '../../ui/SearchResult/SearchState';
-import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSkeleton';
+import NearbySkeleton from '../../ui/SkeletonLoading/NearbySkeleton/NearbySkeleton';
 import SellerPanel from '../../seller-components/SellerPanel/SellerPanel';
+import businessDefaultProfile from '@/app/constats/businessDefaultProfile';
+
+// Optional fields that sometimes exist on store objects
+type NearbyStoreWithOptional = NearbyStoreInfo &
+  Partial<{
+    businessPhone: string;
+    phone: string;
+    contactNumber: string;
+    businessProfileImage: string;
+  }>;
+
+type AddressSearchResponse = {
+  stores: NearbyStoreInfo[];
+};
+
+function isAddressSearchResponse(data: unknown): data is AddressSearchResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const stores = (data as { stores?: unknown }).stores;
+  return Array.isArray(stores);
+}
 
 export default function ShopList() {
   const [stores, setStores] = useState<NearbyStoreInfo[]>([]);
@@ -22,93 +41,43 @@ export default function ShopList() {
     null
   );
 
-  const [locationLoading, setLocationLoading] = useState(false);
+  // Only keep active state hooks
   const [locationError, setLocationError] = useState<string | null>(null);
-
   const [addressSearchLoading, setAddressSearchLoading] = useState(false);
   const [addressSearchError, setAddressSearchError] = useState<string | null>(
     null
   );
 
+  const [imageErrorByStore, setImageErrorByStore] = useState<
+    Record<string, boolean>
+  >({});
   const router = useRouter();
 
-  // Get current location and search nearby stores
-  const handleCurrentLocationSearch = async () => {
-    console.log('🔘 Button clicked! Starting location search...');
-    setLocationLoading(true);
-    setLocationError(null);
-    setStores([]);
-    setHasSearched(true);
+  // ---------- Helpers ----------
+  const getFallbackPhone = (store: NearbyStoreWithOptional) =>
+    store.businessPhone ||
+    store.phone ||
+    store.contactNumber ||
+    store.businessEmail ||
+    '02-1234-5678';
 
-    try {
-      console.log('📍 Testing basic geolocation...');
-      if (!navigator.geolocation) {
-        setLocationError('이 브라우저는 위치 서비스를 지원하지 않습니다.');
-        return;
-      }
-
-      console.log('📍 Requesting location...');
-      const locationResult = await StoreService.getCurrentLocation();
-
-      if (locationResult.error) {
-        console.error('❌ Location access failed:', locationResult.error);
-        let errorMessage: string;
-
-        switch (locationResult.error) {
-          case 'PERMISSION_DENIED':
-            errorMessage =
-              '위치 접근 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.';
-            break;
-          case 'POSITION_UNAVAILABLE':
-            errorMessage =
-              '위치 정보를 가져올 수 없습니다. GPS가 활성화되어 있는지 확인해주세요.';
-            break;
-          case 'TIMEOUT':
-            errorMessage =
-              '위치 정보 요청 시간이 초과되었습니다. 다시 시도해주세요.';
-            break;
-          case 'UNKNOWN_ERROR':
-            errorMessage = '알 수 없는 오류가 발생했습니다. 다시 시도해주세요.';
-            break;
-          default:
-            errorMessage = '위치 정보를 가져오는 중 오류가 발생했습니다.';
-        }
-
-        setLocationError(errorMessage);
-        return;
-      }
-
-      if (!locationResult.data) {
-        console.error('❌ No location data received');
-        setLocationError('위치 정보를 가져올 수 없습니다.');
-        return;
-      }
-
-      console.log('✅ Current location obtained:', locationResult.data);
-
-      // Now search for nearby stores
-      const result = await StoreService.searchNearbyStoresWithCurrentLocation({
-        radius: 10,
-        page: 0,
-        size: 20,
-      });
-
-      if (result.error) {
-        console.error('❌ Nearby stores search failed:', result.error);
-        setLocationError(result.error);
-      } else if (result.data) {
-        console.log('✅ Nearby stores found:', result.data);
-        setStores(result.data.data?.content || []);
-      }
-    } catch (error) {
-      console.error('💥 Current location search error:', error);
-      setLocationError('현재 위치를 가져오는 중 오류가 발생했습니다.');
-    } finally {
-      setLocationLoading(false);
-    }
+  const getStoreImageSrc = (store: NearbyStoreWithOptional) => {
+    const fallback = businessDefaultProfile.image;
+    if (imageErrorByStore[store.storeId]) return fallback;
+    const src = store.businessProfileImage ?? fallback;
+    return typeof src === 'string' && src.trim() ? src : fallback;
   };
 
-  // Search by address and get nearby stores
+  const handleImageError = useCallback((storeId: string) => {
+    setImageErrorByStore((prev) => ({ ...prev, [storeId]: true }));
+  }, []);
+
+  const formatDistance = (km?: number) =>
+    typeof km === 'number' && !Number.isNaN(km)
+      ? `${km.toFixed(1)}km`
+      : '거리 정보 없음';
+
+  // ---------- Address search ----------
   const handleAddressSearch = async (addressKeyword: string) => {
     if (!addressKeyword.trim()) {
       setAddressSearchError('주소를 입력해주세요.');
@@ -124,23 +93,20 @@ export default function ShopList() {
     try {
       const result = await AddressService.searchAddressAndNearbyStores(
         addressKeyword,
-        10, // 10km radius
-        0, // page
-        20 // size
+        10,
+        0,
+        20
       );
 
       if (result.error) {
         console.error('❌ Address search failed:', result.error);
         setAddressSearchError(result.error);
-      } else if (result.data) {
+      } else if (isAddressSearchResponse(result.data)) {
         console.log('✅ Address search successful:', result.data);
-        setStores(result.data.stores as NearbyStoreInfo[]);
-        // Clear the search term after successful address search to show all stores
+        setStores(result.data.stores);
         setSearchTerm('');
-        console.log('🔍 Stores set after address search:', {
-          storesCount: result.data.stores.length,
-          searchTermCleared: true,
-        });
+      } else {
+        setAddressSearchError('예상치 못한 응답 형식입니다.');
       }
     } catch (error) {
       console.error('💥 Address search error:', error);
@@ -150,25 +116,18 @@ export default function ShopList() {
     }
   };
 
-  // Check if geolocation is supported when component mounts
+  // ---------- On mount ----------
   useEffect(() => {
-    if (!navigator.geolocation) {
+    if (typeof navigator !== 'undefined' && !navigator.geolocation) {
       console.log('📍 Geolocation is not supported by this browser');
       setLocationError('이 브라우저는 위치 서비스를 지원하지 않습니다.');
     }
   }, []);
 
+  // ---------- Filtering ----------
   const filteredStores = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-
-    // Keep logs minimal to avoid pulling extra deps into the closure
-    console.log('🔍 Filtering stores:', {
-      term,
-      storesLength: stores.length,
-    });
-
     if (!term) return stores;
-
     return stores.filter(
       (store) =>
         store.businessName?.toLowerCase().includes(term) ||
@@ -177,11 +136,8 @@ export default function ShopList() {
   }, [stores, searchTerm]);
 
   const handleSearch = (term: string) => {
-    console.log('🔍 handleSearch called with term:', term);
     setSearchTerm(term);
-    if (term.trim()) {
-      handleAddressSearch(term);
-    }
+    if (term.trim()) void handleAddressSearch(term);
   };
 
   const handlePhoneClick = (e: React.MouseEvent, phone: string) => {
@@ -195,24 +151,12 @@ export default function ShopList() {
 
   const isEmptySearch = !hasSearched && !searchTerm.trim();
   const noMatches = hasSearched && filteredStores.length === 0;
-  const isLoading = locationLoading || addressSearchLoading;
-
-  // Debug logging
-  console.log('🔍 ShopList render state:', {
-    hasSearched,
-    searchTerm,
-    storesLength: stores.length,
-    filteredStoresLength: filteredStores.length,
-    isEmptySearch,
-    noMatches,
-    isLoading,
-  });
+  const isLoading = addressSearchLoading;
 
   return (
     <>
       <TopBar onSearch={handleSearch} />
 
-      {/* Error Banners */}
       {(locationError || addressSearchError) && (
         <div
           style={{
@@ -232,84 +176,59 @@ export default function ShopList() {
         </div>
       )}
 
-      {/* Loading State */}
       {isLoading && (
         <div style={{ padding: '20px', textAlign: 'center' }}>
-          <ProductSkeleton count={3} />
+          <NearbySkeleton count={3} />
         </div>
       )}
 
-      <button
-        className={styles.currentBtn}
-        onClick={handleCurrentLocationSearch}
-        disabled={locationLoading}
-        style={{
-          cursor: locationLoading ? 'not-allowed' : 'pointer',
-          opacity: locationLoading ? 0.6 : 1,
-          backgroundColor: '#66bfa7',
-          color: 'white',
-          padding: '12px 20px',
-          border: 'none',
-          borderRadius: '6px',
-          fontSize: '14px',
-          fontWeight: '500',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          width: '100%',
-          margin: '10px 0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          transition: 'all 0.2s ease',
-        }}
-      >
-        <Image
-          src="/images/icons/mage_location.png"
-          alt="Location Icon"
-          height={16}
-          width={16}
-          style={{ objectFit: 'contain' }}
-        />
-        {locationLoading ? '위치 검색 중...' : '현재위치로 찾기'}
-      </button>
-
       <div className={styles.container}>
-        {/* Always show store cards if we have stores */}
         {filteredStores.length > 0 ? (
           <div className={styles.list}>
-            {filteredStores.map((store) => (
-              <div
-                key={store.storeId}
-                className={styles.shopCard}
-                onClick={() => handleCardClick(store.storeId)}
-              >
-                <button
-                  className={styles.phoneButton}
-                  onClick={(e) =>
-                    handlePhoneClick(e, store.businessEmail || '02-1234-5678')
-                  }
+            {filteredStores.map((store) => {
+              const s = store as NearbyStoreWithOptional;
+              const phone = getFallbackPhone(s);
+              const imgSrc = getStoreImageSrc(s);
+              return (
+                <div
+                  key={store.storeId}
+                  className={styles.shopCard}
+                  onClick={() => handleCardClick(store.storeId)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ')
+                      handleCardClick(store.storeId);
+                  }}
                 >
-                  <FaPhone size={22} className={styles.phone} />
-                </button>
+                  <button
+                    className={styles.phoneButton}
+                    onClick={(e) => handlePhoneClick(e, phone)}
+                    aria-label="연락처 보기"
+                    type="button"
+                  >
+                    <FaPhone size={22} className={styles.phone} />
+                  </button>
 
-                <Image
-                  src="/images/shops/shop1.png"
-                  alt={store.businessName}
-                  width={80}
-                  height={80}
-                  className={styles.shopImage}
-                />
-                <div className={styles.shopInfo}>
-                  <h3 className={styles.shopName}>{store.businessName}</h3>
-                  <p className={styles.shopLocation}>{store.roadAddress}</p>
-                  <p className={styles.shopDistance}>
-                    {store.distanceKm
-                      ? `${store.distanceKm.toFixed(1)}km`
-                      : '거리 정보 없음'}
-                  </p>
+                  <Image
+                    src={imgSrc}
+                    alt={store.businessName || '상점 이미지'}
+                    width={95}
+                    height={95}
+                    className={styles.shopImage}
+                    onError={() => handleImageError(store.storeId)}
+                  />
+
+                  <div className={styles.shopInfo}>
+                    <h3 className={styles.shopName}>{store.businessName}</h3>
+                    <p className={styles.shopLocation}>{store.roadAddress}</p>
+                    <p className={styles.shopDistance}>
+                      {formatDistance(store.distanceKm)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : isEmptySearch ? (
           <SearchState
@@ -324,8 +243,8 @@ export default function ShopList() {
             message="검색된 상점이 없습니다."
           />
         ) : null}
-        <SellerPanel />
 
+        <SellerPanel />
         {selectedShopPhone && <ContactDrawer onClose={handleCloseDrawer} />}
       </div>
     </>

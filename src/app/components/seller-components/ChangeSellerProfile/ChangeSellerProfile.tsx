@@ -11,6 +11,7 @@ import {
   StoreService,
   UpdateStoreRequest,
 } from '@/app/api/services/client/storeService/storeService';
+import { StoreFileService } from '@/app/api/services/client/fileService/storeFileService';
 import defaultProfile from '@/app/constats/defaultProfile';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 
@@ -61,13 +62,13 @@ const timeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
 });
 
 // util: file -> dataURL (persistable)
-const fileToDataUrl = (file: File) =>
+/* const fileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const fr = new FileReader();
     fr.onload = () => resolve(String(fr.result));
     fr.onerror = reject;
     fr.readAsDataURL(file);
-  });
+  }); */
 
 export default function ChangeSellerProfile({
   initial,
@@ -104,6 +105,9 @@ Props) {
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [uploadedFileId, setUploadedFileId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [form, setForm] = useState<SellerProfile>({
     businessName: initial?.businessName ?? 'ㅇㅇ 동물병원',
@@ -228,10 +232,50 @@ Props) {
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // persistable data url
-    const dataUrl = await fileToDataUrl(file);
-    setForm((p) => ({ ...p, avatarUrl: dataUrl }));
-    e.currentTarget.value = '';
+
+    setIsUploading(true);
+
+    try {
+      console.log('[ChangeSellerProfile] Uploading file:', file.name);
+
+      // Upload file using StoreFileService
+      const uploadResponse = await StoreFileService.uploadFile({
+        file,
+        metadata: {
+          entityType: 'store',
+          documentType: 'PROFILE_IMAGE',
+        },
+      });
+
+      if (uploadResponse.error) {
+        console.error(
+          '[ChangeSellerProfile] File upload failed:',
+          uploadResponse.error
+        );
+        setToastMessage('파일 업로드에 실패했습니다. 다시 시도해주세요.');
+        setShowToast(true);
+        return;
+      }
+
+      if (uploadResponse.data?.data?.encryptedId) {
+        console.log(
+          '[ChangeSellerProfile] File uploaded successfully:',
+          uploadResponse.data.data.encryptedId
+        );
+        setUploadedFileId(uploadResponse.data.data.encryptedId);
+
+        // Update the form with the new image URL for preview
+        setForm((p) => ({
+          ...p,
+          avatarUrl: uploadResponse.data?.data?.url || p.avatarUrl,
+        }));
+      }
+    } catch (error) {
+      console.error('[ChangeSellerProfile] File upload error:', error);
+    } finally {
+      setIsUploading(false);
+      e.currentTarget.value = '';
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -261,7 +305,7 @@ Props) {
         allowPhoneInquiries: true, // Default to true - you might want to make this configurable
         businessOpeningTime: `${form.closeTime}:00`, // Send closeTime as openingHours (API field swap)
         businessClosingTime: `${form.openTime}:00`, // Send openTime as closingHours (API field swap)
-        // businessLogoFileId will be handled separately if needed for file uploads
+        businessLogoFileId: uploadedFileId || undefined, // Include uploaded file ID if available
       };
 
       console.log('Updating store with data:', updateData);
@@ -310,6 +354,7 @@ Props) {
       console.log('Form submitted successfully:', form);
 
       // Show success toast
+      setToastMessage('업체 정보가 성공적으로 업데이트되었습니다.');
       setShowToast(true);
     } catch (error) {
       console.error('Error updating store:', error);
@@ -342,12 +387,13 @@ Props) {
 
           <label htmlFor="avatar" className={styles.changePhotoBtn}>
             <FaCamera className={styles.cameraIcon} />
-            <span>프로필 사진 변경</span>
+            <span>{isUploading ? '업로드 중...' : '프로필 사진 변경'}</span>
             <input
               id="avatar"
               type="file"
               accept="image/*"
               onChange={handleAvatarPick}
+              disabled={isUploading}
               className={styles.hiddenFile}
             />
           </label>
@@ -440,7 +486,7 @@ Props) {
             <button
               type="submit"
               className={styles.ctaBtn}
-              disabled={isUpdating}
+              disabled={isUpdating || isUploading}
             >
               {isUpdating ? '업데이트 중...' : '수정 완료하기'}
             </button>
@@ -450,7 +496,7 @@ Props) {
 
       {showToast && (
         <ToastMessage
-          message="업체 정보가 성공적으로 업데이트되었습니다."
+          message={toastMessage}
           onClose={() => setShowToast(false)}
           duration={3000}
         />
