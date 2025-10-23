@@ -16,7 +16,8 @@ type InquiryType =
   | '전체'
   | '상품 문의'
   | '배송 문의'
-  | '교환/ 환불 문의'
+  | '교환/환불 문의'
+  | '결제 문의'
   | '기타 문의';
 
 type InquiryStatus = '답변 대기 중' | '답변 완료';
@@ -24,11 +25,12 @@ type InquiryStatus = '답변 대기 중' | '답변 완료';
 const TYPE_OPTIONS: Exclude<InquiryType, '전체'>[] = [
   '상품 문의',
   '배송 문의',
-  '교환/ 환불 문의',
+  '교환/환불 문의',
+  '결제 문의',
   '기타 문의',
 ];
 
-// Helper function to format date from YYYY-MM-DD to YY.MM.DD
+// Helper: format date from YYYY-MM-DD to YY.MM.DD
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   const year = date.getFullYear().toString().slice(-2);
@@ -37,17 +39,11 @@ const formatDate = (dateString: string): string => {
   return `${year}.${month}.${day}`;
 };
 
-// Helper function to construct proper file URL from file ID
+// Helper: construct proper file URL from file ID
 const constructFileUrl = (fileId: string | null | undefined): string => {
   if (!fileId) return '/images/products/dogfood.png';
-
-  // If it's already a full URL, return as is
   if (fileId.startsWith('http')) return fileId;
-
-  // If it's a relative path starting with /, return as is
   if (fileId.startsWith('/')) return fileId;
-
-  // Otherwise, construct the full URL using the base URL
   return `${baseURL}/files/${fileId}`;
 };
 
@@ -59,57 +55,66 @@ interface TransformedInquiry {
   productName: string;
   productPrice: number;
   productImage: string;
-  category: string;
+  category: string; // raw API category (PRODUCT, DELIVERY, etc.)
+  uiCategory: InquiryType; // mapped UI label ('상품 문의' etc.)
   message: string;
   responseMessage: string;
   status: InquiryStatus;
   answering: boolean;
 }
 
+// Map API categories to UI categories (must match InquiryType)
+const mapApiCategoryToUI = (apiCategory: string): InquiryType => {
+  switch (apiCategory) {
+    case 'PRODUCT':
+      return '상품 문의';
+    case 'DELIVERY':
+      return '배송 문의';
+    case 'EXCHANGE_RETURN':
+      return '교환/환불 문의';
+    case 'PAYMENT':
+      return '결제 문의';
+    case 'OTHER':
+    default:
+      return '기타 문의';
+  }
+};
+
 // Helper function to transform API response to UI format
 const transformStoreInquiryToUI = (
   storeInquiry: StoreInquiry
 ): TransformedInquiry => {
-  console.log('🔍 Transforming inquiry:', storeInquiry);
-  console.log('🔍 Product data:', storeInquiry.product);
-  console.log('🔍 Direct productName:', storeInquiry.productName);
-
   try {
-    // Try both ways to get product name (nested and direct)
     const productName =
       storeInquiry.product?.productName ||
       storeInquiry.productName ||
       'Unknown Product';
-    const productPrice =
-      storeInquiry.product?.discountedPrice ||
-      storeInquiry.product?.salePrice ||
-      0;
-    const productImage = constructFileUrl(
-      storeInquiry.product?.productThumbnail
-    );
 
-    console.log('🔍 Extracted data:', {
-      productName,
-      productPrice,
-      productImage,
-    });
+    const productPrice =
+      storeInquiry.product?.discountedPrice ??
+      storeInquiry.product?.salePrice ??
+      0;
+
+    const productImage =
+      constructFileUrl(storeInquiry.product?.productThumbnail) ||
+      '/images/products/dogfood.png';
 
     return {
-      id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0, // Convert UUID to number for compatibility
-      inquiryId: storeInquiry.inquiryId, // Keep original inquiryId for routing
+      id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0, // Convert UUID segment to number
+      inquiryId: storeInquiry.inquiryId,
       date: storeInquiry.createdAt,
       productName,
       productPrice,
       productImage,
       category: storeInquiry.category,
+      uiCategory: mapApiCategoryToUI(storeInquiry.category),
       message: storeInquiry.content,
       responseMessage: storeInquiry.answer || '',
       status: storeInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
-      answering: false, // Default value since API doesn't provide this
+      answering: false,
     };
   } catch (error) {
     console.error('Error transforming inquiry:', error, storeInquiry);
-    // Return a fallback object
     return {
       id: 0,
       inquiryId: storeInquiry.inquiryId || 'unknown',
@@ -118,27 +123,12 @@ const transformStoreInquiryToUI = (
       productPrice: 0,
       productImage: '/images/products/dogfood.png',
       category: storeInquiry.category || 'OTHER',
+      uiCategory: '기타 문의',
       message: storeInquiry.content || 'No content',
       responseMessage: '',
       status: '답변 대기 중',
       answering: false,
     };
-  }
-};
-
-// Map API categories to UI categories
-const mapApiCategoryToUI = (apiCategory: string): InquiryType => {
-  switch (apiCategory) {
-    case 'PRODUCT':
-      return '상품 문의';
-    case 'DELIVERY':
-      return '배송 문의';
-    case 'EXCHANGE_RETURN':
-      return '교환/ 환불 문의';
-    case 'PAYMENT':
-    case 'OTHER':
-    default:
-      return '기타 문의';
   }
 };
 
@@ -176,35 +166,13 @@ export default function SellerInquiryDetails() {
         const response = await MemberStoreService.getMyStoreInquiries({
           sortBy: 'createdAt',
           direction: 'desc',
-          size: 100, // Get more items to handle filtering
+          size: 100,
         });
 
         if (response.error || !response.data) {
           console.error('Failed to fetch store inquiries:', response.error);
           setInquiries([]);
         } else {
-          // Debug: Log the actual API response structure
-          console.log(
-            '🔍 Raw API response structure:',
-            response.data.data.content
-          );
-          console.log(
-            '🔍 First inquiry structure:',
-            response.data.data.content[0]
-          );
-
-          // Debug: Log specific product data from first inquiry
-          if (response.data.data.content[0]) {
-            const firstInquiry = response.data.data.content[0];
-            console.log('🔍 First inquiry product:', firstInquiry.product);
-            console.log(
-              '🔍 First inquiry productName:',
-              firstInquiry.productName
-            );
-            console.log('🔍 First inquiry content:', firstInquiry.content);
-          }
-
-          // Transform API response to UI format
           const transformedInquiries = response.data.data.content.map(
             transformStoreInquiryToUI
           );
@@ -234,9 +202,7 @@ export default function SellerInquiryDetails() {
     return inquiries.filter((q) => {
       const byTab = q.status === tab;
       const byType =
-        selectedType === '전체'
-          ? true
-          : mapApiCategoryToUI(q.category) === selectedType;
+        selectedType === '전체' ? true : q.uiCategory === selectedType;
       return byTab && byType;
     });
   }, [inquiries, tab, selectedType]);
@@ -247,7 +213,6 @@ export default function SellerInquiryDetails() {
   };
 
   const handleInquiryClick = (inquiry: TransformedInquiry) => {
-    // Use the actual inquiryId from the API response
     router.push(`/client/seller/pages/reply-inquiry?id=${inquiry.inquiryId}`);
   };
 
@@ -344,7 +309,6 @@ export default function SellerInquiryDetails() {
         </div>
 
         {/* List */}
-        {/* List */}
         <div className={styles.list}>
           {filtered.map((q) => (
             <article
@@ -356,7 +320,7 @@ export default function SellerInquiryDetails() {
               <header className={styles.cardHead}>
                 <div className={styles.headLeft}>
                   <span className={styles.headType}>
-                    {mapApiCategoryToUI(q.category)}
+                    {q.uiCategory}
                     <span className={styles.dot}>·</span>
                     <span className={styles.headDate}>
                       {formatDate(q.date)}

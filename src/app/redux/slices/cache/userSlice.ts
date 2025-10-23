@@ -9,6 +9,7 @@ export interface CachedUserData {
 
 interface UserState {
   userInfo: MemberInfo | null;
+  profileImageUrl: string | null;
   loading: boolean;
   backgroundLoading: boolean;
   error: string | null;
@@ -18,6 +19,7 @@ interface UserState {
 
 const initialState: UserState = {
   userInfo: null,
+  profileImageUrl: null,
   loading: false,
   backgroundLoading: false,
   error: null,
@@ -176,6 +178,8 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = null;
         state.userInfo = action.payload.userInfo;
+        state.profileImageUrl =
+          action.payload.userInfo?.profileImageUrl || null;
 
         // Only update timestamp if data is not from cache
         if (!action.payload.fromCache) {

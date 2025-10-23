@@ -147,73 +147,64 @@ export default function LocationPage() {
 
       const { latitude, longitude } = position.coords;
 
-      // Search for address using coordinates
-      const response = await AddressService.searchZipCodeByCoordinates(
-        longitude,
-        latitude
-      );
+      // Create a simple address object for current location without API call
+      const currentLocationAddress: AddressSearchResult = {
+        address_name: `현재 위치 (${latitude.toFixed(4)}, ${longitude.toFixed(
+          4
+        )})`,
+        y: latitude.toString(),
+        x: longitude.toString(),
+        address_type: 'ROAD',
+        address: {
+          address_name: `현재 위치 (${latitude.toFixed(4)}, ${longitude.toFixed(
+            4
+          )})`,
+          region_1depth_name: '',
+          region_2depth_name: '',
+          region_3depth_name: '',
+          region_3depth_h_name: '',
+          h_code: '',
+          b_code: '',
+          mountain_yn: '',
+          main_address_no: '',
+          sub_address_no: '',
+          x: longitude.toString(),
+          y: latitude.toString(),
+        },
+        road_address: {
+          address_name: `현재 위치 (${latitude.toFixed(4)}, ${longitude.toFixed(
+            4
+          )})`,
+          region_1depth_name: '',
+          region_2depth_name: '',
+          region_3depth_name: '',
+          road_name: '',
+          underground_yn: '',
+          main_building_no: '',
+          sub_building_no: '',
+          building_name: '',
+          zone_no: '',
+          x: longitude.toString(),
+          y: latitude.toString(),
+        },
+      };
 
-      if (response.data?.documents && response.data.documents.length > 0) {
-        const currentAddress = response.data.documents[0];
-        // Convert ZipCodeSearchResult to AddressSearchResult format
-        const convertedAddress: AddressSearchResult = {
-          address_name:
-            currentAddress.road_address?.address_name ||
-            currentAddress.address?.address_name ||
-            '',
-          y: currentAddress.road_address?.y || currentAddress.address?.y || '',
-          x: currentAddress.road_address?.x || currentAddress.address?.x || '',
-          address_type: 'ROAD',
-          address: currentAddress.address || {
-            address_name: '',
-            region_1depth_name: '',
-            region_2depth_name: '',
-            region_3depth_name: '',
-            region_3depth_h_name: '',
-            h_code: '',
-            b_code: '',
-            mountain_yn: '',
-            main_address_no: '',
-            sub_address_no: '',
-            x: '',
-            y: '',
-          },
-          road_address: currentAddress.road_address || {
-            address_name: '',
-            region_1depth_name: '',
-            region_2depth_name: '',
-            region_3depth_name: '',
-            road_name: '',
-            underground_yn: '',
-            main_building_no: '',
-            sub_building_no: '',
-            building_name: '',
-            zone_no: '',
-            x: '',
-            y: '',
-          },
-        };
+      // Store the current location coordinates in localStorage
+      localStorage.setItem('selectedLocationLat', latitude.toString());
+      localStorage.setItem('selectedLocationLong', longitude.toString());
+      localStorage.setItem('selectedLocation', '현재 위치');
 
-        // Store the current location coordinates in localStorage
-        localStorage.setItem('selectedLocationLat', latitude.toString());
-        localStorage.setItem('selectedLocationLong', longitude.toString());
-        localStorage.setItem('selectedLocation', convertedAddress.address_name);
+      // Dispatch custom event to notify TopBar of location change
+      window.dispatchEvent(new CustomEvent('locationChanged'));
 
-        // Dispatch custom event to notify TopBar of location change
-        window.dispatchEvent(new CustomEvent('locationChanged'));
+      setAddresses([currentLocationAddress]);
+      setSearch('');
+      toast.success('현재 위치를 찾았습니다.');
 
-        setAddresses([convertedAddress]);
-        setSearch('');
-        toast.success('현재 위치를 찾았습니다.');
-
-        // Navigate back to homepage after a short delay
-        setTimeout(() => {
-          router.push('/client/pages/homepage');
-        }, 1000);
-      } else if (response.error) {
-        console.error('Error getting current location:', response.error);
-        toast.error('현재 위치를 찾을 수 없습니다.');
-      }
+      // Navigate back to homepage after a short delay
+      setTimeout(() => {
+        router.push('/client/pages/homepage');
+      }, 1000);
     } catch (error) {
       console.error('Error getting current location:', error);
       if (error instanceof GeolocationPositionError) {
@@ -236,7 +227,7 @@ export default function LocationPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   // Handle address selection
   const handleAddressSelect = useCallback(

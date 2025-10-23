@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaChevronRight } from 'react-icons/fa';
 import { IoCalendarOutline } from 'react-icons/io5';
@@ -13,6 +13,12 @@ import { MemberFileService } from '@/app/api/services/client/fileService/memberF
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import Loading from '@/app/components/ui/Loading/Loading';
 import styles from './MemberInformation.module.css';
+
+type Address = {
+  default?: boolean;
+  roadAddress?: string;
+  detailedAddress?: string;
+};
 
 export default function MemberInformation() {
   const router = useRouter();
@@ -31,183 +37,199 @@ export default function MemberInformation() {
     birthDate: '',
     deliveryAddress: '',
   });
+
+  // Track a newly uploaded (but not yet saved) profile file id
+  const [pendingProfileFileId, setPendingProfileFileId] = useState<
+    string | null
+  >(null);
+
+  // Save / toast (only for final confirm edit)
   const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+
+  // Upload state
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Function to get profile image URL
-  const getProfileImageUrl = async (profileFileId: string | undefined) => {
-    if (!profileFileId) return null;
+  // Utility: objectURL cleanup
+  const revokeObjectURL = useCallback((url: string | null) => {
+    if (url) {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        /* noop */
+      }
+    }
+  }, []);
 
+  // Prefer backend-provided profileImageUrl; fall back to file service if needed
+  const resolveProfileImage = useCallback(async (info: MemberInfo) => {
+    const directUrl = info.profileImageUrl ?? null;
+    if (directUrl) {
+      setProfileImage(directUrl);
+      return;
+    }
+    const profileFileId = info.profileFileId;
+    if (!profileFileId) {
+      setProfileImage(null);
+      return;
+    }
     try {
       const response = await MemberFileService.getFile(profileFileId, {
         disposition: 'inline',
         type: 'original',
       });
-
-      if (response.data) {
-        return URL.createObjectURL(response.data);
+      if (response?.data) {
+        const objUrl = URL.createObjectURL(response.data);
+        setProfileImage(objUrl);
+      } else {
+        setProfileImage(null);
       }
-      return null;
-    } catch (error) {
-      console.error('Error getting profile image:', error);
-      return null;
+    } catch (e) {
+      console.error('Error getting profile image:', e);
+      setProfileImage(null);
     }
-  };
+  }, []);
 
   // Function to fetch default delivery address
-  const fetchDefaultDeliveryAddress = async () => {
+  const fetchDefaultDeliveryAddress = useCallback(async () => {
     try {
-      console.log('🔄 Fetching default delivery address...');
       const response = await DeliveryAddressService.getDeliveryAddresses();
-
       if (response.data?.success && response.data?.data) {
-        const addresses = response.data.data;
-        console.log('📍 All addresses:', addresses);
-
+        const addresses = response.data.data as Address[];
         const defaultAddress = addresses.find((addr) => addr.default);
-        console.log('⭐ Default address found:', defaultAddress);
-
-        if (defaultAddress) {
-          const fullAddress = `${defaultAddress.roadAddress} ${defaultAddress.detailedAddress}`;
-          console.log('🏠 Full address:', fullAddress);
-
-          setFormData((prev) => ({
-            ...prev,
-            deliveryAddress: fullAddress,
-          }));
-        } else {
-          // If no default address is set, use the first valid address
-          const firstValidAddress = addresses.find(
-            (addr) => addr.roadAddress && addr.detailedAddress
-          );
-
-          if (firstValidAddress) {
-            const fullAddress = `${firstValidAddress.roadAddress} ${firstValidAddress.detailedAddress}`;
-            console.log('🏠 Using first valid address:', fullAddress);
-
-            setFormData((prev) => ({
-              ...prev,
-              deliveryAddress: fullAddress,
-            }));
-          } else {
-            console.log('❌ No valid addresses found');
-            setFormData((prev) => ({
-              ...prev,
-              deliveryAddress: '',
-            }));
-          }
-        }
+        const chosen =
+          defaultAddress ||
+          addresses.find((addr) => addr.roadAddress && addr.detailedAddress);
+        const fullAddress = chosen
+          ? `${chosen.roadAddress ?? ''} ${chosen.detailedAddress ?? ''}`.trim()
+          : '';
+        setFormData((prev) => ({ ...prev, deliveryAddress: fullAddress }));
       } else {
-        console.log('❌ Failed to fetch addresses:', response.error);
+        console.warn('Failed to fetch addresses:', response.error);
       }
-    } catch (error) {
-      console.error('💥 Error fetching default delivery address:', error);
-      // Don't show error to user, just leave delivery address empty
+    } catch (fetchErr) {
+      console.error('Error fetching default delivery address:', fetchErr);
+      // Non-blocking
     }
-  };
+  }, []);
 
   // Fetch member information on component mount
   useEffect(() => {
-    const fetchMemberInfo = async () => {
+    let didCancel = false;
+    (async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        console.log('🔄 Fetching member info for MemberInformation...');
-
         const response = await MemberService.getMyInfo();
-
         if (response.error) {
-          console.error('❌ Failed to fetch member info:', response.error);
-          setError('회원 정보를 불러오는데 실패했습니다.');
+          console.error('Failed to fetch member info:', response.error);
+          if (!didCancel) setError('회원 정보를 불러오는데 실패했습니다.');
           return;
         }
 
         if (response.data?.success && response.data?.data) {
-          const memberData = response.data.data;
-          console.log('✅ Member info fetched successfully:', memberData);
-          console.log('🔍 Member ID:', memberData.memberId);
-          console.log(
-            '🔍 Full member data structure:',
-            JSON.stringify(memberData, null, 2)
-          );
-
-          setMemberInfo(memberData);
-
-          // Populate form data
-          setFormData({
-            email: memberData.email || '',
-            name: memberData.name || '',
-            phoneNumber: memberData.phoneNumber || '',
-            birthDate: memberData.birthDate || '',
-            deliveryAddress: '', // Will be populated by fetchDefaultDeliveryAddress
-          });
-
-          // Fetch default delivery address
-          await fetchDefaultDeliveryAddress();
-
-          // Load profile image if available
-          if (memberData.profileFileId) {
-            const imageUrl = await getProfileImageUrl(memberData.profileFileId);
-            setProfileImage(imageUrl);
+          const memberData = response.data.data as MemberInfo;
+          if (!didCancel) {
+            setMemberInfo(memberData);
+            setFormData({
+              email: memberData.email ?? '',
+              name: memberData.name ?? '',
+              phoneNumber: memberData.phoneNumber ?? '',
+              birthDate: (memberData.birthDate ?? '').slice(0, 10), // normalize format
+              deliveryAddress: memberData.deliveryAddress ?? '',
+            });
           }
+
+          await fetchDefaultDeliveryAddress();
+          if (!didCancel) await resolveProfileImage(memberData);
         } else {
-          setError('회원 정보를 불러올 수 없습니다.');
+          if (!didCancel) setError('회원 정보를 불러올 수 없습니다.');
         }
       } catch (err) {
-        console.error('💥 Error fetching member info:', err);
-        setError('회원 정보를 불러오는 중 오류가 발생했습니다.');
+        console.error('Error fetching member info:', err);
+        if (!didCancel)
+          setError('회원 정보를 불러오는 중 오류가 발생했습니다.');
       } finally {
-        setIsLoading(false);
+        if (!didCancel) setIsLoading(false);
       }
-    };
+    })();
 
-    fetchMemberInfo();
-  }, []);
-
-  // Cleanup preview URL on unmount
-  useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      didCancel = true;
     };
-  }, [previewUrl]);
+  }, [fetchDefaultDeliveryAddress, resolveProfileImage]);
+
+  // Cleanup preview URL on unmount or change
+  useEffect(() => {
+    return () => revokeObjectURL(previewUrl);
+  }, [previewUrl, revokeObjectURL]);
 
   // Handle form input changes
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Handle form submission
+  // Helpers
+  const valueOrInfo = (
+    formVal: string | undefined,
+    infoVal: string | undefined
+  ) => {
+    const fv = (formVal ?? '').trim();
+    if (fv) return fv;
+    const iv = (infoVal ?? '').trim();
+    return iv; // may be empty if truly not set on server
+  };
+  const normalizeDate = (v: string | undefined) => (v ? v.slice(0, 10) : '');
+
+  // Build full PUT body (send ALL fields) but never send empty profileFileId
+  const buildFullPut = (
+    form: typeof formData,
+    info: MemberInfo
+  ): MemberUpdateRequest => {
+    const email = valueOrInfo(form.email, info.email);
+    const name = valueOrInfo(form.name, info.name);
+    const phoneNumber = valueOrInfo(form.phoneNumber, info.phoneNumber);
+    const birthDate = normalizeDate(
+      valueOrInfo(form.birthDate, info.birthDate)
+    );
+    const deliveryAddress = valueOrInfo(
+      form.deliveryAddress,
+      info.deliveryAddress
+    );
+
+    // Use a precise type instead of `any`
+    const body: Partial<MemberUpdateRequest> = {
+      email,
+      name,
+      phoneNumber,
+      birthDate,
+      deliveryAddress,
+    };
+
+    // Include profileFileId only if we actually have one (pending or existing)
+    const effectiveProfileId =
+      pendingProfileFileId ?? info.profileFileId ?? null;
+    if (effectiveProfileId && String(effectiveProfileId).trim().length > 0) {
+      body.profileFileId = effectiveProfileId;
+    }
+
+    return body as MemberUpdateRequest;
+  };
+
+  // Handle form submission (full object)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (isSaving || !memberInfo) return;
 
     try {
       setIsSaving(true);
       setError(null);
 
-      // Prepare update data
-      const updateData: MemberUpdateRequest = {
-        email: formData.email,
-        name: formData.name,
-        phoneNumber: formData.phoneNumber,
-        birthDate: formData.birthDate,
-        deliveryAddress: formData.deliveryAddress,
-      };
-
-      console.log('Updating member info with data:', updateData);
-
-      // Call API to update member information
+      const updateData = buildFullPut(formData, memberInfo);
       const response = await MemberService.updateMemberInfo(
         memberInfo.memberId,
         updateData
@@ -220,143 +242,101 @@ export default function MemberInformation() {
         setToastType('success');
         setToastMessage('회원 정보가 성공적으로 수정되었습니다.');
 
-        // Update local member info with the response data
         if (response.data.data) {
-          setMemberInfo(response.data.data);
+          const updated = response.data.data as MemberInfo;
+          setMemberInfo(updated);
+          setFormData({
+            email: updated.email ?? '',
+            name: updated.name ?? '',
+            phoneNumber: updated.phoneNumber ?? '',
+            birthDate: (updated.birthDate ?? '').slice(0, 10),
+            deliveryAddress: updated.deliveryAddress ?? '',
+          });
+          await resolveProfileImage(updated);
         }
+        // Clear pending profile id after successful confirm
+        setPendingProfileFileId(null);
       } else {
         setToastType('error');
         setToastMessage('회원 정보 수정에 실패했습니다.');
       }
     } catch (err) {
+      console.error('Update error:', err);
       setToastType('error');
-      setToastMessage(
-        err instanceof Error ? err.message : '회원 정보 수정에 실패했습니다.'
-      );
+      setToastMessage('회원 정보 수정에 실패했습니다.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Handle toast close
-  const handleToastClose = () => {
-    setToastMessage(null);
-  };
+  // Handle toast close (used only for final confirm edit)
+  const handleToastClose = () => setToastMessage(null);
 
   // Handle file selection and preview
   const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      setToastType('error');
-      setToastMessage('지원되지 않는 파일 형식입니다. (JPEG, PNG, GIF만 허용)');
-      event.target.value = '';
+      console.warn('Unsupported file type.');
+      event.currentTarget.value = '';
       return;
     }
 
-    // Validate file size (5MB limit for profile images)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      setToastType('error');
-      setToastMessage('파일 크기가 5MB를 초과합니다.');
-      event.target.value = '';
+      console.warn('File exceeds 5MB.');
+      event.currentTarget.value = '';
       return;
     }
 
-    // Set selected file and create preview
+    // Set selected file and create preview (local only)
     setSelectedFile(file);
     const preview = URL.createObjectURL(file);
+    revokeObjectURL(previewUrl);
     setPreviewUrl(preview);
     setProfileImage(preview);
   };
 
-  // Handle profile image upload
+  /**
+   * New Image Flow (kept):
+   * 1) Upload image → get { encryptedId } and store in state (pendingProfileFileId)
+   * 2) On "수정 완료하기" → full PUT with all fields + profileFileId (if present)
+   * 3) Refresh UI after confirm
+   */
   const handleProfileImageUpload = async () => {
-    if (!selectedFile || !memberInfo) return;
-
+    if (!selectedFile || !memberInfo || isUploadingProfile) return;
     try {
       setIsUploadingProfile(true);
       setError(null);
 
-      console.log('🔄 Uploading profile image...');
-
-      // Upload the file using MemberFileService
       const uploadResult = await MemberFileService.uploadFile(selectedFile, {
         entityType: 'member',
         entityId: memberInfo.memberId,
       });
 
-      if (uploadResult.error) {
-        setToastType('error');
-        setToastMessage(uploadResult.error);
+      if (uploadResult.error || !uploadResult.data) {
+        console.error('Upload failed:', uploadResult.error);
         return;
       }
 
-      if (uploadResult.data) {
-        console.log(
-          '✅ Profile image uploaded successfully:',
-          uploadResult.data
-        );
-
-        // Attach the file to the member entity
-        const attachResult = await MemberFileService.attachFiles(
-          memberInfo.memberId,
-          [uploadResult.data.fileId]
-        );
-
-        if (attachResult.error) {
-          setToastType('error');
-          setToastMessage(attachResult.error);
-          return;
-        }
-
-        // Note: Backend should automatically update profileImageUrl when file is attached
-        // If not, we'll rely on the file service to provide the image URL
-        console.log(
-          'File attached successfully. Backend should update profileImageUrl automatically.'
-        );
-
-        // Refresh member info to get updated profileImageUrl from backend
-        try {
-          const refreshResponse = await MemberService.getMyInfo();
-          if (refreshResponse.data?.success && refreshResponse.data?.data) {
-            setMemberInfo(refreshResponse.data.data);
-            console.log(
-              '✅ Member info refreshed with updated profileImageUrl:',
-              refreshResponse.data.data.profileImageUrl
-            );
-          }
-        } catch (refreshError) {
-          console.warn('Failed to refresh member info:', refreshError);
-          // Fallback: Update local state with file data
-          setMemberInfo((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  profileFileId: uploadResult.data?.encryptedId,
-                  profileImageUrl: uploadResult.data?.url,
-                }
-              : null
-          );
-        }
-
-        setToastType('success');
-        setToastMessage('프로필 사진이 성공적으로 변경되었습니다.');
-
-        // Clean up preview states
-        setSelectedFile(null);
-        if (previewUrl) {
-          URL.revokeObjectURL(previewUrl);
-          setPreviewUrl(null);
-        }
+      const encryptedId: string | undefined = uploadResult.data.encryptedId;
+      if (!encryptedId) {
+        console.error('No encryptedId in upload response.');
+        return;
       }
-    } catch (error) {
-      console.error('💥 Error uploading profile image:', error);
-      setToastType('error');
-      setToastMessage('프로필 사진 업로드 중 오류가 발생했습니다.');
+
+      setPendingProfileFileId(encryptedId);
+
+      // Cleanup preview/input selection
+      setSelectedFile(null);
+      const fileInput = document.getElementById(
+        'profile-image-input'
+      ) as HTMLInputElement | null;
+      if (fileInput) fileInput.value = '';
+    } catch (err) {
+      console.error('Error uploading profile image:', err);
     } finally {
       setIsUploadingProfile(false);
     }
@@ -366,15 +346,11 @@ export default function MemberInformation() {
   const handleProfileImageClick = () => {
     const fileInput = document.getElementById(
       'profile-image-input'
-    ) as HTMLInputElement;
-    if (fileInput) {
-      fileInput.click();
-    }
+    ) as HTMLInputElement | null;
+    fileInput?.click();
   };
 
-  if (isLoading) {
-    return <Loading />;
-  }
+  if (isLoading) return <Loading />;
 
   if (error) {
     return (
@@ -416,7 +392,7 @@ export default function MemberInformation() {
     <div className={styles.container}>
       <ProductHeader />
 
-      {/* Toast Message */}
+      {/* Toast Message (shown only for final confirm edit) */}
       {toastMessage && (
         <ToastMessage
           message={toastMessage}
@@ -469,23 +445,21 @@ export default function MemberInformation() {
               className={styles.cancelBtn}
               onClick={() => {
                 setSelectedFile(null);
-                if (previewUrl) {
-                  URL.revokeObjectURL(previewUrl);
-                  setPreviewUrl(null);
-                }
-                // Reset to original profile image
-                if (memberInfo?.profileFileId) {
-                  getProfileImageUrl(memberInfo.profileFileId).then(
-                    setProfileImage
-                  );
+                revokeObjectURL(previewUrl);
+                setPreviewUrl(null);
+                // Reset preview to original from backend if needed
+                if (memberInfo) {
+                  resolveProfileImage(memberInfo);
                 } else {
                   setProfileImage(null);
                 }
-                // Reset file input
+                // Reset input
                 const fileInput = document.getElementById(
                   'profile-image-input'
-                ) as HTMLInputElement;
+                ) as HTMLInputElement | null;
                 if (fileInput) fileInput.value = '';
+                // Also clear pending change if user cancels
+                setPendingProfileFileId(null);
               }}
               disabled={isUploadingProfile}
             >

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import styles from './CategoryNav.module.css';
 import { CategoryService } from '@/app/api/services/client/categoryService/categoryService';
 import { Category } from '@/app/api/types/category/category';
+import CategorySkeleton from '@/app/components/ui/SkeletonLoading/CategorySkeleton/CategorySkeleton';
 
 // Simple cache to prevent duplicate API calls
 let categoriesCache: Category[] | null = null;
@@ -35,6 +36,7 @@ export default function CategoryNav({
   const currentCategoryRef = useRef(currentCategory);
 
   // Update refs when props change
+
   useEffect(() => {
     onSelectCategoryRef.current = onSelectCategory;
     currentCategoryRef.current = currentCategory;
@@ -166,7 +168,7 @@ export default function CategoryNav({
   // Show loading state
   if (loading) {
     return (
-      <div className={isSellerDetails ? styles.sellerNav : styles.wrapper}>
+      /*  <div className={isSellerDetails ? styles.sellerNav : styles.wrapper}>
         <div
           className={
             isSellerDetails ? styles.sellerContainer : styles.container
@@ -186,7 +188,8 @@ export default function CategoryNav({
           </button>
           <div className={styles.loading}>Loading categories...</div>
         </div>
-      </div>
+      </div> */
+      <CategorySkeleton />
     );
   }
 

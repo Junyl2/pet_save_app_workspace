@@ -43,3 +43,17 @@ export interface ProductSummaryResponse {
   data: ProductSummary;
   errorId: string | null;
 }
+
+export interface ProductDetails extends ProductSummary {
+  images: string[];
+  expired: boolean;
+}
+
+export interface ProductDetailsResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: ProductDetails;
+  errorId: string | null;
+}

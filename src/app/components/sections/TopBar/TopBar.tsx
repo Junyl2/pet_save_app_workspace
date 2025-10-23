@@ -377,6 +377,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
         {/* Logo / Back / Location */}
         <div className={styles.logoWrapper}>
           {pathname === '/client/pages/homepage' ||
+          pathname === '/shops' ||
           pathname ===
             '/client/seller/pages/seller-product-list/refund-request' ||
           pathname === '/client/seller/pages/seller-product-list' ? (
