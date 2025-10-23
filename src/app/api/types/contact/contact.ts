@@ -1,5 +1,6 @@
 export type ContactInquiry = {
   id: number;
+  inquiryId?: string; // backend UUID for delete API
   date: string;
   shopName: string;
   shopLocation: string;
@@ -9,6 +10,7 @@ export type ContactInquiry = {
   responseMessage: string;
   status: '답변 대기 중' | '답변 완료';
   answering?: boolean;
+  productId?: string; // Added for routing to waiting reply page
 };
 
 export type CreateInquiryPayload = {

@@ -94,13 +94,15 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 1rem;
-  /*   background: #f9f9f9; */
+  height: 147px;
+  padding: 0rem;
+  overflow: hidden;
+  border-radius: 6px;
 }
 
 .image {
-  object-fit: contain;
-  border-radius: 8px;
+  border-radius: 6px;
+  object-fit: cover;
 }
 
 .icons {
@@ -127,7 +129,7 @@
 
 /* 컨텐츠 */
 .content {
-  padding: 1rem;
+  padding-top: 0.5rem;
 }
 
 .header {

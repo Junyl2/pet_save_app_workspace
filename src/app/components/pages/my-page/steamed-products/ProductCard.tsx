@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { FaHeart } from "react-icons/fa";
-import styles from "./ProductCard.module.css";
+import { useState } from 'react';
+import { FaHeart } from 'react-icons/fa';
+import styles from './ProductCard.module.css';
 
 export interface Product {
   id: string;
@@ -61,17 +61,17 @@ export function ProductCard({
         <button
           className={styles.favoriteButton}
           onClick={handleToggleFavorite}
-          aria-label={product.isFavorited ? "찜 해제" : "찜하기"}
+          aria-label={product.isFavorited ? '찜 해제' : '찜하기'}
         >
           <FaHeart
             className={`${styles.heartIcon} ${
-              product.isFavorited ? "" : styles.unfavorited
+              product.isFavorited ? '' : styles.unfavorited
             }`}
           />
         </button>
         <h3
           className={`${styles.productName} ${
-            isExpanded ? styles.expanded : ""
+            isExpanded ? styles.expanded : ''
           }`}
           onClick={toggleExpand}
         >
@@ -94,7 +94,7 @@ export function ProductCard({
           onClick={handleAddToCart}
           disabled={isLoading}
         >
-          {isLoading ? "담는 중..." : "장바구니 담기"}
+          {isLoading ? '담는 중...' : '장바구니 담기'}
         </button>
       </div>
     </div>

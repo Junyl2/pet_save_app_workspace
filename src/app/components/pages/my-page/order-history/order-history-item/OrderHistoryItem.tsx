@@ -1,9 +1,9 @@
-import { OrderItem } from "@/app/components/types/order";
-import Image from "next/image";
-import styles from "./OrderHistoryItem.module.css";
-import { FiChevronRight } from "react-icons/fi"; // ← added
-import { useRouter } from "next/navigation";
-import { PAGE_URLS } from "@/app/utils/page_url";
+import { OrderItem } from '@/app/components/types/order';
+import Image from 'next/image';
+import styles from './OrderHistoryItem.module.css';
+import { FiChevronRight } from 'react-icons/fi'; // ← added
+import { useRouter } from 'next/navigation';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 interface OrderHistoryItemProps {
   orderId: string;
@@ -44,7 +44,7 @@ export default function OrderHistoryItem({
       <div className={styles.body}>
         <div className={styles.imageWrapper}>
           <Image
-            src={product.image ?? "/placeholder.png"}
+            src={product.image ?? '/placeholder.png'}
             alt={product.name}
             width={80}
             height={80}
@@ -57,7 +57,7 @@ export default function OrderHistoryItem({
           <p className={styles.name}>{product.name}</p>
           {product.brand && <p className={styles.brand}>{product.brand}</p>}
           <p className={styles.price}>
-            {(product.discountPrice ?? product.price).toLocaleString()}원 ·{" "}
+            {(product.discountPrice ?? product.price).toLocaleString()}원 ·{' '}
             {quantity}개
           </p>
           <p className={styles.date}>{date}</p>

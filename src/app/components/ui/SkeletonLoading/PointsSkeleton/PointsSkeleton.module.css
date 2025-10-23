@@ -1,0 +1,289 @@
+/* Base skeleton animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* Container - matches Points page layout */
+.container {
+  min-height: 100vh;
+  margin-top: 71.59px;
+  background-color: #ffffff;
+  padding-bottom: 20px;
+}
+
+/* Current Points Section Skeleton */
+.pointsSection {
+  background-color: white;
+  padding: 24px 0;
+  margin: 0 -16px 0px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.sectionTitleSkeleton {
+  composes: skeleton;
+  width: 120px;
+  height: 20px;
+  margin-bottom: 16px;
+}
+
+.currentPoints {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.pointIconWrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pointIconSkeleton {
+  composes: skeleton;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.pointAmountSkeleton {
+  composes: skeleton;
+  width: 150px;
+  height: 32px;
+}
+
+.pointsInfoButtonSkeleton {
+  composes: skeleton;
+  width: 100%;
+  height: 48px;
+  border-radius: 8px;
+}
+
+/* Divider */
+.divider {
+  height: 14px;
+  background-color: #f2f4f7;
+  margin: 0 -16px;
+}
+
+/* History Header Skeleton */
+.historyHeader {
+  background-color: white;
+  padding: 20px 16px 0;
+  margin: 0 -16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.historyTitleSkeleton {
+  composes: skeleton;
+  width: 100px;
+  height: 20px;
+}
+
+.viewAllButtonSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 16px;
+}
+
+/* History Section Skeleton */
+.historySection {
+  background-color: white;
+  margin: 0 -16px 0px;
+  padding: 0 16px;
+}
+
+.historyItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.historyItem:last-child {
+  border-bottom: none;
+}
+
+.historyLeft {
+  flex: 1;
+}
+
+.historyDateSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 14px;
+  margin-bottom: 4px;
+}
+
+.historyDescriptionSkeleton {
+  composes: skeleton;
+  width: 180px;
+  height: 16px;
+  margin-bottom: 4px;
+}
+
+.historySubtitleSkeleton {
+  composes: skeleton;
+  width: 140px;
+  height: 14px;
+}
+
+.historyRight {
+  text-align: right;
+}
+
+.historyAmountSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 16px;
+  margin-bottom: 4px;
+}
+
+.expiryDateSkeleton {
+  composes: skeleton;
+  width: 60px;
+  height: 12px;
+}
+
+/* Rewards Section Skeleton */
+.rewardsHeader {
+  background-color: white;
+  padding: 40px 0 0 0;
+  margin: 20px 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rewardsTitleSkeleton {
+  composes: skeleton;
+  width: 160px;
+  height: 20px;
+}
+
+.rewardsSubHeader {
+  background-color: white;
+  padding: 20px 0 16px 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.rewardsSubTitleSkeleton {
+  composes: skeleton;
+  width: 100px;
+  height: 16px;
+}
+
+.rewardsCountSkeleton {
+  composes: skeleton;
+  width: 30px;
+  height: 16px;
+}
+
+.rewardsSection {
+  background-color: white;
+  margin: 0;
+  padding: 0 0 20px 0;
+}
+
+.productList {
+  padding: 16px 0;
+}
+
+.productItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.productItem:last-child {
+  border-bottom: none;
+}
+
+.productImageSkeleton {
+  composes: skeleton;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.productInfo {
+  flex: 1;
+}
+
+.productNameSkeleton {
+  composes: skeleton;
+  width: 180px;
+  height: 14px;
+  margin-bottom: 4px;
+}
+
+.productPriceSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 16px;
+  margin-bottom: 2px;
+}
+
+.productBrandSkeleton {
+  composes: skeleton;
+  width: 100px;
+  height: 12px;
+}
+
+.reviewButtonSkeleton {
+  composes: skeleton;
+  width: 70px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .pointsSection {
+    padding: 20px 16px;
+  }
+
+  .currentPoints {
+    margin-bottom: 20px;
+  }
+
+  .pointAmountSkeleton {
+    width: 120px;
+    height: 24px;
+  }
+
+  .productNameSkeleton {
+    width: 150px;
+  }
+
+  .historyDescriptionSkeleton {
+    width: 150px;
+  }
+}

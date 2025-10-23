@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import styles from './SellerInquiryDetails.module.css';
 import { FaChevronDown } from 'react-icons/fa';
 import Image from 'next/image';
-import { mockContactInquiries } from '../../data/mockContact';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import BottomBar from '../../sections/BottomBar/BottomBar';
 import { useUser } from '@/app/context/userContext';
+import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
+import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
+import { baseURL } from '@/app/api/config';
 
 type InquiryType =
   | '전체'
@@ -35,6 +37,111 @@ const formatDate = (dateString: string): string => {
   return `${year}.${month}.${day}`;
 };
 
+// Helper function to construct proper file URL from file ID
+const constructFileUrl = (fileId: string | null | undefined): string => {
+  if (!fileId) return '/images/products/dogfood.png';
+
+  // If it's already a full URL, return as is
+  if (fileId.startsWith('http')) return fileId;
+
+  // If it's a relative path starting with /, return as is
+  if (fileId.startsWith('/')) return fileId;
+
+  // Otherwise, construct the full URL using the base URL
+  return `${baseURL}/files/${fileId}`;
+};
+
+// Interface for the transformed inquiry data used in UI
+interface TransformedInquiry {
+  id: number;
+  inquiryId: string;
+  date: string;
+  productName: string;
+  productPrice: number;
+  productImage: string;
+  category: string;
+  message: string;
+  responseMessage: string;
+  status: InquiryStatus;
+  answering: boolean;
+}
+
+// Helper function to transform API response to UI format
+const transformStoreInquiryToUI = (
+  storeInquiry: StoreInquiry
+): TransformedInquiry => {
+  console.log('🔍 Transforming inquiry:', storeInquiry);
+  console.log('🔍 Product data:', storeInquiry.product);
+  console.log('🔍 Direct productName:', storeInquiry.productName);
+
+  try {
+    // Try both ways to get product name (nested and direct)
+    const productName =
+      storeInquiry.product?.productName ||
+      storeInquiry.productName ||
+      'Unknown Product';
+    const productPrice =
+      storeInquiry.product?.discountedPrice ||
+      storeInquiry.product?.salePrice ||
+      0;
+    const productImage = constructFileUrl(
+      storeInquiry.product?.productThumbnail
+    );
+
+    console.log('🔍 Extracted data:', {
+      productName,
+      productPrice,
+      productImage,
+    });
+
+    return {
+      id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0, // Convert UUID to number for compatibility
+      inquiryId: storeInquiry.inquiryId, // Keep original inquiryId for routing
+      date: storeInquiry.createdAt,
+      productName,
+      productPrice,
+      productImage,
+      category: storeInquiry.category,
+      message: storeInquiry.content,
+      responseMessage: storeInquiry.answer || '',
+      status: storeInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
+      answering: false, // Default value since API doesn't provide this
+    };
+  } catch (error) {
+    console.error('Error transforming inquiry:', error, storeInquiry);
+    // Return a fallback object
+    return {
+      id: 0,
+      inquiryId: storeInquiry.inquiryId || 'unknown',
+      date: storeInquiry.createdAt || new Date().toISOString(),
+      productName: 'Unknown Product',
+      productPrice: 0,
+      productImage: '/images/products/dogfood.png',
+      category: storeInquiry.category || 'OTHER',
+      message: storeInquiry.content || 'No content',
+      responseMessage: '',
+      status: '답변 대기 중',
+      answering: false,
+    };
+  }
+};
+
+// Map API categories to UI categories
+const mapApiCategoryToUI = (apiCategory: string): InquiryType => {
+  switch (apiCategory) {
+    case 'PRODUCT':
+      return '상품 문의';
+    case 'DELIVERY':
+      return '배송 문의';
+    case 'EXCHANGE_RETURN':
+      return '교환/ 환불 문의';
+    case 'PAYMENT':
+    case 'OTHER':
+    default:
+      return '기타 문의';
+  }
+};
+
 export default function SellerInquiryDetails() {
   const router = useRouter();
   const { user } = useUser();
@@ -47,13 +154,72 @@ export default function SellerInquiryDetails() {
   const [selectedType, setSelectedType] = useState<InquiryType>('전체');
   const ddRef = useRef<HTMLDivElement | null>(null);
 
-  // Check if user is seller
+  // API data state
+  const [inquiries, setInquiries] = useState<TransformedInquiry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Check if user is approved seller
   useEffect(() => {
-    if (user?.role !== 'seller') {
+    if (user?.role !== 'seller' || !user?.storeId) {
       router.push('/client/pages/homepage');
       return;
     }
   }, [user, router]);
+
+  // Fetch store inquiries from API
+  useEffect(() => {
+    const fetchInquiries = async () => {
+      if (!user?.role || user.role !== 'seller') return;
+
+      setLoading(true);
+      try {
+        const response = await MemberStoreService.getMyStoreInquiries({
+          sortBy: 'createdAt',
+          direction: 'desc',
+          size: 100, // Get more items to handle filtering
+        });
+
+        if (response.error || !response.data) {
+          console.error('Failed to fetch store inquiries:', response.error);
+          setInquiries([]);
+        } else {
+          // Debug: Log the actual API response structure
+          console.log(
+            '🔍 Raw API response structure:',
+            response.data.data.content
+          );
+          console.log(
+            '🔍 First inquiry structure:',
+            response.data.data.content[0]
+          );
+
+          // Debug: Log specific product data from first inquiry
+          if (response.data.data.content[0]) {
+            const firstInquiry = response.data.data.content[0];
+            console.log('🔍 First inquiry product:', firstInquiry.product);
+            console.log(
+              '🔍 First inquiry productName:',
+              firstInquiry.productName
+            );
+            console.log('🔍 First inquiry content:', firstInquiry.content);
+          }
+
+          // Transform API response to UI format
+          const transformedInquiries = response.data.data.content.map(
+            transformStoreInquiryToUI
+          );
+          setInquiries(transformedInquiries);
+        }
+      } catch (error) {
+        console.error('Error fetching store inquiries:', error);
+        setInquiries([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInquiries();
+  }, [user]);
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -65,25 +231,42 @@ export default function SellerInquiryDetails() {
   }, []);
 
   const filtered = useMemo(() => {
-    return mockContactInquiries.filter((q) => {
+    return inquiries.filter((q) => {
       const byTab = q.status === tab;
       const byType =
-        selectedType === '전체' ? true : q.category === selectedType;
+        selectedType === '전체'
+          ? true
+          : mapApiCategoryToUI(q.category) === selectedType;
       return byTab && byType;
     });
-  }, [tab, selectedType]);
+  }, [inquiries, tab, selectedType]);
 
   const handlePick = (t: InquiryType) => {
     setSelectedType(t);
     setOpen(false);
   };
 
-  const handleInquiryClick = (inquiryId: number) => {
-    router.push(`/client/seller/pages/reply-inquiry?id=${inquiryId}`);
+  const handleInquiryClick = (inquiry: TransformedInquiry) => {
+    // Use the actual inquiryId from the API response
+    router.push(`/client/seller/pages/reply-inquiry?id=${inquiry.inquiryId}`);
   };
 
-  if (!user || user.role !== 'seller') {
+  if (!user || user.role !== 'seller' || !user.storeId) {
     return null; // Will redirect in useEffect
+  }
+
+  if (loading) {
+    return (
+      <>
+        <ProductHeader />
+        <div className={styles.page}>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            문의 내역을 불러오는 중...
+          </div>
+        </div>
+        <BottomBar />
+      </>
+    );
   }
 
   return (
@@ -167,13 +350,13 @@ export default function SellerInquiryDetails() {
             <article
               key={q.id}
               className={styles.card}
-              onClick={() => handleInquiryClick(q.id)}
+              onClick={() => handleInquiryClick(q)}
               style={{ cursor: 'pointer' }}
             >
               <header className={styles.cardHead}>
                 <div className={styles.headLeft}>
                   <span className={styles.headType}>
-                    {q.category}
+                    {mapApiCategoryToUI(q.category)}
                     <span className={styles.dot}>·</span>
                     <span className={styles.headDate}>
                       {formatDate(q.date)}
@@ -196,7 +379,7 @@ export default function SellerInquiryDetails() {
               <div className={styles.itemRow}>
                 <div className={styles.thumbWrap}>
                   <Image
-                    src={q.shopImage || '/images/products/dogfood.png'}
+                    src={q.productImage || '/images/products/dogfood.png'}
                     alt=""
                     width={60}
                     height={60}
@@ -205,8 +388,12 @@ export default function SellerInquiryDetails() {
                   />
                 </div>
                 <div className={styles.meta}>
-                  <div className={styles.title}>{q.shopName}</div>
-                  <div className={styles.price}>{q.shopLocation}</div>
+                  <div className={styles.title}>{q.productName}</div>
+                  <div className={styles.price}>
+                    {q.productPrice
+                      ? `${q.productPrice.toLocaleString()}원`
+                      : '가격 정보 없음'}
+                  </div>
                   <div className={styles.snippet}>{q.message}</div>
                 </div>
               </div>

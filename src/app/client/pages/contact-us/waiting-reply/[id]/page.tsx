@@ -4,46 +4,123 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ContactInquiry } from '@/app/api/types/contact/contact';
 import { contactService } from '@/app/api/services/contact-service/contactService';
+import { MemberInquiryService } from '@/app/api/services/client/memberService/inquiry-details/memberInquiryService';
+import { MyInquiry } from '@/app/api/types/member/inquiry-details/inquiry';
+import { MemberService } from '@/app/api/services/client/memberService/memberService';
+import { MemberInfo } from '@/app/api/types/member/member';
 import styles from './DeleteInquiry.module.css';
 import { DotMenu } from '@/app/components/ui/DotMenu/DotMenu';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import Loading from '@/app/components/ui/Loading/Loading';
+
+// Helper function to transform API response to ContactInquiry format
+const transformMyInquiryToContactInquiry = (
+  myInquiry: MyInquiry
+): ContactInquiry => {
+  return {
+    id: parseInt(myInquiry.inquiryId.split('-')[0], 16) || 0, // Convert UUID to number for compatibility
+    inquiryId: myInquiry.inquiryId,
+    date: myInquiry.createdAt,
+    shopName: myInquiry.store.name,
+    shopLocation: myInquiry.store.address,
+    shopImage: myInquiry.store.profileUrl || '/images/shops/shop1.png', // fallback image
+    category: myInquiry.category,
+    message: myInquiry.content,
+    responseMessage: myInquiry.answer || '',
+    status: myInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
+    productId: myInquiry.product.productId, // Store productId for routing
+  };
+};
 
 export default function DeleteInquiryPage() {
   const router = useRouter();
   const params = useParams();
-  const id = Number(params.id);
+  const productId = params.id as string; // Now expecting productId (string UUID)
 
   const [inquiry, setInquiry] = useState<ContactInquiry | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<MemberInfo | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!productId) return;
     const fetchInquiry = async () => {
       setLoading(true);
-      const data = await contactService.getInquiryById(id);
-      setInquiry(data);
-      setLoading(false);
+      try {
+        // Fetch all inquiries and find the one with matching productId
+        const response = await MemberInquiryService.getMyInquiries({
+          sortBy: 'createdAt',
+          direction: 'desc',
+          size: 100, // Get more items to find the specific inquiry
+        });
+
+        if (response.error || !response.data) {
+          console.error('Failed to fetch inquiries:', response.error);
+          // Fallback to mock data if API fails
+          const mockData = await contactService.getInquiryById(1); // fallback
+          setInquiry(mockData);
+        } else {
+          // Find inquiry with matching productId
+          const matchingInquiry = response.data.data.content.find(
+            (inq) => inq.product.productId === productId
+          );
+
+          if (matchingInquiry) {
+            const transformedInquiry =
+              transformMyInquiryToContactInquiry(matchingInquiry);
+            setInquiry(transformedInquiry);
+          } else {
+            console.error('Inquiry not found for productId:', productId);
+            setInquiry(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching inquiry:', error);
+        // Fallback to mock data on error
+        const mockData = await contactService.getInquiryById(1);
+        setInquiry(mockData);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchInquiry();
-  }, [id]);
+  }, [productId]);
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await MemberService.getMyInfo();
+        if (response.data && !response.error) {
+          setUserProfile(response.data.data);
+        } else {
+          console.error('Failed to fetch user profile:', response.error);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+    fetchUserProfile();
+  }, []);
 
   const handleDelete = async () => {
-    if (!inquiry) return;
-    await contactService.deleteInquiry(inquiry.id);
-
-    toast.success(`문의가 삭제되었습니다`, {
-      style: {
-        background: '#f87171',
-      },
-      iconTheme: {
-        primary: '#f87171',
-        secondary: '#fff',
-      },
-    });
-
-    router.push('/contact-us');
+    if (!inquiry || !inquiry.inquiryId) return;
+    const res = await MemberInquiryService.deleteInquiry(inquiry.inquiryId);
+    if (!res.error) {
+      toast.success(`문의가 삭제되었습니다`, {
+        style: {
+          background: '#f87171',
+        },
+        iconTheme: {
+          primary: '#f87171',
+          secondary: '#fff',
+        },
+      });
+      router.push('/contact-us');
+    } else {
+      toast.error('삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
   };
 
   const formatKoreanDate = (dateString: string) => {
@@ -55,24 +132,28 @@ export default function DeleteInquiryPage() {
     }).format(date);
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <Loading />;
   if (!inquiry) return <p>Inquiry not found</p>;
 
   return (
     <>
       <ProductHeader />
-
       <div className={styles.container}>
         {/* User profile */}
         <div className={styles.userProfile}>
           <Image
-            src="/images/shops/clinic1.png"
+            src={
+              userProfile?.profileImageUrl ||
+              '/images/icons/profile-default.png'
+            }
             alt="User Profile"
             className={styles.profileImage}
             width={40}
             height={40}
           />
-          <span className={styles.userName}>펫세이브</span>
+          <span className={styles.userName}>
+            {userProfile?.name || userProfile?.nickname || '펫세이브'}
+          </span>
         </div>
 
         <p className={styles.header}>

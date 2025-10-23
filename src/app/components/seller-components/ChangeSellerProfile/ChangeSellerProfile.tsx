@@ -1,13 +1,18 @@
-// /client/seller/pages/change-profile/page.tsx
 'use client';
 
 import React, { useEffect, useId, useMemo, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { FaCamera, FaChevronDown } from 'react-icons/fa';
 import styles from './ChangeSellerProfile.module.css';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import { sellerService } from '@/app/api/services/seller/serller-details/sellerService';
 import { shopService } from '@/app/api/services/shops/shopService';
+import {
+  StoreService,
+  UpdateStoreRequest,
+} from '@/app/api/services/client/storeService/storeService';
+import defaultProfile from '@/app/constats/defaultProfile';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 
 type SellerProfile = {
   businessName: string;
@@ -22,6 +27,31 @@ type Props = {
   initial?: Partial<SellerProfile>;
   onSubmit?: (data: SellerProfile) => void;
   onBack?: () => void;
+};
+
+type StoreSummary = {
+  businessName?: string;
+  businessPhoneNumber?: string;
+  openingHours?: string;
+  closingHours?: string;
+  roadAddress?: string;
+  detailedAddress?: string;
+  businessProfileImage?: string;
+};
+
+type LegacySeller = {
+  name?: string;
+  phoneNumber?: string;
+  location?: string;
+  products?: Array<{ shopImage?: string }>;
+};
+
+type ApiEnvelope<T> = {
+  success?: boolean;
+  status?: number;
+  resultMsg?: string;
+  divisionCode?: string | null;
+  data?: T;
 };
 
 const timeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
@@ -50,23 +80,30 @@ Props) {
   const closeId = useId();
   const addressId = useId();
 
-  const router = useRouter();
   const params = useSearchParams();
 
-  // 1) identify which shop/owner we’re editing
-  const routeShopId = Number(params?.get('shopId') || NaN);
+  // 1) identify which shop/owner we're editing
+  const routeStoreId = params?.get('storeId') || null;
+  const routeShopId = params?.get('shopId') || null; // Keep for backward compatibility
   const storedSellerId = useMemo(() => {
     if (typeof window === 'undefined') return null;
-    const v = Number(window.localStorage.getItem('sellerId'));
-    return Number.isFinite(v) ? v : null;
+    const v = window.localStorage.getItem('sellerId');
+    return v || null;
   }, []);
 
-  // prefer route ?shopId=...; fallback to local sellerId
-  const shopId = Number.isFinite(routeShopId)
-    ? routeShopId
-    : storedSellerId ?? null;
+  // prefer route ?storeId=... or ?shopId=...; fallback to local sellerId
+  const storeId = routeStoreId || routeShopId || storedSellerId;
+
+  console.log('ChangeSellerProfile - Store ID resolution:', {
+    routeStoreId,
+    routeShopId,
+    storedSellerId,
+    finalStoreId: storeId,
+  });
 
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const [form, setForm] = useState<SellerProfile>({
     businessName: initial?.businessName ?? 'ㅇㅇ 동물병원',
@@ -74,54 +111,113 @@ Props) {
     openTime: initial?.openTime ?? '09:00',
     closeTime: initial?.closeTime ?? '18:00',
     address: initial?.address ?? '서울 관악구 신림로70길 23',
-    avatarUrl:
-      initial?.avatarUrl ??
-      'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=300&auto=format&fit=crop',
+    avatarUrl: initial?.avatarUrl ?? defaultProfile.image,
   });
 
   // 2) load existing data for this shop/owner + any saved overrides
   useEffect(() => {
     (async () => {
       try {
-        if (!Number.isFinite(Number(shopId))) {
+        if (!storeId) {
           setLoading(false);
           return;
         }
 
-        const seller = await sellerService.getSellerDetailsByShopId(
-          Number(shopId)
-        );
+        // Try to get store data from the new API first
+        let storeData: StoreSummary | null = null;
+        try {
+          if (storeId !== null) {
+            const storeResponse = (await StoreService.getStoreSummary(
+              storeId.toString()
+            )) as unknown as { data?: ApiEnvelope<StoreSummary> };
+
+            if (storeResponse?.data?.data) {
+              storeData = storeResponse.data.data;
+              console.log('Store data loaded:', storeData);
+              console.log('Business name from API:', storeData.businessName);
+              console.log('Phone from API:', storeData.businessPhoneNumber);
+              console.log('Opening hours from API:', storeData.openingHours);
+              console.log('Closing hours from API:', storeData.closingHours);
+              console.log(
+                'Address from API:',
+                storeData.roadAddress,
+                storeData.detailedAddress
+              );
+            }
+          }
+        } catch {
+          console.log(
+            'Store API not available, falling back to seller service'
+          );
+        }
+
+        // Fallback to existing seller service if store API fails
+        let sellerData: LegacySeller | null = null;
+        if (!storeData) {
+          try {
+            // Try to convert to number for the legacy seller service
+            const numericStoreId = Number(storeId);
+            if (Number.isFinite(numericStoreId)) {
+              const legacyRes = (await sellerService.getSellerDetailsByShopId(
+                numericStoreId
+              )) as unknown as LegacySeller | null;
+              sellerData = legacyRes ?? null;
+            }
+          } catch {
+            console.log('Seller service also failed, using defaults');
+          }
+        }
 
         // load overrides from localStorage if any
-        const lsKey = `seller:profile:${shopId}`;
+        const lsKey = `seller:profile:${storeId}`;
         const saved =
           typeof window !== 'undefined'
             ? window.localStorage.getItem(lsKey)
             : null;
 
         const override: Partial<SellerProfile> = saved ? JSON.parse(saved) : {};
+        console.log('LocalStorage override data:', override);
 
+        // Map data from store API or fallback to seller service
+        // Priority: API data first, then localStorage overrides, then fallbacks
         const mapped: SellerProfile = {
-          businessName: override.businessName ?? seller.name ?? '업체명',
-          phone: override.phone ?? seller.phoneNumber ?? '',
-          openTime: override.openTime ?? '09:00',
-          closeTime: override.closeTime ?? '18:00',
-          address: override.address ?? seller.location ?? '',
+          businessName:
+            storeData?.businessName ||
+            sellerData?.name ||
+            override.businessName ||
+            '업체명',
+          phone:
+            storeData?.businessPhoneNumber ||
+            sellerData?.phoneNumber ||
+            override.phone ||
+            '',
+          openTime: storeData?.closingHours || override.openTime || '09:00',
+          closeTime: storeData?.openingHours || override.closeTime || '18:00',
+          address:
+            storeData?.roadAddress && storeData?.detailedAddress
+              ? `${storeData.roadAddress} ${storeData.detailedAddress}`
+              : storeData?.roadAddress ||
+                storeData?.detailedAddress ||
+                sellerData?.location ||
+                override.address ||
+                '',
           avatarUrl:
+            storeData?.businessProfileImage ??
+            sellerData?.products?.[0]?.shopImage ??
             override.avatarUrl ??
-            seller.products?.[0]?.shopImage ??
-            form.avatarUrl,
+            defaultProfile.image,
         };
 
+        console.log('Mapped form data:', mapped);
         setForm(mapped);
-      } catch {
+      } catch (error) {
+        console.error('Error loading seller profile data:', error);
         // fall back to defaults silently
       } finally {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId]);
+  }, [storeId]);
 
   const handleChange =
     (key: keyof SellerProfile) =>
@@ -138,36 +234,88 @@ Props) {
     e.currentTarget.value = '';
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // persist for THIS owner/shop
-    if (Number.isFinite(Number(shopId))) {
-      const lsKey = `seller:profile:${shopId}`;
+    if (!storeId) {
+      console.error('No store ID available for update');
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      // Parse address to separate road address and detailed address
+      const addressParts = form.address.split(' ');
+      const roadAddress = addressParts.slice(0, -1).join(' ') || form.address;
+      const detailedAddress = addressParts[addressParts.length - 1] || '';
+
+      // Prepare update data for the API
+      // Note: API field names are swapped, so we need to send them in reverse
+      const updateData: UpdateStoreRequest = {
+        businessName: form.businessName,
+        roadAddress: roadAddress,
+        detailedAddress: detailedAddress,
+        zipCode: '00000', // Default zip code - you might want to make this configurable
+        businessPhoneNumber: form.phone,
+        allowPhoneInquiries: true, // Default to true - you might want to make this configurable
+        businessOpeningTime: `${form.closeTime}:00`, // Send closeTime as openingHours (API field swap)
+        businessClosingTime: `${form.openTime}:00`, // Send openTime as closingHours (API field swap)
+        // businessLogoFileId will be handled separately if needed for file uploads
+      };
+
+      console.log('Updating store with data:', updateData);
+      console.log('Form times debug:', {
+        formOpenTime: form.openTime,
+        formCloseTime: form.closeTime,
+        sentAsOpeningTime: `${form.closeTime}:00`,
+        sentAsClosingTime: `${form.openTime}:00`,
+      });
+
+      // Call the new API to update store information
+      const response = await StoreService.updateStore(storeId, updateData);
+
+      if (response.error) {
+        console.error('Failed to update store:', response.error);
+        console.error('Request data that failed:', updateData);
+        // You might want to show an error message to the user here
+        return;
+      }
+
+      console.log('Store updated successfully:', response.data);
+
+      // Persist for THIS owner/shop in localStorage as backup
+      const lsKey = `seller:profile:${storeId}`;
       localStorage.setItem(lsKey, JSON.stringify(form));
 
-      // also sync basic fields to mock shop service (so lists reflect it)
+      // Also sync basic fields to mock shop service (so lists reflect it)
       try {
-        shopService.updateShop(Number(shopId), {
-          name: form.businessName,
-          phoneNumber: form.phone,
-          location: form.address,
-          shopName: form.businessName,
-          shopLocation: form.address,
-          // you can add a field in your Shop type for avatar if desired
-          // image: form.avatarUrl,
-        });
+        const numericStoreId = Number(storeId);
+        if (Number.isFinite(numericStoreId)) {
+          shopService.updateShop(numericStoreId, {
+            name: form.businessName,
+            phoneNumber: form.phone,
+            location: form.address,
+            shopName: form.businessName,
+            shopLocation: form.address,
+            // you can add a field in your Shop type for avatar if desired
+            // image: form.avatarUrl,
+          });
+        }
       } catch {
         // ignore in mock
       }
-    }
 
-    onSubmit?.(form);
-    console.log('Form submitted:', form);
+      onSubmit?.(form);
+      console.log('Form submitted successfully:', form);
 
-    // go back to seller details (optional UX)
-    if (Number.isFinite(Number(shopId))) {
-      router.push(`/seller-details/${shopId}`);
+      // Show success toast
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error updating store:', error);
+      // You might want to show an error message to the user here
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -282,19 +430,31 @@ Props) {
             </label>
             <input
               id={addressId}
-              className={styles.input}
+              className={`${styles.input} ${styles.addressInput}`}
               value={form.address}
               onChange={handleChange('address')}
             />
           </div>
 
           <div className={styles.ctaBar}>
-            <button type="submit" className={styles.ctaBtn}>
-              수정 완료하기
+            <button
+              type="submit"
+              className={styles.ctaBtn}
+              disabled={isUpdating}
+            >
+              {isUpdating ? '업데이트 중...' : '수정 완료하기'}
             </button>
           </div>
         </form>
       </div>
+
+      {showToast && (
+        <ToastMessage
+          message="업체 정보가 성공적으로 업데이트되었습니다."
+          onClose={() => setShowToast(false)}
+          duration={3000}
+        />
+      )}
     </>
   );
 }

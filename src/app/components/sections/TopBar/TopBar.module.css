@@ -11,6 +11,18 @@
   box-sizing: border-box;
   z-index: 1500;
 }
+.sellerTopBar {
+  background: #fff;
+  /* margin-left: -1rem;
+  margin-right: -1rem; */
+  padding-bottom: 0.5rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 1500;
+}
 .shoppingCartTopbar {
   background: #fff;
   /*  border-bottom: 1px solid #e5e7eb; */
@@ -64,7 +76,8 @@
 @media (min-width: 1025px) {
   .topbar,
   .shopTopBar,
-  .shoppingCartTopbar {
+  .shoppingCartTopbar,
+  .sellerTopBar {
     max-width: 468px;
     left: 50%;
     transform: translateX(-50%);
@@ -180,6 +193,15 @@
   padding: 0.5rem 1rem;
   animation: fadeSlideDown 0.15s ease-out;
   height: 100vh;
+}
+
+@media (max-width: 1024px) {
+  .historyDropdown {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    right: 0;
+  }
 }
 .shopHistoryDropdown {
   position: absolute;

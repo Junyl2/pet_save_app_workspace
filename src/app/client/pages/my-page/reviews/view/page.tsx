@@ -1,41 +1,78 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { FaStar, FaEllipsisV } from 'react-icons/fa';
 import styles from './ViewReview.module.css';
 import Portal from '@/app/components/system/Portal';
-
-// Mock review data
-const mockReviews = [
-  {
-    id: 1,
-    productName: '탐사 강아지 고구마말랭이 간식',
-    rating: 5,
-    reviewText:
-      '우리 강아지가 너무 잘 먹어요! 고구마 말랭이라 건강에도 좋고, 말랑해서 먹기도 편해 보여요. 간식 줄 때마다 꼬리를 흔들며 좋아하네요. 재구매 의사 100%입니다!',
-    images: [
-      '/images/products/dog-snack.png',
-      '/images/products/dog-snack2.png',
-      '/images/products/dogfood.png',
-    ],
-    username: '만족해요',
-    userId: 'petsave100000',
-    date: '2025.08.10',
-    profileImage: '/images/icons/apple.png',
-  },
-];
+import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
+import { Review } from '@/app/api/types/member/review/review';
+import Loading from '@/app/components/ui/Loading/Loading';
 
 export default function ViewReviewPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const reviewId = searchParams.get('reviewId');
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [review, setReview] = useState<Review | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Find review by ID (default to first review if not found)
-  const review =
-    mockReviews.find((r) => r.id.toString() === reviewId) || mockReviews[0];
+  // Fetch review data
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    setError(null);
+
+    const fetchReview = async () => {
+      if (!reviewId) {
+        setError('리뷰 ID가 필요합니다.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Since there's no direct API to get a single review by ID,
+        // we'll search for reviews and find the specific one
+        // In a real implementation, you might want to add a userId filter
+        const response = await ReviewService.searchReviews({
+          page: 0,
+          size: 100, // Get more reviews to find the specific one
+        });
+
+        if (!isMounted) return;
+
+        if (response.error) {
+          setError('리뷰를 불러올 수 없습니다.');
+        } else if (response.data?.content) {
+          const foundReview = response.data.content.find(
+            (r) => r.reviewId === reviewId
+          );
+          if (foundReview) {
+            setReview(foundReview);
+          } else {
+            setError('리뷰를 찾을 수 없습니다.');
+          }
+        } else {
+          setError('리뷰 정보를 찾을 수 없습니다.');
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Failed to fetch review:', err);
+        setError('리뷰를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        if (!isMounted) return;
+        setLoading(false);
+      }
+    };
+
+    fetchReview();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [reviewId]);
 
   const handleOptionsClick = () => setShowOptionsMenu((s) => !s);
 
@@ -62,6 +99,21 @@ export default function ViewReviewPage() {
     ));
   };
 
+  if (loading) return <Loading />;
+
+  if (error || !review) {
+    return (
+      <div className={styles.container}>
+        <ProductHeader />
+        <div className={styles.content}>
+          <p className={styles.error}>
+            {error || '리뷰를 불러올 수 없습니다.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       <ProductHeader />
@@ -86,12 +138,26 @@ export default function ViewReviewPage() {
           <div className={styles.reviewHeader}>
             <div className={styles.userInfo}>
               <div className={styles.profileImage}>
-                <img src={review.profileImage} alt="Profile" />
+                <img
+                  src={
+                    review.reviewer.profileImageUrl ||
+                    '/images/icons/profile-default.png'
+                  }
+                  alt="Profile"
+                />
               </div>
               <div className={styles.userDetails}>
-                <div className={styles.username}>{review.username}</div>
+                <div className={styles.username}>{review.reviewer.name}</div>
                 <div className={styles.userIdAndDate}>
-                  {review.userId} | {review.date}
+                  {review.reviewer.memberId} |{' '}
+                  {new Date(review.createdAt)
+                    .toLocaleDateString('ko-KR', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                    })
+                    .replace(/\./g, '.')
+                    .replace(/\s/g, '')}
                 </div>
               </div>
             </div>
@@ -114,21 +180,21 @@ export default function ViewReviewPage() {
           </div>
 
           {/* Product Name */}
-          <div className={styles.productName}>{review.productName}</div>
+          <div className={styles.productName}>{review.product.productName}</div>
 
           {/* Review Images (stable keys) */}
-          {review.images && review.images.length > 0 && (
+          {review.imageUrls && review.imageUrls.length > 0 && (
             <div className={styles.imagesContainer}>
-              {review.images.map((image) => (
-                <div key={image} className={styles.reviewImage}>
-                  <img src={image} alt="Review image" />
+              {review.imageUrls.map((imageUrl, index) => (
+                <div key={index} className={styles.reviewImage}>
+                  <img src={imageUrl} alt="Review image" />
                 </div>
               ))}
             </div>
           )}
 
           {/* Review Text */}
-          <div className={styles.reviewText}>{review.reviewText}</div>
+          <div className={styles.reviewText}>{review.content}</div>
         </div>
       </div>
 

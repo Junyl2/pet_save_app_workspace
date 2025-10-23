@@ -17,9 +17,14 @@
   overflow-x: auto;
   -ms-overflow-style: none;
   scrollbar-width: none;
+  background-color: #f2f4f7;
 }
 
 .wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.sellerNav::-webkit-scrollbar {
   display: none;
 }
 
@@ -74,6 +79,22 @@
   border: 1px solid #66bfa7;
   color: #fff;
   /* color: #66bfa7; */
+}
+
+.loading {
+  flex: 1;
+  text-align: center;
+  padding: 0.4rem 1rem;
+  color: #666;
+  font-size: 12px;
+}
+
+.error {
+  flex: 1;
+  text-align: center;
+  padding: 0.4rem 1rem;
+  color: #e74c3c;
+  font-size: 12px;
 }
 
 @media (min-width: 1024px) {

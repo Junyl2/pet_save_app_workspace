@@ -1,6 +1,9 @@
 'use client';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './LogoutModal.module.css';
+import { AuthService } from '@/app/api/services/client/auth/authService';
+import { useUser } from '@/app/context/userContext';
 
 interface LogoutModalProps {
   isOpen: boolean;
@@ -8,24 +11,62 @@ interface LogoutModalProps {
   onConfirm?: () => void;
 }
 
-export default function LogoutModal({ isOpen, onClose, onConfirm }: LogoutModalProps) {
+export default function LogoutModal({
+  isOpen,
+  onClose,
+  onConfirm,
+}: LogoutModalProps) {
   const router = useRouter();
+  const { logout: logoutUser } = useUser();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleLogout = () => {
-    // Handle logout logic here (clear tokens, etc.)
-    if (onConfirm) {
-      onConfirm();
-    } else {
-      // Default logout behavior
-      console.log('User logged out');
-      // Clear any stored auth data
-      localStorage.removeItem('authToken');
-      // Redirect to login page
-      router.push('/client/login');
+  const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+
+    setIsLoggingOut(true);
+
+    try {
+      console.log('Starting logout process...');
+
+      // Call the real logout API
+      const response = await AuthService.logout();
+
+      if (response.error) {
+        console.error('Logout failed:', response.error);
+        // Still proceed with logout even if API fails
+      } else {
+        console.log('Logout successful:', response.data);
+      }
+
+      // Clear user context state
+      logoutUser();
+      console.log('User context cleared');
+
+      // Call custom logout handler if provided
+      if (onConfirm) {
+        onConfirm();
+      }
+
+      // Force a small delay to ensure all state is cleared before redirect
+      setTimeout(() => {
+        // Redirect to login page
+        router.push('/client/login');
+      }, 100);
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still proceed with logout even if there's an error
+      logoutUser(); // Clear user context even on error
+
+      // Force a small delay to ensure all state is cleared before redirect
+      setTimeout(() => {
+        router.push('/client/login');
+      }, 100);
+    } finally {
+      setIsLoggingOut(false);
+      onClose();
     }
-    onClose();
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -61,14 +102,22 @@ export default function LogoutModal({ isOpen, onClose, onConfirm }: LogoutModalP
 
         {/* Buttons */}
         <div className={styles.buttonContainer}>
-          <button className={styles.confirmButton} onClick={handleLogout}>
-            로그아웃하기
+          <button
+            className={styles.confirmButton}
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut ? '로그아웃 중...' : '로그아웃하기'}
           </button>
-          <button className={styles.cancelButton} onClick={onClose}>
+          <button
+            className={styles.cancelButton}
+            onClick={onClose}
+            disabled={isLoggingOut}
+          >
             취소
           </button>
         </div>
       </div>
     </div>
   );
-} 
+}

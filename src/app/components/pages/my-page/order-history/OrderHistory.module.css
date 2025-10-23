@@ -1,9 +1,9 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 24px; /* space between header and filter bar */
+  gap: 24px;
   padding-top: 80px;
-  max-width: 1200px; /* keep content centered */
+  max-width: 1200px;
   margin: 0 -1rem;
 }
 

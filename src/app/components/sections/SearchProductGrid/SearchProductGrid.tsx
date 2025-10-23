@@ -7,8 +7,11 @@ import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import styles from './SearchProductGrid.module.css';
 /* import { useFavorites } from '@/app/context/FavoritesContext'; */
 import { CartModal } from '../../ui/modal/CartModal/CartModal';
-import { Product } from '@/app/api/types/products/products';
-import { productService } from '@/app/api/services/product-service/productService';
+import {
+  Product,
+  ProductSearchParams,
+} from '@/app/api/types/products/products';
+import { ProductService } from '@/app/api/services/client/productService/productService';
 import SearchProductSkeleton from './SearchProductSkeleton';
 import SearchState from '../../ui/SearchResult/SearchState';
 
@@ -19,7 +22,7 @@ export default function SearchProductGrid({
   searchTerm?: string;
   onSearchSubmit?: () => void;
 }) {
-  /*   const { favorites } = useFavorites(); */
+  /*  const {  toggleFavorite, isFavorited } = useFavorites(); */
   const router = useRouter();
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);
@@ -39,9 +42,16 @@ export default function SearchProductGrid({
     let mounted = true;
     (async () => {
       try {
-        const res = await productService.getAll();
+        const searchParams: ProductSearchParams = {
+          registrationStatus: 'ONSALE',
+          page: 0,
+          size: 100,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        };
+        const res = await ProductService.searchProducts(searchParams);
         if (!mounted) return;
-        setAllProducts(res?.error ? [] : res?.data || []);
+        setAllProducts(res?.error ? [] : res?.data?.data?.content || []);
       } catch {
         if (!mounted) return;
         setAllProducts([]);
@@ -64,9 +74,16 @@ export default function SearchProductGrid({
       setError(null);
 
       try {
-        const res = searchTerm.trim()
-          ? await productService.search(searchTerm)
-          : await productService.getAll();
+        const searchParams: ProductSearchParams = {
+          keyword: searchTerm.trim() || undefined,
+          registrationStatus: 'ONSALE',
+          page: 0,
+          size: 50,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        };
+
+        const res = await ProductService.searchProducts(searchParams);
 
         if (!isMounted) return;
 
@@ -74,7 +91,7 @@ export default function SearchProductGrid({
           setError(res.error);
           setProducts([]);
         } else {
-          setProducts(res?.data || []);
+          setProducts(res?.data?.data?.content || []);
         }
       } catch (err: unknown) {
         if (!isMounted) return;
@@ -100,9 +117,15 @@ export default function SearchProductGrid({
   const filteredProducts = useMemo(() => {
     if (selectedSort === '낮은 가격순') {
       return [...products].sort((a, b) => {
-        const priceA = a.discountPrice ?? a.price;
-        const priceB = b.discountPrice ?? b.price;
+        const priceA = a.discountedPrice ?? a.salePrice ?? a.price ?? 0;
+        const priceB = b.discountedPrice ?? b.salePrice ?? b.price ?? 0;
         return priceA - priceB;
+      });
+    } else if (selectedSort === '높은 가격순') {
+      return [...products].sort((a, b) => {
+        const priceA = a.discountedPrice ?? a.salePrice ?? a.price ?? 0;
+        const priceB = b.discountedPrice ?? b.salePrice ?? b.price ?? 0;
+        return priceB - priceA;
       });
     }
     return products;
@@ -120,7 +143,12 @@ export default function SearchProductGrid({
     setCartOpen(true);
   };
   const handleProductClick = (product: Product) => {
-    router.push(`/products/${product.id}`);
+    const productId = product.productId || product.id;
+    if (productId) {
+      router.push(`/client/pages/products/${productId}`);
+    } else {
+      console.error('Product missing ID:', product);
+    }
   };
 
   /* const handleSearchSubmit = () => {
@@ -225,65 +253,125 @@ export default function SearchProductGrid({
         )}
 
         <div className={styles.grid}>
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className={styles.card}
-              onClick={() => handleProductClick(product)}
-            >
-              <div className={styles.imageWrapper}>
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  width={162}
-                  height={147}
-                  className={styles.image}
-                />
-                <div className={styles.icons}>
-                  <button
-                    className={styles.iconBtn}
-                    onClick={(e) => handleCartClick(e, product)}
-                  >
-                    <Image
-                      src="/images/icons/Cart.png"
-                      alt="Cart Icon"
-                      width={24}
-                      height={22}
-                      className="object-contain"
-                    />
-                  </button>
+          {filteredProducts.map((product) => {
+            const productId = product.productId || product.id;
+            return (
+              <div
+                key={productId}
+                className={styles.card}
+                onClick={() => handleProductClick(product)}
+              >
+                <div className={styles.imageWrapper}>
+                  <Image
+                    src={
+                      product.image || product.thumbnail || '/placeholder.png'
+                    }
+                    alt={product.name || product.productName || 'Product'}
+                    width={162}
+                    height={147}
+                    className={styles.image}
+                    unoptimized={(
+                      product.image ||
+                      product.thumbnail ||
+                      ''
+                    ).includes('211.107.13.167')}
+                  />
+                  <div className={styles.icons}>
+                    <button
+                      className={styles.iconBtn}
+                      onClick={(e) => handleCartClick(e, product)}
+                    >
+                      <Image
+                        src="/images/products/search-cart.svg"
+                        alt="Cart Icon"
+                        width={26}
+                        height={26}
+                        className="object-contain"
+                      />
+                    </button>
+                    {/*    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const productId = product.productId || product.id;
+                        if (productId) {
+                          await toggleFavorite(productId.toString());
+                        }
+                      }}
+                      className={styles.iconBtn}
+                    >
+                      <Image
+                        src={
+                          isFavorited(
+                            (product.productId || product.id)?.toString() || ''
+                          )
+                            ? '/images/products/heart-active.png'
+                            : '/images/products/heart-default.png'
+                        }
+                        alt="Heart Icon"
+                        width={24}
+                        height={22}
+                        className="object-contain"
+                      />
+                    </button> */}
+                  </div>
                 </div>
-              </div>
-              <div className={styles.content}>
-                <div className={styles.header}>
-                  <h3 className={styles.name}>{product.name}</h3>
-                </div>
-                <p className={styles.detail}>
-                  {product.weight}, {product.quantity}
-                </p>
-                <p className={styles.price}>
-                  {product.discountPrice ? (
-                    <>
-                      <span className={styles.original}>
-                        {product.price.toLocaleString('ko-KR')}원
-                      </span>
-                      <span className={styles.discount}>
-                        {product.discountPrice.toLocaleString('ko-KR')}원
-                      </span>
-                    </>
-                  ) : (
-                    `${product.price.toLocaleString('ko-KR')}원`
-                  )}
-                </p>
+                <div className={styles.content}>
+                  <div className={styles.header}>
+                    <h3 className={styles.name}>{product.name}</h3>
+                  </div>
+                  <p className={styles.detail}>
+                    {product.weight || product.productWeight || 'N/A'},{' '}
+                    {product.quantity || product.productQuantity || 'N/A'}
+                  </p>
+                  <p className={styles.price}>
+                    {(() => {
+                      const higherPrice =
+                        product.salePrice ||
+                        product.price ||
+                        product.originalPrice ||
+                        product.regularPrice ||
+                        product.productPrice;
+                      const lowerPrice =
+                        product.discountedPrice || product.discountPrice;
 
-                <p className={styles.info}>
-                  {product.expiration} <br />
-                  {product.location} <br />
-                  {product.distance}
-                </p>
+                      if (
+                        higherPrice &&
+                        lowerPrice &&
+                        higherPrice !== lowerPrice
+                      ) {
+                        return (
+                          <>
+                            <span className={styles.original}>
+                              {higherPrice.toLocaleString('ko-KR')}원
+                            </span>
+                            <span className={styles.discount}>
+                              {lowerPrice.toLocaleString('ko-KR')}원
+                            </span>
+                          </>
+                        );
+                      } else if (higherPrice || lowerPrice) {
+                        const priceToShow = higherPrice || lowerPrice || 0;
+                        return `${priceToShow.toLocaleString('ko-KR')}원`;
+                      } else {
+                        return '0원';
+                      }
+                    })()}
+                  </p>
+
+                  <p className={styles.info}>
+                    {product.expiryDate
+                      ? new Date(product.expiryDate).toLocaleDateString(
+                          'ko-KR'
+                        ) + '까지'
+                      : product.expiration || 'N/A'}{' '}
+                    <br />
+                    {product.store?.name || product.location || 'N/A'} <br />
+                    {product.distance || product.storeDistance || 'N/A'}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/*  {selectedProduct && (
@@ -297,10 +385,23 @@ export default function SearchProductGrid({
           <CartModal
             open={cartOpen}
             onClose={() => setCartOpen(false)}
-            productName={selectedProduct.name}
-            productPrice={
-              selectedProduct.discountPrice ?? selectedProduct.price ?? 0
-            }
+            productName={selectedProduct.name || 'Product'}
+            productPrice={(() => {
+              const lowerPrice =
+                selectedProduct.discountedPrice ||
+                selectedProduct.discountPrice;
+              const higherPrice =
+                selectedProduct.salePrice ||
+                selectedProduct.price ||
+                selectedProduct.originalPrice ||
+                selectedProduct.regularPrice ||
+                selectedProduct.productPrice;
+              return lowerPrice || higherPrice || 0;
+            })()}
+            productId={String(selectedProduct.productId || selectedProduct.id)}
+            storeId={String(
+              selectedProduct.storeId || selectedProduct.store?.storeId
+            )}
           />
         )}
       </section>

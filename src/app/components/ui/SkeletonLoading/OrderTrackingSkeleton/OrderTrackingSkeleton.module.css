@@ -1,0 +1,315 @@
+/* Base skeleton animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* Container - matches OrderTracking layout */
+.container {
+  background-color: #f9fafb;
+  padding-top: 60px;
+  margin-left: -16px;
+  margin-right: -16px;
+  min-height: calc(100vh - 60px);
+}
+
+/* Header Skeleton */
+.header {
+  background-color: white;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dateRangeSkeleton {
+  composes: skeleton;
+  width: 120px;
+  height: 20px;
+}
+
+.orderNumberSkeleton {
+  composes: skeleton;
+  width: 140px;
+  height: 16px;
+}
+
+/* Progress Section Skeleton */
+.progressSection {
+  background-color: white;
+  padding: 40px 20px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.progressTitleSkeleton {
+  composes: skeleton;
+  width: 200px;
+  height: 18px;
+  margin: 0 auto 1.5rem auto;
+}
+
+.progressContainer {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.progressTrack {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background-color: #e5e7eb;
+  z-index: 1;
+}
+
+.progressFillSkeleton {
+  composes: skeleton;
+  height: 100%;
+  width: 40%;
+  border-radius: 3px;
+}
+
+.stepsList {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.stepDotSkeleton {
+  composes: skeleton;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  z-index: 3;
+  position: relative;
+}
+
+.stepLabelSkeleton {
+  composes: skeleton;
+  width: 50px;
+  height: 14px;
+  margin-top: 16px;
+}
+
+/* Product Section Skeleton */
+.productSection {
+  background-color: white;
+  margin-top: 16px;
+  padding: 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.productContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.productImageSkeleton {
+  composes: skeleton;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.productDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.productNameSkeleton {
+  composes: skeleton;
+  width: 180px;
+  height: 16px;
+  margin-bottom: 4px;
+}
+
+.productBrandSkeleton {
+  composes: skeleton;
+  width: 100px;
+  height: 14px;
+  margin-bottom: 8px;
+}
+
+.productPricing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.originalPriceSkeleton {
+  composes: skeleton;
+  width: 60px;
+  height: 14px;
+}
+
+.currentPriceSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 16px;
+}
+
+/* Timeline Section Skeleton */
+.timelineSection {
+  background-color: white;
+  margin-top: 16px;
+}
+
+.sectionHeader {
+  padding: 12px 16px;
+}
+
+.sectionTitleSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 18px;
+}
+
+.timelineContent {
+  padding: 16px;
+}
+
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 12px;
+}
+
+.eventTime {
+  flex-shrink: 0;
+  width: 80px;
+}
+
+.eventDateSkeleton {
+  composes: skeleton;
+  width: 70px;
+  height: 14px;
+  margin-bottom: 4px;
+}
+
+.eventTimeStampSkeleton {
+  composes: skeleton;
+  width: 50px;
+  height: 12px;
+}
+
+.eventDetails {
+  flex: 1;
+}
+
+.eventStatusSkeleton {
+  composes: skeleton;
+  width: 100px;
+  height: 14px;
+  margin-bottom: 4px;
+}
+
+.eventDescriptionSkeleton {
+  composes: skeleton;
+  width: 200px;
+  height: 12px;
+}
+
+/* Info Section Skeleton */
+.infoSection {
+  background-color: white;
+  margin-top: 16px;
+}
+
+.infoContent {
+  padding: 16px;
+}
+
+.infoItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.infoItem:last-child {
+  border-bottom: none;
+}
+
+.infoLabelSkeleton {
+  composes: skeleton;
+  width: 60px;
+  height: 14px;
+}
+
+.infoValueSkeleton {
+  composes: skeleton;
+  width: 120px;
+  height: 14px;
+}
+
+.infoValueAddressSkeleton {
+  composes: skeleton;
+  width: 180px;
+  height: 14px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .progressContainer {
+    max-width: 100%;
+  }
+
+  .stepLabelSkeleton {
+    width: 40px;
+    margin-top: 12px;
+  }
+
+  .stepDotSkeleton {
+    width: 13px;
+    height: 13px;
+  }
+
+  .progressTrack {
+    top: 8px;
+    left: 16px;
+    right: 16px;
+  }
+
+  .productNameSkeleton {
+    width: 150px;
+  }
+
+  .eventDescriptionSkeleton {
+    width: 150px;
+  }
+
+  .infoValueAddressSkeleton {
+    width: 120px;
+  }
+}

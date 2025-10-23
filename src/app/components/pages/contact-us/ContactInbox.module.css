@@ -39,18 +39,18 @@
 
 .completed {
   font-size: 0.8rem;
-  background-color: #66bfa7;
+  background-color: #d9d9d9;
+  color: rgba(0, 0, 0, 0.6) !important;
   padding: 0.4rem 0.6rem;
   border-radius: 100px;
-  color: #ffffff !important;
 }
 
 .pending {
   font-size: 0.8rem;
-  background-color: #d9d9d9;
+  background-color: #66bfa7;
   padding: 0.3rem 0.6rem;
   border-radius: 100px;
-  color: rgba(0, 0, 0, 0.6) !important;
+  color: #ffffff !important;
 }
 
 .date {

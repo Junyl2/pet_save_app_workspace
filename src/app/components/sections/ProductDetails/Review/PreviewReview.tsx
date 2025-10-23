@@ -1,23 +1,25 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { reviewService } from '@/app/api/services/review-service/reviewService';
+import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
 import { IoStarSharp } from 'react-icons/io5';
-import { Review } from '@/app/api/types/review/review';
+import { Review } from '@/app/api/types/member/review/review';
 import styles from './PreviewReview.module.css';
 import { BiChevronRight } from 'react-icons/bi';
 import Image from 'next/image';
 
 interface CustomerReviewProps {
-  productId: number;
+  productId: string | number;
 }
 
 const ReviewItem = ({ review }: { review: Review }) => {
   return (
     <li className={styles.reviewItem}>
       <Image
-        src={review.avatar}
-        alt={review.author}
+        src={
+          review.reviewer.profileImageUrl || '/images/icons/profile-default.png'
+        }
+        alt={review.reviewer.name}
         className={styles.avatar}
         height={35}
         width={35}
@@ -49,9 +51,22 @@ export const PreviewReview = ({ productId }: CustomerReviewProps) => {
       setLoading(true);
       setError(null);
       try {
-        const res = await reviewService.getByProductId(productId);
-        if (res.error) setError(res.error);
-        else setReviews(res.data.slice(0, 5));
+        const res = await ReviewService.searchReviews({
+          productId: productId.toString(),
+          page: 0,
+          size: 5,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        });
+        if (res.error) {
+          setError(res.error);
+        } else {
+          // Filter reviews to ensure they match the current productId
+          const filteredReviews = (res.data?.content || []).filter(
+            (review) => review.product.productId === productId.toString()
+          );
+          setReviews(filteredReviews);
+        }
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError(err.message);
@@ -85,7 +100,7 @@ export const PreviewReview = ({ productId }: CustomerReviewProps) => {
 
       <ul className={styles.reviewList}>
         {reviews.map((review) => (
-          <ReviewItem key={review.id} review={review} />
+          <ReviewItem key={review.reviewId} review={review} />
         ))}
       </ul>
     </section>

@@ -14,6 +14,12 @@ export const ProductHeader = () => {
   const isOrderConfirmation = pathname.startsWith(
     '/client/pages/shopping-cart/delivery-payment/order-confirmation'
   );
+  const isSellerBusinessInformation = pathname.startsWith(
+    '/client/seller/pages/my-page/business-information/seller-business-information'
+  );
+  const isChangeSellerProfile = pathname.startsWith(
+    '/client/seller/pages/change-profile'
+  );
 
   const handleBack = () => {
     if (isInquiryPage) {
@@ -22,6 +28,10 @@ export const ProductHeader = () => {
       router.push('/client/pages/homepage');
     } else if (isOrderConfirmation) {
       router.push('/shopping-cart');
+    } else if (isSellerBusinessInformation) {
+      router.push('/client/seller/pages/my-page');
+    } else if (isChangeSellerProfile) {
+      window.history.back(); // Use browser back for proper navigation
     } else {
       window.history.back(); // default behavior
     }

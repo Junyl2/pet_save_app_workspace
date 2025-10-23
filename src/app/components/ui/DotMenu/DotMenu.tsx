@@ -4,15 +4,24 @@ import { FiMoreHorizontal } from 'react-icons/fi';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { DeleteModal } from '../modal/DeleteModal/DeleteModal';
+import ReportModal from '../modal/ReportModal/ReportModal';
 
 interface DotMenuProps {
   mode?: 'default' | 'deleteOnly' | 'deletePage';
   onDelete?: () => void; // new callback
+  storeId?: string;
+  storeName?: string;
 }
 
-export const DotMenu = ({ mode = 'default', onDelete }: DotMenuProps) => {
+export const DotMenu = ({
+  mode = 'default',
+  onDelete,
+  storeId,
+  storeName,
+}: DotMenuProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   /* const router = useRouter(); */
   const pathname = usePathname();
 
@@ -29,6 +38,11 @@ export const DotMenu = ({ mode = 'default', onDelete }: DotMenuProps) => {
 
   const handlDeleteModal = () => {
     setDeleteModalOpen(true);
+    setMenuOpen(false);
+  };
+
+  const handleReport = () => {
+    setReportModalOpen(true);
     setMenuOpen(false);
   };
 
@@ -66,7 +80,9 @@ export const DotMenu = ({ mode = 'default', onDelete }: DotMenuProps) => {
           ) : (
             /* report button */
             <>
-              <button className={styles.onReportButton}>신고하기</button>
+              <button className={styles.onReportButton} onClick={handleReport}>
+                신고하기
+              </button>
               <div className={styles.separator}></div>
               <button className={styles.onReportButton}>차단하기</button>
             </>
@@ -83,6 +99,15 @@ export const DotMenu = ({ mode = 'default', onDelete }: DotMenuProps) => {
             onClose={() => setDeleteModalOpen(false)}
           />
         </div>
+      )}
+
+      {reportModalOpen && (
+        <ReportModal
+          show={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          storeId={storeId}
+          storeName={storeName}
+        />
       )}
     </div>
   );
