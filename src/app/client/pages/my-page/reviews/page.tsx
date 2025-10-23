@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { FaStar } from 'react-icons/fa';
@@ -9,9 +9,12 @@ import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import {
   fetchReviews,
   fetchMyReviews,
+  revalidateMyReviewsInBackground,
+  checkStaleStatus,
   ReviewCacheKey,
 } from '@/app/redux/slices/cache/reviewSlice';
-/* import { Review } from '@/app/api/types/member/review/review'; */
+import { setHasLoadedOnce } from '@/app/redux/slices/auth/ui/loadingSlice';
+import { MyReviewsParams } from '@/app/api/types/member/review/review';
 import styles from './Reviews.module.css';
 
 // Helper function to get Korean rating comment
@@ -100,6 +103,11 @@ export default function ReviewsPage() {
   // Redux state
   const { cache, loading, error } = useAppSelector((state) => state.reviews);
 
+  // Get hasLoadedOnce state from Redux
+  const hasLoadedOnce = useAppSelector(
+    (state) => state.loading.hasLoadedOnce[`reviews-page-${activeTab}`] || false
+  );
+
   // Get current cache key for reviews
   const getCurrentCacheKey = (): string => {
     if (activeTab === 'my-reviews') {
@@ -111,7 +119,10 @@ export default function ReviewsPage() {
   // Get current reviews from cache
   const currentCacheKeyString = getCurrentCacheKey();
   const cachedData = cache[currentCacheKeyString];
-  const writtenReviews = cachedData?.reviews || [];
+  const writtenReviews = useMemo(
+    () => cachedData?.reviews || [],
+    [cachedData?.reviews]
+  );
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('ko-KR') + '원';
@@ -121,8 +132,8 @@ export default function ReviewsPage() {
     router.push(`/client/pages/my-page/reviews/write?productId=${productId}`);
   };
 
-  const handleEditReview = (reviewId: string) => {
-    router.push(`/client/pages/my-page/reviews/edit?reviewId=${reviewId}`);
+  const handleViewReview = (reviewId: string) => {
+    router.push(`/client/pages/my-page/reviews/view?reviewId=${reviewId}`);
   };
 
   // Fetch reviews using Redux
@@ -145,7 +156,53 @@ export default function ReviewsPage() {
       };
       dispatch(fetchReviews(cacheKeyParams));
     }
+
+    // Mark as loaded once after successful fetch
+    dispatch(setHasLoadedOnce(`reviews-page-${activeTab}`));
   }, [dispatch, activeTab]);
+
+  // Background revalidation effect for my reviews
+  useEffect(() => {
+    if (activeTab === 'my-reviews' && writtenReviews.length > 0) {
+      const cacheKey = `my_reviews_0_50_createdAt_desc`;
+      const cachedData = cache[cacheKey];
+
+      if (cachedData) {
+        const now = Date.now();
+        const cacheAge = now - cachedData.timestamp;
+        const isDataStale = cacheAge >= 10 * 1000; // 10 seconds in milliseconds
+
+        console.log('🔍 Checking my reviews cache age:', {
+          cacheAge: Math.round(cacheAge / 1000),
+          seconds: 'seconds old',
+          isStale: isDataStale,
+          timestamp: new Date(cachedData.timestamp).toLocaleTimeString(),
+        });
+
+        if (isDataStale) {
+          console.log(
+            '🔄 My reviews data is stale, triggering background revalidation...'
+          );
+          const params: MyReviewsParams = {
+            page: 0,
+            size: 50,
+            sortBy: 'createdAt',
+            direction: 'desc',
+          };
+          dispatch(revalidateMyReviewsInBackground(params));
+        } else {
+          console.log('✅ My reviews data is fresh, no revalidation needed');
+        }
+      }
+    }
+  }, [dispatch, activeTab, writtenReviews.length, cache]);
+
+  // Check stale status when component mounts or data changes
+  useEffect(() => {
+    if (activeTab === 'my-reviews') {
+      dispatch(checkStaleStatus());
+    }
+  }, [dispatch, activeTab, writtenReviews]);
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, index) => (
@@ -158,9 +215,9 @@ export default function ReviewsPage() {
     ));
   };
 
-  // Show loading only if we don't have cached data and are loading
+  // Show loading only if not loaded before and currently loading
   const shouldShowLoading =
-    loading && !cachedData && activeTab === 'my-reviews';
+    loading && !hasLoadedOnce && activeTab === 'my-reviews';
   if (shouldShowLoading) {
     return (
       <div className={styles.container}>
@@ -267,9 +324,9 @@ export default function ReviewsPage() {
 
                       <button
                         className={styles.editButton}
-                        onClick={() => handleEditReview(review.reviewId)}
+                        onClick={() => handleViewReview(review.reviewId)}
                       >
-                        수정하기
+                        리뷰보기
                       </button>
                     </div>
 

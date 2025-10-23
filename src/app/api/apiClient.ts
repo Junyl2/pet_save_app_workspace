@@ -98,8 +98,6 @@ const isPublicEndpoint = (
     '/auth/recovery/password/email',
     '/auth/recovery/password/phone',
     '/auth/recovery/password/reset',
-    '/address/search',
-    '/address/search/zip-code',
     '/categories',
   ];
 
@@ -122,26 +120,26 @@ const isPublicEndpoint = (
     return isProductsBrowsing;
   }
 
-  // Special handling for stores endpoints
-  // Only GET requests to /stores (browsing) are public
-  // POST, PUT, DELETE, PATCH requests to /stores require authentication
+  // Stores endpoints require authentication
   if (url.startsWith('/stores')) {
-    const isGetRequest = !method || method.toLowerCase() === 'get';
-    const isStoresBrowsing =
-      isGetRequest &&
-      (url === '/stores' ||
-        url.startsWith('/stores?') ||
-        url.startsWith('/stores/nearby'));
-
     console.log('🔍 Stores endpoint classification:', {
       url,
       method: method || 'GET',
-      isGetRequest,
-      isStoresBrowsing,
-      isPublic: isStoresBrowsing,
+      isPublic: false,
+      reason: 'Stores endpoints require authentication',
     });
+    return false;
+  }
 
-    return isStoresBrowsing;
+  // Address endpoints require authentication
+  if (url.startsWith('/address')) {
+    console.log('🔍 Address endpoint classification:', {
+      url,
+      method: method || 'GET',
+      isPublic: false,
+      reason: 'Address endpoints require authentication',
+    });
+    return false;
   }
 
   // Check if URL starts with any public endpoint

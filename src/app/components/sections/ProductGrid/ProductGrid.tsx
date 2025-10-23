@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './ProductGrid.module.css';
@@ -13,8 +13,11 @@ import { formatAddressForDisplay } from '@/app/utils/address-utils';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import {
   fetchProducts,
+  revalidateProductsInBackground,
+  invalidateCacheForLocationChange,
   ProductCacheKey,
 } from '@/app/redux/slices/cache/productSlice';
+import { useStoreDetails } from '../../hooks/use-store-details';
 
 interface ProductGridProps {
   products?: Product[];
@@ -41,8 +44,18 @@ export const ProductGrid = ({
   const router = useRouter();
   const dispatch = useAppDispatch();
 
+  // Store details hook
+  const {
+    storeDetails,
+    fetchStoreDetails,
+    getStoreDetails,
+    isLoading: isStoreLoading,
+  } = useStoreDetails();
+
   // Redux state
-  const { cache, loading } = useAppSelector((state) => state.products);
+  const { cache, loading, backgroundLoading, isStale } = useAppSelector(
+    (state) => state.products
+  );
 
   const [currentPage, setCurrentPage] = useState(externalCurrentPage || 0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -58,7 +71,9 @@ export const ProductGrid = ({
   // Get current products and page info from cache
   const currentCacheKeyString = getCurrentCacheKey();
   const cachedData = cache[currentCacheKeyString];
-  const products = cachedData?.products || initialProducts || [];
+  const products = useMemo(() => {
+    return cachedData?.products || initialProducts || [];
+  }, [cachedData?.products, initialProducts]);
   const pageInfo = cachedData?.pageInfo || {
     totalElements: 0,
     totalPages: 0,
@@ -108,6 +123,83 @@ export const ProductGrid = ({
     console.log('currentPage changed to:', currentPage);
   }, [currentPage]);
 
+  // Listen for location changes and invalidate cache
+  useEffect(() => {
+    const handleLocationChange = () => {
+      console.log('📍 Location changed, invalidating product cache');
+      dispatch(invalidateCacheForLocationChange());
+
+      // Re-fetch store details for all products when location changes
+      if (products.length > 0) {
+        console.log('🔄 Re-fetching store details due to location change');
+        const uniqueStoreIds = new Set<string>();
+        products.forEach((product) => {
+          const productStoreId = product.storeId || product.store?.storeId;
+          if (productStoreId) {
+            uniqueStoreIds.add(String(productStoreId));
+          }
+        });
+
+        uniqueStoreIds.forEach((storeId) => {
+          console.log('🔍 Re-fetching details for storeId:', storeId);
+          fetchStoreDetails(storeId);
+        });
+      }
+    };
+
+    window.addEventListener('locationChanged', handleLocationChange);
+    return () =>
+      window.removeEventListener('locationChanged', handleLocationChange);
+  }, [dispatch, products, fetchStoreDetails]);
+
+  // Background revalidation when data becomes stale
+  useEffect(() => {
+    if (isStale && !loading && !backgroundLoading) {
+      console.log('🔄 Data is stale, starting background revalidation');
+      const cacheKeyParams: ProductCacheKey = {
+        category,
+        searchTerm,
+        storeId,
+        page: currentPage,
+      };
+      dispatch(revalidateProductsInBackground(cacheKeyParams));
+    }
+  }, [
+    isStale,
+    loading,
+    backgroundLoading,
+    category,
+    searchTerm,
+    storeId,
+    currentPage,
+    dispatch,
+  ]);
+
+  // Fetch store details for all products
+  useEffect(() => {
+    if (products.length === 0) return;
+
+    console.log('🔄 Fetching store details for products:', products.length);
+
+    // Get unique store IDs from products
+    const uniqueStoreIds = new Set<string>();
+
+    products.forEach((product) => {
+      const productStoreId = product.storeId || product.store?.storeId;
+      if (productStoreId) {
+        uniqueStoreIds.add(String(productStoreId));
+      }
+    });
+
+    // Fetch store details for each unique store ID
+    uniqueStoreIds.forEach((storeId) => {
+      if (!storeDetails[storeId] && !isStoreLoading(storeId)) {
+        console.log('🔍 Fetching details for storeId:', storeId);
+        fetchStoreDetails(storeId);
+      }
+    });
+  }, [products, fetchStoreDetails, storeDetails, isStoreLoading]);
+
   const handlePageChange = (page: number) => {
     console.log('ProductGrid: handlePageChange called with page:', page);
     if (externalOnPageChange) {
@@ -121,6 +213,9 @@ export const ProductGrid = ({
   const shouldShowLoading = loading && !cachedData && !initialProducts;
   if (shouldShowLoading) return <ProductSkeleton count={5} />;
 
+  // Show background loading indicator if data is being revalidated
+  const showBackgroundLoading = backgroundLoading && cachedData;
+
   if (products.length === 0)
     return (
       <div className={styles.emptyContainer}>
@@ -132,6 +227,24 @@ export const ProductGrid = ({
 
   return (
     <div className={styles.mainContainer}>
+      {/* Background loading indicator */}
+      {showBackgroundLoading && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '10px',
+            right: '10px',
+            background: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            padding: '8px 12px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            zIndex: 1000,
+          }}
+        >
+          🔄 업데이트 중...
+        </div>
+      )}
       <div className={styles.grid}>
         {products.map((product) => {
           // Add safety check for product.id (API uses productId)
@@ -142,6 +255,12 @@ export const ProductGrid = ({
           }
 
           const isProductFavorited = isFavorited(productId.toString());
+
+          // Get store details for this product
+          const productStoreId = product.storeId || product.store?.storeId;
+          const storeDetails = productStoreId
+            ? getStoreDetails(String(productStoreId))
+            : null;
 
           return (
             <div
@@ -270,7 +389,11 @@ export const ProductGrid = ({
                     : product.expiration || 'N/A'}{' '}
                   <br />
                   {formatAddressForDisplay(product.store?.address || '')} <br />
-                  {product.distance || product.storeDistance || 'N/A'}
+                  {/* Show distanceKm from store details if available, otherwise fallback to existing distance */}
+                  {storeDetails?.distanceKm !== null &&
+                  storeDetails?.distanceKm !== undefined
+                    ? `${storeDetails.distanceKm.toFixed(1)}km`
+                    : product.distance || product.storeDistance || 'N/A'}
                 </p>
               </div>
             </div>

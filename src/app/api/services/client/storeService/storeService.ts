@@ -5,6 +5,8 @@ import {
 } from '../../../types/stores/nearby';
 import {
   /* StoreInfo, */ StoreApiResponse,
+  StoreSearchRequest,
+  StoreSearchApiResponse,
 } from '../../../types/member/store/store';
 
 /**
@@ -156,9 +158,9 @@ export class StoreService {
       }
 
       console.log('✅ Nearby stores search successful:', {
-        totalStores: response.data?.data?.totalElements || 0,
-        currentPage: response.data?.data?.number || 0,
-        totalPages: response.data?.data?.totalPages || 0,
+        totalStores: response.data?.data?.pageInfo?.totalElements || 0,
+        currentPage: response.data?.data?.pageInfo?.currentPage || 0,
+        totalPages: response.data?.data?.pageInfo?.totalPages || 0,
         storesFound: response.data?.data?.content?.length || 0,
       });
 
@@ -343,6 +345,74 @@ export class StoreService {
           error instanceof Error
             ? error.message
             : 'Failed to update store information',
+      };
+    }
+  }
+
+  /**
+   * Search stores with keyword and location filters
+   * Endpoint: GET /api/pet-save/stores
+   * @param params - Search parameters including keyword, location, and pagination
+   */
+  static async searchStores(
+    params: StoreSearchRequest
+  ): Promise<ApiResponse<StoreSearchApiResponse>> {
+    try {
+      // Use provided coordinates
+      const lat = params.lat;
+      const long = params.long;
+
+      console.log('🔍 Searching stores:', {
+        keyword: params.keyword,
+        baseLocation: params.baseLocation,
+        lat: lat,
+        long: long,
+        page: params.page || 0,
+        size: params.size || 10,
+        sortBy: params.sortBy || 'createdAt',
+        direction: params.direction || 'desc',
+        userLocation: 'from params',
+      });
+
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+
+      if (params.keyword) queryParams.append('keyword', params.keyword);
+      if (params.baseLocation)
+        queryParams.append('baseLocation', params.baseLocation);
+      if (lat !== undefined) queryParams.append('lat', lat.toString());
+      if (long !== undefined) queryParams.append('long', long.toString());
+      if (params.page !== undefined)
+        queryParams.append('page', params.page.toString());
+      if (params.size !== undefined)
+        queryParams.append('size', params.size.toString());
+      if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+      if (params.direction) queryParams.append('direction', params.direction);
+
+      const response = await apiClient.get<StoreSearchApiResponse>(
+        `/stores?${queryParams.toString()}`
+      );
+
+      if (response.error) {
+        console.error('❌ Search stores failed:', response.error);
+        return response;
+      }
+
+      console.log('✅ Stores search successful:', {
+        totalStores: response.data?.data?.totalElements || 0,
+        currentPage: response.data?.data?.number || 0,
+        totalPages: response.data?.data?.totalPages || 0,
+        storesFound: response.data?.data?.content?.length || 0,
+        searchLocation: { lat, long },
+      });
+
+      return response;
+    } catch (error) {
+      console.error('💥 Search stores service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to search stores',
       };
     }
   }

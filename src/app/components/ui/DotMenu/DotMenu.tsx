@@ -7,8 +7,9 @@ import { DeleteModal } from '../modal/DeleteModal/DeleteModal';
 import ReportModal from '../modal/ReportModal/ReportModal';
 
 interface DotMenuProps {
-  mode?: 'default' | 'deleteOnly' | 'deletePage';
+  mode?: 'default' | 'deleteOnly' | 'deletePage' | 'editOnly';
   onDelete?: () => void; // new callback
+  onEdit?: () => void; // edit callback
   storeId?: string;
   storeName?: string;
 }
@@ -16,6 +17,7 @@ interface DotMenuProps {
 export const DotMenu = ({
   mode = 'default',
   onDelete,
+  onEdit,
   storeId,
   storeName,
 }: DotMenuProps) => {
@@ -34,6 +36,13 @@ export const DotMenu = ({
     } /*  else {
       router.push('/delete');
     } */
+  };
+
+  const handleEdit = () => {
+    setMenuOpen(false);
+    if (onEdit) {
+      onEdit(); // trigger passed callback
+    }
   };
 
   const handlDeleteModal = () => {
@@ -65,8 +74,12 @@ export const DotMenu = ({
 
       {menuOpen && (
         <div className={styles.dropdown}>
-          {/* delete buttons */}
-          {mode === 'deleteOnly' ? (
+          {/* edit button */}
+          {mode === 'editOnly' ? (
+            <button className={styles.onReportButton} onClick={handleEdit}>
+              수정하기
+            </button>
+          ) : mode === 'deleteOnly' ? (
             <button className={styles.onReportButton} onClick={handleDelete}>
               삭제하기
             </button>

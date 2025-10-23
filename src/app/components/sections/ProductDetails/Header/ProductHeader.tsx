@@ -20,12 +20,15 @@ export const ProductHeader = () => {
   const isChangeSellerProfile = pathname.startsWith(
     '/client/seller/pages/change-profile'
   );
+  const isShoplist = pathname.startsWith('/shops');
 
   const handleBack = () => {
     if (isInquiryPage) {
       router.push('/client/pages/inquiries'); // go to inbox
     } else if (isContactUs) {
       router.push('/client/pages/homepage');
+    } else if (isShoplist) {
+      router.push('/shops');
     } else if (isOrderConfirmation) {
       router.push('/shopping-cart');
     } else if (isSellerBusinessInformation) {

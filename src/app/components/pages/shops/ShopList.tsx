@@ -3,12 +3,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { shopService } from '@/app/api/services/shops/shopService';
-import { Shop } from '@/app/api/types/shops/shops';
 import {
   StoreService,
   LocationCoordinates,
 } from '@/app/api/services/client/storeService/storeService';
+import { AddressService } from '@/app/api/services/client/addressService/addressService';
+import { NearbyStoreInfo } from '@/app/api/types/stores/nearby';
 import styles from './ShopList.module.css';
 import { FaPhone } from 'react-icons/fa6';
 import { ContactDrawer } from '../../ui/drawer/ContactDrawer/ContactDrawer';
@@ -18,8 +18,9 @@ import ProductSkeleton from '../../ui/SkeletonLoading/ProductSkeleton/ProductSke
 import SellerPanel from '../../seller-components/SellerPanel/SellerPanel';
 
 export default function ShopList() {
-  const [shops, setShops] = useState<Shop[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stores, setStores] = useState<NearbyStoreInfo[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedShopPhone, setSelectedShopPhone] = useState<string | null>(
     null
@@ -29,16 +30,11 @@ export default function ShopList() {
     useState<LocationCoordinates | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
-  // Interface for nearby store data from API
-  interface NearbyStore {
-    storeId: string;
-    storeName: string;
-    roadAddress: string;
-    businessName: string;
-    distance?: number;
-  }
-
-  const [nearbyStores, setNearbyStores] = useState<NearbyStore[] | null>(null);
+  const [addressSearchLoading, setAddressSearchLoading] = useState(false);
+  const [addressSearchError, setAddressSearchError] = useState<string | null>(
+    null
+  );
+  const [searchedAddress, setSearchedAddress] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -47,7 +43,9 @@ export default function ShopList() {
     console.log('🔘 Button clicked! Starting location search...');
     setLocationLoading(true);
     setLocationError(null);
-    setNearbyStores(null);
+    setStores([]);
+    setSearchedAddress(null);
+    setHasSearched(true);
 
     try {
       console.log('📍 Testing basic geolocation...');
@@ -111,7 +109,7 @@ export default function ShopList() {
         setLocationError(result.error);
       } else if (result.data) {
         console.log('✅ Nearby stores found:', result.data);
-        setNearbyStores(result.data.data?.content || []);
+        setStores(result.data.data?.content || []);
       }
     } catch (error) {
       console.error('💥 Current location search error:', error);
@@ -121,17 +119,53 @@ export default function ShopList() {
     }
   };
 
-  useEffect(() => {
-    const fetchShops = async () => {
-      setLoading(true);
-      // Simulate async fetch (if shopService.getAll is sync, wrap it in Promise.resolve)
-      const data = await Promise.resolve(shopService.getAll());
-      setShops(data);
-      setLoading(false);
-    };
+  // Function to search address and get nearby stores
+  const handleAddressSearch = async (addressKeyword: string) => {
+    if (!addressKeyword.trim()) {
+      setAddressSearchError('주소를 입력해주세요.');
+      return;
+    }
 
-    fetchShops();
-  }, []);
+    console.log('🔍 Starting address search:', addressKeyword);
+    setAddressSearchLoading(true);
+    setAddressSearchError(null);
+    setStores([]);
+    setSearchedAddress(null);
+    setCurrentLocation(null);
+    setLocationError(null);
+    setHasSearched(true);
+
+    try {
+      const result = await AddressService.searchAddressAndNearbyStores(
+        addressKeyword,
+        10, // 10km radius
+        0, // page
+        20 // size
+      );
+
+      if (result.error) {
+        console.error('❌ Address search failed:', result.error);
+        setAddressSearchError(result.error);
+      } else if (result.data) {
+        console.log('✅ Address search successful:', result.data);
+        setSearchedAddress(result.data.address);
+        setCurrentLocation(result.data.coordinates);
+        setStores(result.data.stores);
+        // Clear the search term after successful address search to show all stores
+        setSearchTerm('');
+        console.log('🔍 Stores set after address search:', {
+          storesCount: result.data.stores.length,
+          searchedAddress: result.data.address,
+          searchTermCleared: true,
+        });
+      }
+    } catch (error) {
+      console.error('💥 Address search error:', error);
+      setAddressSearchError('주소 검색 중 오류가 발생했습니다.');
+    } finally {
+      setAddressSearchLoading(false);
+    }
+  };
 
   // Check if geolocation is supported when component mounts
   useEffect(() => {
@@ -141,35 +175,47 @@ export default function ShopList() {
     }
   }, []);
 
-  const filteredShops = useMemo(() => {
-    // If we have nearby stores from location search, show them instead of mock data
-    if (nearbyStores && nearbyStores.length > 0) {
-      const term = searchTerm.trim().toLowerCase();
-      if (!term) return nearbyStores;
+  const filteredStores = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
 
-      return nearbyStores.filter(
-        (store: NearbyStore) =>
-          store.storeName?.toLowerCase().includes(term) ||
-          store.roadAddress?.toLowerCase().includes(term) ||
-          store.businessName?.toLowerCase().includes(term)
-      );
+    console.log('🔍 Filtering stores:', {
+      term,
+      searchedAddress,
+      storesLength: stores.length,
+      hasSearched,
+      addressSearchLoading,
+    });
+
+    // If no search term, show all stores
+    if (!term) {
+      console.log('🔍 No search term, returning all stores');
+      return stores;
     }
 
-    // Fallback to original mock data
-    if (!shops) return [];
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return shops;
-
-    return shops.filter(
-      (shop) =>
-        shop.name.toLowerCase().includes(term) ||
-        shop.location.toLowerCase().includes(term)
+    // Filter stores based on the search term
+    const filtered = stores.filter(
+      (store) =>
+        store.businessName?.toLowerCase().includes(term) ||
+        store.roadAddress?.toLowerCase().includes(term)
     );
-  }, [shops, searchTerm, nearbyStores]);
+
+    console.log('🔍 Filtered stores by search term:', {
+      originalCount: stores.length,
+      filteredCount: filtered.length,
+      term,
+    });
+
+    return filtered;
+  }, [stores, searchTerm]);
 
   const handleSearch = (term: string) => {
+    console.log('🔍 handleSearch called with term:', term);
     setSearchTerm(term);
     setSearchSubmitted(true);
+    // Trigger address search when user searches
+    if (term.trim()) {
+      handleAddressSearch(term);
+    }
   };
 
   const handlePhoneClick = (e: React.MouseEvent, phone: string) => {
@@ -178,20 +224,30 @@ export default function ShopList() {
   };
 
   const handleCloseDrawer = () => setSelectedShopPhone(null);
-  const handleCardClick = (shopId: number) =>
-    router.push(`/seller-details/${shopId}`);
+  const handleCardClick = (storeId: string) =>
+    router.push(`/seller-details/${storeId}`);
 
-  const isEmptySearch = !searchTerm.trim() && searchSubmitted;
-  const noMatches = !!searchTerm.trim() && filteredShops.length === 0;
+  const isEmptySearch = !hasSearched && !searchTerm.trim();
+  const noMatches = hasSearched && filteredStores.length === 0;
+  const isLoading = loading || locationLoading || addressSearchLoading;
 
-  if (loading) return <ProductSkeleton count={5} />;
+  // Debug logging
+  console.log('🔍 ShopList render state:', {
+    hasSearched,
+    searchTerm,
+    storesLength: stores.length,
+    filteredStoresLength: filteredStores.length,
+    isEmptySearch,
+    noMatches,
+    isLoading,
+  });
 
   return (
     <>
       <TopBar onSearch={handleSearch} />
 
-      {/* Location Error Banner - Only show if there's an error */}
-      {locationError && (
+      {/* Error Banners */}
+      {(locationError || addressSearchError) && (
         <div
           style={{
             padding: '15px',
@@ -205,8 +261,15 @@ export default function ShopList() {
           <p
             style={{ margin: '0 0 10px 0', color: '#721c24', fontSize: '14px' }}
           >
-            ❌ {locationError}
+            ❌ {locationError || addressSearchError}
           </p>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <ProductSkeleton count={3} />
         </div>
       )}
 
@@ -245,62 +308,48 @@ export default function ShopList() {
       </button>
 
       <div className={styles.container}>
-        {/* Location Status */}
-        {(currentLocation || locationError || nearbyStores) && (
-          <div style={{ padding: '10px', textAlign: 'center' }}>
-            {currentLocation && (
+        {/* Always show store cards if we have stores */}
+        {filteredStores.length > 0 ? (
+          <div className={styles.list}>
+            {filteredStores.map((store) => (
               <div
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: '#d4edda',
-                  color: '#155724',
-                  borderRadius: '5px',
-                  marginBottom: '10px',
-                  fontSize: '14px',
-                }}
+                key={store.storeId}
+                className={styles.shopCard}
+                onClick={() => handleCardClick(store.storeId)}
               >
-                📍 현재 위치: {currentLocation.lat.toFixed(6)},{' '}
-                {currentLocation.long.toFixed(6)}
-              </div>
-            )}
+                <button
+                  className={styles.phoneButton}
+                  onClick={(e) =>
+                    handlePhoneClick(e, store.businessEmail || '02-1234-5678')
+                  }
+                >
+                  <FaPhone size={22} color="#66BFA7" className={styles.phone} />
+                </button>
 
-            {locationError && (
-              <div
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: '#f8d7da',
-                  color: '#721c24',
-                  borderRadius: '5px',
-                  marginBottom: '10px',
-                  fontSize: '14px',
-                }}
-              >
-                ❌ {locationError}
+                <Image
+                  src="/images/shops/shop1.png"
+                  alt={store.businessName}
+                  width={80}
+                  height={80}
+                  className={styles.shopImage}
+                />
+                <div className={styles.shopInfo}>
+                  <h3 className={styles.shopName}>{store.businessName}</h3>
+                  <p className={styles.shopLocation}>{store.roadAddress}</p>
+                  <p className={styles.shopDistance}>
+                    {store.distanceKm
+                      ? `${store.distanceKm.toFixed(1)}km`
+                      : '거리 정보 없음'}
+                  </p>
+                </div>
               </div>
-            )}
-
-            {nearbyStores && nearbyStores.length > 0 && (
-              <div
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: '#d1ecf1',
-                  color: '#0c5460',
-                  borderRadius: '5px',
-                  marginBottom: '10px',
-                  fontSize: '14px',
-                }}
-              >
-                ✅ 주변 상점 {nearbyStores.length}개 발견
-              </div>
-            )}
+            ))}
           </div>
-        )}
-
-        {isEmptySearch ? (
+        ) : isEmptySearch ? (
           <SearchState
             imageSrc="/images/products/noresult.png"
-            altText="검색어 입력 필요"
-            message="검색어를 입력해주세요."
+            altText="주소 검색 필요"
+            message="주소를 검색하거나 현재 위치 버튼을 눌러주세요."
           />
         ) : noMatches ? (
           <SearchState
@@ -308,64 +357,7 @@ export default function ShopList() {
             altText="검색된 상점 없음"
             message="검색된 상점이 없습니다."
           />
-        ) : (
-          <div className={styles.list}>
-            {filteredShops.map((shop) => {
-              // Handle both mock data and real API data
-              const isApiData = nearbyStores && nearbyStores.length > 0;
-              const shopId = isApiData
-                ? (shop as NearbyStore).storeId
-                : (shop as Shop).id;
-              const shopName = isApiData
-                ? (shop as NearbyStore).storeName
-                : (shop as Shop).name;
-              const shopLocation = isApiData
-                ? (shop as NearbyStore).roadAddress
-                : (shop as Shop).location;
-              const shopDistance = isApiData
-                ? `${(shop as NearbyStore).distance?.toFixed(1)}km`
-                : (shop as Shop).distance;
-              const shopImage = isApiData
-                ? '/images/shops/shop1.png'
-                : (shop as Shop).image; // Default image for API data
-              const shopPhone = isApiData
-                ? '02-1234-5678'
-                : (shop as Shop).phoneNumber; // Default phone for API data
-
-              return (
-                <div
-                  key={isApiData ? shopId : shopId}
-                  className={styles.shopCard}
-                  onClick={() => handleCardClick(Number(shopId))}
-                >
-                  <button
-                    className={styles.phoneButton}
-                    onClick={(e) => handlePhoneClick(e, shopPhone)}
-                  >
-                    <FaPhone
-                      size={22}
-                      color="#66BFA7"
-                      className={styles.phone}
-                    />
-                  </button>
-
-                  <Image
-                    src={shopImage}
-                    alt={shopName}
-                    width={80}
-                    height={80}
-                    className={styles.shopImage}
-                  />
-                  <div className={styles.shopInfo}>
-                    <h3 className={styles.shopName}>{shopName}</h3>
-                    <p className={styles.shopLocation}>{shopLocation}</p>
-                    <p className={styles.shopDistance}>{shopDistance}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        ) : null}
         <SellerPanel />
 
         {selectedShopPhone && <ContactDrawer onClose={handleCloseDrawer} />}
