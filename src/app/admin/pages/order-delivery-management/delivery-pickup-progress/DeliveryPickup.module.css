@@ -1,0 +1,65 @@
+.container {
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  font-family: 'Pretendard', sans-serif;
+  color: #141414;
+}
+
+/* Exactly 7 columns */
+.header,
+.row {
+  display: grid;
+  grid-template-columns: 1.4fr 2fr 1.2fr 1.6fr 2fr 1.2fr 1.2fr 2fr;
+  align-items: center;
+  text-align: center;
+  padding: 0 24px;
+  height: 60px;
+}
+
+.header {
+  background-color: #f1f9f6;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  color: #1f4a31;
+  font-weight: 600;
+}
+
+.row {
+  position: relative;
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+.actions {
+  position: absolute;
+  right: 1rem;
+}
+
+.trackingCell {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center; /* keeps within the same (7th) column */
+  flex-wrap: wrap;
+}
+
+.trackingText {
+  white-space: nowrap;
+}
+
+/* Small inline button for status */
+.completeBtn {
+  background-color: #2b6442;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.completeBtn:hover {
+  background-color: #245537;
+}

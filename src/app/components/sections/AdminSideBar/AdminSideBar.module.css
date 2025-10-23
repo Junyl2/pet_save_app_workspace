@@ -1,0 +1,132 @@
+.wrap {
+  width: 337px;
+  min-height: 100vh;
+  background: rgba(238, 238, 238, 0.6); /* #EEEEEE @ 60% */
+  display: flex;
+  flex-direction: column;
+  gap: 25px; /* itemSpacing: 25 */
+  padding: 21px 18px; /* top 21, left 18 per Figma */
+  box-sizing: border-box;
+}
+
+/* Logo block (75 x 50 at x:18 y:21 in Figma) */
+.logoBlock {
+  width: 75px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+}
+
+.logoSvg {
+  width: 75px;
+  height: 50px;
+  display: block;
+}
+
+/* Greeting card (Frame 12) */
+.greetingCard {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 14px 19px; /* y:14, text x:19 in Figma */
+}
+
+.greetingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.greetingText {
+  color: #141414;
+  font-size: 16px;
+  line-height: 24px; /* height: 24 */
+  font-weight: 600;
+}
+
+/* Logout icon container matches 35x35 area, no visible fill */
+.logoutBtn {
+  width: 35px;
+  height: 35px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.logoutBtn:focus-visible {
+  outline: 2px solid #66bfa7;
+  outline-offset: 2px;
+}
+
+/* Menu stack (Frame 475) */
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Base menu item (height: 64, radius:10, horizontal layout) */
+.menuItem {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px 0 32px;
+  background: transparent;
+  border: none;
+  /*  border: 1px solid rgba(0, 0, 0, 0.1); */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  color: #000;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease,
+    transform 80ms ease;
+}
+.group {
+}
+.menuItem:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.menuItem:active {
+  transform: translateY(0.5px);
+}
+
+.menuItem:focus-visible {
+  outline: 2px solid #b5db58;
+  outline-offset: 2px;
+}
+
+/* Active state (Frame 2 had solid bg #E2E2E2-ish) */
+.menuItemActive {
+  background: #e2e2e2;
+  border-color: transparent;
+}
+
+/* Label typography */
+.menuLabel {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+/* Chevron alignment (Vector at x:253, y:28 ~ right side) */
+.chev {
+  flex: 0 0 auto;
+  opacity: 0.9;
+}
+
+/* Small screens: allow sidebar to shrink if needed */
+@media (max-height: 800px) {
+  .wrap {
+    gap: 16px;
+  }
+  .menu {
+    gap: 8px;
+  }
+  .menuItem {
+    height: 56px;
+  }
+}
