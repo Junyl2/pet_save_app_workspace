@@ -1,51 +1,32 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 import FilterBar from '../../../sections/FilterBar/FilterBar';
 import styles from './OrderHistory.module.css';
 import OrderHistoryItem from './order-history-item/OrderHistoryItem';
 import OrderHistorySkeleton from '../../../ui/SkeletonLoading/OrderHistorySkeleton';
-import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
-import {
-  OrderItemResponse,
-  OrderHistoryQueryParams,
-} from '@/app/api/types/member/order/orderDetails';
+import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
 import { OrderItem } from '@/app/components/types/order';
+import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
+import { fetchOrderHistory } from '@/app/redux/slices/cache/orderSlice';
 
 export default function OrderHistory() {
-  const [orders, setOrders] = useState<OrderItemResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
 
+  // Redux state
+  const { orderHistoryCache, loading, error } = useAppSelector(
+    (state) => state.orders
+  );
+
+  // Get cached order history data
+  const cachedData = orderHistoryCache['default']; // Default cache key for no params
+  const orders = cachedData?.data?.data?.content || [];
+
+  // Fetch order history using Redux
   useEffect(() => {
-    fetchOrderHistory();
-  }, []);
-
-  const fetchOrderHistory = async (params?: OrderHistoryQueryParams) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await orderDetailsService.getMyOrderHistory(params);
-
-      if (response.error) {
-        setError(response.error);
-        return;
-      }
-
-      if (response.data?.data?.content) {
-        setOrders(response.data.data.content);
-      } else {
-        setOrders([]);
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to fetch order history'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.log('Dispatching fetchOrderHistory with default params');
+    dispatch(fetchOrderHistory());
+  }, [dispatch]);
 
   // Convert API order item data to format expected by OrderHistoryItem
   const convertToOrderItem = (orderItem: OrderItemResponse): OrderItem => {
@@ -108,7 +89,9 @@ export default function OrderHistory() {
       .replace(/\s/g, '');
   };
 
-  if (loading) {
+  // Show loading only if we don't have cached data and are loading
+  const shouldShowLoading = loading && !cachedData;
+  if (shouldShowLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.inner}>

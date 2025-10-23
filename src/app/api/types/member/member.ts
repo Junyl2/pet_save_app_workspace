@@ -66,6 +66,7 @@ export interface MemberApiResponse {
  */
 export interface MemberUpdateRequest {
   profileFileId?: string;
+  profileImageUrl?: string;
   email?: string;
   name?: string;
   phoneNumber?: string;

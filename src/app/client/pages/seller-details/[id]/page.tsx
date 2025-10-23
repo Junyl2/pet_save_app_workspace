@@ -153,17 +153,18 @@ export default function SellerDetailsPage() {
   // Use real store data from API
   const profileImage = store.businessProfileImage || defaultProfile.image;
   const phoneNumber = store.businessPhoneNumber || '전화번호 없음';
-  // Display business hours - API field names seem to be swapped
+  // Display business hours - API field names are swapped
   const getBusinessHours = () => {
     if (!store.openingHours || !store.closingHours) {
       return '영업시간 정보 없음';
     }
 
-    // Based on API response, openingHours is actually closing time and closingHours is opening time
-    const actualOpening = store.closingHours; // This is the real opening time
-    const actualClosing = store.openingHours; // This is the real closing time
+    // API returns: openingHours = closing time, closingHours = opening time
+    // So we need to use them in the correct order for display
+    const openingTime = store.closingHours; // This is the actual opening time
+    const closingTime = store.openingHours; // This is the actual closing time
 
-    return `${actualOpening} - ${actualClosing}`;
+    return `${openingTime} - ${closingTime}`;
   };
 
   const businessHours = getBusinessHours();

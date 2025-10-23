@@ -1,9 +1,10 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDispatch } from 'react-redux';
 import styles from './LogoutModal.module.css';
-import { AuthService } from '@/app/api/services/client/auth/authService';
-import { useUser } from '@/app/context/userContext';
+import { logoutUser } from '@/app/redux/slices/auth/authSLice';
+import { AppDispatch } from '@/app/redux/store';
 
 interface LogoutModalProps {
   isOpen: boolean;
@@ -17,7 +18,7 @@ export default function LogoutModal({
   onConfirm,
 }: LogoutModalProps) {
   const router = useRouter();
-  const { logout: logoutUser } = useUser();
+  const dispatch = useDispatch<AppDispatch>();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (!isOpen) return null;
@@ -30,19 +31,10 @@ export default function LogoutModal({
     try {
       console.log('Starting logout process...');
 
-      // Call the real logout API
-      const response = await AuthService.logout();
+      // Dispatch the logout action which will clear all cached data
+      await dispatch(logoutUser());
 
-      if (response.error) {
-        console.error('Logout failed:', response.error);
-        // Still proceed with logout even if API fails
-      } else {
-        console.log('Logout successful:', response.data);
-      }
-
-      // Clear user context state
-      logoutUser();
-      console.log('User context cleared');
+      console.log('Logout completed successfully');
 
       // Call custom logout handler if provided
       if (onConfirm) {
@@ -57,7 +49,6 @@ export default function LogoutModal({
     } catch (error) {
       console.error('Logout error:', error);
       // Still proceed with logout even if there's an error
-      logoutUser(); // Clear user context even on error
 
       // Force a small delay to ensure all state is cleared before redirect
       setTimeout(() => {

@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast';
 import { CartProvider } from '../context/cartContext';
 import { UserProvider } from '../context/userContext';
 import { AuthProvider } from '../context/authContext';
+import { ReduxProvider } from '../components/providers/ReduxProvider';
 import '../utils/auth-debug';
 
 export const metadata: Metadata = {
@@ -21,15 +22,17 @@ export default function ClientLayout({
 }) {
   return (
     <>
-      <AuthProvider>
-        <UserProvider>
-          <ClientWrapper BottomBar={<BottomBar />}>
-            <FavoritesProvider>
-              <CartProvider>{children}</CartProvider>
-            </FavoritesProvider>
-          </ClientWrapper>
-        </UserProvider>
-      </AuthProvider>
+      <ReduxProvider>
+        <AuthProvider>
+          <UserProvider>
+            <ClientWrapper BottomBar={<BottomBar />}>
+              <FavoritesProvider>
+                <CartProvider>{children}</CartProvider>
+              </FavoritesProvider>
+            </ClientWrapper>
+          </UserProvider>
+        </AuthProvider>
+      </ReduxProvider>
 
       {/* Global toast container */}
       <Toaster
