@@ -5,7 +5,7 @@
 export const baseURL = (() => {
   // Server-side rendering (Next.js SSR or Node.js)
   if (typeof window === 'undefined') {
-    return 'http://211.107.13.167:11309/api/pet-save';
+    return 'http://211.107.13.167:11311/api/pet-save';
   }
 
   const { hostname, protocol, host } = window.location;
@@ -20,7 +20,7 @@ export const baseURL = (() => {
 
   // Use fixed development server for local/private IP environments
   if (isLocal || isIpAddress) {
-    return 'http://211.107.13.167:11309/api/pet-save';
+    return 'http://211.107.13.167:11311/api/pet-save';
   }
 
   // Production: use current host with /api/pet-save path
