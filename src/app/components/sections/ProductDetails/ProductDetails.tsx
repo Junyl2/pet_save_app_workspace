@@ -1,111 +1,105 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ProductHeader } from './Header/ProductHeader';
-import { ProductImage } from './Product/ProductImage';
-import { ProductInfo } from './Product/ProductInfo';
-import { ShopInfo } from './Product/ShopInfo';
-import { UsageInstructions } from './Usage/UsageInstructions';
-import { ProductActions } from './Actions/ProductActions';
-import { PreviewReview } from './Review/PreviewReview';
+import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
+import { ProductImage } from '@/app/components/sections/ProductDetails/Product/ProductImage';
+import { ProductInfo } from '@/app/components/sections/ProductDetails/Product/ProductInfo';
+import { ShopInfo } from '@/app/components/sections/ProductDetails/Product/ShopInfo';
+import { UsageInstructions } from '@/app/components/sections/ProductDetails/Usage/UsageInstructions';
+import { ProductActions } from '@/app/components/sections/ProductDetails/Actions/ProductActions';
+import { PreviewReview } from '@/app/components/sections/ProductDetails/Review/PreviewReview';
 import { ProductService } from '@/app/api/services/client/productService/productService';
-import Loading from '../../ui/Loading/Loading';
-import styles from './ProductDetails.module.css';
+import { ProductSummary } from '@/app/api/types/products/productSummary';
+import Loading from '@/app/components/ui/Loading/Loading';
+import styles from '@/app/components/sections/ProductDetails/ProductDetails.module.css';
 
-// ✅ import the correct types
-import {
-  ProductDetails as TProductDetails,
-  ProductDetailsResponse,
-} from '@/app/api/types/products/productSummary';
+export default function ProductDetailPage() {
+  const { id } = useParams();
+  const productId = id as string;
 
-export default function ProductDetails() {
-  //  read the correct param key from your route folder name:
-  // If your folder is /products/[productId], use productId below.
-  const params = useParams<{ productId: string }>();
-  const productId = params?.productId; // keep as string
-
-  const [product, setProduct] = useState<TProductDetails | null>(null);
+  const [product, setProduct] = useState<ProductSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
-    if (!productId) return;
+    setLoading(true);
+    setError(null);
 
-    (async () => {
+    const fetchProduct = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        console.log('[ProductDetails] fetching /details for', productId);
+        const response = await ProductService.getProductSummary(productId);
 
-        const res = await ProductService.getProductDetails(productId);
-        console.log('[ProductDetails] details response:', res);
+        if (!isMounted) return;
 
-        if (res.error) {
-          if (!isMounted) return;
-          setError(res.error);
-          return;
+        if (response.error) {
+          setError('상품을 불러올 수 없습니다.');
+        } else if (response.data?.data) {
+          setProduct(response.data.data);
+        } else {
+          setError('상품 정보를 찾을 수 없습니다.');
         }
-
-        const data = (res.data as ProductDetailsResponse | undefined)?.data;
-        if (!data) {
-          if (!isMounted) return;
-          setError('Empty response from /products/{id}/details');
-          return;
-        }
-
-        if (isMounted) setProduct(data);
-      } catch (e: unknown) {
-        console.error('[ProductDetails] error:', e);
-        if (isMounted)
-          setError(e instanceof Error ? e.message : 'Unknown error');
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Failed to fetch product:', err);
+        setError('상품을 불러오는 중 오류가 발생했습니다.');
       } finally {
-        if (isMounted) setLoading(false);
+        if (!isMounted) return;
+        setLoading(false);
       }
-    })();
+    };
+
+    if (productId) {
+      fetchProduct();
+    }
 
     return () => {
       isMounted = false;
     };
   }, [productId]);
 
-  if (!productId)
-    return <p className={styles.error}>잘못된 경로입니다. (productId 누락)</p>;
   if (loading) return <Loading />;
-  if (error) return <p className={styles.error}>{error}</p>;
-  if (!product)
-    return <p className={styles.error}>상품을 불러올 수 없습니다.</p>;
 
-  // 🔎 additional debug:
-  console.log('[ProductDetails] productId:', product.productId);
-  console.log('[ProductDetails] images:', product.images);
+  if (error || !product) {
+    return (
+      <p className={styles.error}>{error || '상품을 불러올 수 없습니다.'}</p>
+    );
+  }
 
   return (
     <section className={styles.container}>
       <ProductHeader />
-
-      {/* Pass the full ProductDetails (has images[]) */}
-      <ProductImage product={product} />
-
+      <ProductImage
+        src={product.thumbnail}
+        alt={product.productName}
+        product={product}
+      />
       <ShopInfo
-        shopName={product.store.name || ''}
-        shopLocation={product.store.address || ''}
-        shopImage={product.store.profileUrl || ''}
-        productId={product.productId || ''}
+        shopName={product.store.name}
+        shopLocation={product.store.address}
+        shopImage={product.store.profileUrl || undefined}
+        productId={product.productId}
+        storeId={product.store.storeId}
       />
       <ProductInfo
-        name={product.productName || ''}
-        expiration={product.expiryDate || ''}
-        price={product.salePrice || 0}
-        discountPrice={product.discountedPrice || 0}
+        name={product.productName}
+        expiration={product.expiryDate}
+        price={product.salePrice}
+        discountPrice={product.discountedPrice}
         details={product.description ? [product.description] : []}
+        category={product.category}
+        quantity={product.quantity}
+        averageRating={product.averageRating}
+        totalReviews={product.totalReviews}
       />
       <UsageInstructions />
-      <PreviewReview productId={product.productId || ''} />
+      <PreviewReview productId={product.productId} />
       <ProductActions
-        productId={product.productId || ''}
-        productName={product.productName || ''}
-        productPrice={product.discountedPrice || product.salePrice || 0}
+        productId={product.productId}
+        productName={product.productName}
+        productPrice={product.discountedPrice || product.salePrice}
+        storeId={product.store.storeId}
         onAddToCart={(quantity, name) => {
           console.log('Added to cart:', quantity, name);
         }}

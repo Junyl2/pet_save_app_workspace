@@ -12,12 +12,6 @@ let categoriesCache: Category[] | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-
-// Simple cache to prevent duplicate API calls
-let categoriesCache: Category[] | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
 type CategoryNavProps = {
   onSelectCategory: (category: string) => void;
   currentCategory?: string;
@@ -57,7 +51,6 @@ export default function CategoryNav({
 
   // Fetch categories from API - only run once on mount
   useEffect(() => {
-
     let isMounted = true;
 
     const fetchCategories = async (retryCount = 0) => {

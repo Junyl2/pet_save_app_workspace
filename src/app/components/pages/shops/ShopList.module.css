@@ -6,8 +6,8 @@
   margin-right: -1rem;
   /*   margin-bottom: 68.09px;
   margin-top: 178px; */
-  margin-top: 102px;
-  min-height: calc(100vh - 182px);
+  margin-top: 161px;
+  min-height: calc(100vh - 181px);
 }
 
 .searchWrapper {
@@ -59,7 +59,7 @@
   display: flex;
   align-items: center;
   background-color: #fff;
-  padding: 0.75rem 1rem;
+  padding: 1rem 0rem 1rem 0.3rem;
   /*   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); */
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
@@ -84,11 +84,11 @@
 }
 
 .shopImage {
-  background-color: gray;
+  /*   background-color: gray; */
   border-radius: 5px;
   height: 95px;
   width: 95px;
-  object-fit: cover;
+  object-fit: contain;
   margin-right: 1rem;
 }
 
