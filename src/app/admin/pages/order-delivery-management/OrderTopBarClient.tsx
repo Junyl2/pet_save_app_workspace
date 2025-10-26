@@ -1,4 +1,4 @@
-'use client';
+/* 'use client';
 
 import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -45,3 +45,4 @@ export default function OrderTopBarClient() {
     />
   );
 }
+ */

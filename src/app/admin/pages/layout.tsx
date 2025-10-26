@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import AdminSideBar from '@/app/components/sections/AdminSideBar/AdminSideBar';
 
@@ -8,47 +8,51 @@ type LayoutProps = {
   children: React.ReactNode;
 };
 
-/** Map sidebar keys to routes */
-const KEY_TO_ROUTE: Record<string, string> = {
-  'orders-shipping': '/admin/pages/orders',
-  'cancel-return-exchange': '/admin/pages/returns',
-  'tax-invoices': '/admin/pages/tax-invoices',
-  'accounts-permissions': '/admin/pages/accounts',
-  'animal-categories': '/admin/pages/animal-categories',
-  products: '/admin/pages/products',
-  'referral-codes': '/admin/pages/referrals',
-  support: '/admin/pages/support',
-};
-
-/** Determine active key from path */
+/** Derive activeKey based on current route */
 function resolveActiveKey(pathname: string): string {
-  if (pathname.includes('orders')) return 'orders-shipping';
-  if (pathname.includes('returns')) return 'cancel-return-exchange';
-  if (pathname.includes('tax-invoices')) return 'tax-invoices';
-  if (pathname.includes('accounts')) return 'accounts-permissions';
-  if (pathname.includes('animal-categories')) return 'animal-categories';
-  if (pathname.includes('products')) return 'products';
-  if (pathname.includes('referrals')) return 'referral-codes';
-  if (pathname.includes('support')) return 'support';
-  return 'orders-shipping';
+  if (pathname.includes('/admin/pages/order-delivery-management'))
+    return 'order-delivery-management/waiting-payment';
+
+  if (
+    pathname.includes(
+      '/admin/pages/cancellation-refund-exchange/cancellation-list'
+    )
+  )
+    return 'cancellation-refund-exchange/cancellation-list';
+
+  if (
+    pathname.includes(
+      '/admin/pages/cancellation-refund-exchange/return-exchange-list'
+    )
+  )
+    return 'cancellation-refund-exchange/return-exchange-list/return-request';
+
+  if (pathname.includes('/admin/pages/cancellation-refund-exchange/return'))
+    return 'cancel-return-exchange';
+
+  if (pathname.includes('/admin/pages/tax-invoice-list'))
+    return 'tax-invoice-list';
+  if (pathname.includes('/admin/pages/account-permission-management'))
+    return 'account-permission-management/general-member';
+  if (pathname.includes('/admin/pages/animal-categories'))
+    return 'animal-categories';
+  if (pathname.includes('/admin/pages/products')) return 'products';
+  if (pathname.includes('/admin/pages/referrals')) return 'referral-codes';
+  if (pathname.includes('/admin/pages/support')) return 'support';
+
+  // Default
+  return 'order-delivery-management/waiting-payment';
 }
 
 export default function AdminPagesLayout({ children }: LayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
+
   const activeKey = useMemo(() => resolveActiveKey(pathname || ''), [pathname]);
 
-  const handleNavigate = useCallback(
-    (key: string) => {
-      const to = KEY_TO_ROUTE[key];
-      if (to) router.push(to);
-    },
-    [router]
-  );
-
-  const handleLogout = useCallback(() => {
+  const handleLogout = () => {
     router.push('/logout');
-  }, [router]);
+  };
 
   return (
     <div
@@ -59,12 +63,7 @@ export default function AdminPagesLayout({ children }: LayoutProps) {
         background: '#fafafa',
       }}
     >
-      <AdminSideBar
-        activeKey={activeKey}
-        onNavigate={handleNavigate}
-        onLogout={handleLogout}
-        adminName="관리자님"
-      />
+      <AdminSideBar activeKey={activeKey} onLogout={handleLogout} />
       <main
         style={{
           padding: '24px 32px',

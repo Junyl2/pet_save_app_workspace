@@ -34,81 +34,89 @@ export default function OrderDatePicker() {
       '/admin/pages/order-delivery-management/delivery-pickup-progress' ||
     pathname === '/admin/pages/order-delivery-management/receipt-complete';
 
+  const isGeneralMember = pathname.startsWith(
+    '/admin/pages/account-permission-management/general-member/regular-member'
+  );
+
   return (
-    <div className={styles.container}>
-      {/* Left: Dropdown (only on product preparation page) */}
-      {allowFiltering && (
-        <div className={styles.dropdownWrapper}>
-          <div
-            className={styles.dropdownHeader}
-            onClick={() => setOpen((prev) => !prev)}
-          >
-            <span>{selectedOption}</span>
-            <IoChevronDownOutline className={styles.dropdownIcon} />
-          </div>
-          {open && (
-            <div className={styles.dropdownList}>
-              {['전체', '배송', '픽업'].map((option) => (
-                <div
-                  key={option}
-                  className={styles.dropdownItem}
-                  onClick={() => handleSelect(option)}
-                >
-                  {option}
+    <>
+      {!isGeneralMember && (
+        <div className={styles.container}>
+          {/* Left: Dropdown (only on product preparation page) */}
+          {allowFiltering && (
+            <div className={styles.dropdownWrapper}>
+              <div
+                className={styles.dropdownHeader}
+                onClick={() => setOpen((prev) => !prev)}
+              >
+                <span>{selectedOption}</span>
+                <IoChevronDownOutline className={styles.dropdownIcon} />
+              </div>
+              {open && (
+                <div className={styles.dropdownList}>
+                  {['전체', '배송', '픽업'].map((option) => (
+                    <div
+                      key={option}
+                      className={styles.dropdownItem}
+                      onClick={() => handleSelect(option)}
+                    >
+                      {option}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
+
+          {/* Date range */}
+          <div className={styles.dateRange}>
+            <div className={styles.dateInput}>
+              <input
+                type="text"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className={styles.inputField}
+                aria-label="시작일"
+              />
+              <FaRegCalendarAlt className={styles.calendarIcon} aria-hidden />
+            </div>
+
+            <span className={styles.tilde}>~</span>
+
+            <div className={styles.dateInput}>
+              <input
+                type="text"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className={styles.inputField}
+                aria-label="종료일"
+              />
+              <FaRegCalendarAlt className={styles.calendarIcon} aria-hidden />
+            </div>
+          </div>
+
+          {/* Text search */}
+          <div className={styles.searchBox}>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className={styles.searchInput}
+              placeholder="검색어를 입력하세요"
+              aria-label="검색어"
+            />
+          </div>
+
+          {/* Button */}
+          <button
+            type="button"
+            className={styles.searchButton}
+            onClick={handleSearch}
+          >
+            검색
+          </button>
         </div>
       )}
-
-      {/* Date range */}
-      <div className={styles.dateRange}>
-        <div className={styles.dateInput}>
-          <input
-            type="text"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className={styles.inputField}
-            aria-label="시작일"
-          />
-          <FaRegCalendarAlt className={styles.calendarIcon} aria-hidden />
-        </div>
-
-        <span className={styles.tilde}>~</span>
-
-        <div className={styles.dateInput}>
-          <input
-            type="text"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className={styles.inputField}
-            aria-label="종료일"
-          />
-          <FaRegCalendarAlt className={styles.calendarIcon} aria-hidden />
-        </div>
-      </div>
-
-      {/* Text search */}
-      <div className={styles.searchBox}>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className={styles.searchInput}
-          placeholder="검색어를 입력하세요"
-          aria-label="검색어"
-        />
-      </div>
-
-      {/* Button */}
-      <button
-        type="button"
-        className={styles.searchButton}
-        onClick={handleSearch}
-      >
-        검색
-      </button>
-    </div>
+    </>
   );
 }

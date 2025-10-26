@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import styles from './AdminSideBar.module.css';
 import clsx from 'clsx';
 import { FiChevronDown, FiLogOut } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 type MenuItem = {
   key: string;
@@ -19,21 +21,35 @@ export type AdminSideBarProps = {
 };
 
 const MENU: MenuItem[] = [
-  { key: 'orders-shipping', label: '주문 및 배송관리' },
-  { key: 'cancel-return-exchange', label: '주문 취소·반품/교환' }, // only dropdown
-  { key: 'tax-invoices', label: '세금 계산서 리스트' },
-  { key: 'accounts-permissions', label: '계정/권한 관리' },
-  { key: 'animal-categories', label: '동물 카테고리 관리' },
-  { key: 'products', label: '상품 관리' },
-  { key: 'referral-codes', label: '추천인 코드 관리' },
-  { key: 'support', label: '고객센터' },
+  {
+    key: 'order-delivery-management/waiting-payment',
+    label: '주문 및 배송관리',
+  },
+  { key: 'cancel-return-exchange', label: '주문 취소·반품/교환' },
+  { key: 'tax-invoice-list', label: '세금 계산서 리스트' },
+  {
+    key: 'account-permission-management/general-member',
+    label: '계정/권한 관리',
+  },
+  { key: 'animal-category-management', label: '동물 카테고리 관리' },
+  { key: 'product-management', label: '상품 관리' },
+  { key: 'referrer-code-management', label: '추천인 코드 관리' },
+  { key: 'customer-service-center', label: '고객센터' },
 ];
 
 const CANCEL_CHILDREN: MenuItem[] = [
-  { key: 'cancel-return-exchange/cancellations', label: '주문 취소' },
-  { key: 'cancel-return-exchange/returns', label: '반품' },
-  { key: 'cancel-return-exchange/exchanges', label: '교환' },
+  {
+    key: 'cancellation-refund-exchange/cancellation-list',
+    label: '취소 리스트',
+  },
+  {
+    key: 'cancellation-refund-exchange/return-exchange-list/return-request',
+    label: '반품/교환 리스트',
+  },
 ];
+
+// Default page to navigate to when clicking the parent row
+const CANCEL_DEFAULT_KEY = CANCEL_CHILDREN[0].key;
 
 export default function AdminSideBar({
   activeKey = 'orders-shipping',
@@ -43,17 +59,36 @@ export default function AdminSideBar({
   onLogout,
 }: AdminSideBarProps) {
   const [open, setOpen] = useState(false);
-  const isCancelChildActive = activeKey.startsWith('cancel-return-exchange/');
+  const router = useRouter();
+
+  const isCancelChildActive = activeKey.startsWith(
+    'cancellation-refund-exchange/'
+  );
 
   useEffect(() => {
     if (isCancelChildActive) setOpen(true);
   }, [isCancelChildActive]);
 
+  const handleNavigate = (key: string) => {
+    onNavigate?.(key);
+    router.push(`/admin/pages/${key}`);
+
+    // 👇 Close dropdown when navigating to any non-cancel menu
+    if (!key.startsWith('cancellation-refund-exchange')) {
+      setOpen(false);
+    }
+  };
+
   return (
     <aside className={clsx(styles.wrap, className)} aria-label="Admin sidebar">
       {/* Logo */}
       <div className={styles.logoBlock} aria-label="Brand">
-        <MiniLogo />
+        <Image
+          src="/images/logo/pet-saves.png"
+          alt="PetSave"
+          width={75}
+          height={50}
+        />
       </div>
 
       {/* Greeting */}
@@ -64,6 +99,7 @@ export default function AdminSideBar({
             className={styles.logoutBtn}
             onClick={onLogout}
             aria-label="로그아웃"
+            type="button"
           >
             <FiLogOut size={20} />
           </button>
@@ -73,32 +109,66 @@ export default function AdminSideBar({
       {/* Menu */}
       <nav className={styles.menu} aria-label="Primary">
         {MENU.map((m) => {
-          const isActive = activeKey === m.key || isCancelChildActive;
+          const isActive =
+            activeKey === m.key ||
+            (m.key === 'cancel-return-exchange' && isCancelChildActive);
 
           if (m.key === 'cancel-return-exchange') {
             return (
               <div key={m.key} className={styles.group}>
+                {/* Parent row */}
                 <button
                   type="button"
                   className={clsx(
                     styles.menuItem,
                     isActive && styles.menuItemActive
                   )}
-                  onClick={() => setOpen((v) => !v)}
+                  onClick={() => {
+                    // When parent clicked, open + navigate to default child
+                    setOpen(true);
+                    handleNavigate(CANCEL_DEFAULT_KEY);
+                  }}
+                  aria-expanded={open}
+                  aria-controls="cancel-submenu"
                 >
                   <span className={styles.menuLabel}>{m.label}</span>
-                  <div>
+
+                  {/* Dropdown toggle */}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className={styles.chevronBtn}
+                    aria-label={open ? '하위 메뉴 접기' : '하위 메뉴 펼치기'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpen((v) => !v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setOpen((v) => !v);
+                      }
+                    }}
+                  >
                     <FiChevronDown
                       className={clsx(
                         styles.dropdownIcon,
                         open && styles.dropdownOpen
                       )}
+                      aria-hidden="true"
                     />
-                  </div>
+                  </span>
                 </button>
 
+                {/* Child submenu */}
                 {open && (
-                  <div className={styles.submenu}>
+                  <div
+                    id="cancel-submenu"
+                    className={styles.submenu}
+                    role="group"
+                    aria-label="주문 취소·반품/교환 하위 메뉴"
+                  >
                     {CANCEL_CHILDREN.map((child) => (
                       <button
                         key={child.key}
@@ -107,7 +177,7 @@ export default function AdminSideBar({
                           styles.submenuItem,
                           activeKey === child.key && styles.submenuItemActive
                         )}
-                        onClick={() => onNavigate?.(child.key)}
+                        onClick={() => handleNavigate(child.key)}
                       >
                         {child.label}
                       </button>
@@ -118,15 +188,16 @@ export default function AdminSideBar({
             );
           }
 
+          // Regular menu item
           return (
             <button
               key={m.key}
               type="button"
               className={clsx(
                 styles.menuItem,
-                isActive && activeKey === m.key && styles.menuItemActive
+                activeKey === m.key && styles.menuItemActive
               )}
-              onClick={() => onNavigate?.(m.key)}
+              onClick={() => handleNavigate(m.key)}
             >
               {m.label}
             </button>
@@ -134,26 +205,5 @@ export default function AdminSideBar({
         })}
       </nav>
     </aside>
-  );
-}
-
-/** Simplified logo */
-function MiniLogo() {
-  return (
-    <svg
-      className={styles.logoSvg}
-      viewBox="0 0 80 50"
-      role="img"
-      aria-label="Logo"
-    >
-      <path
-        d="M50 10c6 0 12 6 12 12s-6 12-12 12-12-6-12-12 6-12 12-12z"
-        fill="#B5DB58"
-      />
-      <rect x="60" y="5" width="12" height="22" rx="4" fill="#B5DB58" />
-      <rect x="6" y="24" width="18" height="24" rx="4" fill="#66BFA7" />
-      <path d="M22 28c5 0 9 4 9 9s-4 9-9 9" fill="#66BFA7" />
-      <circle cx="69" cy="18" r="3" fill="#66BFA7" />
-    </svg>
   );
 }
