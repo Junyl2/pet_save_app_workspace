@@ -1,6 +1,6 @@
 /**
  * Production-ready baseURL configuration for API client
- * Automatically switches between development and production environments
+ * Uses Next.js API proxy to avoid CORS issues
  */
 export const baseURL = (() => {
   // Server-side rendering (Next.js SSR or Node.js)
@@ -18,9 +18,9 @@ export const baseURL = (() => {
   // Check if hostname is a direct IP address
   const isIpAddress = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
 
-  // Use fixed development server for local/private IP environments
+  // Use Next.js API proxy for local/private IP environments to avoid CORS issues
   if (isLocal || isIpAddress) {
-    return 'http://211.107.13.167:11309/api/pet-save';
+    return '/api/pet-save';
   }
 
   // Production: use current host with /api/pet-save path

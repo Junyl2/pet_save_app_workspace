@@ -41,6 +41,11 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      // API proxy to backend server
+      {
+        source: '/api/pet-save/:path*',
+        destination: 'http://211.107.13.167:11309/api/pet-save/:path*',
+      },
       {
         source: '/login',
         destination: '/client/login',

@@ -1,233 +1,185 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { FiMoreHorizontal } from 'react-icons/fi';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import {
+  FiMoreHorizontal,
+  FiChevronLeft,
+  FiChevronRight,
+} from 'react-icons/fi';
 import styles from './ProductImage.module.css';
 import ReportModal from '@/app/components/ui/modal/ReportModal/ReportModal';
-import { ProductDetails } from '@/app/api/types/products/productSummary';
+import {
+  ProductDetails,
+  ProductDetailsResponse,
+  ProductSummary,
+} from '@/app/api/types/products/productSummary';
 
 interface ProductImageProps {
-  product: ProductDetails;
+  productId?: string;
+  src?: string;
+  alt: string;
+  product?: ProductSummary | ProductDetails;
 }
 
-export const ProductImage = ({ product }: ProductImageProps) => {
+export const ProductImage = ({
+  productId,
+  src,
+  alt,
+  product: initialProduct,
+}: ProductImageProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [imageError, setImageError] = useState(false);
+  const [product, setProduct] = useState<
+    ProductDetails | ProductSummary | null
+  >(initialProduct ?? null);
+  const [images, setImages] = useState<string[]>(
+    (initialProduct &&
+    'images' in initialProduct &&
+    initialProduct.images?.length
+      ? initialProduct.images
+      : []) || (src ? [src] : [])
+  );
+  const [loading, setLoading] = useState(false);
+  const [index, setIndex] = useState(0);
 
-  // --- Swipe / drag state
-  const [dragging, setDragging] = useState(false);
-  const startXRef = useRef<number | null>(null);
-  const deltaXRef = useRef(0);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const SWIPE_THRESHOLD = 50; // px to trigger a slide
+  const totalImages = images.length || 1;
+  const displaySrc = useMemo(
+    () => images[index] ?? src ?? '/images/placeholder.png',
+    [images, index, src]
+  );
 
-  // Resolve images (keep "real" list for indicator)
-  const { realImages, displayedImages } = useMemo(() => {
-    const raw = Array.isArray(product?.images) ? product.images : [];
-    const cleaned = raw.filter(Boolean);
-    return {
-      realImages: cleaned, // from API
-      displayedImages: cleaned.length ? cleaned : ['/images/no-image.png'], // fallback
+  // Fetch product details if productId provided
+  useEffect(() => {
+    if (initialProduct) return;
+    if (!productId) return;
+
+    let cancelled = false;
+    setLoading(true);
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/pet-save/products/${productId}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = (await res.json()) as ProductDetailsResponse;
+        if (cancelled) return;
+        const data = json.data;
+        setProduct(data);
+        setImages(data?.images?.length ? data.images : src ? [src] : []);
+        setIndex(0);
+      } catch (err) {
+        console.error('Failed to fetch product details:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
     };
-  }, [product]);
+  }, [productId, initialProduct, src]);
 
-  const totalReal = realImages.length;
-  const totalDisplayed = displayedImages.length;
+  // Swipe & drag support
+  const startX = useRef<number | null>(null);
+  const isDragging = useRef(false);
+  const threshold = 50;
 
-  // Clamp index when images change (no wrap)
-  useEffect(() => {
-    if (totalDisplayed === 0) return;
-    if (currentIndex > totalDisplayed - 1) setCurrentIndex(totalDisplayed - 1);
-  }, [totalDisplayed, currentIndex]);
-
-  const currentImage =
-    displayedImages[Math.min(currentIndex, totalDisplayed - 1)];
-
-  // Reset image error when current image changes
-  useEffect(() => {
-    setImageError(false);
-  }, [currentImage]);
-
-  // Bounded nav (no wrap)
-  const canGoPrev = currentIndex > 0;
-  const canGoNext = currentIndex < totalDisplayed - 1;
-
-  const next = () => {
-    if (!canGoNext) return;
-    setCurrentIndex((i) => Math.min(i + 1, totalDisplayed - 1));
+  const goNext = () => {
+    if (index < totalImages - 1) setIndex((i) => i + 1);
   };
 
-  const prev = () => {
-    if (!canGoPrev) return;
-    setCurrentIndex((i) => Math.max(i - 1, 0));
+  const goPrev = () => {
+    if (index > 0) setIndex((i) => i - 1);
   };
 
-  // --- Touch handlers (mobile)
   const onTouchStart = (e: React.TouchEvent) => {
-    startXRef.current = e.touches[0].clientX;
-    deltaXRef.current = 0;
-    setDragging(true);
+    startX.current = e.touches[0].clientX;
+    isDragging.current = true;
   };
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (startXRef.current == null) return;
-    deltaXRef.current = e.touches[0].clientX - startXRef.current;
-  };
-
-  const onTouchEnd = () => {
-    setDragging(false);
-    const dx = deltaXRef.current;
-    startXRef.current = null;
-    deltaXRef.current = 0;
-
-    if (Math.abs(dx) > SWIPE_THRESHOLD) {
-      if (dx < 0) next(); // swipe left → next
-      else prev(); // swipe right → prev
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging.current || startX.current === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const delta = endX - startX.current;
+    if (Math.abs(delta) > threshold) {
+      if (delta < 0) goNext();
+      else goPrev();
     }
+    isDragging.current = false;
+    startX.current = null;
   };
 
-  // --- Mouse handlers (desktop drag)
   const onMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // left button only
-    startXRef.current = e.clientX;
-    deltaXRef.current = 0;
-    setDragging(true);
-    e.preventDefault(); // block image ghost-drag
+    startX.current = e.clientX;
+    isDragging.current = true;
   };
 
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (!dragging || startXRef.current == null) return;
-    deltaXRef.current = e.clientX - startXRef.current;
-  };
-
-  const finishMouseDrag = () => {
-    if (!dragging) return;
-    setDragging(false);
-    const dx = deltaXRef.current;
-    startXRef.current = null;
-    deltaXRef.current = 0;
-
-    if (Math.abs(dx) > SWIPE_THRESHOLD) {
-      if (dx < 0) next();
-      else prev();
+  const onMouseUp = (e: React.MouseEvent) => {
+    if (!isDragging.current || startX.current === null) return;
+    const delta = e.clientX - startX.current;
+    if (Math.abs(delta) > threshold) {
+      if (delta < 0) goNext();
+      else goPrev();
     }
+    isDragging.current = false;
+    startX.current = null;
   };
 
   return (
     <div
-      ref={containerRef}
       className={styles.imageWrapper}
       onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
       onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={finishMouseDrag}
-      onMouseLeave={finishMouseDrag}
-      style={{
-        cursor:
-          totalDisplayed > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
-        touchAction: 'pan-y',
-        userSelect: dragging ? 'none' : 'auto',
-      }}
+      onMouseUp={onMouseUp}
     >
-      {/* Product Image */}
-      {!imageError ? (
-        <Image
-          src={currentImage}
-          alt={product.productName || 'Product Image'}
-          fill
-          style={{ objectFit: 'contain', pointerEvents: 'none' }}
-          className={styles.image}
-          unoptimized={
-            typeof currentImage === 'string' &&
-            (currentImage.includes('211.107.13.167') ||
-              currentImage.startsWith('http'))
-          }
-          onError={() => {
-            // if a real image fails, try to fall back to placeholder for this slide
-            if (
-              totalDisplayed === 1 &&
-              currentImage !== '/images/no-image.png'
-            ) {
-              setImageError(true);
-            } else {
-              setImageError(true);
-            }
-          }}
-          priority
-        />
-      ) : (
-        <div className={styles.imageError}>
-          <div className={styles.errorContent}>
-            <p>이미지를 불러올 수 없습니다</p>
-            <button
-              onClick={() => setImageError(false)}
-              className={styles.retryButton}
-              type="button"
-            >
-              다시 시도
-            </button>
-          </div>
-        </div>
+      {/* Image */}
+      <Image
+        src={displaySrc}
+        alt={alt}
+        fill
+        className={styles.image}
+        style={{ objectFit: 'contain' }}
+      />
+
+      {/* Prev / Next buttons */}
+      {index > 0 && (
+        <button
+          className={styles.navLeft}
+          onClick={goPrev}
+          aria-label="Previous image"
+        >
+          <FiChevronLeft size={22} />
+        </button>
+      )}
+      {index < totalImages - 1 && (
+        <button
+          className={styles.navRight}
+          onClick={goNext}
+          aria-label="Next image"
+        >
+          <FiChevronRight size={22} />
+        </button>
       )}
 
-      {/* Nav arrows (show only if multiple images) */}
-      {totalDisplayed > 1 && (
-        <>
-          <button
-            className={`${styles.navLeft} ${
-              !canGoPrev ? styles.navDisabled : ''
-            }`}
-            onClick={prev}
-            aria-label="Previous image"
-            type="button"
-            disabled={!canGoPrev}
-          >
-            <FaChevronLeft size={20} />
-          </button>
-
-          <button
-            className={`${styles.navRight} ${
-              !canGoNext ? styles.navDisabled : ''
-            }`}
-            onClick={next}
-            aria-label="Next image"
-            type="button"
-            disabled={!canGoNext}
-          >
-            <FaChevronRight size={20} />
-          </button>
-        </>
-      )}
-
-      {/* Three-dot menu */}
+      {/* Menu */}
       <div className={styles.menuWrapper}>
         <button
           className={styles.menuBtn}
           onClick={() => setMenuOpen((prev) => !prev)}
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
           aria-label="Open image menu"
-          type="button"
         >
           <FiMoreHorizontal size={20} />
         </button>
       </div>
 
       {menuOpen && (
-        <div className={styles.dropdown} role="menu">
+        <div className={styles.dropdown}>
           <button
             onClick={() => {
               setMenuOpen(false);
               setReportOpen(true);
             }}
             className={styles.onReportButton}
-            role="menuitem"
-            type="button"
           >
             신고하기
           </button>
@@ -238,13 +190,15 @@ export const ProductImage = ({ product }: ProductImageProps) => {
       <ReportModal
         show={reportOpen}
         onClose={() => setReportOpen(false)}
-        product={product}
+        product={product ?? undefined}
       />
 
-      {/* Index indicator (use actual API total; 0/0 when none) */}
+      {/* Real image index */}
       <div className={styles.indexIndicator}>
-        {totalReal > 0 ? `${currentIndex + 1}/${totalReal}` : '0/0'}
+        {index + 1}/{totalImages}
       </div>
+
+      {loading && <div className={styles.loadingOverlay}>Loading…</div>}
     </div>
   );
 };

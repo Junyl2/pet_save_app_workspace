@@ -11,7 +11,7 @@ import React, {
 import { AuthService } from '@/app/api/services/client/auth/authService';
 import {
   isTokenExpired,
-  AUTH_ERROR_CODES,
+  /*   AUTH_ERROR_CODES, */
   AuthError,
 } from '@/app/utils/token-utils';
 import { PAGE_URLS } from '@/app/utils/page_url';
@@ -54,6 +54,47 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Clean up corrupted localStorage data on app start
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      // If we have a refresh token but no auth token, clear everything
+      if (refreshToken && !token) {
+        console.log(
+          '🧹 AuthProvider: Cleaning up corrupted auth data (refresh token without auth token)'
+        );
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('rememberedUsername');
+        localStorage.removeItem('sellerId');
+        localStorage.removeItem('favorites');
+      }
+
+      // If we have a malformed token, clear it
+      if (token && isTokenExpired(token) === null) {
+        console.log(
+          '🧹 AuthProvider: Cleaning up corrupted auth data (malformed token)'
+        );
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('rememberedUsername');
+        localStorage.removeItem('sellerId');
+        localStorage.removeItem('favorites');
+      }
+    } catch (error) {
+      console.warn('AuthProvider: Error during auth data cleanup:', error);
+    }
+  }, []); // Run once on mount
+
   // Cooldown/debounce for checkAuthState calls
   const checkAuthStateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastCheckAuthStateRef = useRef<number>(0);
@@ -64,9 +105,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    * This is the ONLY place where tokens should be cleared
    */
   const clearAuthState = useCallback(() => {
-    console.log('🚨 Clearing auth state - redirecting to login');
+    console.log(' Clearing auth state - redirecting to login');
     localStorage.removeItem('authToken');
-    localStorage.removeItem('refreshToken');
     localStorage.removeItem('userInfo');
     localStorage.removeItem('user');
     localStorage.removeItem('favorites'); // Clear favorites on auth state clear
@@ -85,7 +125,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    */
   const handleAuthInvalid = useCallback(
     (error: AuthError) => {
-      console.log('🚨 Auth invalid signal received:', error.message);
+      console.log(' Auth invalid signal received:', error.message);
       AuthTestLogger.logRefreshInvalidScenario(error);
       clearAuthState();
     },
@@ -93,93 +133,38 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   );
 
   /**
-   * Core checkAuthState function with safe token parsing
+   * Core checkAuthState function - simplified to only check for access token
+   * Backend provides new tokens in response headers, no refresh token needed
    */
   const checkAuthStateCore = useCallback(async () => {
     const token = localStorage.getItem('authToken');
-    const refreshToken = localStorage.getItem('refreshToken');
 
-    if (token && refreshToken) {
+    if (token) {
       // Use safe token parsing
       const tokenExpired = isTokenExpired(token);
 
       if (tokenExpired === null) {
-        // Token is malformed - treat as possibly expired but don't clear
-        console.log('⚠️ Token format invalid, treating as possibly expired');
-        if (navigator.onLine) {
-          try {
-            const refreshResponse = await AuthService.refreshToken();
-            if (refreshResponse.data && !refreshResponse.error) {
-              console.log('✅ Token refreshed successfully after format check');
-              setIsLoggedIn(true);
-            } else {
-              console.log('❌ Token refresh failed after format check');
-              // Don't clear tokens here - let AuthProvider handle auth invalid signals
-            }
-          } catch (error) {
-            console.error('❌ Token refresh error after format check:', error);
-            if (
-              error instanceof AuthError &&
-              error.code === AUTH_ERROR_CODES.AUTH_INVALID
-            ) {
-              handleAuthInvalid(error);
-            } else {
-              // Network or other errors - keep auth state
-              console.log(
-                '🌐 Network/other error during token refresh, keeping auth state'
-              );
-              setIsLoggedIn(true);
-            }
-          }
-        } else {
-          console.log('🌐 Offline with malformed token, keeping auth state');
-          setIsLoggedIn(true);
-        }
+        // Token is malformed - keep auth state, backend will provide new token
+        console.log(
+          ' Token format invalid, but backend will provide new token'
+        );
+        setIsLoggedIn(true);
       } else if (tokenExpired === true) {
-        // Token is definitely expired
-        if (navigator.onLine) {
-          console.log('🔄 Token expired, attempting refresh...');
-          try {
-            const refreshResponse = await AuthService.refreshToken();
-            if (refreshResponse.data && !refreshResponse.error) {
-              console.log('✅ Token refreshed successfully');
-              setIsLoggedIn(true);
-            } else {
-              console.log('❌ Token refresh failed');
-              // Don't clear tokens here - let AuthProvider handle auth invalid signals
-            }
-          } catch (error) {
-            console.error('❌ Token refresh error:', error);
-            if (
-              error instanceof AuthError &&
-              error.code === AUTH_ERROR_CODES.AUTH_INVALID
-            ) {
-              handleAuthInvalid(error);
-            } else {
-              // Network or other errors - keep auth state
-              console.log(
-                '🌐 Network/other error during token refresh, keeping auth state'
-              );
-              setIsLoggedIn(true);
-            }
-          }
-        } else {
-          console.log(
-            '🌐 Token expired but offline, keeping auth state for offline use'
-          );
-          AuthTestLogger.logOfflineExpiredTokenScenario();
-          setIsLoggedIn(true);
-        }
+        // Token is expired - keep auth state, backend will provide new token
+        console.log(
+          ' Token expired, but backend will provide new token in next request'
+        );
+        setIsLoggedIn(true);
       } else {
         // Token is valid
-        console.log('✅ Token is valid');
+        console.log(' Token is valid');
         setIsLoggedIn(true);
       }
     } else {
-      console.log('❌ No tokens found');
+      console.log('No access token found');
       setIsLoggedIn(false);
     }
-  }, [handleAuthInvalid]);
+  }, []);
 
   /**
    * Debounced checkAuthState function with cooldown
@@ -190,7 +175,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     if (timeSinceLastCheck < CHECK_AUTH_STATE_COOLDOWN) {
       console.log(
-        `⏳ CheckAuthState cooldown active (${
+        ` CheckAuthState cooldown active (${
           CHECK_AUTH_STATE_COOLDOWN - timeSinceLastCheck
         }ms remaining)`
       );
@@ -215,27 +200,57 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     checkAuthStateCore();
   }, [checkAuthStateCore]);
 
-  // Handle network reconnection and app visibility changes
+  // Handle network reconnection, app visibility changes, and token updates
   useEffect(() => {
     const handleOnline = () => {
-      console.log('🌐 Network reconnected, checking auth state...');
+      console.log(' Network reconnected, checking auth state...');
       AuthTestLogger.logOnlineAfterOfflineScenario();
       debouncedCheckAuthState();
     };
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('👁️ App became visible, checking auth state...');
+        console.log(' App became visible, checking auth state...');
         debouncedCheckAuthState();
+      }
+    };
+
+    const handleTokenUpdate = (event: CustomEvent) => {
+      console.log(' Token update event received in AuthContext:', {
+        newToken: event.detail?.newToken
+          ? `${event.detail.newToken.substring(0, 20)}...`
+          : 'None',
+        oldToken: event.detail?.oldToken
+          ? `${event.detail.oldToken.substring(0, 20)}...`
+          : 'None',
+        tokenChanged: event.detail?.newToken !== event.detail?.oldToken,
+      });
+
+      // Update the logged-in state since we have a fresh token
+      if (event.detail?.newToken) {
+        console.log(' New token received, updating auth state');
+        setIsLoggedIn(true);
+        setError(null);
+
+        // Optionally trigger a quick auth state check to validate the new token
+        setTimeout(() => {
+          console.log(' Validating new token...');
+          debouncedCheckAuthState();
+        }, 100);
       }
     };
 
     window.addEventListener('online', handleOnline);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('tokenUpdated', handleTokenUpdate as EventListener);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener(
+        'tokenUpdated',
+        handleTokenUpdate as EventListener
+      );
 
       // Clean up timeout on unmount
       if (checkAuthStateTimeoutRef.current) {
@@ -297,7 +312,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Clear all authentication-related data
       localStorage.removeItem('authToken');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('userInfo');
       localStorage.removeItem('user');
       localStorage.removeItem('userName');
@@ -311,6 +325,70 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const clearError = () => {
     setError(null);
   };
+
+  // Debug function to clear all auth data
+  const clearAllAuthData = () => {
+    console.log('🧹 Clearing all authentication data...');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userInfo');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('rememberedUsername');
+    localStorage.removeItem('sellerId');
+    localStorage.removeItem('favorites');
+    sessionStorage.clear();
+    setIsLoggedIn(false);
+    setError(null);
+    console.log(' All authentication data cleared');
+  };
+
+  // Debug function to inspect localStorage
+  const inspectAuthData = () => {
+    console.log(' Current authentication data:');
+    console.log(
+      '  - authToken:',
+      localStorage.getItem('authToken')
+        ? `${localStorage.getItem('authToken')?.substring(0, 20)}...`
+        : 'None'
+    );
+    console.log(
+      '  - refreshToken:',
+      localStorage.getItem('refreshToken')
+        ? `${localStorage.getItem('refreshToken')?.substring(0, 20)}...`
+        : 'None'
+    );
+    console.log(
+      '  - userInfo:',
+      localStorage.getItem('userInfo') ? 'Present' : 'None'
+    );
+    console.log('  - user:', localStorage.getItem('user') ? 'Present' : 'None');
+    console.log('  - isLoggedIn:', isLoggedIn);
+    console.log('  - error:', error);
+
+    // Check if token is expired
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      const tokenExpired = isTokenExpired(token);
+      console.log('  - tokenExpired:', tokenExpired);
+    }
+  };
+
+  // Make debug functions available globally
+  if (typeof window !== 'undefined') {
+    (
+      window as {
+        clearAllAuthData?: () => void;
+        inspectAuthData?: () => void;
+      }
+    ).clearAllAuthData = clearAllAuthData;
+    (
+      window as {
+        clearAllAuthData?: () => void;
+        inspectAuthData?: () => void;
+      }
+    ).inspectAuthData = inspectAuthData;
+  }
 
   return (
     <AuthContext.Provider
