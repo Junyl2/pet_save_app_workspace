@@ -260,7 +260,7 @@ export default function LocationPage() {
       window.dispatchEvent(new CustomEvent('locationChanged'));
 
       // Navigate back to homepage
-      router.push('/client/pages/homepage');
+      router.back();
     },
     [router]
   );

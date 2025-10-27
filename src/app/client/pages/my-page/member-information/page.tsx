@@ -34,7 +34,7 @@ export default function MemberInformation() {
     email: '',
     name: '',
     phoneNumber: '',
-    birthDate: '',
+    birthdate: '',
     deliveryAddress: '',
   });
 
@@ -139,7 +139,7 @@ export default function MemberInformation() {
               email: memberData.email ?? '',
               name: memberData.name ?? '',
               phoneNumber: memberData.phoneNumber ?? '',
-              birthDate: (memberData.birthDate ?? '').slice(0, 10), // normalize format
+              birthdate: (memberData.birthdate ?? '').slice(0, 10), // normalize format
               deliveryAddress: memberData.deliveryAddress ?? '',
             });
           }
@@ -194,7 +194,7 @@ export default function MemberInformation() {
     const name = valueOrInfo(form.name, info.name);
     const phoneNumber = valueOrInfo(form.phoneNumber, info.phoneNumber);
     const birthDate = normalizeDate(
-      valueOrInfo(form.birthDate, info.birthDate)
+      valueOrInfo(form.birthdate, info.birthdate)
     );
     const deliveryAddress = valueOrInfo(
       form.deliveryAddress,
@@ -249,7 +249,7 @@ export default function MemberInformation() {
             email: updated.email ?? '',
             name: updated.name ?? '',
             phoneNumber: updated.phoneNumber ?? '',
-            birthDate: (updated.birthDate ?? '').slice(0, 10),
+            birthdate: (updated.birthdate ?? '').slice(0, 10),
             deliveryAddress: updated.deliveryAddress ?? '',
           });
           await resolveProfileImage(updated);
@@ -519,8 +519,8 @@ export default function MemberInformation() {
             <input
               type="date"
               className={styles.input}
-              value={formData.birthDate}
-              onChange={(e) => handleInputChange('birthDate', e.target.value)}
+              value={formData.birthdate}
+              onChange={(e) => handleInputChange('birthdate', e.target.value)}
             />
             <IoCalendarOutline className={styles.calendarIcon} />
           </div>
