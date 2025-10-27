@@ -32,6 +32,29 @@ export default function TopBar({ onSearch }: TopBarProps) {
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [locationLoaded, setLocationLoaded] = useState<boolean>(false);
 
+  /** Helpers */
+  const isShoplist = pathname.startsWith('/shops');
+
+  const normalizeHistory = useCallback((raw: unknown): SearchHistoryItem[] => {
+    if (!Array.isArray(raw)) return [];
+    return raw.map((item: any, index: number) => {
+      if (typeof item === 'string') {
+        // API returned array of keywords
+        return {
+          id: `keyword-${index}`,
+          keyword: item,
+          searchedAt: new Date().toISOString(),
+        };
+      }
+      // Ensure shape
+      return {
+        id: item?.id ?? `item-${index}`,
+        keyword: item?.keyword ?? '',
+        searchedAt: item?.searchedAt ?? new Date().toISOString(),
+      };
+    });
+  }, []);
+
   /** Format address to show only first 2 parts */
   const formatAddress = useCallback((address: string): string => {
     if (!address) return '';
@@ -41,37 +64,21 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
   /** Load selected location from localStorage */
   const loadSelectedLocation = useCallback(() => {
-    console.log('🔄 TopBar - Loading selected location from localStorage...');
-
     const savedLocation = localStorage.getItem('selectedLocation');
     const savedLat = localStorage.getItem('selectedLocationLat');
     const savedLong = localStorage.getItem('selectedLocationLong');
 
-    console.log('📍 TopBar - localStorage values:', {
-      savedLocation,
-      savedLat,
-      savedLong,
-    });
-
     if (savedLocation) {
-      console.log('✅ TopBar - Setting selected location:', savedLocation);
       setSelectedLocation(savedLocation);
-
-      // Console log the lat and long for the selected address
       if (savedLat && savedLong) {
-        console.log('📍 TopBar - Selected location coordinates:', {
+        // just log if needed
+        console.log('📍 coords', {
           address: savedLocation,
           latitude: parseFloat(savedLat),
           longitude: parseFloat(savedLong),
-          lat: parseFloat(savedLat),
-          long: parseFloat(savedLong),
         });
       }
-    } else {
-      console.log('⚠️ TopBar - No saved location found in localStorage');
     }
-
-    // Mark location as loaded regardless of whether it was found
     setLocationLoaded(true);
   }, []);
 
@@ -82,75 +89,63 @@ export default function TopBar({ onSearch }: TopBarProps) {
       : 'searchHistoryProducts';
   }, [pathname]);
 
-  /** Load history from API */
+  /** Load history from API (skip entirely on /shops) */
   useEffect(() => {
     const loadSearchHistory = async () => {
       try {
         setLoadingHistory(true);
-        console.log('Loading search history from API...');
 
-        // Only try to load search history if user is logged in
-        // This prevents 401 errors for non-authenticated users
-        if (!isLoggedIn) {
-          console.log('User not logged in, skipping search history API calls');
-          setLoadingHistory(false);
+        // Do NOT use API for shops, and don’t show any history there
+        if (pathname === '/shops' || !isLoggedIn) {
+          setHistory([]);
           return;
         }
 
-        // First check if there's any search history at all
-        console.log('Checking search history count...');
-        const countResponse =
-          await SearchHistoryService.getSearchHistoryCount();
-        console.log('Search history count response:', countResponse);
+        // Optional: quick count (kept as your original diagnostic step)
+        await SearchHistoryService.getSearchHistoryCount();
 
-        // Try getRecentSearches first
+        // Try recent first
         let response = await SearchHistoryService.getRecentSearches();
-        console.log('Search history API response (recent):', response);
 
-        // If recent searches doesn't work, try the main getSearchHistory method
+        // Fallback to paged list
         if (
           response.error ||
           !response.data?.data ||
           !Array.isArray(response.data.data) ||
           response.data.data.length === 0
         ) {
-          console.log('Trying main getSearchHistory method...');
           const mainResponse = await SearchHistoryService.getSearchHistory({
             page: 0,
             size: 10,
             sortBy: 'searchedAt',
             direction: 'desc',
           });
-          console.log('Main search history response:', mainResponse);
-
           if (!mainResponse.error && mainResponse.data?.data) {
             response = mainResponse;
           }
         }
 
-        // If recent searches is empty, try distinct keywords
+        // If still empty, fallback to distinct keywords
         if (
           !response.error &&
           (!response.data?.data ||
             !Array.isArray(response.data.data) ||
             response.data.data.length === 0)
         ) {
-          console.log('Recent searches empty, trying distinct keywords...');
           const keywordsResponse =
             await SearchHistoryService.getDistinctKeywords();
-          console.log('Keywords API response:', keywordsResponse);
 
           if (!keywordsResponse.error && keywordsResponse.data?.data) {
-            // Convert keywords to search history format
             const keywords = Array.isArray(keywordsResponse.data.data)
               ? keywordsResponse.data.data
               : [];
-            const mockHistory = keywords.map((keyword, index) => ({
-              id: `keyword-${index}`,
-              keyword: keyword,
-              searchedAt: new Date().toISOString(),
-            }));
-            console.log('Converted keywords to history:', mockHistory);
+            const mockHistory: SearchHistoryItem[] = keywords.map(
+              (keyword, index) => ({
+                id: `keyword-${index}`,
+                keyword,
+                searchedAt: new Date().toISOString(),
+              })
+            );
             setHistory(mockHistory);
             return;
           }
@@ -158,90 +153,93 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
         if (response.error) {
           console.error('Failed to load search history:', response.error);
-          // Fallback to localStorage if API fails
+          // local fallback (for products page only)
           const stored = localStorage.getItem(getStorageKey());
-          if (stored) setHistory(JSON.parse(stored));
+          if (stored) setHistory(normalizeHistory(JSON.parse(stored)));
         } else {
-          // Extract the actual data array from the API response
-          console.log('Full response.data structure:', response.data);
-          console.log('response.data.data:', response.data?.data);
-          console.log('response.data.data type:', typeof response.data?.data);
-          console.log(
-            'response.data.data isArray:',
-            Array.isArray(response.data?.data)
-          );
-
-          const historyData = response.data?.data || response.data || [];
-          console.log('Extracted history data:', historyData);
-          console.log(
-            'History data length:',
-            Array.isArray(historyData) ? historyData.length : 0
-          );
-
-          setHistory(Array.isArray(historyData) ? historyData : []);
+          const rawData = response.data?.data || response.data || [];
+          setHistory(normalizeHistory(rawData));
         }
       } catch (error) {
         console.error('Error loading search history:', error);
-        // Fallback to localStorage if API fails
+        // local fallback (for products page only)
         const stored = localStorage.getItem(getStorageKey());
-        if (stored) setHistory(JSON.parse(stored));
+        if (stored) setHistory(normalizeHistory(JSON.parse(stored)));
       } finally {
         setLoadingHistory(false);
       }
     };
 
     loadSearchHistory();
-  }, [getStorageKey, isLoggedIn]);
+  }, [getStorageKey, isLoggedIn, pathname, normalizeHistory]);
 
-  /** Load selected location on component mount */
+  /** Load selected location on component mount & refresh */
   useEffect(() => {
-    console.log('🔄 TopBar - Component mounted, loading selected location...');
+    loadSelectedLocation();
+  }, [loadSelectedLocation]);
+  useEffect(() => {
     loadSelectedLocation();
   }, [loadSelectedLocation]);
 
-  /** Also load selected location on page refresh */
   useEffect(() => {
-    console.log('🔄 TopBar - Page load effect, loading selected location...');
-    loadSelectedLocation();
-  }, [loadSelectedLocation]);
+    if (showHistory) {
+      // prevent background scroll
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [showHistory]);
 
   /** Listen for storage changes to update selected location */
   useEffect(() => {
     const handleStorageChange = () => {
       loadSelectedLocation();
     };
-
-    // Listen for storage changes from other tabs
     window.addEventListener('storage', handleStorageChange);
-
-    // Listen for custom location change events from the same tab
     window.addEventListener('locationChanged', handleStorageChange);
-
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('locationChanged', handleStorageChange);
     };
   }, [loadSelectedLocation]);
 
-  /** Save search term - API handles this automatically on search submission */
-  const saveHistory = useCallback((term: string) => {
-    if (!term) return;
-    // API automatically saves search history on submission
-    // We just need to refresh the local state
-    const loadSearchHistory = async () => {
-      try {
-        const response = await SearchHistoryService.getRecentSearches();
-        if (!response.error) {
-          // Extract the actual data array from the API response
-          const historyData = response.data?.data || response.data || [];
-          setHistory(Array.isArray(historyData) ? historyData : []);
+  /** Save search term via API (skip for /shops) */
+  const saveHistory = useCallback(
+    (term: string) => {
+      if (!term?.trim()) return;
+
+      // Only save when logged in AND not on /shops
+      if (!isLoggedIn || pathname === '/shops') return;
+
+      (async () => {
+        try {
+          const addRes = await SearchHistoryService.addCurrentUserSearch(term);
+          if (addRes.error) {
+            console.error(
+              '[TopBar] Failed to add search history:',
+              addRes.error
+            );
+            return;
+          }
+
+          // Refresh recent list after successful add
+          const refresh = await SearchHistoryService.getRecentSearches();
+          if (!refresh.error) {
+            const raw = refresh.data?.data || refresh.data || [];
+            setHistory(normalizeHistory(raw));
+          } else {
+            console.error('[TopBar] Failed to refresh history:', refresh.error);
+          }
+        } catch (err) {
+          console.error('[TopBar] Error saving search history:', err);
         }
-      } catch (error) {
-        console.error('Error refreshing search history:', error);
-      }
-    };
-    loadSearchHistory();
-  }, []);
+      })();
+    },
+    [isLoggedIn, pathname, normalizeHistory]
+  );
 
   /** Submit search */
   const submitSearch = useCallback(() => {
@@ -269,7 +267,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
   }, [inputValue, pathname, router, onSearch, saveHistory]);
 
   const handleBack = () => {
-    // If we're on a search page, go back to homepage
     if (pathname.startsWith('/products/search')) {
       router.push('/client/pages/homepage');
     } else {
@@ -305,20 +302,24 @@ export default function TopBar({ onSearch }: TopBarProps) {
   };
 
   /** Delete one item */
-  const handleDeleteItem = async (keyword: string) => {
+  const handleDeleteItem = async (
+    e: React.MouseEvent<HTMLButtonElement>,
+    keyword: string
+  ) => {
+    // prevent parent click (select/navigate) + any default behavior
+    e.preventDefault();
+    e.stopPropagation();
+
     try {
       const response = await SearchHistoryService.deleteKeyword(keyword);
       if (response.error) {
         console.error('Failed to delete keyword:', response.error);
         toast.error('검색어 삭제에 실패했습니다.');
       } else {
-        // Refresh the history list
         const refreshResponse = await SearchHistoryService.getRecentSearches();
         if (!refreshResponse.error) {
-          // Extract the actual data array from the API response
-          const historyData =
-            refreshResponse.data?.data || refreshResponse.data || [];
-          setHistory(Array.isArray(historyData) ? historyData : []);
+          const raw = refreshResponse.data?.data || refreshResponse.data || [];
+          setHistory(normalizeHistory(raw));
         }
       }
     } catch (error) {
@@ -345,18 +346,9 @@ export default function TopBar({ onSearch }: TopBarProps) {
   };
 
   const handleFocus = () => {
-    console.log('Search input focused, showing history dropdown');
-    console.log('Current history:', history);
-    console.log(
-      'History length:',
-      Array.isArray(history) ? history.length : 'Not an array'
-    );
-    console.log('Loading history:', loadingHistory);
     setShowHistory(true);
   };
   const handleBlur = () => setTimeout(() => setShowHistory(false), 200);
-
-  const isShoplist = pathname.startsWith('/shops');
 
   return (
     <header
@@ -416,7 +408,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
       </div>
 
       {/* Search */}
-
       {pathname !== PAGE_URLS.SHOPPING_CART &&
         pathname !== PAGE_URLS.ORDER_CONFIRMATION &&
         pathname !==
@@ -451,6 +442,8 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
             {showHistory && (
               <div
+                onClick={() => setShowHistory(false)}
+                aria-hidden="true"
                 className={
                   pathname === '/shops'
                     ? styles.shopHistoryDropdown
@@ -474,7 +467,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
                       <span>검색 기록을 불러오는 중...</span>
                     </div>
                   </div>
-                ) : history.length > 0 ? (
+                ) : history.length > 0 && pathname !== '/shops' ? (
                   history.map((item) => (
                     <div key={item.id} className={styles.historyItem}>
                       <div
@@ -497,7 +490,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
                           <button
                             type="button"
                             className={styles.historyDelete}
-                            onClick={() => handleDeleteItem(item.keyword)}
+                            onClick={(e) => handleDeleteItem(e, item.keyword)}
                           >
                             <IoClose />
                           </button>
@@ -506,14 +499,17 @@ export default function TopBar({ onSearch }: TopBarProps) {
                     </div>
                   ))
                 ) : (
-                  <div className={styles.historyItem}>
-                    <div className={styles.historyContent}>
-                      <span>최근 검색 기록이 없습니다.</span>
+                  pathname !== '/shops' && (
+                    <div className={styles.historyItem}>
+                      <div className={styles.historyContent}>
+                        <span>최근 검색 기록이 없습니다.</span>
+                      </div>
                     </div>
-                  </div>
+                  )
                 )}
               </div>
             )}
+
             {isShoplist && (
               <button className={styles.currentBtn}>
                 <Image
