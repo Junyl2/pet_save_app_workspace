@@ -35,6 +35,8 @@ export const PAGE_URLS = {
   REVIEWS: '/client/pages/my-page/reviews', // mypage - reviews page
   NOTIFICATION_SETTINGS: '/client/pages/my-page/notification-settings', // mypage - notification settings page
   STORE_INFO: '/client/pages/my-page/store-info', // mypage - store information page
+  DELIVERY_ADDRESS_MANAGEMENT:
+    '/client/pages/my-page/delivery-address-management',
 
   STEAMED_PRODUCTS: '/client/pages/my-page/steamed-products',
 

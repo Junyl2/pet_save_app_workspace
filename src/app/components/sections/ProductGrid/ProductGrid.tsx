@@ -235,8 +235,17 @@ export const ProductGrid = ({
   if (products.length === 0)
     return (
       <div className={styles.emptyContainer}>
+        <Image
+          src="/images/products/noresult.png"
+          alt="No results"
+          width={90}
+          height={90}
+          className={styles.emptyImage}
+        />
         <p className={styles.emptyText}>
-          {storeId ? '이 스토어의 상품이 없습니다.' : '검색 결과가 없습니다.'}
+          {storeId
+            ? '이 매장 카테고리에는 상품이 없습니다.'
+            : '이 카테고리에는 제품이 없습니다.'}
         </p>
       </div>
     );

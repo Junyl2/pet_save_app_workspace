@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 
 import FilterBar from '../../../sections/FilterBar/FilterBar';
+import Image from 'next/image';
 import styles from './OrderHistory.module.css';
 import OrderHistoryItem from './order-history-item/OrderHistoryItem';
 import OrderHistorySkeleton from '../../../ui/SkeletonLoading/OrderHistorySkeleton';
@@ -170,7 +171,16 @@ export default function OrderHistory() {
 
         <div className={styles.list}>
           {orders.length === 0 ? (
-            <div className={styles.empty}>주문 내역이 없습니다.</div>
+            <div className={styles.emptyContainer}>
+              <Image
+                src="/images/products/noresult.png"
+                alt="No points history"
+                width={100}
+                height={100}
+                className={styles.emptyImage}
+              />
+              <p className={styles.emptyText}>주문 내역이 없습니다.</p>
+            </div>
           ) : (
             orders.map((orderItem) => (
               <OrderHistoryItem
