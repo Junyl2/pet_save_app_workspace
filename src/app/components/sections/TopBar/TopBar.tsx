@@ -12,6 +12,7 @@ import { PAGE_URLS } from '@/app/utils/page_url';
 import { useUser } from '@/app/context/userContext';
 import { SearchHistoryService } from '@/app/api/services/client/searchHistoryService/searchHistoryService';
 import { SearchHistoryItem } from '@/app/api/types/searchHistory/searchHistory';
+import { AddressService } from '@/app/api/services/client/addressService/addressService';
 
 type TopBarProps = {
   onSearch?: (term: string) => void;
@@ -242,14 +243,45 @@ export default function TopBar({ onSearch }: TopBarProps) {
   );
 
   /** Submit search */
-  const submitSearch = useCallback(() => {
+  const submitSearch = useCallback(async () => {
     const term = inputValue.trim();
     if (!term) {
       toast.error('검색어를 입력해주세요.');
       return;
     }
 
-    saveHistory(term);
+    // 🔹 Save keyword to localStorage only for /shops
+    if (pathname === '/shops') {
+      const stored = localStorage.getItem('shopSearchKeywords');
+      const keywords = stored ? JSON.parse(stored) : [];
+      const updated = [
+        term,
+        ...keywords.filter((k: string) => k !== term),
+      ].slice(0, 10); // keep only 10
+      localStorage.setItem('shopSearchKeywords', JSON.stringify(updated));
+
+      try {
+        // 🔹 Use the new POST address search endpoint for /shops
+        const response = await AddressService.searchAddressByKeywordAlternative(
+          {
+            keyword: term,
+            currentPage: 1,
+            countPerPage: 10,
+          }
+        );
+
+        if (response.error) {
+          console.error('[TopBar] Address search failed:', response.error);
+        } else {
+          console.log('[TopBar] Address search success (POST):', response.data);
+        }
+      } catch (error) {
+        console.error('[TopBar] Address search POST error:', error);
+      }
+    } else {
+      // 🔹 For all other pages, save via backend as usual
+      saveHistory(term);
+    }
 
     if (onSearch) {
       onSearch(term);

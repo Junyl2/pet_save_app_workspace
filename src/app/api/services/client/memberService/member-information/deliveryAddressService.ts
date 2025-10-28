@@ -4,6 +4,7 @@ import {
   UpdateDeliveryAddressRequest,
   DeliveryAddressListResponse,
   DeliveryAddressResponse,
+  DeliveryAddressApiResponse,
 } from '@/app/api/types/member/member-information/member-information';
 
 export class DeliveryAddressService {
@@ -27,6 +28,37 @@ export class DeliveryAddressService {
           error instanceof Error
             ? error.message
             : 'Failed to fetch delivery addresses',
+      };
+    }
+  }
+
+  /**
+   * Delete current user's delivery address
+   * DELETE /delivery/delivery-addresses/{deliveryAddressId}
+   */
+  static async deleteDeliveryAddress(deliveryAddressId: string): Promise<{
+    data?: DeliveryAddressApiResponse;
+    error?: string;
+  }> {
+    try {
+      console.log(
+        '🗑️ Sending DELETE request to remove address:',
+        deliveryAddressId
+      );
+
+      const response = await apiClient.delete<DeliveryAddressApiResponse>(
+        `/delivery/delivery-addresses/${deliveryAddressId}`
+      );
+
+      console.log(' DELETE response received:', response.data);
+      return { data: response.data || undefined };
+    } catch (error) {
+      console.error('Error deleting delivery address:', error);
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to delete delivery address',
       };
     }
   }
