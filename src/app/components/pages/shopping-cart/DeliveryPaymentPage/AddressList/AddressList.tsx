@@ -8,6 +8,19 @@ import { FiArrowLeft } from 'react-icons/fi';
 import { DeliveryAddressService } from '@/app/api/services/client/memberService/member-information/deliveryAddressService';
 import type { DeliveryAddress } from '@/app/api/types/member/member-information/member-information';
 
+// Explicit types for form state to avoid implicit anys
+type EditFormState = {
+  zipCode: string;
+  roadAddress: string;
+  detailedAddress: string;
+  default: boolean;
+  addressTitle: string;
+  receiverName: string;
+  receiverPhone: string;
+};
+
+type NewAddressFormState = EditFormState;
+
 export default function AddressList() {
   const [apiAddresses, setApiAddresses] = useState<DeliveryAddress[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -18,7 +31,7 @@ export default function AddressList() {
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
   // EDIT form state (includes new fields)
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<EditFormState>({
     zipCode: '',
     roadAddress: '',
     detailedAddress: '',
@@ -29,7 +42,7 @@ export default function AddressList() {
   });
 
   // NEW form state (includes new fields)
-  const [newAddressForm, setNewAddressForm] = useState({
+  const [newAddressForm, setNewAddressForm] = useState<NewAddressFormState>({
     zipCode: '',
     roadAddress: '',
     detailedAddress: '',
@@ -134,7 +147,10 @@ export default function AddressList() {
     });
   };
 
-  const handleEditFormChange = (field: string, value: string | boolean) => {
+  const handleEditFormChange = (
+    field: keyof EditFormState,
+    value: string | boolean
+  ) => {
     setEditForm((prev) => ({ ...prev, [field]: value as never }));
 
     if (field === 'default' && value === true && editingId) {
@@ -224,7 +240,7 @@ export default function AddressList() {
   };
 
   const handleNewAddressFormChange = (
-    field: string,
+    field: keyof NewAddressFormState,
     value: string | boolean
   ) => {
     setNewAddressForm((prev) => ({ ...prev, [field]: value as never }));
@@ -314,7 +330,7 @@ export default function AddressList() {
       } else {
         toast.error('삭제에 실패했습니다.');
       }
-    } catch (e) {
+    } catch {
       toast.error('삭제 중 오류가 발생했습니다.');
     } finally {
       setIsDeletingId(null);
@@ -351,7 +367,7 @@ export default function AddressList() {
       <div className={styles.topBar}>
         <button
           className={styles.backButton}
-          onClick={() => router.back()}
+          onClick={() => router.back()} // remove unused event param
           aria-label="뒤로가기"
         >
           <FiArrowLeft size={24} />
@@ -698,7 +714,7 @@ export default function AddressList() {
               router.push(
                 '/client/pages/my-page/delivery-address-management/add-address'
               )
-            }
+            } // removed any unused event param
           >
             배송지 추가
           </button>

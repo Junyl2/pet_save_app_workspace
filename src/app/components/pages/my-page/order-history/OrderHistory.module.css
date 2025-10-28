@@ -13,3 +13,23 @@
   gap: 8px;
   padding: 0 1rem; /* reapply padding *inside* if you still want breathing space */
 }
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 16px;
+  text-align: center;
+}
+
+.emptyImage {
+  opacity: 0.9;
+  margin-bottom: 16px;
+  max-width: 200px;
+  height: auto;
+}
+
+.emptyText {
+  font-size: 15px;
+  color: #777;
+}

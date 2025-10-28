@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { PointsService } from '@/app/api/services/client/memberService/points/pointsService';
 import styles from './PointsHistory.module.css';
@@ -29,7 +30,6 @@ export default function PointsHistoryPage() {
           // In the future, this could be a separate API endpoint
         }
 
-        // Fetch points history for the list and expiring calculation
         const response = await PointsService.getPointsHistory({ size: 50 });
 
         if (
@@ -38,7 +38,6 @@ export default function PointsHistoryPage() {
           response.data.data &&
           response.data.data.content
         ) {
-          // Calculate expiring points (within 7 days)
           const sevenDaysFromNow = new Date();
           sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
@@ -52,7 +51,6 @@ export default function PointsHistoryPage() {
 
           setExpiringPoints(expiringAmount);
 
-          // Transform API data to match existing UI structure
           const transformedHistory: PointTransaction[] =
             response.data.data.content.map((transaction, index) => ({
               id: index + 1,
@@ -89,19 +87,13 @@ export default function PointsHistoryPage() {
 
           setPointHistory(transformedHistory);
         } else {
-          console.error('History API response error:', response.error);
-          console.error('History API response data:', response.data);
-          // No fallback data - keep empty arrays
           setPointHistory([]);
           setExpiringPoints(0);
         }
       } catch (error) {
         console.error('Failed to fetch points history:', error);
-        // No fallback data - keep empty arrays
         setPointHistory([]);
         setExpiringPoints(0);
-      } finally {
-        // Loading state removed as it's not used in UI
       }
     };
 
@@ -113,7 +105,7 @@ export default function PointsHistoryPage() {
       <ProductHeader />
 
       <div className={styles.container}>
-        {/* Period Filter */}
+        {/* Expiring Points Info */}
         <div className={styles.filterSection}>
           <span className={styles.filterLabel}>7일 이내 소멸 예정</span>
           <span className={styles.filterValue}>
@@ -122,38 +114,51 @@ export default function PointsHistoryPage() {
         </div>
         <div className={styles.divider}></div>
 
-        {/* History List */}
+        {/* History Section */}
         <div className={styles.historySection}>
-          {pointHistory.map((transaction) => (
-            <div key={transaction.id} className={styles.historyItem}>
-              <div className={styles.historyLeft}>
-                <div className={styles.historyDate}>{transaction.date}</div>
-                <div className={styles.historyDescription}>
-                  {transaction.description}
-                </div>
-                <div className={styles.historySubtitle}>
-                  {transaction.subtitle}
-                </div>
-              </div>
-              <div className={styles.historyRight}>
-                <div
-                  className={`${styles.historyAmount} ${
-                    transaction.type === 'used'
-                      ? styles.negative
-                      : styles.positive
-                  }`}
-                >
-                  {transaction.type === 'used' ? '- ' : '+ '}
-                  {Math.abs(transaction.amount).toLocaleString()}원
-                </div>
-                <div className={styles.expiryDate}>
-                  {transaction.type === 'earned'
-                    ? transaction.expiryDate
-                    : transaction.status}
-                </div>
-              </div>
+          {pointHistory.length === 0 ? (
+            <div className={styles.emptyContainer}>
+              <Image
+                src="/images/products/noresult.png"
+                alt="No points history"
+                width={100}
+                height={100}
+                className={styles.emptyImage}
+              />
+              <p className={styles.emptyText}>포인트 내역이 없습니다.</p>
             </div>
-          ))}
+          ) : (
+            pointHistory.map((transaction) => (
+              <div key={transaction.id} className={styles.historyItem}>
+                <div className={styles.historyLeft}>
+                  <div className={styles.historyDate}>{transaction.date}</div>
+                  <div className={styles.historyDescription}>
+                    {transaction.description}
+                  </div>
+                  <div className={styles.historySubtitle}>
+                    {transaction.subtitle}
+                  </div>
+                </div>
+                <div className={styles.historyRight}>
+                  <div
+                    className={`${styles.historyAmount} ${
+                      transaction.type === 'used'
+                        ? styles.negative
+                        : styles.positive
+                    }`}
+                  >
+                    {transaction.type === 'used' ? '- ' : '+ '}
+                    {Math.abs(transaction.amount).toLocaleString()}원
+                  </div>
+                  <div className={styles.expiryDate}>
+                    {transaction.type === 'earned'
+                      ? transaction.expiryDate
+                      : transaction.status}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </>

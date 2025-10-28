@@ -40,6 +40,60 @@ export default function AddAddressPage() {
   const keyword = zipCode.trim() || roadAddress.trim();
   const canSearch = !!keyword && !isSearchingAddress;
 
+  // ---------- helpers to avoid `any` ----------
+  type UnknownRecord = Record<string, unknown>;
+
+  const isObject = (v: unknown): v is UnknownRecord =>
+    typeof v === 'object' && v !== null;
+
+  const formatValue = (v: unknown): string => {
+    if (Array.isArray(v)) return v.map(formatValue).join(', ');
+    if (
+      typeof v === 'string' ||
+      typeof v === 'number' ||
+      typeof v === 'boolean'
+    )
+      return String(v);
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  };
+
+  /** Extracts a human-friendly server message without using `any`. */
+  const extractServerMessage = (res: unknown): string => {
+    if (!isObject(res)) return '저장에 실패했습니다. 다시 시도해주세요.';
+
+    const data = res.data;
+    if (!isObject(data)) return '저장에 실패했습니다. 다시 시도해주세요.';
+
+    // Prefer a field-level validation map if present
+    const validation = data.data;
+    if (isObject(validation)) {
+      const parts = Object.entries(validation).map(
+        ([k, v]) => `${k}: ${formatValue(v)}`
+      );
+      if (parts.length) return parts.join('\n');
+    }
+
+    // Otherwise fall back to a top-level message if available
+    if (typeof data.message === 'string' && data.message.trim()) {
+      return data.message;
+    }
+
+    return '저장에 실패했습니다. 다시 시도해주세요.';
+  };
+
+  const isSuccessResponse = (res: unknown): boolean => {
+    if (!isObject(res)) return false;
+    const data = res.data;
+    return isObject(data) && typeof data.success === 'boolean'
+      ? data.success
+      : false;
+  };
+  // -------------------------------------------
+
   const handleAddressSearch = async () => {
     if (isSearchingAddress) return;
 
@@ -60,15 +114,19 @@ export default function AddAddressPage() {
         10
       );
 
-      if (response.error) {
-        setAddressSearchError(response.error);
+      if ((response as UnknownRecord).error) {
+        setAddressSearchError(String((response as UnknownRecord).error));
         return;
       }
 
-      if (response.data?.documents?.length) {
-        setAddressSearchResults(
-          response.data.documents as AddressSearchResult[]
-        );
+      const docs = (response as UnknownRecord)?.data as
+        | UnknownRecord
+        | undefined;
+      const documents =
+        isObject(docs) && Array.isArray(docs.documents) ? docs.documents : [];
+
+      if (documents.length) {
+        setAddressSearchResults(documents as AddressSearchResult[]);
         setShowAddressResults(true);
       } else {
         setAddressSearchError(
@@ -151,17 +209,11 @@ export default function AddAddressPage() {
 
       const res = await DeliveryAddressService.createDeliveryAddress(payload);
 
-      if (res?.data?.success) {
+      if (isSuccessResponse(res)) {
         toast.success('배송지가 저장되었습니다.');
         router.back();
       } else {
-        // surface server validation details if present
-        const msg = (res as any)?.data?.data
-          ? Object.entries((res as any).data.data)
-              .map(([k, v]) => `${k}: ${v}`)
-              .join('\n')
-          : '저장에 실패했습니다. 다시 시도해주세요.';
-        toast.error(msg);
+        toast.error(extractServerMessage(res));
       }
     } catch (e) {
       console.error(e);

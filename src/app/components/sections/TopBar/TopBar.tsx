@@ -36,9 +36,13 @@ export default function TopBar({ onSearch }: TopBarProps) {
   /** Helpers */
   const isShoplist = pathname.startsWith('/shops');
 
+  // --- type guard to avoid `any` ---
+  const isRecord = (v: unknown): v is Record<string, unknown> =>
+    typeof v === 'object' && v !== null;
+
   const normalizeHistory = useCallback((raw: unknown): SearchHistoryItem[] => {
     if (!Array.isArray(raw)) return [];
-    return raw.map((item: any, index: number) => {
+    return raw.map((item: unknown, index: number): SearchHistoryItem => {
       if (typeof item === 'string') {
         // API returned array of keywords
         return {
@@ -47,14 +51,24 @@ export default function TopBar({ onSearch }: TopBarProps) {
           searchedAt: new Date().toISOString(),
         };
       }
-      // Ensure shape
+      if (isRecord(item)) {
+        const id = typeof item.id === 'string' ? item.id : `item-${index}`;
+        const keyword = typeof item.keyword === 'string' ? item.keyword : '';
+        const searchedAt =
+          typeof item.searchedAt === 'string'
+            ? item.searchedAt
+            : new Date().toISOString();
+        return { id, keyword, searchedAt };
+      }
+      // Fallback shape
       return {
-        id: item?.id ?? `item-${index}`,
-        keyword: item?.keyword ?? '',
-        searchedAt: item?.searchedAt ?? new Date().toISOString(),
+        id: `item-${index}`,
+        keyword: '',
+        searchedAt: new Date().toISOString(),
       };
     });
   }, []);
+  // ----------------------------------
 
   /** Format address to show only first 2 parts */
   const formatAddress = useCallback((address: string): string => {
