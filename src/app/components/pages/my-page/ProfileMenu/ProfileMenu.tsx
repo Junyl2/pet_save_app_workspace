@@ -27,7 +27,7 @@ const ProfileMenu = () => {
 
   // Debug logging for user state
   useEffect(() => {
-    console.log('🔍 ProfileMenu - User State Debug:');
+    console.log(' ProfileMenu - User State Debug:');
     console.log('  - User (context):', user);
     console.log('  - UserInfo (Redux):', userInfo);
     console.log('  - Role:', userInfo?.role || user?.role);
@@ -95,6 +95,10 @@ const ProfileMenu = () => {
           <ProfileItem
             label="알림 설정"
             route={PAGE_URLS.NOTIFICATION_SETTINGS}
+          />
+          <ProfileItem
+            label="배송지 관리"
+            route={PAGE_URLS.DELIVERY_ADDRESS_MANAGEMENT}
           />
           <ProfileItem label="차단 리스트" route="/my-page/block-list" />
         </ProfileSection>

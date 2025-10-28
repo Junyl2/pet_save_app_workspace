@@ -1,40 +1,52 @@
-/**
- * Delivery Address Types
- */
-
 export interface DeliveryAddress {
   deliveryAddressId: string;
   roadAddress: string;
   detailedAddress: string;
   zipCode: string;
+
+  /** Whether this address is the default one */
   default: boolean;
-  label?: string;
-  recipientName?: string;
-  phoneNumber?: string;
+
+  /** API now requires/sends these fields */
+  addressTitle: string;
+  receiverName: string;
+  receiverPhone: string;
+
   createdAt?: string;
   updatedAt?: string;
 }
 
+/** Create payload must include new required fields */
 export interface CreateDeliveryAddressRequest {
   roadAddress: string;
   detailedAddress: string;
   zipCode: string;
   default: boolean;
+
+  addressTitle: string;
+  receiverName: string;
+  receiverPhone: string;
 }
 
+/** Update payload: allow partial updates; API uses isDefault */
 export interface UpdateDeliveryAddressRequest {
-  roadAddress: string;
-  detailedAddress: string;
-  zipCode: string;
-  isDefault: boolean;
+  roadAddress?: string;
+  detailedAddress?: string;
+  zipCode?: string;
+  isDefault?: boolean;
+
+  addressTitle?: string;
+  receiverName?: string;
+  receiverPhone?: string;
 }
 
+/** Generic API response shapes (unchanged) */
 export interface DeliveryAddressApiResponse {
   success: boolean;
   status: number;
   resultMsg: string;
   divisionCode: string;
-  data: DeliveryAddress | DeliveryAddress[] | object;
+  data: DeliveryAddress | DeliveryAddress[] | Record<string, unknown>;
   errorId?: string;
 }
 
