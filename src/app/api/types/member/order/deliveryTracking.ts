@@ -2,39 +2,50 @@ export interface DeliveryTrackingResponse {
   success: boolean;
   status: number;
   resultMsg: string;
-  divisionCode: string;
+  divisionCode: string | null;
   data: DeliveryTrackingData;
-  errorId: string;
+  errorId?: string;
 }
 
 export interface DeliveryTrackingData {
+  deliveryId: string;
+  courierName: string;
   trackingNumber: string;
-  carrier: string;
-  status: string;
+  orderId: string;
+  orderNumber: string;
+  receiverName: string;
+  receiverAddress: string;
+  receiverPhone: string;
+  currentStatus: string;
+  items: DeliveryItem[];
+  message: string;
+  lastUpdated: string;
   events: DeliveryEvent[];
-  recipient: {
-    name: string;
-    address: string;
-    phone: string;
-  };
-  estimatedDelivery?: string;
+}
+
+export interface DeliveryItem {
+  orderItemId: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  productImageIds: string[];
 }
 
 export interface DeliveryEvent {
-  date: string;
-  time: string;
+  deliveryEventId: string;
   status: string;
-  description: string;
-  location?: string;
+  location: string | null;
+  message: string;
+  eventTime: string;
 }
 
 export interface DeliveryInfoResponse {
   success: boolean;
   status: number;
   resultMsg: string;
-  divisionCode: string;
+  divisionCode: string | null;
   data: DeliveryInfoData;
-  errorId: string;
+  errorId?: string;
 }
 
 export interface DeliveryInfoData {

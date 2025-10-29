@@ -1,6 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
-
+import React, { useEffect, useState, useMemo } from 'react';
 import FilterBar from '../../../sections/FilterBar/FilterBar';
 import Image from 'next/image';
 import styles from './OrderHistory.module.css';
@@ -15,136 +14,167 @@ import {
   checkStaleStatus,
 } from '@/app/redux/slices/cache/orderSlice';
 
+// Must match FilterBar display statuses
+const ALLOWED_DISPLAY_STATUSES = [
+  '상품 준비중',
+  '배송중',
+  '배송 완료',
+  '픽업중',
+  '픽업 완료',
+  '배송완료',
+];
+
 export default function OrderHistory() {
   const dispatch = useAppDispatch();
-
-  // Redux state
   const { orderHistoryCache, loading, error } = useAppSelector(
     (state) => state.orders
   );
 
-  // Get cached order history data
-  const cachedData = orderHistoryCache['default']; // Default cache key for no params
-  const orders = cachedData?.data?.data?.content || [];
+  const cachedData = orderHistoryCache['default'];
 
-  // Fetch order history using Redux with smart caching
+  // Wrap orders in useMemo to ensure stable reference
+  const orders = useMemo<OrderItemResponse[]>(
+    () => cachedData?.data?.data?.content || [],
+    [cachedData]
+  );
+
+  const [selectedPeriod, setSelectedPeriod] = useState('3개월');
+  const [selectedStatus, setSelectedStatus] = useState('전체보기');
+
+  // Fetch order history on mount
   useEffect(() => {
-    console.log('Dispatching fetchOrderHistory with default params');
     dispatch(fetchOrderHistory());
   }, [dispatch]);
 
-  // Trigger background revalidation on component mount if data is stale
+  // Background revalidation every 10s
   useEffect(() => {
     if (cachedData) {
       const now = Date.now();
       const cacheAge = now - cachedData.timestamp;
-      const isDataStale = cacheAge >= 10 * 1000; // 10 seconds in milliseconds
-
-      if (isDataStale) {
-        console.log(
-          '🚀 Component mounted with stale data, triggering immediate revalidation...'
-        );
+      if (cacheAge >= 10_000) {
         dispatch(revalidateOrderHistoryInBackground());
       }
     }
-  }, [cachedData, dispatch]); // Include dependencies
+  }, [cachedData, dispatch]);
 
-  // Background revalidation effect - trigger immediately if data exists and is stale
-  useEffect(() => {
-    if (cachedData) {
-      const now = Date.now();
-      const cacheAge = now - cachedData.timestamp;
-      const isDataStale = cacheAge >= 10 * 1000; // 10 seconds in milliseconds
-
-      console.log('🔍 Checking cache age:', {
-        cacheAge: Math.round(cacheAge / 1000),
-        seconds: 'seconds old',
-        isDataStale: isDataStale,
-        timestamp: new Date(cachedData.timestamp).toLocaleTimeString(),
-      });
-
-      if (isDataStale) {
-        console.log('🔄 Data is stale, triggering background revalidation...');
-        dispatch(revalidateOrderHistoryInBackground());
-      } else {
-        console.log('✅ Data is fresh, no revalidation needed');
-      }
-    }
-  }, [dispatch, cachedData]);
-
-  // Check stale status when component mounts or data changes
+  // Check stale cache
   useEffect(() => {
     dispatch(checkStaleStatus());
   }, [dispatch, cachedData]);
 
-  // Convert API order item data to format expected by OrderHistoryItem
-  const convertToOrderItem = (orderItem: OrderItemResponse): OrderItem => {
-    return {
-      product: {
-        id: parseInt(orderItem.productId.split('-')[0], 16), // Convert UUID to number for compatibility
-        name: orderItem.productName,
-        price: orderItem.price,
-        discountPrice:
-          orderItem.appliedDiscountAmount > 0
-            ? orderItem.price - orderItem.appliedDiscountAmount
-            : undefined,
-        brand: orderItem.storeName,
-        image: orderItem.productImageUrl,
-        deliveryType:
-          orderItem.shippingOption === 'DELIVERY' ? 'delivery' : 'pickup',
-      },
-      quantity: orderItem.quantity,
-    };
-  };
+  const convertToOrderItem = (orderItem: OrderItemResponse): OrderItem => ({
+    product: {
+      id: parseInt(orderItem.productId.split('-')[0], 16),
+      name: orderItem.productName,
+      price: orderItem.price,
+      discountPrice:
+        orderItem.appliedDiscountAmount > 0
+          ? orderItem.price - orderItem.appliedDiscountAmount
+          : undefined,
+      brand: orderItem.storeName,
+      image: orderItem.productImageUrl,
+      deliveryType:
+        orderItem.shippingOption === 'DELIVERY' ? 'delivery' : 'pickup',
+    },
+    quantity: orderItem.quantity,
+  });
 
-  // Convert order status to Korean display text
   const getStatusDisplayText = (status: string): string => {
-    const statusMap: Record<string, string> = {
+    const map: Record<string, string> = {
       PENDING_PAYMENT: '결제 대기',
       PAID: '결제 완료',
-      PREPARING: '배송 준비중',
+      PREPARING: '상품 준비중',
       READY_FOR_PICKUP: '픽업 준비완료',
       DELIVERY_STARTED: '배송중',
       DELIVERED: '배송 완료',
+      PICKUP_IN_PROGRESS: '픽업중',
       PICKUP_COMPLETED: '픽업 완료',
-      COMPLETED: '주문 완료',
+      COMPLETED: '배송완료',
       CANCELLED: '주문 취소',
       RETURNED: '반품',
       REFUNDED: '환불 완료',
     };
-
-    return statusMap[status] || status;
+    return map[status] || status;
   };
 
-  // Format date to Korean format (using order number date since API doesn't provide creation date)
   const formatDate = (orderNumber: string): string => {
-    // Extract date from order number format: ORD-251014-XXXX
-    const dateMatch = orderNumber.match(/ORD-(\d{6})-/);
-    if (dateMatch) {
-      const dateStr = dateMatch[1];
+    const match = orderNumber.match(/ORD-(\d{6})-/);
+    if (match) {
+      const dateStr = match[1];
       const year = '20' + dateStr.substring(0, 2);
       const month = dateStr.substring(2, 4);
       const day = dateStr.substring(4, 6);
       return `${year}.${month}.${day}`;
     }
-    // Fallback to current date if parsing fails
     return new Date()
       .toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
       })
-      .replace(/\./g, '.')
       .replace(/\s/g, '');
   };
 
-  // Show loading only if we don't have cached data and are loading (not background loading)
-  const shouldShowLoading = loading && !cachedData;
-  if (shouldShowLoading) {
+  // Filtered orders (memoized)
+  const filteredOrders = useMemo(() => {
+    let result = orders.filter((o) =>
+      ALLOWED_DISPLAY_STATUSES.includes(getStatusDisplayText(o.status))
+    );
+
+    if (selectedStatus !== '전체보기') {
+      result = result.filter((o) => {
+        const displayStatus = getStatusDisplayText(o.status);
+        if (selectedStatus === '배송 완료') {
+          return displayStatus === '배송 완료' || displayStatus === '주문 완료';
+        }
+        if (selectedStatus === '주문 완료') {
+          return displayStatus === '주문 완료' || displayStatus === '배송 완료';
+        }
+        return displayStatus === selectedStatus;
+      });
+    }
+
+    if (selectedPeriod !== '전체보기') {
+      const months =
+        selectedPeriod === '1개월'
+          ? 1
+          : selectedPeriod === '3개월'
+          ? 3
+          : selectedPeriod === '6개월'
+          ? 6
+          : 12;
+
+      const now = new Date();
+      const cutoff = new Date(now);
+      cutoff.setMonth(now.getMonth() - months);
+
+      result = result.filter((o) => {
+        const match = o.orderNumber.match(/ORD-(\d{6})-/);
+        if (!match) return true;
+        const date = match[1];
+        const orderDate = new Date(
+          `20${date.substring(0, 2)}-${date.substring(2, 4)}-${date.substring(
+            4,
+            6
+          )}`
+        );
+        return orderDate >= cutoff;
+      });
+    }
+
+    return result;
+  }, [orders, selectedStatus, selectedPeriod]);
+
+  if (loading && !cachedData) {
     return (
       <div className={styles.container}>
         <div className={styles.inner}>
-          <FilterBar />
+          <FilterBar
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+          />
           <div className={styles.list}>
             <OrderHistorySkeleton count={5} />
           </div>
@@ -157,7 +187,12 @@ export default function OrderHistory() {
     return (
       <div className={styles.container}>
         <div className={styles.inner}>
-          <FilterBar />
+          <FilterBar
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+          />
           <div className={styles.error}>오류: {error}</div>
         </div>
       </div>
@@ -167,14 +202,18 @@ export default function OrderHistory() {
   return (
     <div className={styles.container}>
       <div className={styles.inner}>
-        <FilterBar />
-
+        <FilterBar
+          selectedPeriod={selectedPeriod}
+          onPeriodChange={setSelectedPeriod}
+          selectedStatus={selectedStatus}
+          onStatusChange={setSelectedStatus}
+        />
         <div className={styles.list}>
-          {orders.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <div className={styles.emptyContainer}>
               <Image
                 src="/images/products/noresult.png"
-                alt="No points history"
+                alt="No orders"
                 width={100}
                 height={100}
                 className={styles.emptyImage}
@@ -182,7 +221,7 @@ export default function OrderHistory() {
               <p className={styles.emptyText}>주문 내역이 없습니다.</p>
             </div>
           ) : (
-            orders.map((orderItem) => (
+            filteredOrders.map((orderItem) => (
               <OrderHistoryItem
                 key={orderItem.orderItemId}
                 orderId={orderItem.orderId}

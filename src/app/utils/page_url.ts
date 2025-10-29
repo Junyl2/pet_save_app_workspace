@@ -62,8 +62,8 @@ export const PAGE_URLS = {
   ORDER_TRACKING: (orderId: string) =>
     `/client/pages/my-page/order-history/${orderId}/tracking`,
 
-  ORDER_REFUND: (orderId: string) =>
-    `/client/pages/my-page/order-history/${orderId}/tracking/refund`,
+  ORDER_RETURN: (orderId: string) =>
+    `/client/pages/my-page/order-history/${orderId}/tracking/return`,
 
   ORDER_EXCHANGE: (orderId: string) =>
     `/client/pages/my-page/order-history/${orderId}/tracking/exchange`,

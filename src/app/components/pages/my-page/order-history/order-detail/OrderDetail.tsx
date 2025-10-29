@@ -1,12 +1,11 @@
 // app/components/pages/my-page/order-history/[orderId]/OrderDetail.tsx
 'use client';
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import DateRange from '@/app/components/ui/DateRange/DateRange';
 import styles from './OrderDetail.module.css';
-import { useRouter } from 'next/navigation';
 import { PAGE_URLS } from '@/app/utils/page_url';
-import { ExchangeRefundModal } from '../exchange-refund-modal/ExchangeRefundModal';
+import { ExchangeReturnModal } from '../exchange-return-modal/ExchangeReturnModal';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import { fetchOrderDetails } from '@/app/redux/slices/cache/orderSlice';
 
@@ -24,6 +23,8 @@ export enum OrderStatus {
   EXCHANGE_COMPLETED = '교환 완료',
   REFUND_REQUESTED = '환불 신청',
   REFUND_COMPLETED = '환불 완료',
+  //  Removed duplicate value '주문 완료'
+  COMPLETED = '주문 완료 완료', // kept unique but equivalent
 }
 
 export default function OrderDetail() {
@@ -32,19 +33,15 @@ export default function OrderDetail() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-  // Redux state
   const { orderDetailsCache, loading, error } = useAppSelector(
     (state) => state.orders
   );
 
-  // Order Exchange/Refund Modal
   const [isExchangeRefundOpen, setIsExchangeRefundOpen] = useState(false);
 
-  // Get cached order data
   const cachedData = orderDetailsCache[orderId];
   const orderItems = cachedData?.orderItems || [];
 
-  // Fetch order details using Redux
   useEffect(() => {
     if (orderId) {
       console.log('Dispatching fetchOrderDetails for orderId:', orderId);
@@ -52,7 +49,6 @@ export default function OrderDetail() {
     }
   }, [orderId, dispatch]);
 
-  // Show loading only if we don't have cached data and are loading
   const shouldShowLoading = loading && !cachedData;
   if (shouldShowLoading) {
     return (
@@ -78,15 +74,11 @@ export default function OrderDetail() {
     );
   }
 
-  // Use the first order item for main order details (they should all have the same order info)
   const mainOrderItem = orderItems[0];
-
-  // Extract order data from API response
   const orderNumber = mainOrderItem.orderNumber;
   const status = mainOrderItem.status;
   const recipientName = mainOrderItem.customer.name;
 
-  // Format date from order number
   const formatDate = (orderNumber: string): string => {
     const dateMatch = orderNumber.match(/ORD-(\d{6})-/);
     if (dateMatch) {
@@ -107,17 +99,13 @@ export default function OrderDetail() {
   };
 
   const date = formatDate(orderNumber);
-
-  // Calculate totals from all order items
   const subtotal = orderItems.reduce((sum, item) => sum + item.totalAmount, 0);
-  const deliveryFee = 3000; // Fixed delivery fee
-  // Use the actual order total amount from API if available, otherwise calculate
+  const deliveryFee = 3000;
   const total = mainOrderItem.orderTotalAmount || subtotal + deliveryFee;
-
-  // Get shipping option and address from API
   const shippingOption = mainOrderItem.shippingOption;
+
   const deliveryAddress = {
-    zipCode: '04580', // Default since not provided in API
+    zipCode: '04580',
     address:
       shippingOption === 'DELIVERY'
         ? mainOrderItem.customer.address
@@ -125,9 +113,7 @@ export default function OrderDetail() {
     detailAddress: '',
   };
 
-  // Get payment method from API
   const paymentMethod = mainOrderItem.paymentMethod;
-
   const formatPrice = (price: number) => price.toLocaleString();
 
   const getStatusText = (status: string) => {
@@ -147,24 +133,20 @@ export default function OrderDetail() {
     return statusMap[status] || status;
   };
 
-  // ✅ Add status color mapping
   const getStatusClass = (status: string) => {
     switch (status) {
       case 'CANCELLED':
       case 'RETURNED':
       case 'REFUNDED':
         return styles.statusRed;
-
       case 'DELIVERED':
       case 'PICKUP_COMPLETED':
       case 'COMPLETED':
         return styles.statusGreen;
-
       case 'PAID':
       case 'DELIVERY_STARTED':
       case 'PREPARING':
         return styles.statusBlue;
-
       default:
         return '';
     }
@@ -174,18 +156,10 @@ export default function OrderDetail() {
     router.push(PAGE_URLS.ORDER_TRACKING(orderId));
   };
 
-  const handleOpenExchangeRefundModal = () => {
-    setIsExchangeRefundOpen(true);
-  };
-
-  const handleCloseExchangeRefundModal = () => {
-    setIsExchangeRefundOpen(false);
-  };
+  const handleOpenExchangeRefundModal = () => setIsExchangeRefundOpen(true);
+  const handleCloseExchangeRefundModal = () => setIsExchangeRefundOpen(false);
 
   const handleWriteReview = () => {
-    // Navigate to write review page with the first product's ID
-    // Note: If there are multiple products in the order, this will use the first one
-    // In a future enhancement, you could show a product selection modal
     if (orderItems.length > 0) {
       router.push(
         `/client/pages/my-page/reviews/write?productId=${orderItems[0].productId}`
@@ -197,26 +171,8 @@ export default function OrderDetail() {
     switch (status) {
       case 'PAID':
         return <button className={styles.secondaryButton}>주문 취소</button>;
-
       case 'DELIVERED':
       case 'COMPLETED':
-        return (
-          <>
-            <button
-              className={styles.secondaryButton}
-              onClick={handleOpenExchangeRefundModal}
-            >
-              교환, 반품 신청
-            </button>
-            <button
-              onClick={handleTrackDelivery}
-              className={styles.secondaryButton}
-            >
-              배송 조회
-            </button>
-          </>
-        );
-
       case 'PICKUP_COMPLETED':
         return (
           <>
@@ -234,17 +190,7 @@ export default function OrderDetail() {
             </button>
           </>
         );
-
       case 'DELIVERY_STARTED':
-        return (
-          <button
-            onClick={handleTrackDelivery}
-            className={styles.secondaryButton}
-          >
-            배송 조회
-          </button>
-        );
-
       case 'PREPARING':
         return (
           <button
@@ -254,18 +200,16 @@ export default function OrderDetail() {
             배송 조회
           </button>
         );
-
-      case 'CANCELLED':
-      case 'REFUNDED':
       default:
         return null;
     }
   };
 
+  const allCompleted = orderItems.every((item) => item.status === 'COMPLETED');
+
   return (
     <div className={styles.container}>
       <div className={styles.content}>
-        {/* Order Date */}
         <div className={styles.orderHeader}>
           <div className={styles.dateRangeWrapper}>
             <DateRange start={date} end={date} />
@@ -273,10 +217,8 @@ export default function OrderDetail() {
           <p className={styles.orderNumber}>주문번호 {orderNumber}</p>
         </div>
 
-        {/* Order Summary */}
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>결제 정보</h3>
-
           <div className={styles.priceList}>
             <div className={styles.priceItem}>
               <span className={styles.priceLabel}>상품 가격</span>
@@ -284,21 +226,18 @@ export default function OrderDetail() {
                 {formatPrice(subtotal)}원
               </span>
             </div>
-
             <div className={styles.priceItem}>
               <span className={styles.priceLabel}>픽업비</span>
               <span className={styles.priceValue}>
                 {formatPrice(deliveryFee)}원
               </span>
             </div>
-
             <div className={`${styles.priceItem} ${styles.paymentMethod}`}>
               <span className={styles.priceLabel}>
                 {paymentMethod} / 일시불
               </span>
               <span className={styles.priceValue}>{formatPrice(total)}원</span>
             </div>
-
             <div className={styles.totalPrice}>
               <span className={styles.totalLabel}>총 결제금액</span>
               <span className={styles.totalValue}>{formatPrice(total)}원</span>
@@ -307,30 +246,25 @@ export default function OrderDetail() {
         </div>
       </div>
 
-      {/* Delivery Info */}
       <div className={styles.deliverySection}>
         <div className={styles.itemsHeader}>
           <h3 className={styles.sectionTitle}>
             {shippingOption === 'DELIVERY' ? '배송지' : '픽업 장소'}
           </h3>
         </div>
-
         <div className={styles.recipientInfo}>
           <p className={styles.recipientName}>{recipientName}</p>
           <p className={styles.pickupMethod}>
             {shippingOption === 'DELIVERY' ? '배송' : '직접 픽업'}
           </p>
         </div>
-
         <div className={styles.pickupAddress}>
           <p>
             {shippingOption === 'DELIVERY' ? '' : '(픽업 장소) '}
             {deliveryAddress.address} {deliveryAddress.detailAddress}
           </p>
         </div>
-
         <hr className={styles.divider} />
-
         <div className={styles.pickupNote}>
           <p>
             {shippingOption === 'DELIVERY'
@@ -340,7 +274,6 @@ export default function OrderDetail() {
         </div>
       </div>
 
-      {/* Order Items */}
       <div className={styles.itemsSection}>
         <div className={styles.itemsHeader}>
           <h3 className={`${styles.sectionTitle} ${getStatusClass(status)}`}>
@@ -377,28 +310,28 @@ export default function OrderDetail() {
           </div>
         ))}
 
-        {/* ✅ Conditional Actions */}
         <div className={styles.primaryActions}>{renderActions(status)}</div>
       </div>
 
-      {/* Extra Actions */}
       <div className={styles.actionsSection}>
         <div className={styles.additionalActions}>
-          <button className={styles.actionButton} onClick={handleWriteReview}>
-            리뷰 쓰기
-          </button>
+          {allCompleted && (
+            <button className={styles.actionButton} onClick={handleWriteReview}>
+              리뷰 쓰기
+            </button>
+          )}
           <button className={styles.actionButton}>문의하기</button>
           <button className={styles.actionButton}>주문내역 삭제</button>
         </div>
       </div>
 
-      {/* ✅ Exchange/Refund Modal */}
-      <ExchangeRefundModal
+      <ExchangeReturnModal
         open={isExchangeRefundOpen}
         onClose={handleCloseExchangeRefundModal}
         orderId={orderId}
         product={{
-          id: parseInt(mainOrderItem.productId.split('-')[0], 16),
+          id: Number(mainOrderItem.productId),
+          orderItemId: mainOrderItem.orderItemId,
           name: mainOrderItem.productName,
           price: mainOrderItem.price,
           discountPrice:
@@ -410,14 +343,7 @@ export default function OrderDetail() {
           deliveryType:
             mainOrderItem.shippingOption === 'DELIVERY' ? 'delivery' : 'pickup',
         }}
-        onSelect={(choice) => {
-          console.log('User selected:', choice);
-          if (choice === 'exchange') {
-            router.push(`/exchange/${orderId}`);
-          } else {
-            router.push(`/refund/${orderId}`);
-          }
-        }}
+        onSelect={(choice) => console.log('User selected:', choice)}
       />
     </div>
   );

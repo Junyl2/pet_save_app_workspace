@@ -1,13 +1,13 @@
-import type { Product } from "@/app/components/types/refund";
-import { calculateRefundAmount } from "@/app/utils/refund-calculations";
-import styles from "./refund-confirmation-step.module.css";
+import type { Product } from '@/app/components/types/order';
+import { calculateRefundAmount } from '@/app/utils/refund-calculations';
+import styles from './return-confirmation-step.module.css';
 
 interface RefundConfirmationStepProps {
   selectedProducts: Product[];
   isDeliveryOrder: boolean;
 }
 
-export function RefundConfirmationStep({
+export function ReturnConfirmationStep({
   selectedProducts,
   isDeliveryOrder,
 }: RefundConfirmationStepProps) {
@@ -28,7 +28,7 @@ export function RefundConfirmationStep({
         <div key={product.id} className={styles.productSection}>
           <div className={styles.productInfo}>
             <img
-              src={product.image || "/placeholder.svg"}
+              src={product.image || '/placeholder.svg'}
               alt={product.name}
               className={styles.productImage}
             />
