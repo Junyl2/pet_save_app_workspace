@@ -1,4 +1,4 @@
-import type { Product } from "@/app/components/types/refund";
+import type { Product } from '@/app/components/types/order';
 
 export function calculateRefundAmount(
   selectedProducts: Product[],

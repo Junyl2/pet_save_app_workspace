@@ -5,7 +5,7 @@ import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import { FiAlertTriangle } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { PAGE_URLS } from '@/app/utils/page_url';
-import styles from './ExchangeRefundModal.module.css';
+import styles from './ExchangeReturnModal.module.css';
 import { Product } from '@/app/components/types/order';
 
 interface ExchangeRefundModalProps {
@@ -16,7 +16,7 @@ interface ExchangeRefundModalProps {
   product: Product;
 }
 
-export const ExchangeRefundModal = ({
+export const ExchangeReturnModal = ({
   open,
   onClose,
   onSelect,
@@ -50,7 +50,7 @@ export const ExchangeRefundModal = ({
   };
 
   /** Go to refund page with real order data (UUID) */
-  const handleRefundClick = () => {
+  const handleReturnClick = () => {
     if (!orderId || !product?.orderItemId) return;
 
     onSelect('refund');
@@ -58,7 +58,7 @@ export const ExchangeRefundModal = ({
     onClose();
 
     router.push(
-      `${PAGE_URLS.ORDER_REFUND(orderId)}?` +
+      `${PAGE_URLS.ORDER_RETURN(orderId)}?` +
         `orderItemId=${encodeURIComponent(product.orderItemId)}&` +
         `productId=${product.id}&` +
         `name=${encodeURIComponent(product.name)}&` +
@@ -141,7 +141,7 @@ export const ExchangeRefundModal = ({
             </button>
             <button
               className={`${styles.choiceBtn} ${styles.filled}`}
-              onClick={handleRefundClick}
+              onClick={handleReturnClick}
             >
               반품
             </button>

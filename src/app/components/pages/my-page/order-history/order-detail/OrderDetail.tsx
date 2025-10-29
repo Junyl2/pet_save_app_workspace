@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import DateRange from '@/app/components/ui/DateRange/DateRange';
 import styles from './OrderDetail.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
-import { ExchangeRefundModal } from '../exchange-refund-modal/ExchangeRefundModal';
+import { ExchangeReturnModal } from '../exchange-return-modal/ExchangeReturnModal';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import { fetchOrderDetails } from '@/app/redux/slices/cache/orderSlice';
 
@@ -23,7 +23,7 @@ export enum OrderStatus {
   EXCHANGE_COMPLETED = '교환 완료',
   REFUND_REQUESTED = '환불 신청',
   REFUND_COMPLETED = '환불 완료',
-  // ✅ Removed duplicate value '주문 완료'
+  //  Removed duplicate value '주문 완료'
   COMPLETED = '주문 완료 완료', // kept unique but equivalent
 }
 
@@ -325,7 +325,7 @@ export default function OrderDetail() {
         </div>
       </div>
 
-      <ExchangeRefundModal
+      <ExchangeReturnModal
         open={isExchangeRefundOpen}
         onClose={handleCloseExchangeRefundModal}
         orderId={orderId}

@@ -115,10 +115,36 @@
 
 /* Form Elements */
 .checkbox {
+  appearance: none;
   width: 20px;
   height: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  border-radius: 4px;
+  display: inline-block;
+  position: relative;
   cursor: pointer;
-  accent-color: #4caf50;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.checkbox:checked {
+  background-color: #66bfa7;
+  border-color: #66bfa7 !important;
+}
+
+.checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 6.5px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox:hover {
+  border-color: #57a98e;
 }
 
 .radio {

@@ -4,6 +4,7 @@ export interface Product {
   name: string;
   price: number;
   discountPrice?: number;
+  originalPrice?: number;
   brand?: string;
   image?: string;
   deliveryType: 'pickup' | 'delivery';

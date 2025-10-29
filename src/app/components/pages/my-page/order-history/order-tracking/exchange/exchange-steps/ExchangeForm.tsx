@@ -87,12 +87,13 @@ export function ExchangeForm({ product, onSubmit }: ExchangeFormProps) {
     <div className={styles.container}>
       <div className={styles.titleSection}>
         <h1 className={styles.title}>교환품 선택해 주세요</h1>
-
-        <ProductSelectionStep
-          product={product}
-          isSelected={productSelected}
-          onSelectionChange={setProductSelected}
-        />
+        <div className={styles.productSelection}>
+          <ProductSelectionStep
+            product={product}
+            isSelected={productSelected}
+            onSelectionChange={setProductSelected}
+          />
+        </div>
 
         {/* 교환 옵션 선택 */}
         <div className={styles.section}>
@@ -111,6 +112,7 @@ export function ExchangeForm({ product, onSubmit }: ExchangeFormProps) {
             </select>
           </div>
         </div>
+        <div className={styles.divider}> </div>
 
         {/* 교환 사유 선택 */}
         <div className={styles.section}>
@@ -120,9 +122,10 @@ export function ExchangeForm({ product, onSubmit }: ExchangeFormProps) {
             reasons={EXCHANGE_REASONS}
           />
         </div>
+        <div className={styles.divider}> </div>
       </div>
 
-      <div className={styles.section}>
+      <div className={styles.collectInfo}>
         <CollectionInfoStep product={product} />
       </div>
 

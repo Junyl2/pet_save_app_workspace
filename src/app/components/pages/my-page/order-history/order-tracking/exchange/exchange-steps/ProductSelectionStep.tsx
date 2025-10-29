@@ -11,19 +11,19 @@ interface ProductSelectionStepProps {
 
 export function ProductSelectionStep({
   product,
-  isSelected,
-  onSelectionChange,
-}: ProductSelectionStepProps) {
+}: /*  isSelected,
+  onSelectionChange, */
+ProductSelectionStepProps) {
   return (
     <ProductSection
-      leftContent={
+      /*  leftContent={
         <input
           type="checkbox"
           checked={isSelected}
           onChange={(e) => onSelectionChange(e.target.checked)}
           className={styles.checkbox}
         />
-      }
+      } */
       mainContent={
         <div className={styles.productInfo}>
           <div className={styles.productContent}>
