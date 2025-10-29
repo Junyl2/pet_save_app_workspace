@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
 import { FiAlertTriangle } from 'react-icons/fi';
-import styles from './ExchangeRefundModal.module.css';
 import { useRouter } from 'next/navigation';
 import { PAGE_URLS } from '@/app/utils/page_url';
+import styles from './ExchangeRefundModal.module.css';
 import { Product } from '@/app/components/types/order';
 
 interface ExchangeRefundModalProps {
@@ -28,47 +28,45 @@ export const ExchangeRefundModal = ({
 
   const handleNext = () => setStep('choice');
 
+  /**  Go to exchange page with real order data (UUID) */
   const handleExchangeClick = () => {
-    if (!orderId || !product) return;
+    if (!orderId || !product?.orderItemId) return;
 
-    // Call the onSelect prop
     onSelect('exchange');
-
-    // Reset modal step before closing
     setStep('info');
-
-    // Close modal
     onClose();
 
-    // Navigate to exchange page
     router.push(
       `${PAGE_URLS.ORDER_EXCHANGE(orderId)}?` +
-        `id=${product.id}&` +
+        `orderItemId=${encodeURIComponent(product.orderItemId)}&` +
+        `productId=${product.id}&` +
         `name=${encodeURIComponent(product.name)}&` +
         `price=${product.price}&` +
         `discountPrice=${product.discountPrice ?? ''}&` +
         `brand=${encodeURIComponent(product.brand ?? '')}&` +
-        `image=${encodeURIComponent(product.image ?? '')}`
+        `image=${encodeURIComponent(product.image ?? '')}&` +
+        `deliveryType=${product.deliveryType}`
     );
   };
 
+  /** Go to refund page with real order data (UUID) */
   const handleRefundClick = () => {
-    if (!orderId || !product) return;
+    if (!orderId || !product?.orderItemId) return;
 
-    // Call the onSelect prop and close modal
     onSelect('refund');
+    setStep('info');
     onClose();
-    setStep('info'); // reset modal for next open
 
-    // Navigate to refund page
     router.push(
       `${PAGE_URLS.ORDER_REFUND(orderId)}?` +
-        `id=${product.id}&` +
+        `orderItemId=${encodeURIComponent(product.orderItemId)}&` +
+        `productId=${product.id}&` +
         `name=${encodeURIComponent(product.name)}&` +
         `price=${product.price}&` +
         `discountPrice=${product.discountPrice ?? ''}&` +
         `brand=${encodeURIComponent(product.brand ?? '')}&` +
-        `image=${encodeURIComponent(product.image ?? '')}`
+        `image=${encodeURIComponent(product.image ?? '')}&` +
+        `deliveryType=${product.deliveryType}`
     );
   };
 
@@ -77,7 +75,7 @@ export const ExchangeRefundModal = ({
       open={open}
       onClose={() => {
         onClose();
-        setStep('info'); // reset if closed manually
+        setStep('info');
       }}
       withOverlay
       noRadius

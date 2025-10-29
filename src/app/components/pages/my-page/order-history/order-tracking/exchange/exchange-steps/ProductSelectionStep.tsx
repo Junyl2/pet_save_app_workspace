@@ -1,7 +1,7 @@
-"use client";
-import { Product } from "@/app/components/types/order";
-import ProductSection from "@/app/components/sections/ProductSection/ProductSection";
-import styles from "../ExchangePage.module.css";
+'use client';
+import { Product } from '@/app/components/types/order';
+import ProductSection from '@/app/components/sections/ProductSection/ProductSection';
+import styles from '../ExchangePage.module.css';
 
 interface ProductSelectionStepProps {
   product: Product;

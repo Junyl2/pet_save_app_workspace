@@ -1,12 +1,13 @@
-export type Product = {
+export interface Product {
   id: number;
+  orderItemId?: string;
   name: string;
   price: number;
-  discountPrice?: number | null;
+  discountPrice?: number;
   brand?: string;
   image?: string;
   deliveryType: 'pickup' | 'delivery';
-};
+}
 
 export type OrderItem = {
   product: Product;
