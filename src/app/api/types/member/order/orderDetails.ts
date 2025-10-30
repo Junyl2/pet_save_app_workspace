@@ -1,3 +1,5 @@
+// app/api/types/member/order/orderDetails.ts
+
 /**
  * Order status enum based on API specification
  */
@@ -36,6 +38,7 @@ export interface OrderHistoryQueryParams {
   size?: number;
   sortBy?: OrderSortBy;
   direction?: SortDirection;
+  onlyReviewable?: boolean;
 }
 
 /**
@@ -63,7 +66,7 @@ export interface Delivery {
 }
 
 /**
- * Order item from API (represents individual order items, not grouped orders)
+ * Order item from API
  */
 export interface OrderItemResponse {
   orderItemId: string;
@@ -88,10 +91,13 @@ export interface OrderItemResponse {
   appliedDiscountAmount: number;
   totalAmount: number;
   delivery: Delivery;
+  deliveryFee: number;
+  storeAddress: string;
+  storePhoneNumber: string;
 }
 
 /**
- * Pagination information from API
+ * Pagination info
  */
 export interface PageInfo {
   totalElements: number;
@@ -105,7 +111,7 @@ export interface PageInfo {
 }
 
 /**
- * Order history response data from API
+ * Order history response data
  */
 export interface OrderHistoryResponse {
   content: OrderItemResponse[];
@@ -113,7 +119,7 @@ export interface OrderHistoryResponse {
 }
 
 /**
- * API response wrapper for order history
+ * API response wrapper
  */
 export interface OrderHistoryApiResponse {
   success: boolean;
@@ -121,5 +127,18 @@ export interface OrderHistoryApiResponse {
   resultMsg: string;
   divisionCode: string | null;
   data: OrderHistoryResponse;
+  errorId?: string;
+}
+
+/**
+ * Delete order history response
+ * DELETE /api/pet-save/order-histories/orders/{orderId}
+ */
+export interface DeleteOrderHistoryResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: Record<string, unknown>;
   errorId?: string;
 }

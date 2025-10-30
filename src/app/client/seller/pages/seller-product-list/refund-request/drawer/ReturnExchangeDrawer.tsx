@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { IoClose } from 'react-icons/io5';
+import { returnExchangeService } from '@/app/api/services/client/return-exchange/returnExchangeService';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import styles from './ReturnExchangeDrawer.module.css';
 
 interface ProductInfo {
@@ -19,23 +21,49 @@ interface ReturnRequestItem {
   collectionMethod: string;
   requester: { name: string };
   items: Array<{ product: ProductInfo }>;
+  returnRequestId?: string;
 }
 
 interface ReturnExchangeDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   requestData: ReturnRequestItem | null;
+  onStatusUpdate: (id: string, status: 'APPROVED' | 'REJECTED') => void;
 }
 
 export const ReturnExchangeDrawer: React.FC<ReturnExchangeDrawerProps> = ({
   isOpen,
   onClose,
   requestData,
+  onStatusUpdate,
 }) => {
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen || !requestData) return null;
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>): void => {
     if (e.target === e.currentTarget) onClose();
+  };
+
+  const handleStatusChange = async (status: 'APPROVED' | 'REJECTED') => {
+    if (!requestData.returnRequestId) return;
+    try {
+      await returnExchangeService.updateStatus(requestData.returnRequestId, {
+        status,
+      });
+      setToast(status === 'APPROVED' ? '승인 완료' : '반려 완료');
+      onStatusUpdate(requestData.returnRequestId, status);
+      onClose();
+    } catch {
+      setToast('상태 변경 중 오류가 발생했습니다.');
+    }
   };
 
   const product = requestData.items?.[0]?.product;
@@ -46,10 +74,8 @@ export const ReturnExchangeDrawer: React.FC<ReturnExchangeDrawerProps> = ({
   ).toLocaleString('ko-KR');
   const exchangeOption = '옵션: 교환 옵션 (임시 표시)';
 
-  // --- Tag style logic
-  const getTypeClass = () => {
-    return requestData.type === 'RETURN' ? styles.typeRed : styles.typeViolet;
-  };
+  const getTypeClass = () =>
+    requestData.type === 'RETURN' ? styles.typeRed : styles.typeViolet;
 
   const getStatusClass = () => {
     if (requestData.status === 'REQUESTED') return styles.statusGray;
@@ -119,13 +145,25 @@ export const ReturnExchangeDrawer: React.FC<ReturnExchangeDrawerProps> = ({
         </div>
 
         <div className={styles.actions}>
-          <button type="button" className={styles.approveBtn}>
+          <button
+            type="button"
+            className={styles.approveBtn}
+            onClick={() => handleStatusChange('APPROVED')}
+          >
             승인
           </button>
-          <button type="button" className={styles.rejectBtn}>
+          <button
+            type="button"
+            className={styles.rejectBtn}
+            onClick={() => handleStatusChange('REJECTED')}
+          >
             반려
           </button>
         </div>
+
+        {toast && (
+          <ToastMessage message={toast} onClose={() => setToast(null)} />
+        )}
       </div>
     </div>
   );

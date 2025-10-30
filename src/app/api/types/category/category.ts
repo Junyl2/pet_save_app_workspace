@@ -1,5 +1,5 @@
 /**
- * Category information interface
+ * Category information interface (matches API response exactly)
  */
 export interface Category {
   categoryId: string;
@@ -7,8 +7,7 @@ export interface Category {
   englishName: string;
   displayOrder: number;
   visible: boolean;
-  createdAt: string;
-  updatedAt: string;
+  image: string | null; // Added: image URL from API
 }
 
 /**
@@ -35,18 +34,18 @@ export interface CategoryPageResponse {
   number: number;
   first: boolean;
   last: boolean;
-  numberOfElements: number;
-  empty: boolean;
+  numberOfElements?: number;
+  empty?: boolean;
 }
 
 /**
- * Category API response interface
+ * API response wrapper
  */
 export interface CategoryApiResponse {
   success: boolean;
   status: number;
   resultMsg: string;
-  divisionCode: string;
+  divisionCode: string | null;
   data: CategoryPageResponse;
   errorId?: string;
 }

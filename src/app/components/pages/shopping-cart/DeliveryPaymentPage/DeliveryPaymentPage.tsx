@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDispatch } from 'react-redux';
 import styles from './DeliveryPayment.module.css';
 
 import CartSummary from './CartSummary/CartSummary';
@@ -14,8 +15,9 @@ import PaymentSummary from './PaymentSummary/PaymentSummary';
 import PaymentMethod from './PaymentMethod/PaymentMethod';
 import Agreements from './Agreements/Agreements';
 import PayButton from './PayButton/PayButton';
-/* import OrderConfirmation from './OrderConfirmation/OrderConfirmation'; */
 import { PAGE_URLS } from '@/app/utils/page_url';
+import { AppDispatch } from '@/app/redux/store';
+import { fetchPointsStats } from '@/app/redux/slices/cache/pointsSlice';
 
 export type Product = {
   id: number;
@@ -32,16 +34,14 @@ export type OrderItem = {
 };
 
 const SHIPPING_FEE = 3000;
-const POINTS_AVAILABLE = 440;
-const POINTS_BALANCE = 445;
-
-// Fixed confirmation date: 8/6 (수)
-const CONFIRM_DATE = new Date(2025, 7, 6); // months are 0-indexed; 7 = August
+const CONFIRM_DATE = new Date(2025, 7, 6); // August 6
 
 export default function DeliveryPaymentPage() {
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
 
   const [deliveryOption, setDeliveryOption] = useState<
     'delivery' | 'pickup' | null
@@ -50,6 +50,9 @@ export default function DeliveryPaymentPage() {
   const [requestNote, setRequestNote] = useState('');
   const [customRequest, setCustomRequest] = useState('');
   const [usePoints, setUsePoints] = useState(0);
+
+  const [availablePoints, setAvailablePoints] = useState(0);
+  const [balancePoints, setBalancePoints] = useState(0);
 
   const [payCategory, setPayCategory] = useState<
     'quick' | 'card' | 'bank' | null
@@ -62,22 +65,37 @@ export default function DeliveryPaymentPage() {
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeFinal, setAgreeFinal] = useState(false);
 
-  /*   // Show confirmation after payment
-  const [paid, setPaid] = useState(false); */
-
+  // Load cart + delivery option
   useEffect(() => {
     const saved = localStorage.getItem('checkoutItems');
     if (saved) setOrderItems(JSON.parse(saved));
 
-    // Check for stored delivery option from direct order
     const storedDeliveryOption = localStorage.getItem('selectedDeliveryOption');
     if (storedDeliveryOption) {
       setDeliveryOption(storedDeliveryOption as 'delivery' | 'pickup');
-      // Clear the stored option after using it
       localStorage.removeItem('selectedDeliveryOption');
     }
   }, []);
 
+  // Fetch real points
+  useEffect(() => {
+    const loadPoints = async () => {
+      try {
+        const result = await dispatch(fetchPointsStats());
+        if (fetchPointsStats.fulfilled.match(result)) {
+          const data = result.payload?.data?.data?.data;
+          const totalUsablePoints = data?.totalUsablePoints ?? 0;
+          setAvailablePoints(totalUsablePoints);
+          setBalancePoints(totalUsablePoints); // same unless you track other logic
+        }
+      } catch (err) {
+        console.error('Failed to load points:', err);
+      }
+    };
+    loadPoints();
+  }, [dispatch]);
+
+  // Derived totals
   const { itemCount, subtotal, discountAmount } = useMemo(() => {
     const count = orderItems.reduce((n, it) => n + it.quantity, 0);
     const sub = orderItems.reduce(
@@ -97,7 +115,7 @@ export default function DeliveryPaymentPage() {
 
   const maxPointUsable = Math.max(
     0,
-    Math.min(POINTS_AVAILABLE, Math.floor(subtotal))
+    Math.min(availablePoints, Math.floor(subtotal))
   );
 
   useEffect(() => {
@@ -113,11 +131,7 @@ export default function DeliveryPaymentPage() {
     !!payCategory &&
     (payCategory !== 'quick' || !!quickBrand) &&
     !!deliveryOption;
-  /*   &&
-    agreeOrderInfo &&
-    agreePrivacy &&
-    agreeFinal;
- */
+
   const paymentLabel =
     payCategory === 'quick'
       ? quickBrand === 'toss'
@@ -141,7 +155,6 @@ export default function DeliveryPaymentPage() {
       date: CONFIRM_DATE.toISOString(),
     };
 
-    // Fallback store (survives navigation within the same tab)
     try {
       sessionStorage.setItem('orderConfirmation', JSON.stringify(payload));
     } catch {}
@@ -155,13 +168,10 @@ export default function DeliveryPaymentPage() {
       date: payload.date,
     });
 
-    // Optional: clear cart AFTER we stored confirmation data
     localStorage.removeItem('checkoutItems');
-
     router.push(`${PAGE_URLS.ORDER_CONFIRMATION}?${params.toString()}`);
   };
 
-  // Otherwise show the regular checkout flow
   return (
     <div className={styles.container}>
       <CartSummary
@@ -200,8 +210,8 @@ export default function DeliveryPaymentPage() {
         usePoints={usePoints}
         setUsePoints={setUsePoints}
         maxPointUsable={maxPointUsable}
-        pointsAvailable={POINTS_AVAILABLE}
-        pointsBalance={POINTS_BALANCE}
+        pointsAvailable={availablePoints}
+        pointsBalance={balancePoints}
       />
 
       <div className={styles.divider}></div>
