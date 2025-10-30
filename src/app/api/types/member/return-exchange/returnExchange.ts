@@ -1,5 +1,5 @@
-// app/api/types/member/return-exchange/returnExchange.ts
 export type ReturnExchangeType = 'RETURN' | 'EXCHANGE';
+
 export type ReturnExchangeStatus =
   | 'REQUESTED'
   | 'APPROVED'
@@ -9,6 +9,13 @@ export type ReturnExchangeStatus =
   | 'EXCHANGED';
 
 export type CollectionMethod = 'COURIER_PICKUP' | 'CUSTOMER_RETURN' | string;
+
+// Exchange options expected by backend (extend as needed)
+export type ExchangeOption =
+  | 'RETURN_ONLY'
+  | 'SIZE_CHANGE'
+  | 'PRODUCT_CHANGE'
+  | string;
 
 export interface BaseApiResponse<T = unknown> {
   success: boolean;
@@ -24,6 +31,7 @@ export interface CreateReturnExchangeRequest {
   reason: string;
   orderItemIds: string[];
   collectionMethod: CollectionMethod;
+  exchangeOption: ExchangeOption;
 }
 
 export interface UpdateReturnExchangeStatusRequest {
@@ -38,6 +46,7 @@ export interface ReturnExchangeItem {
   requesterId: string;
   storeId: string;
   productId?: string;
+  exchangeOption?: ExchangeOption;
   createdAt: string;
   updatedAt: string;
 }

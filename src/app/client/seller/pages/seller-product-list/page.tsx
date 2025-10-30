@@ -393,8 +393,7 @@ export default function SellerProductListPage() {
                     <Image
                       src={getDefaultImage(p)}
                       alt={p.productName}
-                      width={90}
-                      height={90}
+                      fill
                       className={styles.thumb}
                     />
                   </div>

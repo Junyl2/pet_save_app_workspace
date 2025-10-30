@@ -127,6 +127,7 @@ export default function ReturnPage() {
           collectionMethod: isDeliveryOrder
             ? 'COURIER_PICKUP'
             : 'CUSTOMER_RETURN',
+          exchangeOption: 'RETURN_ONLY',
         };
 
         const res = await returnExchangeService.create(payload);

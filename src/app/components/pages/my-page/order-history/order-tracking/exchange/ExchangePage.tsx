@@ -84,6 +84,7 @@ export default function ExchangePage() {
           currentProduct.deliveryType === 'pickup'
             ? 'CUSTOMER_RETURN'
             : 'COURIER_PICKUP',
+        exchangeOption: data.selectedOption || '',
       };
 
       const res = await returnExchangeService.create(payload);

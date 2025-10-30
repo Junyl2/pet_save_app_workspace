@@ -23,8 +23,8 @@ export default function FilterBar({
   const statusOptions = [
     '상품 준비중', // PREPARING
     '배송중', // DELIVERY_STARTED
-    /*  '배송 완료', */
-    '픽업중', // PICKUP_IN_PROGRESS
+    '픽업 준비완료',
+    /*     '픽업중', */ // PICKUP_IN_PROGRESS
     '픽업 완료', // PICKUP_COMPLETED
     '배송완료', // COMPLETED
     '전체보기',

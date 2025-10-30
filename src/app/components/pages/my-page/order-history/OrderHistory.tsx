@@ -19,11 +19,11 @@ const ALLOWED_DISPLAY_STATUSES = [
   '상품 준비중',
   '배송중',
   '배송 완료',
+  '픽업 준비완료',
   '픽업중',
   '픽업 완료',
   '배송완료',
 ];
-
 export default function OrderHistory() {
   const dispatch = useAppDispatch();
   const { orderHistoryCache, loading, error } = useAppSelector(

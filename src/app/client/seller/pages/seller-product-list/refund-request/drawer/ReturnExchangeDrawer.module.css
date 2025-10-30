@@ -5,10 +5,15 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 5000;
+  z-index: 9999 !important;
 }
 
+/* Drawer (mobile default) */
 .drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   background: #fff;
   border-radius: 12px 12px 0 0;
   padding: 16px 20px 24px;
@@ -16,7 +21,15 @@
   flex-direction: column;
   gap: 12px;
   animation: slideUp 0.25s ease-out;
-  width: 100%;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, 100%);
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
 }
 
 .closeButton {
@@ -35,27 +48,6 @@
 .closeButton:hover {
   background: rgba(0, 0, 0, 0.05);
   color: #000;
-}
-
-@media (min-width: 1024px) {
-  .overlay {
-    width: 468px;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  .drawer {
-    width: 428px;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
 }
 
 .header {
@@ -79,11 +71,6 @@
   color: rgba(0, 0, 0, 0.6);
 }
 
-.icon {
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.6);
-}
-
 .productInfo {
   display: flex;
   flex-direction: column;
@@ -93,22 +80,6 @@
 .statusRow {
   display: flex;
   gap: 8px;
-}
-
-.returnType {
-  background: #ffe4e6;
-  color: #c70036;
-  border-radius: 10px;
-  font-size: 12px;
-  padding: 3px 10px;
-}
-
-.status {
-  background: #d9d9d9;
-  color: #fff;
-  border-radius: 10px;
-  font-size: 12px;
-  padding: 3px 10px;
 }
 
 .productName {
@@ -212,4 +183,21 @@
 .statusRed {
   background: #fdece9;
   color: #c64a36;
+}
+
+/* Center overlay and drawer within 468 px viewport on desktop */
+@media (min-width: 1024px) {
+  .overlay {
+    width: 468px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  .drawer {
+    width: 100%;
+    max-width: 428px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }

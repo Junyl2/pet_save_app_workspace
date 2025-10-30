@@ -17,7 +17,7 @@ export interface ProductSummary {
   productNumber: string;
   store: Store;
 
-  /** Some list endpoints may return a thumbnail; details does NOT. */
+  images: string[];
   thumbnail?: string | null;
 
   productName: string;

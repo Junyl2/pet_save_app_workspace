@@ -10,6 +10,7 @@ import styles from './page.module.css';
 import { returnExchangeService } from '@/app/api/services/client/return-exchange/returnExchangeService';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 import { ReturnExchangeDrawer } from './drawer/ReturnExchangeDrawer';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 
 interface PaginatedReturnExchange {
   content: Array<{
@@ -45,6 +46,26 @@ function hasContentArray(data: unknown): data is PaginatedReturnExchange {
   );
 }
 
+// ✅ Status translation helper
+function getKoreanStatus(status: string): string {
+  switch (status) {
+    case 'REQUESTED':
+      return '대기중';
+    case 'APPROVED':
+      return '승인됨';
+    case 'REJECTED':
+      return '반려됨';
+    case 'WAITING_FOR_RETURN':
+      return '반품 대기중';
+    case 'RETURNED':
+      return '반품 완료';
+    case 'EXCHANGED':
+      return '교환 완료';
+    default:
+      return status;
+  }
+}
+
 export default function RefundRequestPage() {
   const pathname = usePathname();
   const [activeFilter, setActiveFilter] = useState<'전체' | '반품' | '교환'>(
@@ -58,6 +79,7 @@ export default function RefundRequestPage() {
   >(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async (): Promise<void> => {
@@ -94,6 +116,23 @@ export default function RefundRequestPage() {
 
     fetchData();
   }, []);
+
+  const handleStatusUpdate = async (
+    requestId: string,
+    status: 'APPROVED' | 'REJECTED'
+  ): Promise<void> => {
+    try {
+      await returnExchangeService.updateStatus(requestId, { status });
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.returnRequestId === requestId ? { ...r, status } : r
+        )
+      );
+      setToast(status === 'APPROVED' ? '승인되었습니다.' : '반려되었습니다.');
+    } catch {
+      setToast('상태 변경 중 오류가 발생했습니다.');
+    }
+  };
 
   const filteredRequests = useMemo(() => {
     if (activeFilter === '전체') return requests;
@@ -192,6 +231,8 @@ export default function RefundRequestPage() {
                   product?.productThumbnail || '/images/products/dogfood.png';
                 const exchangeOption = '옵션: 교환 옵션 (임시 표시)';
 
+                const koreanStatus = getKoreanStatus(item.status);
+
                 return (
                   <div key={item.returnRequestId} className={styles.card}>
                     <div className={styles.cardImageContainer}>
@@ -224,7 +265,7 @@ export default function RefundRequestPage() {
                               : styles.tagGray
                           }`}
                         >
-                          {item.status}
+                          {koreanStatus}
                         </span>
                       </div>
                       <div className={styles.cardText}>
@@ -243,15 +284,23 @@ export default function RefundRequestPage() {
                       >
                         상세보기
                       </div>
-                      <div
-                        className={`${styles.actionButton} ${styles.actionButtonGreen}`}
-                      >
-                        승인
-                      </div>
-                      <div
-                        className={`${styles.actionButton} ${styles.actionButtonRed}`}
-                      >
-                        반려
+                      <div className={styles.actionButtons}>
+                        <div
+                          className={`${styles.actionButton} ${styles.actionButtonGreen}`}
+                          onClick={() =>
+                            handleStatusUpdate(item.returnRequestId, 'APPROVED')
+                          }
+                        >
+                          승인
+                        </div>
+                        <div
+                          className={`${styles.actionButton} ${styles.actionButtonRed}`}
+                          onClick={() =>
+                            handleStatusUpdate(item.returnRequestId, 'REJECTED')
+                          }
+                        >
+                          반려
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -262,12 +311,21 @@ export default function RefundRequestPage() {
         </div>
       </div>
 
-      {/* Drawer: rendered once outside map */}
       <ReturnExchangeDrawer
         isOpen={!!selectedRequest}
         onClose={() => setSelectedRequest(null)}
         requestData={selectedRequest}
+        onStatusUpdate={(id, status) => {
+          setRequests((prev) =>
+            prev.map((r) => (r.returnRequestId === id ? { ...r, status } : r))
+          );
+          setToast(
+            status === 'APPROVED' ? '승인되었습니다.' : '반려되었습니다.'
+          );
+        }}
       />
+
+      {toast && <ToastMessage message={toast} onClose={() => setToast(null)} />}
 
       <BottomBar />
     </>

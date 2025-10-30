@@ -17,7 +17,6 @@ export const returnExchangeService = {
    * [POST] /return-requests
    * Create a new return or exchange request.
    * - Accessible by: **Authenticated Users**
-   * - Use when a user requests a product exchange or return.
    */
   async create(payload: CreateReturnExchangeRequest) {
     return apiClient.post<BaseApiResponse<ReturnExchangeItem>>(
@@ -30,7 +29,6 @@ export const returnExchangeService = {
    * [GET] /return-requests
    * Fetch all return/exchange requests (with optional filters).
    * - Accessible by: **Admin**
-   * - Allows filtering by type, status, requester, store, date range, etc.
    */
   async getAll(params?: ReturnExchangeQueryParams) {
     const query = new URLSearchParams(
@@ -50,8 +48,6 @@ export const returnExchangeService = {
   /**
    * [GET] /return-requests/{returnRequestId}
    * Fetch detailed info for a specific return/exchange request.
-   * - Accessible by: **Requester (User)**, **Store Owner**, **Admin**
-   * - Use for viewing request details in detail pages.
    */
   async getById(returnRequestId: string) {
     return apiClient.get<BaseApiResponse<ReturnExchangeItem>>(
@@ -62,8 +58,6 @@ export const returnExchangeService = {
   /**
    * [GET] /return-requests/stores/{storeId}
    * Fetch all return/exchange requests for a specific store.
-   * - Accessible by: **Store Owner**, **Admin**
-   * - Use in the store dashboard to review pending requests.
    */
   async getByStore(
     storeId: string,
@@ -88,10 +82,7 @@ export const returnExchangeService = {
 
   /**
    * [PUT] /return-requests/{returnRequestId}/status
-   * Update the status of a return/exchange request (e.g., APPROVED, REJECTED).
-   * - Accessible by:
-   *   - **Store Owner** → can approve/reject only
-   *   - **Admin** → can update to any status
+   * Update the status of a return/exchange request.
    */
   async updateStatus(
     returnRequestId: string,
