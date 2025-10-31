@@ -9,13 +9,11 @@ export default function AdminLandingPage() {
   const { admin, loading } = useAdminAuth();
 
   useEffect(() => {
-    if (loading) return; // Wait until auth is loaded
+    if (loading) return;
 
     if (admin) {
-      //  Admin logged in → go to dashboard
-      router.replace('/admin/pages/order-delivery-management');
+      router.replace('/admin/pages/order-delivery-management/waiting-payment');
     } else {
-      //  Not logged in → go to login page
       router.replace('/admin/login');
     }
   }, [admin, loading, router]);

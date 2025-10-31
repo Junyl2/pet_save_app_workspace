@@ -6,7 +6,6 @@
   margin-top: 1rem;
 }
 .panel {
-  /* Group 637 frame: 900 x 895 (auto height with content) */
   width: 100%;
   max-width: 900px;
   /*   font-family: 'Pretendard', system-ui, -apple-system, Segoe UI, Roboto,
@@ -20,11 +19,20 @@
 
 /* Avatar (Ellipse 160x160 at top-right) */
 .avatar {
+  position: relative;
   width: 160px;
   height: 160px;
   border-radius: 50%;
   background: #d9d9d9;
   margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumb {
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 /* Frame 619: stack of rows with zero spacing (itemSpacing: 0) */
@@ -32,6 +40,7 @@
   display: grid;
   grid-auto-rows: min-content;
   row-gap: 0;
+  width: 100%;
 }
 
 /* Shared frame look per row (Rectangle 100 borders, white bg) */
@@ -41,6 +50,7 @@
   border: 1px solid rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
   padding: 10px 20px;
+  width: 100%;
 }
 
 /* exact heights from figma */
@@ -50,11 +60,15 @@
   grid-template-columns: 278px 1fr;
   align-items: center;
 }
+.row100:first-child {
+  border-radius: 10px 10px 0px 0px;
+}
 .row160 {
   height: 160px;
   display: grid;
   grid-template-columns: 278px 1fr;
   align-items: center;
+  border-radius: 0px 0px 10px 10px;
 }
 
 /* Left inner boxes (Group 397/635 rectangles) */
@@ -79,8 +93,8 @@
 }
 
 /* Right “input-like” boxes */
-.right350,
-.right500 {
+.right350 input,
+.right500 input {
   display: flex;
   align-items: center;
   justify-content: flex-start;
