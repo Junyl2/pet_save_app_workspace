@@ -3,9 +3,10 @@
 import { useEffect, useState, FormEvent } from 'react';
 import Image from 'next/image';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-import styles from './page.module.css';
 import { useRouter, useSearchParams } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { AuthService } from '@/app/api/services/client/auth/authService';
+import styles from './page.module.css';
 
 const DEFAULT_AFTER_LOGIN =
   '/admin/pages/order-delivery-management/waiting-payment';
@@ -24,7 +25,7 @@ export default function AdminLoginPage() {
   // Prefill username if remembered
   useEffect(() => {
     try {
-      const remembered = localStorage.getItem('rememberedUsername');
+      const remembered = localStorage.getItem('adminRememberedUsername');
       if (remembered) {
         setUsername(remembered);
         setRemember(true);
@@ -34,38 +35,38 @@ export default function AdminLoginPage() {
     }
   }, []);
 
-  const handleUsernameChange = (value: string) => {
-    setUsername(value);
-    setError('');
-  };
+  // ✅ Always keep the remembered username synced
+  useEffect(() => {
+    if (remember && username.trim()) {
+      localStorage.setItem('adminRememberedUsername', username.trim());
+    } else if (!remember) {
+      localStorage.removeItem('adminRememberedUsername');
+    }
+  }, [remember, username]);
 
-  const prettyError = (raw?: string) => {
+  const prettyError = (raw?: string): string => {
     if (!raw) return '로그인에 실패했습니다. 잠시 후 다시 시도해주세요.';
     const msg = raw.toLowerCase();
     if (
       msg.includes('401') ||
       msg.includes('unauthorized') ||
       msg.includes('invalid')
-    ) {
+    )
       return '아이디 또는 비밀번호가 올바르지 않습니다.';
-    }
-    if (msg.includes('429') || msg.includes('too many')) {
+    if (msg.includes('429') || msg.includes('too many'))
       return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
-    }
     if (
       msg.includes('network') ||
       msg.includes('fetch') ||
       msg.includes('failed to')
-    ) {
+    )
       return '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
-    }
     return raw;
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (loading) return;
-
     setLoading(true);
     setError('');
 
@@ -87,17 +88,29 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // remember username
-      try {
-        if (remember) localStorage.setItem('rememberedUsername', username);
-        else localStorage.removeItem('rememberedUsername');
-      } catch {
-        /* ignore */
+      const permissions = Array.isArray(data.data?.permissions)
+        ? (data.data.permissions as string[])
+        : [];
+
+      if (!permissions.includes('ADMIN')) {
+        toast.error('관리자 권한이 없습니다.');
+        setLoading(false);
+        return;
       }
 
-      // Compute redirect target:
-      // 1) honor ?next=... if present and internal
-      // 2) else go to DEFAULT_AFTER_LOGIN
+      localStorage.setItem(
+        'adminAuthToken',
+        localStorage.getItem('authToken') ?? ''
+      );
+      localStorage.setItem(
+        'adminRefreshToken',
+        localStorage.getItem('refreshToken') ?? ''
+      );
+      localStorage.setItem(
+        'adminUserInfo',
+        localStorage.getItem('userInfo') ?? ''
+      );
+
       const nextParam = searchParams?.get('next') || '';
       const isInternal =
         nextParam.startsWith('/') &&
@@ -105,10 +118,13 @@ export default function AdminLoginPage() {
         !nextParam.startsWith('/http');
 
       const target = isInternal ? nextParam : DEFAULT_AFTER_LOGIN;
-
+      toast.success('관리자 로그인 성공');
       router.replace(target);
-    } catch (err: any) {
-      setError(prettyError(err?.message));
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : '로그인에 실패했습니다.';
+      setError(prettyError(message));
+    } finally {
       setLoading(false);
     }
   };
@@ -116,11 +132,10 @@ export default function AdminLoginPage() {
   return (
     <div className={styles.mainContainer}>
       <div className={styles.loginPage}>
-        {/* Logo */}
         <div className={styles.imageWrapper}>
           <Image
             src="/images/logo/loading-screen.png"
-            alt="Pet Saves"
+            alt="Pet Save"
             height={94}
             width={144}
             className={styles.objectContain}
@@ -128,7 +143,6 @@ export default function AdminLoginPage() {
           />
         </div>
 
-        {/* Login Form */}
         <div className={styles.loginFormContainer}>
           <form className={styles.loginForm} onSubmit={handleSubmit} noValidate>
             <div className={styles.inputWrapper}>
@@ -139,9 +153,8 @@ export default function AdminLoginPage() {
                 className={styles.inputField}
                 placeholder="아이디를 입력하세요"
                 value={username}
-                onChange={(e) => handleUsernameChange(e.target.value)}
+                onChange={(e) => setUsername(e.target.value)}
                 required
-                aria-label="아이디 (대소문자 구분 없음)"
                 disabled={loading}
               />
             </div>
@@ -152,61 +165,40 @@ export default function AdminLoginPage() {
                 name="password"
                 autoComplete="current-password"
                 className={styles.inputField}
-                placeholder="비밀번호를 입력하세요."
+                placeholder="비밀번호를 입력하세요"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                aria-label="비밀번호"
                 disabled={loading}
               />
               <button
                 type="button"
                 className={styles.eyeButton}
                 onClick={() => setShowPassword((v) => !v)}
-                tabIndex={-1}
-                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
                 disabled={loading}
+                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
               >
                 {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
               </button>
             </div>
 
-            <div className={styles.rememberLogin}>
-              <label className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  className={styles.checkbox}
-                  checked={remember}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setRemember(checked);
-                    try {
-                      if (checked && username) {
-                        localStorage.setItem('rememberedUsername', username);
-                      } else if (!checked) {
-                        localStorage.removeItem('rememberedUsername');
-                      }
-                    } catch {
-                      /* ignore */
-                    }
-                  }}
-                  disabled={loading}
-                />{' '}
-                아이디 저장
-              </label>
-            </div>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                className={styles.checkbox}
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                disabled={loading}
+              />
+              아이디 저장
+            </label>
 
-            {error && (
-              <div className={styles.error} role="alert" aria-live="assertive">
-                {error}
-              </div>
-            )}
+            {error && <div className={styles.error}>{error}</div>}
 
             <button
               type="submit"
               className={styles.loginButton}
               disabled={loading}
-              aria-busy={loading}
             >
               {loading ? '로그인 중...' : '로그인'}
             </button>

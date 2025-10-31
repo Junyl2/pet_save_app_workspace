@@ -1,38 +1,22 @@
-.container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1rem;
-}
 .panel {
+  /* Group 637 frame: 900 x 895 (auto height with content) */
   width: 100%;
   max-width: 900px;
-  /*   font-family: 'Pretendard', system-ui, -apple-system, Segoe UI, Roboto,
-    sans-serif; */
+  position: relative;
+  font-family: 'Pretendard', system-ui, -apple-system, Segoe UI, Roboto,
+    sans-serif;
   color: #141414;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
 /* Avatar (Ellipse 160x160 at top-right) */
 .avatar {
-  position: relative;
+  position: absolute;
+  top: 0; /* visually near the top of the panel */
+  right: 0; /* align to the right edge */
   width: 160px;
   height: 160px;
   border-radius: 50%;
-  background: #d9d9d9;
-  margin-bottom: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.thumb {
-  border-radius: 50%;
-  object-fit: cover;
+  background: #d9d9d9; /* #D9D9D9 ~ figma ellipse gray */
 }
 
 /* Frame 619: stack of rows with zero spacing (itemSpacing: 0) */
@@ -40,7 +24,7 @@
   display: grid;
   grid-auto-rows: min-content;
   row-gap: 0;
-  width: 100%;
+  margin-top: 210px; /* push content below the avatar to avoid overlap */
 }
 
 /* Shared frame look per row (Rectangle 100 borders, white bg) */
@@ -50,7 +34,6 @@
   border: 1px solid rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
   padding: 10px 20px;
-  width: 100%;
 }
 
 /* exact heights from figma */
@@ -60,15 +43,11 @@
   grid-template-columns: 278px 1fr;
   align-items: center;
 }
-.row100:first-child {
-  border-radius: 10px 10px 0px 0px;
-}
 .row160 {
   height: 160px;
   display: grid;
   grid-template-columns: 278px 1fr;
   align-items: center;
-  border-radius: 0px 0px 10px 10px;
 }
 
 /* Left inner boxes (Group 397/635 rectangles) */
@@ -78,7 +57,7 @@
   align-items: center;
   justify-content: center;
   background: #fff;
-  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
 }
 .left80 {
   height: 80px;
@@ -93,8 +72,8 @@
 }
 
 /* Right “input-like” boxes */
-.right350 input,
-.right500 input {
+.right350,
+.right500 {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -103,8 +82,8 @@
   border-radius: 5px;
   padding: 0 16px;
   box-sizing: border-box;
-  margin-left: 30px;
-  max-width: 350px;
+  margin-left: 30px; /* visually similar to figma’s 330→360 text offset */
+  max-width: 350px; /* default for 350 variant; override below for 500 */
   width: 100%;
 }
 
@@ -130,6 +109,7 @@
 
 /* Bottom actions (Group 319 width 710 with two 350 buttons) */
 .actions {
+  /* center a 710px-wide grid */
   width: 100%;
   max-width: 710px;
   margin: 24px auto 0 auto;

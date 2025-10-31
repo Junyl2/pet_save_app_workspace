@@ -7,7 +7,7 @@ import styles from './AccountTopBar.module.css';
 const slugToTabKey = {
   'general-member': '일반 회원',
   'business-member': '사업자 회원',
-  'confirm-business-registration': '사업자등록 확인',
+  'business-registration-confirmation': '사업자등록 확인',
 };
 
 export default function AccounTopBar() {

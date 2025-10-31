@@ -6,18 +6,15 @@ import clsx from 'clsx';
 import { FiChevronDown, FiLogOut } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { MemberService } from '@/app/api/services/client/memberService/memberService';
+import { AuthService } from '@/app/api/services/client/auth/authService';
 
-type MenuItem = {
-  key: string;
-  label: string;
-};
+type MenuItem = { key: string; label: string };
 
 export type AdminSideBarProps = {
   activeKey?: string;
   onNavigate?: (key: string) => void;
   className?: string;
-  adminName?: string;
-  onLogout?: () => void;
 };
 
 const MENU: MenuItem[] = [
@@ -48,18 +45,16 @@ const CANCEL_CHILDREN: MenuItem[] = [
   },
 ];
 
-// Default page to navigate to when clicking the parent row
 const CANCEL_DEFAULT_KEY = CANCEL_CHILDREN[0].key;
 
 export default function AdminSideBar({
   activeKey = 'orders-shipping',
   onNavigate,
   className,
-  adminName = '관리자님',
-  onLogout,
 }: AdminSideBarProps) {
-  const [open, setOpen] = useState(false);
   const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [adminName, setAdminName] = useState<string>('관리자님');
 
   const isCancelChildActive = activeKey.startsWith(
     'cancellation-refund-exchange/'
@@ -69,14 +64,39 @@ export default function AdminSideBar({
     if (isCancelChildActive) setOpen(true);
   }, [isCancelChildActive]);
 
-  const handleNavigate = (key: string) => {
+  /** Fetch admin name only */
+  useEffect(() => {
+    const fetchAdminName = async (): Promise<void> => {
+      const response = await MemberService.getMyInfo();
+      if (response.error) {
+        console.error('Failed to fetch admin info:', response.error);
+        return;
+      }
+      const name = response.data?.data?.name;
+      if (name) setAdminName(name);
+    };
+    fetchAdminName();
+  }, []);
+
+  /** Logout */
+  const handleLogout = async (): Promise<void> => {
+    try {
+      await AuthService.logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      localStorage.removeItem('adminAuthToken');
+      localStorage.removeItem('adminRefreshToken');
+      localStorage.removeItem('adminUserInfo');
+      sessionStorage.clear();
+      router.replace('/admin/login');
+    }
+  };
+
+  const handleNavigate = (key: string): void => {
     onNavigate?.(key);
     router.push(`/admin/pages/${key}`);
-
-    // 👇 Close dropdown when navigating to any non-cancel menu
-    if (!key.startsWith('cancellation-refund-exchange')) {
-      setOpen(false);
-    }
+    if (!key.startsWith('cancellation-refund-exchange')) setOpen(false);
   };
 
   return (
@@ -94,10 +114,10 @@ export default function AdminSideBar({
       {/* Greeting */}
       <div className={styles.greetingCard}>
         <div className={styles.greetingRow}>
-          <div className={styles.greetingText}>{adminName}, 반갑습니다</div>
+          <div className={styles.greetingText}>안녕하세요, {adminName}</div>
           <button
             className={styles.logoutBtn}
-            onClick={onLogout}
+            onClick={handleLogout}
             aria-label="로그아웃"
             type="button"
           >
@@ -116,7 +136,6 @@ export default function AdminSideBar({
           if (m.key === 'cancel-return-exchange') {
             return (
               <div key={m.key} className={styles.group}>
-                {/* Parent row */}
                 <button
                   type="button"
                   className={clsx(
@@ -124,7 +143,6 @@ export default function AdminSideBar({
                     isActive && styles.menuItemActive
                   )}
                   onClick={() => {
-                    // When parent clicked, open + navigate to default child
                     setOpen(true);
                     handleNavigate(CANCEL_DEFAULT_KEY);
                   }}
@@ -132,13 +150,10 @@ export default function AdminSideBar({
                   aria-controls="cancel-submenu"
                 >
                   <span className={styles.menuLabel}>{m.label}</span>
-
-                  {/* Dropdown toggle */}
                   <span
                     role="button"
                     tabIndex={0}
                     className={styles.chevronBtn}
-                    aria-label={open ? '하위 메뉴 접기' : '하위 메뉴 펼치기'}
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpen((v) => !v);
@@ -156,18 +171,15 @@ export default function AdminSideBar({
                         styles.dropdownIcon,
                         open && styles.dropdownOpen
                       )}
-                      aria-hidden="true"
                     />
                   </span>
                 </button>
 
-                {/* Child submenu */}
                 {open && (
                   <div
                     id="cancel-submenu"
                     className={styles.submenu}
                     role="group"
-                    aria-label="주문 취소·반품/교환 하위 메뉴"
                   >
                     {CANCEL_CHILDREN.map((child) => (
                       <button
@@ -188,7 +200,6 @@ export default function AdminSideBar({
             );
           }
 
-          // Regular menu item
           return (
             <button
               key={m.key}

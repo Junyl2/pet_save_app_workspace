@@ -63,7 +63,7 @@ export default function AdminPagesLayout({ children }: LayoutProps) {
         background: '#fafafa',
       }}
     >
-      <AdminSideBar activeKey={activeKey} onLogout={handleLogout} />
+      <AdminSideBar activeKey={activeKey} /* onLogout={handleLogout} */ />
       <main
         style={{
           padding: '24px 32px',

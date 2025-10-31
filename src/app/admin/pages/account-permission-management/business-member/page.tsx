@@ -18,7 +18,7 @@ const members: Member[] = Array.from({ length: 10 }).map((_, i) => ({
   nickname: `닉네임${i + 1}`,
   contact: `010-0000-000${i}`,
   email: `user${i + 1}@mail.com`,
-  type: i % 2 === 0 ? '일반' : 'VIP',
+  type: '사업자',
 }));
 
 export default function BusinessMemberPage() {
