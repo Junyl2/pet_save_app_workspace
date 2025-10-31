@@ -1,0 +1,46 @@
+.container {
+  /* Figma: width 320, height 17, horizontal, spacing 37, centered */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 37px; /* itemSpacing from Figma */
+  min-height: 17px; /* match visual height */
+  width: 100%;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.link,
+.page {
+  /* Figma: opacity 0.8, color ~#141414 */
+  color: #141414;
+  opacity: 0.8;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  height: 17px; /* keep the row tight as in design */
+  line-height: 17px;
+  font-size: 14px; /* readable while staying compact */
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.link:hover,
+.page:hover {
+  text-decoration: underline;
+}
+
+.active {
+  /* Subtle emphasis while staying close to Figma */
+  opacity: 1;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.disabled,
+:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  text-decoration: none;
+}

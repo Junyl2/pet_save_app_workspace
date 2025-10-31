@@ -1,0 +1,147 @@
+.container {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 782px; /* matches Figma group width */
+  height: 50px; /* matches Figma height */
+  gap: 10px; /* Figma itemSpacing between groups */
+}
+
+/* ===== Date range (Frame 408) ===== */
+.dateRange {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 335px;
+  height: 50px;
+}
+
+.dateInput {
+  position: relative;
+  width: 150px;
+  height: 50px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.inputField {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 15px;
+  color: rgba(20, 20, 20, 0.8);
+  background: transparent;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.calendarIcon {
+  position: absolute;
+  right: 12px;
+  font-size: 18px;
+  color: rgba(20, 20, 20, 0.8);
+  pointer-events: none;
+}
+
+.tilde {
+  font-size: 18px;
+  color: #bababa;
+}
+
+/* ===== Search box (Rectangle 87) ===== */
+.searchBox {
+  width: 350px;
+  height: 50px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+}
+
+.searchInput {
+  border: none;
+  outline: none;
+  width: 100%;
+  height: 100%;
+  font-size: 15px;
+  color: #141414;
+  background: transparent;
+  font-family: 'Pretendard', sans-serif;
+}
+
+/* ===== Search button (Frame 426) ===== */
+.searchButton {
+  width: 77px;
+  height: 50px;
+  background-color: #424b57; /* rgb(66,75,87) from Figma */
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.searchButton:hover {
+  background-color: #2f363f;
+}
+
+/* ========== Dropdown Filter (left) ========== */
+.dropdownWrapper {
+  position: relative;
+  width: 150px;
+  height: 50px;
+  margin-right: 2.1rem;
+}
+
+.dropdownHeader {
+  width: 100%;
+  height: 50px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 15px;
+  color: rgba(20, 20, 20, 0.8);
+  cursor: pointer;
+}
+
+.dropdownIcon {
+  font-size: 18px;
+  color: rgba(20, 20, 20, 0.8);
+}
+
+.dropdownList {
+  position: absolute;
+  top: 52px;
+  left: 0;
+  width: 100%;
+  padding: 0 1rem;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  z-index: 20;
+}
+
+.dropdownItem {
+  padding: 10px 16px;
+  font-size: 15px;
+  color: rgba(20, 20, 20, 0.8);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dropdownItem:hover {
+  background: rgba(0, 0, 0, 0.05);
+}

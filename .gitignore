@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# auto-git-pull backups
+pet_save_web_*
+
+# claude code
+.claude/
