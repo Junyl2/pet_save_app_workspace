@@ -5,7 +5,6 @@ import {
   ZipCodeSearchServiceResponse,
   AddressSearchResponse,
   ZipCodeSearchResponse,
-  AddressKeywordSearchPostRequest,
 } from '@/app/api/types/address/addressSearch';
 
 // Flexible type that includes all possible properties from different response formats
@@ -1084,21 +1083,6 @@ export class AddressService {
             : '주소 검색 중 오류가 발생했습니다.',
       };
     }
-  }
-
-  /**
-   * Search by keyword (Alternative, POST) – delegates to the existing POST handler.
-   * Endpoint: POST /api/pet-save/address/search
-   */
-  static async searchAddressByKeywordAlternative(
-    payload: AddressKeywordSearchPostRequest
-  ): Promise<AddressSearchServiceResponse> {
-    console.log('[AddressService] POST keyword alternative search:', {
-      keyword: payload?.keyword,
-      currentPage: payload?.currentPage ?? 1,
-      countPerPage: payload?.countPerPage ?? 10,
-    });
-    return this.searchAddressByKeywordPost(payload);
   }
 
   /**

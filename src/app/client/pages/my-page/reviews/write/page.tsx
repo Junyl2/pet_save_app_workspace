@@ -11,7 +11,6 @@ import { ReviewFileService } from '@/app/api/services/client/fileService/reviewF
 import { ProductSummary } from '@/app/api/types/products/productSummary';
 import { ReviewCreateDto } from '@/app/api/types/member/review/review';
 import Loading from '@/app/components/ui/Loading/Loading';
-import Image from 'next/image';
 
 type NewImage = { id: string; file: File; url: string };
 
@@ -22,20 +21,22 @@ export default function WriteReviewPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [product, setProduct] = useState<ProductSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [rating, setRating] = useState(0);
-  const [reviewText, setReviewText] = useState('');
+  const [rating, setRating] = useState<number>(0);
+  const [reviewText, setReviewText] = useState<string>('');
   const [attachedImages, setAttachedImages] = useState<NewImage[]>([]);
-  const [hoveredStar, setHoveredStar] = useState(0);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [uploadingFiles, setUploadingFiles] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState('');
+  const [hoveredStar, setHoveredStar] = useState<number>(0);
+  const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [uploadingFiles, setUploadingFiles] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
 
-  // Fetch product
+  // Fetch product data
   useEffect(() => {
-    let active = true;
+    let isMounted = true;
+    setLoading(true);
+    setError(null);
 
     const fetchProduct = async () => {
       if (!productId) {
@@ -46,7 +47,8 @@ export default function WriteReviewPage() {
 
       try {
         const response = await ProductService.getProductSummary(productId);
-        if (!active) return;
+
+        if (!isMounted) return;
 
         if (response.error) {
           setError('상품을 불러올 수 없습니다.');
@@ -56,37 +58,39 @@ export default function WriteReviewPage() {
           setError('상품 정보를 찾을 수 없습니다.');
         }
       } catch (err) {
-        if (!active) return;
-        console.error(err);
+        if (!isMounted) return;
+        console.error('Failed to fetch product:', err);
         setError('상품을 불러오는 중 오류가 발생했습니다.');
       } finally {
-        if (active) setLoading(false);
+        if (!isMounted) return;
+        setLoading(false);
       }
     };
 
     fetchProduct();
+
     return () => {
-      active = false;
+      isMounted = false;
     };
   }, [productId]);
 
-  // Rating
-  const handleStarClick = (i: number) => setRating(i);
-  const handleStarHover = (i: number) => setHoveredStar(i);
+  const handleStarClick = (starIndex: number) => setRating(starIndex);
+  const handleStarHover = (starIndex: number) => setHoveredStar(starIndex);
   const handleStarLeave = () => setHoveredStar(0);
 
-  // Photo upload
   const handlePhotoUpload = () => fileInputRef.current?.click();
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
     if (!files) return;
-    const additions = Array.from(files).map((f) => ({
+    const additions: NewImage[] = Array.from(files).map((f) => ({
       id: crypto.randomUUID(),
       file: f,
       url: URL.createObjectURL(f),
     }));
     setAttachedImages((prev) => [...prev, ...additions]);
   };
+
   const removeImage = (id: string) => {
     setAttachedImages((prev) => {
       const img = prev.find((x) => x.id === id);
@@ -95,13 +99,13 @@ export default function WriteReviewPage() {
     });
   };
 
+  // cleanup all object URLs on unmount
   useEffect(() => {
     return () => {
       attachedImages.forEach((x) => URL.revokeObjectURL(x.url));
     };
   }, [attachedImages]);
 
-  // Submit
   const handleSubmit = async () => {
     if (
       !productId ||
@@ -109,13 +113,15 @@ export default function WriteReviewPage() {
       !reviewText.trim() ||
       submitting ||
       uploadingFiles
-    )
+    ) {
       return;
+    }
 
     setSubmitting(true);
     let uploadedFileIds: string[] = [];
 
     try {
+      // First, upload files if any are attached
       if (attachedImages.length > 0) {
         setUploadingFiles(true);
         setUploadProgress('이미지 업로드 중...');
@@ -135,10 +141,12 @@ export default function WriteReviewPage() {
           );
         }
 
+        // Ensure we have valid encrypted IDs (use encryptedId instead of fileId)
         uploadedFileIds = uploadResponse.data.data
-          .filter((f) => f.encryptedId)
-          .map((f) => f.encryptedId);
+          .filter((fileData) => fileData.encryptedId)
+          .map((fileData) => fileData.encryptedId);
 
+        // If we had files but none were uploaded successfully, show error
         if (attachedImages.length > 0 && uploadedFileIds.length === 0) {
           throw new Error('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
         }
@@ -146,16 +154,18 @@ export default function WriteReviewPage() {
         setUploadProgress('리뷰 등록 중...');
       }
 
+      // Create review with uploaded file IDs (encryptedId)
       const reviewData: ReviewCreateDto = {
         productId,
         rating,
         content: reviewText.trim(),
-        imageFileIds: uploadedFileIds,
+        imageFileIds: uploadedFileIds, // Use the encrypted IDs from upload
       };
 
       const response = await ReviewService.createReview(reviewData);
 
       if (response.error) {
+        console.error('Failed to create review:', response.error);
         alert('리뷰 등록에 실패했습니다. 다시 시도해주세요.');
       } else {
         setShowSuccessMessage(true);
@@ -165,11 +175,12 @@ export default function WriteReviewPage() {
         }, 3000);
       }
     } catch (err) {
-      const msg =
+      console.error('Error creating review:', err);
+      const errorMessage =
         err instanceof Error
           ? err.message
           : '리뷰 등록 중 오류가 발생했습니다.';
-      alert(msg);
+      alert(errorMessage);
     } finally {
       setSubmitting(false);
       setUploadingFiles(false);
@@ -198,28 +209,19 @@ export default function WriteReviewPage() {
     );
   }
 
-  // ---------- UI ----------
   return (
     <div className={styles.container}>
       <ProductHeader />
+
       <div className={styles.content}>
         {/* Product Info */}
         <div className={styles.productSection}>
           <div className={styles.productImage}>
-            {product.images && product.images.length > 0 ? (
-              <Image
-                src={product.images[0]}
-                alt={product.productName}
-                width={60}
-                height={60}
-                className={styles.productImage}
-                priority
-              />
-            ) : (
-              <span className={styles.altText}>{product.productName}</span>
-            )}
+            <img
+              src={product.thumbnail || '/images/products/noresult.png'}
+              alt={product.productName}
+            />
           </div>
-
           <div className={styles.productInfo}>
             <div className={styles.productName}>{product.productName}</div>
             <div className={styles.productStore}>
@@ -248,17 +250,17 @@ export default function WriteReviewPage() {
             구매하신 상품은 만족하시나요?
           </div>
           <div className={styles.starsContainer}>
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3, 4, 5].map((starIndex) => (
               <button
-                key={i}
+                key={starIndex} // static 1..5
                 className={styles.starButton}
-                onClick={() => handleStarClick(i)}
-                onMouseEnter={() => handleStarHover(i)}
+                onClick={() => handleStarClick(starIndex)}
+                onMouseEnter={() => handleStarHover(starIndex)}
                 onMouseLeave={handleStarLeave}
               >
                 <FaStar
                   className={`${styles.star} ${
-                    i <= (hoveredStar || rating)
+                    starIndex <= (hoveredStar || rating)
                       ? styles.starFilled
                       : styles.starEmpty
                   }`}
@@ -267,10 +269,9 @@ export default function WriteReviewPage() {
             ))}
           </div>
         </div>
-
         <div className={styles.divider}></div>
 
-        {/* Review Text */}
+        {/* Review Text Section */}
         <div className={styles.reviewSection}>
           <div className={styles.reviewTitle}>자세한 리뷰를 작성해주세요</div>
           <textarea
@@ -283,7 +284,7 @@ export default function WriteReviewPage() {
           <div className={styles.charCount}>{reviewText.length}/500</div>
         </div>
 
-        {/* Photo Upload */}
+        {/* Photo Upload Section */}
         <div className={styles.photoSection}>
           <button className={styles.photoButton} onClick={handlePhotoUpload}>
             <FaCamera className={styles.cameraIcon} />
@@ -298,6 +299,7 @@ export default function WriteReviewPage() {
             className={styles.hiddenInput}
           />
 
+          {/* Display attached images (stable keys) */}
           {attachedImages.length > 0 && (
             <div className={styles.imagePreviewContainer}>
               {attachedImages.map((img) => (
@@ -315,7 +317,7 @@ export default function WriteReviewPage() {
           )}
         </div>
 
-        {/* Submit */}
+        {/* Submit Button */}
         <div className={styles.line}></div>
         <button
           className={`${styles.submitButton} ${
@@ -332,9 +334,10 @@ export default function WriteReviewPage() {
         </button>
       </div>
 
+      {/* Success Message */}
       {showSuccessMessage && (
         <div className={styles.successMessage}>
-          리뷰가 등록되어 포인트 50원이 적립되었습니다.
+          리뷰가 등록되어 포인트 300원이 적립되었습니다.
         </div>
       )}
     </div>

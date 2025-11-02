@@ -71,7 +71,7 @@ export default function ProductDetailPage() {
     <section className={styles.container}>
       <ProductHeader />
       <ProductImage
-        src={product.thumbnail || ''}
+        src={product.thumbnail}
         alt={product.productName}
         product={product}
       />

@@ -15,11 +15,9 @@ import {
 } from '@/app/redux/slices/cache/reviewSlice';
 import { setHasLoadedOnce } from '@/app/redux/slices/auth/ui/loadingSlice';
 import { MyReviewsParams } from '@/app/api/types/member/review/review';
-import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
-import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
 import styles from './Reviews.module.css';
 
-// Helper: convert rating to Korean comment
+// Helper function to get Korean rating comment
 const getRatingComment = (rating: number): string => {
   switch (rating) {
     case 5:
@@ -37,28 +35,88 @@ const getRatingComment = (rating: number): string => {
   }
 };
 
+// Mock data for products available for review
+const mockProducts = [
+  {
+    id: 1,
+    name: '탐사 강아지 고구마말랭이 간식',
+    price: 11000,
+    store: '○○ 동물병원',
+    image: '/images/products/dog-snack.png',
+  },
+  {
+    id: 2,
+    name: '굿데이 건강한 육포 강아지 간식',
+    price: 12560,
+    store: '펫프렌즈',
+    image: '/images/products/dog-snack2.png',
+  },
+  {
+    id: 3,
+    name: '씨엔앨 고양이 짜먹는 간식',
+    price: 24000,
+    store: '강아지대통령',
+    image: '/images/products/dogfood.png',
+  },
+  {
+    id: 4,
+    name: '압축 톱밥 베딩 사과향, 15L, 2개',
+    price: 59900,
+    store: 'ㄱㄱ 동물 클리닉',
+    image: '/images/products/dog-snack.png',
+  },
+  {
+    id: 5,
+    name: '종합 8종 버라이어티 화식사료, 50g, 28개',
+    price: 9800,
+    store: '인터파크 펫',
+    image: '/images/products/dog-snack2.png',
+  },
+  {
+    id: 6,
+    name: '고흡수 든든패드 레몬향',
+    price: 85000,
+    store: '어바웃펫',
+    image: '/images/products/dogfood.png',
+  },
+  {
+    id: 7,
+    name: '더리얼 강아지 레시피 단치킨 케이크',
+    price: 85000,
+    store: '어바웃펫',
+    image: '/images/products/dog-snack.png',
+  },
+  {
+    id: 8,
+    name: '참좋은간식 애견보양식 파우치',
+    price: 85000,
+    store: '어바웃펫',
+    image: '/images/products/dog-snack2.png',
+  },
+];
+
 export default function ReviewsPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState<'write' | 'my-reviews'>('write');
-  const [reviewableProducts, setReviewableProducts] = useState<
-    OrderItemResponse[]
-  >([]);
-  const [loadingReviewable, setLoadingReviewable] = useState<boolean>(true);
-  const [errorReviewable, setErrorReviewable] = useState<string | null>(null);
 
-  // Redux review cache
+  // Redux state
   const { cache, loading, error } = useAppSelector((state) => state.reviews);
 
+  // Get hasLoadedOnce state from Redux
   const hasLoadedOnce = useAppSelector(
     (state) => state.loading.hasLoadedOnce[`reviews-page-${activeTab}`] || false
   );
 
-  const getCurrentCacheKey = (): string =>
-    activeTab === 'my-reviews'
-      ? `my_reviews_0_50_createdAt_desc`
-      : `all_all_all_0_50_createdAt_desc`;
+  // Get current cache key for reviews
+  const getCurrentCacheKey = (): string => {
+    if (activeTab === 'my-reviews') {
+      return `my_reviews_0_50_createdAt_desc`;
+    }
+    return `all_all_all_0_50_createdAt_desc`;
+  };
 
+  // Get current reviews from cache
   const currentCacheKeyString = getCurrentCacheKey();
   const cachedData = cache[currentCacheKeyString];
   const writtenReviews = useMemo(
@@ -66,9 +124,11 @@ export default function ReviewsPage() {
     [cachedData?.reviews]
   );
 
-  const formatPrice = (price: number) => `${price.toLocaleString('ko-KR')}원`;
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('ko-KR') + '원';
+  };
 
-  const handleWriteReview = (productId: string) => {
+  const handleWriteReview = (productId: number) => {
     router.push(`/client/pages/my-page/reviews/write?productId=${productId}`);
   };
 
@@ -76,39 +136,7 @@ export default function ReviewsPage() {
     router.push(`/client/pages/my-page/reviews/view?reviewId=${reviewId}`);
   };
 
-  /** ✅ Fetch reviewable products using onlyReviewable=true */
-  useEffect(() => {
-    const fetchReviewable = async () => {
-      try {
-        setLoadingReviewable(true);
-        const { data, error } = await orderDetailsService.getMyOrderHistory({
-          onlyReviewable: true,
-          page: 0,
-          size: 50,
-          sortBy: 'createdAt',
-          direction: 'desc',
-        });
-
-        if (error) {
-          setErrorReviewable(error);
-          setReviewableProducts([]);
-        } else if (data?.data?.content) {
-          setReviewableProducts(data.data.content);
-        } else {
-          setReviewableProducts([]);
-        }
-      } catch (err) {
-        setErrorReviewable('리뷰 가능한 상품을 불러오지 못했습니다.');
-        setReviewableProducts([]);
-      } finally {
-        setLoadingReviewable(false);
-      }
-    };
-
-    fetchReviewable();
-  }, []);
-
-  /** ✅ Redux fetch for reviews */
+  // Fetch reviews using Redux
   useEffect(() => {
     if (activeTab === 'my-reviews') {
       dispatch(
@@ -129,18 +157,32 @@ export default function ReviewsPage() {
       dispatch(fetchReviews(cacheKeyParams));
     }
 
+    // Mark as loaded once after successful fetch
     dispatch(setHasLoadedOnce(`reviews-page-${activeTab}`));
   }, [dispatch, activeTab]);
 
-  /** Background revalidation for my reviews */
+  // Background revalidation effect for my reviews
   useEffect(() => {
     if (activeTab === 'my-reviews' && writtenReviews.length > 0) {
       const cacheKey = `my_reviews_0_50_createdAt_desc`;
-      const cached = cache[cacheKey];
-      if (cached) {
+      const cachedData = cache[cacheKey];
+
+      if (cachedData) {
         const now = Date.now();
-        const isStale = now - cached.timestamp >= 10_000;
-        if (isStale) {
+        const cacheAge = now - cachedData.timestamp;
+        const isDataStale = cacheAge >= 10 * 1000; // 10 seconds in milliseconds
+
+        console.log('🔍 Checking my reviews cache age:', {
+          cacheAge: Math.round(cacheAge / 1000),
+          seconds: 'seconds old',
+          isStale: isDataStale,
+          timestamp: new Date(cachedData.timestamp).toLocaleTimeString(),
+        });
+
+        if (isDataStale) {
+          console.log(
+            '🔄 My reviews data is stale, triggering background revalidation...'
+          );
           const params: MyReviewsParams = {
             page: 0,
             size: 50,
@@ -148,26 +190,32 @@ export default function ReviewsPage() {
             direction: 'desc',
           };
           dispatch(revalidateMyReviewsInBackground(params));
+        } else {
+          console.log('✅ My reviews data is fresh, no revalidation needed');
         }
       }
     }
   }, [dispatch, activeTab, writtenReviews.length, cache]);
 
-  /** Check stale status */
+  // Check stale status when component mounts or data changes
   useEffect(() => {
-    if (activeTab === 'my-reviews') dispatch(checkStaleStatus());
+    if (activeTab === 'my-reviews') {
+      dispatch(checkStaleStatus());
+    }
   }, [dispatch, activeTab, writtenReviews]);
 
-  const renderStars = (rating: number) =>
-    Array.from({ length: 5 }, (_, i) => (
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, index) => (
       <FaStar
-        key={i}
+        key={index} // fixed-length static list; safe
         className={`${styles.star} ${
-          i < rating ? styles.starFilled : styles.starEmpty
+          index < rating ? styles.starFilled : styles.starEmpty
         }`}
       />
     ));
+  };
 
+  // Show loading only if not loaded before and currently loading
   const shouldShowLoading =
     loading && !hasLoadedOnce && activeTab === 'my-reviews';
   if (shouldShowLoading) {
@@ -204,59 +252,39 @@ export default function ReviewsPage() {
           </button>
         </div>
 
-        {/* Write Tab */}
+        {/* Content based on active tab */}
         {activeTab === 'write' ? (
           <div key="write-tab" className={styles.writeReviewSection}>
             <div className={styles.sectionTitle}>
-              쓸 수 있는 리뷰 {reviewableProducts.length}개
+              쓸 수 있는 리뷰 {mockProducts.length}개
             </div>
 
-            {loadingReviewable ? (
-              <div className={styles.emptyState}>로딩 중...</div>
-            ) : errorReviewable ? (
-              <div className={styles.emptyState}>
-                오류가 발생했습니다: {errorReviewable}
-              </div>
-            ) : reviewableProducts.length === 0 ? (
-              <div className={styles.emptyState}>
-                아직 리뷰 가능한 상품이 없습니다.
-              </div>
-            ) : (
-              <div className={styles.productList}>
-                {reviewableProducts.map((product) => (
-                  <div key={product.orderItemId} className={styles.productItem}>
-                    <div className={styles.productImage}>
-                      <img
-                        src={product.productImageUrl}
-                        alt={product.productName}
-                      />
-                    </div>
-
-                    <div className={styles.productInfo}>
-                      <div className={styles.productName}>
-                        {product.productName}
-                      </div>
-                      <div className={styles.productPrice}>
-                        {formatPrice(product.price)}
-                      </div>
-                      <div className={styles.productStore}>
-                        {product.storeName}
-                      </div>
-                    </div>
-
-                    <button
-                      className={styles.reviewButton}
-                      onClick={() => handleWriteReview(product.productId)}
-                    >
-                      리뷰쓰기
-                    </button>
+            <div className={styles.productList}>
+              {mockProducts.map((product) => (
+                <div key={product.id} className={styles.productItem}>
+                  <div className={styles.productImage}>
+                    <img src={product.image} alt={product.name} />
                   </div>
-                ))}
-              </div>
-            )}
+
+                  <div className={styles.productInfo}>
+                    <div className={styles.productName}>{product.name}</div>
+                    <div className={styles.productPrice}>
+                      {formatPrice(product.price)}
+                    </div>
+                    <div className={styles.productStore}>{product.store}</div>
+                  </div>
+
+                  <button
+                    className={styles.reviewButton}
+                    onClick={() => handleWriteReview(product.id)}
+                  >
+                    리뷰쓰기
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
-          /** My Reviews Tab */
           <div key="my-reviews-tab" className={styles.myReviewsSection}>
             {error ? (
               <div className={styles.emptyState}>에러: {error}</div>
@@ -264,6 +292,7 @@ export default function ReviewsPage() {
               <div className={styles.detailedReviewContainer}>
                 {writtenReviews.map((review) => (
                   <div key={review.reviewId} className={styles.detailedReview}>
+                    {/* Review Header */}
                     <div className={styles.reviewHeader}>
                       <div className={styles.userInfo}>
                         <div className={styles.profileImage}>
@@ -301,15 +330,17 @@ export default function ReviewsPage() {
                       </button>
                     </div>
 
+                    {/* Product Name */}
                     <div className={styles.reviewProductName}>
                       {review.productName}
                     </div>
 
-                    {review.imageUrls?.length > 0 && (
+                    {/* Review Images (stable keys) */}
+                    {review.imageUrls && review.imageUrls.length > 0 && (
                       <div className={styles.reviewImagesContainer}>
-                        {review.imageUrls.map((image, idx) => (
+                        {review.imageUrls.map((image, imageIndex) => (
                           <div
-                            key={`${review.reviewId}-image-${idx}`}
+                            key={`${review.reviewId}-image-${imageIndex}`}
                             className={styles.reviewImageItem}
                           >
                             <img src={image} alt="Review image" />
@@ -318,6 +349,7 @@ export default function ReviewsPage() {
                       </div>
                     )}
 
+                    {/* Review Text */}
                     <div className={styles.reviewTextContent}>
                       {review.content}
                     </div>

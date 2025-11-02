@@ -22,11 +22,6 @@ export const ProductHeader = () => {
   );
   const isShoplist = pathname.startsWith('/shops');
 
-  const isReturnExchangeFlow =
-    pathname.includes('/client/pages/my-page/order-history/') &&
-    (pathname.includes('/tracking/return') ||
-      pathname.includes('/tracking/exchange'));
-
   const handleBack = () => {
     if (isInquiryPage) {
       router.push('/client/pages/inquiries'); // go to inbox
@@ -40,8 +35,6 @@ export const ProductHeader = () => {
       router.push('/client/seller/pages/my-page');
     } else if (isChangeSellerProfile) {
       window.history.back(); // Use browser back for proper navigation
-    } else if (isReturnExchangeFlow) {
-      window.history.back();
     } else {
       window.history.back(); // default behavior
     }
