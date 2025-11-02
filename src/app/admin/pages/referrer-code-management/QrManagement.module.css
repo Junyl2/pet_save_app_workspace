@@ -1,0 +1,158 @@
+.pageContainer {
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  /*  padding: 2rem 4rem; */
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1520px;
+}
+
+/* --- Search Bar --- */
+.topBar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.searchWrap {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.searchInput {
+  width: 350px;
+  height: 50px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  background: #fff;
+  padding: 0 1rem;
+  font-size: 15px;
+  outline: none;
+}
+
+.searchBtn {
+  width: 77px;
+  height: 50px;
+  border-radius: 5px;
+  border: none;
+  background: #424b57;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.searchBtn:hover {
+  background: #505965;
+}
+
+/* --- Header Section --- */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 1rem 1.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: #fff;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #141414;
+}
+
+.sectionDesc {
+  font-size: 15px;
+  color: #141414;
+}
+
+/* --- Content Box --- */
+.contentBox {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  background: #fff;
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.label {
+  font-size: 15px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.input {
+  width: 300px;
+  height: 60px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 0 1rem;
+  font-size: 16px;
+  outline: none;
+}
+
+.unit {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 15px;
+}
+
+/* --- Buttons --- */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.resetBtn {
+  width: 116px;
+  height: 50px;
+  border-radius: 30px;
+  background: #fff;
+  border: 1px solid #2b6443;
+  color: #141414;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.resetBtn:hover {
+  background: rgba(43, 100, 67, 0.05);
+}
+
+.saveBtn {
+  width: 99px;
+  height: 50px;
+  border-radius: 30px;
+  background: #2b6443;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s ease;
+}
+
+.saveBtn:hover {
+  background: #215037;
+}

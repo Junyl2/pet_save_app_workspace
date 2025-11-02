@@ -1,0 +1,190 @@
+/* === Page Header === */
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  margin: 0 1rem;
+}
+
+.pageTitle {
+  font-size: 36px;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 0rem;
+}
+
+.subTitle {
+  font-size: 22px;
+  font-weight: 500;
+  color: #000;
+  margin-bottom: 4rem;
+}
+
+/* === Main Section === */
+.section {
+  width: 100%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+/* Header inside the box */
+.header {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 0 2rem;
+  background: #fff;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.editInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 1.8rem;
+  background: #fff;
+  color: #141414;
+  font-size: 15px;
+  cursor: pointer;
+  height: 50px;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.note {
+  color: #141414;
+  font-size: 15px;
+}
+
+/* === Content === */
+.content {
+  display: flex;
+  align-items: flex-start;
+  gap: 2.5rem;
+  padding: 2rem 2.5rem;
+  background: #fff;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #141414;
+  margin: 0;
+}
+
+/* Left: Image upload */
+.imageSection {
+  display: flex;
+  flex-direction: column;
+  width: 217px;
+  gap: 0.75rem;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #141414;
+}
+
+.imageBox {
+  position: relative;
+  width: 217px;
+  height: 223px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  overflow: hidden;
+}
+
+.image {
+  object-fit: cover;
+}
+
+.imageButtons {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.deleteBtn {
+  width: 107px;
+  height: 29px;
+  border-radius: 100px;
+  border: 1px solid #424b57;
+  background: rgba(255, 255, 255, 0.8);
+  color: #141414;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.selectBtn {
+  width: 105px;
+  height: 29px;
+  border-radius: 100px;
+  background: #424b57;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+}
+
+/* Right: Form Fields */
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  width: 100%;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input {
+  width: 100%;
+  height: 40px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 0 10px;
+  font-size: 15px;
+  color: #141414;
+  background: #fff;
+}
+
+/* === Footer Buttons (Outside the box) === */
+.footerOutside {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 100px;
+  padding: 2rem 0;
+  background: #fff;
+  margin-top: 2rem;
+}
+
+.footerBtnWhite {
+  width: 245px;
+  height: 50px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: #fff;
+  border-radius: 5px;
+  color: rgba(20, 20, 20, 0.8);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.footerBtnGreen {
+  width: 245px;
+  height: 50px;
+  border-radius: 5px;
+  border: 1px solid #fff;
+  background: #66bfa7;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}

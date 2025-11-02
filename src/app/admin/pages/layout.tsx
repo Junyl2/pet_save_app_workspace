@@ -34,9 +34,10 @@ function resolveActiveKey(pathname: string): string {
     return 'tax-invoice-list';
   if (pathname.includes('/admin/pages/account-permission-management'))
     return 'account-permission-management/general-member';
-  if (pathname.includes('/admin/pages/animal-categories'))
-    return 'animal-categories';
-  if (pathname.includes('/admin/pages/products')) return 'products';
+  if (pathname.includes('/admin/pages/animal-category-management'))
+    return 'animal-category-management';
+  if (pathname.includes('/admin/pages/product-management'))
+    return 'product-management';
   if (pathname.includes('/admin/pages/referrals')) return 'referral-codes';
   if (pathname.includes('/admin/pages/support')) return 'support';
 

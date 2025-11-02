@@ -2,9 +2,9 @@
 
 import React from 'react';
 import Image from 'next/image';
-import styles from './Add.module.css';
+import styles from './Edit.module.css';
 
-export default function AddCategoryPage() {
+export default function EditCategoryPage() {
   return (
     <>
       {/* Top Header Section */}
@@ -19,9 +19,7 @@ export default function AddCategoryPage() {
         <header className={styles.header}>
           <div className={styles.headerLeft}>
             <h4 className={styles.editInfo}>기본 정보 수정</h4>
-            <p className={styles.note}>
-              필수 항목 수정 후 추가하기를 눌러주세요.
-            </p>
+            <p className={styles.note}>필수 항목 수정 후 저장을 눌러주세요.</p>
           </div>
         </header>
 
@@ -50,6 +48,7 @@ export default function AddCategoryPage() {
               </button>
             </div>
           </div>
+
           {/* Right Fields */}
           <div className={styles.fields}>
             <div className={styles.fieldGroup}>
@@ -75,10 +74,13 @@ export default function AddCategoryPage() {
       {/* Footer Buttons (outside box) */}
       <div className={styles.footerOutside}>
         <button type="button" className={styles.footerBtnWhite}>
-          취소
+          삭제
         </button>
         <button type="button" className={styles.footerBtnGreen}>
-          추가하기
+          목록
+        </button>
+        <button type="button" className={styles.footerBtnWhite}>
+          저장
         </button>
       </div>
     </>

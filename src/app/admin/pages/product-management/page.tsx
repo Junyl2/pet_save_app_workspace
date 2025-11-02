@@ -1,9 +1,8 @@
 'use client';
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import styles from './AnimalCategory.module.css';
+import styles from './AddProduct.module.css';
 import Image from 'next/image';
-import { FiPlus } from 'react-icons/fi';
 
 interface Member {
   id: string;
@@ -19,7 +18,7 @@ const members: Member[] = Array.from({ length: 10 }).map((_, i) => ({
   situation: 'hiding',
 }));
 
-export default function AdnimalCategoryPage() {
+export default function AddProductPage() {
   const router = useRouter();
 
   const openInvoice = (member: Member) => {
@@ -40,26 +39,13 @@ export default function AdnimalCategoryPage() {
   return (
     <>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>동물 카테고리 관리</h1>
-        <h2 className={styles.subTitle}>카테고리 목록</h2>
+        <h1 className={styles.pageTitle}>상품 리스트</h1>
       </div>
 
       <div className={styles.wrapper}>
         {/* Top Bar: Add Button + Search */}
         <div className={styles.topHeader}>
           {/* Left: Add Category */}
-          <button
-            type="button"
-            className={styles.addCategoryBtn}
-            onClick={() =>
-              router.push(
-                '/admin/pages/animal-category-management/add-category'
-              )
-            }
-          >
-            <FiPlus size={16} className={styles.plusIcon} />
-            <span>카테고리 추가</span>
-          </button>
 
           {/* Right: Search Bar */}
           <div className={styles.searchWrap}>
@@ -75,9 +61,13 @@ export default function AdnimalCategoryPage() {
         </div>
 
         <div className={styles.headerRow}>
-          <div className={styles.col}>아이콘 이미지</div>
-          <div className={styles.col}>분류</div>
+          <div className={styles.col}></div>
+          <div className={styles.col}>원단명</div>
+          <div className={styles.col}>상품명</div>
+          <div className={styles.col}>가격</div>
+          <div className={styles.col}>재고</div>
           <div className={styles.col}>상태</div>
+          <div className={styles.col}>분류</div>
         </div>
 
         {members.map((member) => (
@@ -87,8 +77,11 @@ export default function AdnimalCategoryPage() {
             </div>
             <div className={styles.col}>{member.type}</div>
             <div className={styles.col}>{member.situation}</div>
+            <div className={styles.col}>{member.situation}</div>
+            <div className={styles.col}>{member.situation}</div>
+            <div className={styles.col}>{member.situation}</div>
             <div className={styles.actions}>
-              <button className={styles.hideBtn}>숨김 전환</button>
+              <button className={styles.hideBtn}>삭제</button>
               <button
                 className={styles.editBtn}
                 tabIndex={0}
@@ -98,7 +91,7 @@ export default function AdnimalCategoryPage() {
                 }
                 aria-label={`${member.type} 거래 증빙서류 열기`}
               >
-                수정하기
+                수정
               </button>
             </div>
           </div>

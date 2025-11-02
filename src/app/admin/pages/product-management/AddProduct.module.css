@@ -12,7 +12,7 @@
 .pageHeader {
   display: flex;
   flex-direction: column;
-  margin: 0 1rem;
+  margin: 0rem 1rem 4rem 1rem;
 }
 
 .pageTitle {
@@ -26,13 +26,12 @@
   font-size: 22px;
   font-weight: 500;
   color: #000;
-  margin-bottom: 4rem;
 }
 
 .headerRow {
   border-top: 1px solid rgba(0, 0, 0, 0.2);
   display: grid;
-  grid-template-columns: 0.8fr 1fr 1.2fr 1.2fr 0.8fr;
+  grid-template-columns: 0.8fr 1fr 1fr 1fr 1.2fr 1.2fr 0.8fr;
   background-color: #f1f9f6;
   color: #1f4a31;
   padding: 16px 24px;
@@ -46,7 +45,7 @@
 }
 .topHeader {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
 }
 .addCategoryBtn {
@@ -110,7 +109,7 @@
 .dataRow {
   position: relative;
   display: grid;
-  grid-template-columns: 0.8fr 1fr 1.2fr 1.2fr 0.8fr;
+  grid-template-columns: 0.8fr 1fr 1fr 1fr 1.2fr 1.2fr 0.8fr;
   background-color: #ffffff;
   padding: 16px 24px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
@@ -131,17 +130,18 @@
 }
 
 .image {
-  height: 45px;
-  width: 45px;
+  height: 120px;
+  width: 120px;
   background-color: #d9d9d9;
   border-radius: 5px;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Buttons */
 .actions {
-  position: absolute;
-  right: 2.5rem;
-  top: 12px;
   display: flex;
   justify-content: center;
   align-items: center;
