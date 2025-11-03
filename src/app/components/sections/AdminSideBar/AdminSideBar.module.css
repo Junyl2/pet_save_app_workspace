@@ -36,7 +36,7 @@
 
 .greetingText {
   color: #141414;
-  font-size: 16px;
+  font-size: 20px;
   line-height: 24px;
   font-weight: 600;
 }
@@ -76,6 +76,8 @@
   border: none;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   color: #000;
+  font-weight: 600 !important;
+  font-size: 20px !important;
   text-align: left;
   cursor: pointer;
   border-radius: 10px;
@@ -104,7 +106,8 @@
 
 /* Label typography */
 .menuLabel {
-  font-size: 16px;
+  color: #000;
+  font-weight: 600 !important;
   line-height: 24px;
   font-weight: 600;
 }
@@ -126,6 +129,7 @@
   border-radius: 8px;
   cursor: pointer;
   margin-left: 8px;
+  font-size: 1.8rem;
 }
 .chevronBtn:focus-visible {
   outline: 2px solid #66bfa7;
@@ -143,7 +147,7 @@
 
 /* --- Submenu container (Figma Frame 19) --- */
 .submenu {
-  background: #e1e1e1; /* Figma: rgb(0.882,0.882,0.882) */
+  background: #e1e1e1;
   border-radius: 10px;
   margin-top: 10px;
 
@@ -164,9 +168,9 @@
   text-align: left;
   cursor: pointer;
 
-  font-size: 14px;
+  font-size: 18px;
   line-height: 21px;
-  font-weight: 500;
+  font-weight: normal;
 
   transition: opacity 120ms ease, transform 80ms ease;
 }

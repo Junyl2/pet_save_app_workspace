@@ -1,29 +1,19 @@
 'use client';
 import React, { useEffect, useState, useMemo } from 'react';
-import FilterBar from '../../../sections/FilterBar/FilterBar';
 import Image from 'next/image';
-import styles from './OrderHistory.module.css';
-import OrderHistoryItem from './order-history-item/OrderHistoryItem';
-import OrderHistorySkeleton from '../../../ui/SkeletonLoading/OrderHistorySkeleton';
-import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
-import { OrderItem } from '@/app/components/types/order';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import {
   fetchOrderHistory,
   revalidateOrderHistoryInBackground,
   checkStaleStatus,
 } from '@/app/redux/slices/cache/orderSlice';
+import FilterBar from '../../../sections/FilterBar/FilterBar';
+import OrderHistoryItem from './order-history-item/OrderHistoryItem';
+import OrderHistorySkeleton from '../../../ui/SkeletonLoading/OrderHistorySkeleton';
+import styles from './OrderHistory.module.css';
+import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
+import { OrderItem } from '@/app/components/types/order';
 
-// Must match FilterBar display statuses
-const ALLOWED_DISPLAY_STATUSES = [
-  '상품 준비중',
-  '배송중',
-  '배송 완료',
-  '픽업 준비완료',
-  '픽업중',
-  '픽업 완료',
-  '배송완료',
-];
 export default function OrderHistory() {
   const dispatch = useAppDispatch();
   const { orderHistoryCache, loading, error } = useAppSelector(
@@ -32,7 +22,6 @@ export default function OrderHistory() {
 
   const cachedData = orderHistoryCache['default'];
 
-  // Wrap orders in useMemo to ensure stable reference
   const orders = useMemo<OrderItemResponse[]>(
     () => cachedData?.data?.data?.content || [],
     [cachedData]
@@ -41,27 +30,23 @@ export default function OrderHistory() {
   const [selectedPeriod, setSelectedPeriod] = useState('3개월');
   const [selectedStatus, setSelectedStatus] = useState('전체보기');
 
-  // Fetch order history on mount
   useEffect(() => {
     dispatch(fetchOrderHistory());
   }, [dispatch]);
 
-  // Background revalidation every 10s
   useEffect(() => {
     if (cachedData) {
       const now = Date.now();
       const cacheAge = now - cachedData.timestamp;
-      if (cacheAge >= 10_000) {
-        dispatch(revalidateOrderHistoryInBackground());
-      }
+      if (cacheAge >= 10_000) dispatch(revalidateOrderHistoryInBackground());
     }
   }, [cachedData, dispatch]);
 
-  // Check stale cache
   useEffect(() => {
     dispatch(checkStaleStatus());
   }, [dispatch, cachedData]);
 
+  /** Convert API response item to OrderItem used by UI */
   const convertToOrderItem = (orderItem: OrderItemResponse): OrderItem => ({
     product: {
       id: parseInt(orderItem.productId.split('-')[0], 16),
@@ -79,6 +64,7 @@ export default function OrderHistory() {
     quantity: orderItem.quantity,
   });
 
+  /** Map backend status → human readable Korean text */
   const getStatusDisplayText = (status: string): string => {
     const map: Record<string, string> = {
       PENDING_PAYMENT: '결제 대기',
@@ -86,17 +72,15 @@ export default function OrderHistory() {
       PREPARING: '상품 준비중',
       READY_FOR_PICKUP: '픽업 준비완료',
       DELIVERY_STARTED: '배송중',
-      DELIVERED: '배송 완료',
-      PICKUP_IN_PROGRESS: '픽업중',
-      PICKUP_COMPLETED: '픽업 완료',
-      COMPLETED: '배송완료',
+      COMPLETED: '배송 완료',
       CANCELLED: '주문 취소',
       RETURNED: '반품',
-      REFUNDED: '환불 완료',
+      EXCHANGED: '교환 완료',
     };
     return map[status] || status;
   };
 
+  /** Extract date (yyyy.mm.dd) from orderNumber (ORD-YYMMDD-xxxx) */
   const formatDate = (orderNumber: string): string => {
     const match = orderNumber.match(/ORD-(\d{6})-/);
     if (match) {
@@ -115,23 +99,14 @@ export default function OrderHistory() {
       .replace(/\s/g, '');
   };
 
-  // Filtered orders (memoized)
+  /** Filter orders by selected status and date range */
   const filteredOrders = useMemo(() => {
-    let result = orders.filter((o) =>
-      ALLOWED_DISPLAY_STATUSES.includes(getStatusDisplayText(o.status))
-    );
+    let result = orders;
 
     if (selectedStatus !== '전체보기') {
-      result = result.filter((o) => {
-        const displayStatus = getStatusDisplayText(o.status);
-        if (selectedStatus === '배송 완료') {
-          return displayStatus === '배송 완료' || displayStatus === '주문 완료';
-        }
-        if (selectedStatus === '주문 완료') {
-          return displayStatus === '주문 완료' || displayStatus === '배송 완료';
-        }
-        return displayStatus === selectedStatus;
-      });
+      result = result.filter(
+        (o) => getStatusDisplayText(o.status) === selectedStatus
+      );
     }
 
     if (selectedPeriod !== '전체보기') {
@@ -165,6 +140,7 @@ export default function OrderHistory() {
     return result;
   }, [orders, selectedStatus, selectedPeriod]);
 
+  /** Skeleton or Error State */
   if (loading && !cachedData) {
     return (
       <div className={styles.container}>
@@ -199,6 +175,7 @@ export default function OrderHistory() {
     );
   }
 
+  /** Main render */
   return (
     <div className={styles.container}>
       <div className={styles.inner}>

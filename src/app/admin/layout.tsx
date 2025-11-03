@@ -1,12 +1,12 @@
 import { ReactNode } from 'react';
-import './admin.module.css';
 import AdminProviders from './AdminProviders';
 import AdminWrapper from './AdminWrapper';
+import styles from './admin.module.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko">
-      <body>
+      <body className={styles.adminLayout}>
         <AdminProviders>
           <AdminWrapper>{children}</AdminWrapper>
         </AdminProviders>

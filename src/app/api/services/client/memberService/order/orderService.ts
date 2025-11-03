@@ -4,6 +4,8 @@ import {
   DirectOrderResponse,
   CheckoutRequest,
   CheckoutResponse,
+  SearchOrdersParams,
+  SearchOrdersResponse,
 } from '../../../../types/member/order/order';
 
 export const orderService = {
@@ -25,5 +27,29 @@ export const orderService = {
     request: CheckoutRequest
   ): Promise<{ data: CheckoutResponse | null; error?: string }> => {
     return await apiClient.post<CheckoutResponse>('/orders/checkout', request);
+  },
+
+  /**
+   * Search orders (Admin or user)
+   * GET /orders
+   */
+  searchOrders: async (
+    params?: SearchOrdersParams
+  ): Promise<{ data: SearchOrdersResponse | null; error?: string }> => {
+    const query = params
+      ? '?' +
+        new URLSearchParams(
+          Object.entries(params).reduce<Record<string, string>>(
+            (acc, [key, value]) => {
+              if (value !== undefined && value !== null)
+                acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
+        ).toString()
+      : '';
+
+    return await apiClient.get<SearchOrdersResponse>(`/orders${query}`);
   },
 };
