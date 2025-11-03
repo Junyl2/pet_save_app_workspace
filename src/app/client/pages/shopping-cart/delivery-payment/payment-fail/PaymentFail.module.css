@@ -1,0 +1,55 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  background: #fff;
+  min-height: 100vh;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e11d48;
+  margin-bottom: 1rem;
+}
+
+.message {
+  font-size: 1rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.code,
+.orderId {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.retryButton {
+  background-color: #66bfa7;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.8rem 1.5rem;
+  margin-top: 1.2rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.retryButton:hover {
+  opacity: 0.9;
+}
+
+.homeButton {
+  margin-top: 0.8rem;
+  background: transparent;
+  border: none;
+  color: #374151;
+  cursor: pointer;
+  text-decoration: underline;
+}

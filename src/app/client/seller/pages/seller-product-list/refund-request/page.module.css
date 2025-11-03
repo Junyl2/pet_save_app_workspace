@@ -1,9 +1,9 @@
-/* Page container */
 .pageContainer {
   background: rgba(242, 244, 247, 1);
   margin-left: -1rem;
   margin-right: -1rem;
   margin-top: 71.59px;
+  min-height: calc(100vh - 71.59px) !important;
 }
 
 /* Top Tab Header */
@@ -78,6 +78,10 @@
   gap: 16px;
 }
 
+.cardsContainer:last-child {
+  margin-bottom: 82px;
+}
+
 /* Card */
 .card {
   background: #fff;
@@ -91,7 +95,13 @@
 
 /* Card image container */
 .cardImageContainer {
-  padding-left: 1px;
+  position: relative;
+  width: 90px;
+  height: 90px;
+  flex: 0 0 auto;
+  border-radius: 5px;
+  overflow: hidden;
+  background-color: #f5f5f5;
 }
 
 .cardImage {
@@ -103,6 +113,7 @@
 .cardContent {
   display: grid;
   row-gap: 8px;
+  margin-left: 1rem;
 }
 
 /* Tags container */
@@ -168,6 +179,11 @@
 }
 
 /* Action button */
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 .actionButton {
   flex: 0 0 40px;
   border-radius: 5px;
@@ -186,4 +202,62 @@
 .actionButtonRed {
   background: rgba(255, 228, 230, 1);
   color: rgba(199, 0, 54, 1);
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .cardsContainer {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    padding: 0 1rem;
+  }
+
+  .card {
+    grid-template-columns: 1fr 1fr;
+    padding: 16px;
+  }
+
+  .cardImageContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 140px;
+    background-color: #f5f5f5;
+  }
+
+  .cardImage {
+    object-fit: cover !important;
+    height: 100%;
+    width: 100%;
+  }
+
+  .cardActionsContainer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actionButtons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .actionButton {
+    flex: 1;
+  }
+
+  .detailButton {
+    flex: 1;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    padding: 0.5rem;
+  }
 }

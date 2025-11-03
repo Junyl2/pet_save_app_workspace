@@ -2,7 +2,7 @@
 
 export type ShippingOption = 'DELIVERY' | 'PICKUP';
 
-export type PaymentMethod = 'BANK' | 'CARD' | 'EASY_PAYMENT';
+export type PaymentMethod = 'BANK' | 'CARD' | 'EASY_PAY';
 
 export type ReceiptType = 'TAX_INVOICE' | 'CASH_RECEIPT';
 

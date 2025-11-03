@@ -1,67 +1,56 @@
-"use client";
+'use client';
 
-import { REFUND_REASONS } from "@/app/components/constants/refund";
-import styles from "./reason-selection-step.module.css";
-
-interface Product {
-  id: string;
-  image: string;
-  name: string;
-  brand: string;
-  price: number;
-  originalPrice?: number;
-}
+import React from 'react';
+import { REFUND_REASONS } from '@/app/components/constants/refund';
+import { Product } from '@/app/components/types/order';
+import styles from './reason-selection-step.module.css';
 
 interface ReasonSelectionStepProps {
   products: Product[];
-  selectedItems: string[];
+  selectedItems: number[];
   selectedReason: string;
   subReason?: string;
   detailReason?: string;
   onReasonChange: (reason: string, sub?: string, detail?: string) => void;
 }
 
-// Utility function to format price
-const formatPrice = (price: number): string => {
-  return price.toLocaleString();
-};
-
-export function ReasonSelectionStep({
+export const ReasonSelectionStep: React.FC<ReasonSelectionStepProps> = ({
   products,
   selectedItems,
   selectedReason,
   subReason,
   detailReason,
   onReasonChange,
-}: ReasonSelectionStepProps) {
-  // Filter to show only selected products
-  const selectedProducts = products.filter((product) =>
-    selectedItems.includes(product.id)
+}) => {
+  // Direct numeric comparison for consistency with Product.id: number
+  const selectedProducts = React.useMemo(
+    () => products.filter((p) => selectedItems.includes(p.id)),
+    [products, selectedItems]
   );
+
+  const formatPrice = (price: number): string => price.toLocaleString('ko-KR');
 
   return (
     <div className={styles.container}>
-      {/* Title Section */}
       <div className={styles.titleSection}>
         <h2 className={styles.stepTitle}>반품 사유를 알려주세요</h2>
       </div>
 
-      {/* Selected Products Section */}
       {selectedProducts.map((product) => (
         <div key={product.id} className={styles.productSection}>
           <div className={styles.productInfo}>
             <div className={styles.productContent}>
               <img
-                src={product.image}
+                src={product.image || '/placeholder.svg'}
                 alt={product.name}
                 className={styles.productImage}
               />
               <div className={styles.productDetails}>
                 <h3 className={styles.productName}>{product.name}</h3>
                 <div className={styles.priceContainer}>
-                  {product.originalPrice && (
+                  {product.discountPrice && (
                     <span className={styles.originalPrice}>
-                      {formatPrice(product.originalPrice)}원
+                      {formatPrice(product.discountPrice)}원
                     </span>
                   )}
                   <span className={styles.currentPrice}>
@@ -75,7 +64,6 @@ export function ReasonSelectionStep({
         </div>
       ))}
 
-      {/* Refund Reasons Sections */}
       {Object.entries(REFUND_REASONS).map(([category, reasons]) => (
         <div key={category} className={styles.reasonCategorySection}>
           <h3 className={styles.categoryTitle}>{category}</h3>
@@ -97,13 +85,12 @@ export function ReasonSelectionStep({
         </div>
       ))}
 
-      {/* Detail Reason Section */}
       <div className={styles.detailReasonSection}>
         <h3 className={styles.sectionTitle}>상세 문의</h3>
         <textarea
           className={styles.textarea}
           placeholder="우려한 상품과 다른 상품이 배송되었어요"
-          value={detailReason || ""}
+          value={detailReason || ''}
           onChange={(e) =>
             onReasonChange(selectedReason, subReason, e.target.value)
           }
@@ -111,4 +98,4 @@ export function ReasonSelectionStep({
       </div>
     </div>
   );
-}
+};

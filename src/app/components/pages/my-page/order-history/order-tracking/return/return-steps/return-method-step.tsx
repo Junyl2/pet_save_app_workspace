@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import styles from "../RefundPage.module.css";
+import styles from '../ReturnPage.module.css';
 
 interface ReturnMethodStepProps {
   isDeliveryOrder: boolean;
@@ -29,7 +29,7 @@ export function ReturnMethodStep({
               type="radio"
               name="returnMethod"
               value="pickup"
-              checked={returnMethod === "pickup"}
+              checked={returnMethod === 'pickup'}
               onChange={(e) => onMethodChange(e.target.value)}
               className={styles.radio}
             />
@@ -41,7 +41,7 @@ export function ReturnMethodStep({
               type="radio"
               name="returnMethod"
               value="direct"
-              checked={returnMethod === "direct"}
+              checked={returnMethod === 'direct'}
               onChange={(e) => onMethodChange(e.target.value)}
               className={styles.radio}
             />

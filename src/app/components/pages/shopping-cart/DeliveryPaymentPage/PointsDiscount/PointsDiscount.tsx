@@ -16,14 +16,24 @@ export default function PointsDiscount({
   pointsAvailable,
   pointsBalance,
 }: PointsDiscountProps) {
-  const handleUseAllPoints = () => setUsePoints(maxPointUsable);
+  const handleUseAllPoints = () => {
+    if (pointsAvailable === 0) return;
+    setUsePoints(maxPointUsable);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const numericValue = Math.max(
-      0,
-      Math.floor(Number(e.target.value.replace(/\D/g, '')) || 0)
+    const numericValue = Math.floor(
+      Number(e.target.value.replace(/\D/g, '')) || 0
     );
-    setUsePoints(numericValue);
+
+    // Enforce bounds and prevent using more than available
+    if (numericValue > maxPointUsable) {
+      setUsePoints(maxPointUsable);
+    } else if (numericValue < 0) {
+      setUsePoints(0);
+    } else {
+      setUsePoints(numericValue);
+    }
   };
 
   return (
@@ -36,9 +46,10 @@ export default function PointsDiscount({
             id="points"
             className={points.pointsInput}
             type="text"
+            inputMode="numeric"
             value={usePoints || ''}
             onChange={handleInputChange}
-            placeholder=""
+            placeholder="0"
           />
           <span className={points.rightLabel}>
             {usePoints.toLocaleString()}원
@@ -49,6 +60,7 @@ export default function PointsDiscount({
             type="button"
             className={points.secondaryBtn}
             onClick={handleUseAllPoints}
+            disabled={pointsAvailable <= 0}
           >
             모두 사용
           </button>
@@ -57,6 +69,7 @@ export default function PointsDiscount({
       <p className={styles.pointsHint}>
         사용 가능: {pointsAvailable.toLocaleString()}원
         <span className="text-muted">
+          {' '}
           | 보유 포인트: {pointsBalance.toLocaleString()}원
         </span>
       </p>

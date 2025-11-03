@@ -7,6 +7,7 @@
   margin-left: -1rem;
   margin-right: -1rem;
   margin-bottom: 71.59px;
+  min-height: calc(100vh- 178px);
 }
 .topBarLabel {
   display: flex;
@@ -118,11 +119,13 @@
   z-index: auto;
 }
 .thumbWrap {
+  position: relative;
   width: 90px;
   height: 90px;
   flex: 0 0 auto;
   border-radius: 5px;
   overflow: hidden;
+  background-color: #f5f5f5;
 }
 .thumb {
   object-fit: cover;
@@ -336,4 +339,36 @@
 
 .cancelBtn:hover {
   background: #e0e3e8;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .listWrap {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+  }
+
+  .card {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    padding: 1rem;
+  }
+
+  .thumbWrap {
+    width: 100%;
+    height: 200px;
+    background-color: #fff;
+  }
+  .thumb {
+    object-fit: cover;
+  }
+
+  .cardContent {
+    width: 100%;
+    text-align: left;
+  }
 }

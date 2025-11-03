@@ -7,8 +7,8 @@
 .progressTrack {
   position: absolute;
   top: 10px;
-  left: 20px;
-  right: 20px;
+  left: 18px;
+  right: 28px;
   height: 3px;
   background-color: #e5e7eb;
   z-index: 1;
@@ -104,5 +104,17 @@
     top: 8px;
     left: 16px;
     right: 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .progressTrack {
+    position: absolute;
+    top: 10px;
+    left: 18px;
+    right: 28px;
+    height: 3px;
+    background-color: #e5e7eb;
+    z-index: 1;
   }
 }

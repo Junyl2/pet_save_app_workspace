@@ -28,11 +28,18 @@ const getDisplayStatus = (
 };
 
 // Helper function to get default image if none provided
-const getDefaultImage = (images?: string[]): string => {
-  const imageUrl =
-    images && images.length > 0 ? images[0] : '/images/products/dogfood.png';
-  console.log('[SellerProductListPage] Images:', images, 'Selected:', imageUrl);
-  return imageUrl;
+const getDefaultImage = (product: StoreProduct): string => {
+  if (product.images && product.images.length > 0) {
+    return product.images[0];
+  }
+
+  // Fallback to thumbnail if no images
+  if (product.thumbnail) {
+    return product.thumbnail;
+  }
+
+  // Fallback to default static image
+  return '/images/products/dogfod.png';
 };
 
 function formatPrice(value: number) {
@@ -384,10 +391,9 @@ export default function SellerProductListPage() {
                 <article key={p.productId} className={styles.card}>
                   <div className={styles.thumbWrap}>
                     <Image
-                      src={getDefaultImage(p.images)}
+                      src={getDefaultImage(p)}
                       alt={p.productName}
-                      width={90}
-                      height={90}
+                      fill
                       className={styles.thumb}
                     />
                   </div>

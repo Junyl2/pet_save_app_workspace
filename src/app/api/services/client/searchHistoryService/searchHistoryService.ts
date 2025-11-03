@@ -1,6 +1,5 @@
 import { apiClient, ApiResponse } from '@/app/api/apiClient';
 import {
-  /*  SearchHistoryItem, */
   SearchHistoryResponse,
   SearchHistoryParams,
   KeywordListResponse,
@@ -47,6 +46,52 @@ export class SearchHistoryService {
     } else {
       console.log(
         '[SearchHistoryService] Search history retrieved successfully:',
+        response.data
+      );
+    }
+
+    return response;
+  }
+
+  /**
+   * Add current user search history
+   * POST /api/pet-save/search-history?keyword={keyword}
+   */
+  static async addCurrentUserSearch(
+    keyword: string
+  ): Promise<ApiResponse<SearchHistoryResponse>> {
+    console.log('[SearchHistoryService] Adding current user search:', keyword);
+
+    if (!keyword?.trim()) {
+      return {
+        data: {
+          success: false,
+          status: 400,
+          resultMsg: 'Keyword is required',
+          divisionCode: null,
+          data: null,
+          errorId: 'MISSING_KEYWORD',
+        },
+        error: {
+          message: 'Keyword is required',
+          status: 400,
+        },
+      } as unknown as ApiResponse<SearchHistoryResponse>;
+    }
+
+    const url = `${this.BASE_URL}?keyword=${encodeURIComponent(keyword)}`;
+
+    // Backend spec: POST with keyword in query; empty object body
+    const response = await apiClient.post<SearchHistoryResponse>(url, {});
+
+    if (response.error) {
+      console.error(
+        '[SearchHistoryService] Failed to add search history:',
+        response.error
+      );
+    } else {
+      console.log(
+        '[SearchHistoryService] Search history added successfully:',
         response.data
       );
     }

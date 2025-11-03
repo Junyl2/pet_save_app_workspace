@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDispatch } from 'react-redux';
 import styles from './DeliveryPayment.module.css';
 
 import CartSummary from './CartSummary/CartSummary';
@@ -14,8 +15,9 @@ import PaymentSummary from './PaymentSummary/PaymentSummary';
 import PaymentMethod from './PaymentMethod/PaymentMethod';
 import Agreements from './Agreements/Agreements';
 import PayButton from './PayButton/PayButton';
-/* import OrderConfirmation from './OrderConfirmation/OrderConfirmation'; */
 import { PAGE_URLS } from '@/app/utils/page_url';
+import { AppDispatch } from '@/app/redux/store';
+import { fetchPointsStats } from '@/app/redux/slices/cache/pointsSlice';
 
 export type Product = {
   id: number;
@@ -32,51 +34,60 @@ export type OrderItem = {
 };
 
 const SHIPPING_FEE = 3000;
-const POINTS_AVAILABLE = 440;
-const POINTS_BALANCE = 445;
-
-// Fixed confirmation date: 8/6 (수)
-const CONFIRM_DATE = new Date(2025, 7, 6); // months are 0-indexed; 7 = August
+const CONFIRM_DATE = new Date(2025, 7, 6);
 
 export default function DeliveryPaymentPage() {
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
-
   const [deliveryOption, setDeliveryOption] = useState<
     'delivery' | 'pickup' | null
   >(null);
-
   const [requestNote, setRequestNote] = useState('');
   const [customRequest, setCustomRequest] = useState('');
   const [usePoints, setUsePoints] = useState(0);
-
+  const [availablePoints, setAvailablePoints] = useState(0);
+  const [balancePoints, setBalancePoints] = useState(0);
   const [payCategory, setPayCategory] = useState<
     'quick' | 'card' | 'bank' | null
   >('quick');
   const [quickBrand, setQuickBrand] = useState<
     'toss' | 'kakao' | 'naver' | null
   >('toss');
-
   const [agreeOrderInfo, setAgreeOrderInfo] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeFinal, setAgreeFinal] = useState(false);
-
-  /*   // Show confirmation after payment
-  const [paid, setPaid] = useState(false); */
+  const [defaultAddress, setDefaultAddress] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('checkoutItems');
     if (saved) setOrderItems(JSON.parse(saved));
 
-    // Check for stored delivery option from direct order
-    const storedDeliveryOption = localStorage.getItem('selectedDeliveryOption');
-    if (storedDeliveryOption) {
-      setDeliveryOption(storedDeliveryOption as 'delivery' | 'pickup');
-      // Clear the stored option after using it
+    const storedOption = localStorage.getItem('selectedDeliveryOption');
+    if (storedOption) {
+      setDeliveryOption(storedOption as 'delivery' | 'pickup');
       localStorage.removeItem('selectedDeliveryOption');
     }
   }, []);
+
+  useEffect(() => {
+    const loadPoints = async (): Promise<void> => {
+      try {
+        const result = await dispatch(fetchPointsStats());
+        if (fetchPointsStats.fulfilled.match(result)) {
+          const data = result.payload?.data?.data?.data;
+          const usable = data?.totalUsablePoints ?? 0;
+          setAvailablePoints(usable);
+          setBalancePoints(usable);
+        }
+      } catch (err) {
+        console.error('Failed to load points:', err);
+      }
+    };
+    loadPoints();
+  }, [dispatch]);
 
   const { itemCount, subtotal, discountAmount } = useMemo(() => {
     const count = orderItems.reduce((n, it) => n + it.quantity, 0);
@@ -86,38 +97,32 @@ export default function DeliveryPaymentPage() {
       0
     );
     const discount = orderItems.reduce((acc, { product, quantity }) => {
-      const d =
+      const diff =
         product.discountPrice != null
           ? product.price - product.discountPrice
           : 0;
-      return acc + d * quantity;
+      return acc + diff * quantity;
     }, 0);
     return { itemCount: count, subtotal: sub, discountAmount: discount };
   }, [orderItems]);
 
   const maxPointUsable = Math.max(
     0,
-    Math.min(POINTS_AVAILABLE, Math.floor(subtotal))
+    Math.min(availablePoints, Math.floor(subtotal))
   );
-
   useEffect(() => {
     if (usePoints > maxPointUsable) setUsePoints(maxPointUsable);
   }, [maxPointUsable, usePoints]);
 
-  if (orderItems.length === 0) {
+  if (orderItems.length === 0)
     return <p className={styles.empty}>선택한 주문 상품이 없습니다.</p>;
-  }
 
   const totalDue = Math.max(0, subtotal - usePoints) + SHIPPING_FEE;
   const canPay =
     !!payCategory &&
     (payCategory !== 'quick' || !!quickBrand) &&
     !!deliveryOption;
-  /*   &&
-    agreeOrderInfo &&
-    agreePrivacy &&
-    agreeFinal;
- */
+
   const paymentLabel =
     payCategory === 'quick'
       ? quickBrand === 'toss'
@@ -129,9 +134,8 @@ export default function DeliveryPaymentPage() {
       ? '신용/체크카드'
       : '계좌이체';
 
-  const handlePay = () => {
+  const handlePay = (): void => {
     if (!canPay || !deliveryOption) return;
-
     const payload = {
       mode: String(deliveryOption),
       orderNo: String(1582),
@@ -140,12 +144,7 @@ export default function DeliveryPaymentPage() {
       paymentLabel: String(paymentLabel),
       date: CONFIRM_DATE.toISOString(),
     };
-
-    // Fallback store (survives navigation within the same tab)
-    try {
-      sessionStorage.setItem('orderConfirmation', JSON.stringify(payload));
-    } catch {}
-
+    sessionStorage.setItem('orderConfirmation', JSON.stringify(payload));
     const params = new URLSearchParams({
       mode: payload.mode,
       orderNo: payload.orderNo,
@@ -154,14 +153,10 @@ export default function DeliveryPaymentPage() {
       paymentLabel: payload.paymentLabel,
       date: payload.date,
     });
-
-    // Optional: clear cart AFTER we stored confirmation data
     localStorage.removeItem('checkoutItems');
-
     router.push(`${PAGE_URLS.ORDER_CONFIRMATION}?${params.toString()}`);
   };
 
-  // Otherwise show the regular checkout flow
   return (
     <div className={styles.container}>
       <CartSummary
@@ -172,15 +167,14 @@ export default function DeliveryPaymentPage() {
       {isOpen && <CartItemList orderItems={orderItems} />}
 
       <div className={styles.divider}></div>
-
       <DeliveryOptions
         deliveryOption={deliveryOption}
         setDeliveryOption={setDeliveryOption}
       />
-
       <div className={styles.divider}></div>
 
-      <AddressBlock />
+      {/*  Capture default address here */}
+      <AddressBlock onAddressSelect={setDefaultAddress} />
 
       {deliveryOption === 'delivery' && (
         <>
@@ -195,17 +189,15 @@ export default function DeliveryPaymentPage() {
       )}
 
       <div className={styles.divider}></div>
-
       <PointsDiscount
         usePoints={usePoints}
         setUsePoints={setUsePoints}
         maxPointUsable={maxPointUsable}
-        pointsAvailable={POINTS_AVAILABLE}
-        pointsBalance={POINTS_BALANCE}
+        pointsAvailable={availablePoints}
+        pointsBalance={balancePoints}
       />
 
       <div className={styles.divider}></div>
-
       <PaymentSummary
         subtotal={subtotal}
         discountAmount={discountAmount}
@@ -215,7 +207,6 @@ export default function DeliveryPaymentPage() {
       />
 
       <div className={styles.divider}></div>
-
       <PaymentMethod
         payCategory={payCategory}
         setPayCategory={setPayCategory}
@@ -224,7 +215,6 @@ export default function DeliveryPaymentPage() {
       />
 
       <div className={styles.divider}></div>
-
       <Agreements
         agreeOrderInfo={agreeOrderInfo}
         setAgreeOrderInfo={setAgreeOrderInfo}
@@ -238,14 +228,11 @@ export default function DeliveryPaymentPage() {
       <PayButton
         totalDue={totalDue}
         canPay={canPay}
-        handlePay={handlePay}
         orderItems={orderItems}
         deliveryOption={deliveryOption}
         usePoints={usePoints}
-        paymentMethod={{
-          payCategory,
-          quickBrand,
-        }}
+        paymentMethod={{ payCategory, quickBrand }}
+        deliveryAddress={defaultAddress}
       />
     </div>
   );

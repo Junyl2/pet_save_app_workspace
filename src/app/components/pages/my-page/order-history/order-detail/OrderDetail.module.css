@@ -121,10 +121,12 @@
   color: #111827;
   margin-bottom: 4px;
 }
-
+.request {
+  margin-right: 0.2rem;
+}
 .pickupAddress p {
   font-size: 14px;
-  color: #4b5563; /* gray-700 */
+  color: #4b5563;
   margin: 12px 0;
 }
 
@@ -134,9 +136,14 @@
   margin: 12px 0;
 }
 
+.sectionSubtitle {
+  font-size: 13px;
+  color: #6b7280;
+}
+
 .pickupNote p {
   font-size: 13px;
-  color: #6b7280; /* gray-500 */
+  color: #6b7280;
 }
 
 .itemsSection {
@@ -278,7 +285,86 @@
   font-size: 16px;
 }
 
-/* 🔴 Red statuses */
 .statusRed {
   color: #f44336; /* red */
+}
+
+/* --- Modal Overlay --- */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+@media (min-width: 1024px) {
+  .modalOverlay {
+    max-width: 468px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+/* --- Modal Box --- */
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px 28px;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.modal h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.modal p {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* --- Modal Buttons --- */
+.modalActions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.cancelButton,
+.confirmButton {
+  min-width: 100px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cancelButton {
+  background: #eee;
+  color: #333;
+}
+
+.cancelButton:hover {
+  background: #ddd;
+}
+
+.confirmButton {
+  background: #66bfa7;
+  color: #fff;
+}
+
+.confirmButton:hover {
+  background: #5dc9b0;
 }

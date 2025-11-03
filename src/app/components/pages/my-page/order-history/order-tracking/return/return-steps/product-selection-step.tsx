@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import type { Product } from "@/app/components/types/refund";
-import ProductSection from "@/app/components/sections/ProductSection/ProductSection";
-import styles from "../RefundPage.module.css";
+import { Product } from '@/app/components/types/order';
+import ProductSection from '@/app/components/sections/ProductSection/ProductSection';
+import styles from '../ReturnPage.module.css';
 
 interface ProductSelectionStepProps {
   products: Product[];
-  selectedItems: string[];
-  onProductSelect: (id: string) => void;
+  selectedItems: number[];
+  onProductSelect: (id: number) => void;
   onSelectAll: () => void;
 }
 
@@ -17,6 +17,8 @@ export function ProductSelectionStep({
   onProductSelect,
   onSelectAll,
 }: ProductSelectionStepProps) {
+  const allSelected = selectedItems.length === products.length;
+
   return (
     <div className={styles.section}>
       <ProductSection
@@ -24,7 +26,7 @@ export function ProductSelectionStep({
           <label className={styles.selectAllContainer}>
             <input
               type="checkbox"
-              checked={selectedItems.length === products.length}
+              checked={allSelected}
               onChange={onSelectAll}
               className={styles.checkbox}
             />
@@ -53,16 +55,16 @@ export function ProductSelectionStep({
           mainContent={
             <div className={styles.productInfo}>
               <img
-                src={product.image || "/placeholder.svg"}
+                src={product.image || '/placeholder.svg'}
                 alt={product.name}
                 className={styles.productImage}
               />
               <div className={styles.productDetails}>
                 <h3 className={styles.productName}>{product.name}</h3>
                 <div className={styles.priceContainer}>
-                  {product.originalPrice && (
+                  {product.discountPrice && (
                     <span className={styles.originalPrice}>
-                      {product.originalPrice.toLocaleString()}
+                      {product.discountPrice.toLocaleString()}원
                     </span>
                   )}
                   <span className={styles.currentPrice}>
