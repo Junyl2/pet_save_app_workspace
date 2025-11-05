@@ -43,7 +43,7 @@ export interface ProductCreateRequest {
  * Product entity returned from backend
  */
 export interface Product {
-  id: string; // string($uuid)
+  productId: string; // string($uuid)
   storeId: string; // string($uuid)
   imageFileIds: string[];
   name: string;
