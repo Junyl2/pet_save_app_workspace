@@ -1,8 +1,9 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from './AddProduct.module.css';
+import styles from './ProductManagement.module.css';
 import Image from 'next/image';
+import { IoChevronDownOutline } from 'react-icons/io5';
 
 interface Member {
   id: string;
@@ -11,15 +12,22 @@ interface Member {
   situation: string;
 }
 
-const members: Member[] = Array.from({ length: 10 }).map((_, i) => ({
+const members: Member[] = Array.from({ length: 4 }).map((_, i) => ({
   id: `20250401-00${i + 1}`,
   image: `/images/icons/icon.png`,
   type: 'puppy',
   situation: 'hiding',
 }));
 
-export default function AddProductPage() {
+export default function ProductManagementPage() {
   const router = useRouter();
+  const [selectedOption, setSelectedOption] = useState('전체');
+  const [open, setOpen] = useState(false);
+
+  const handleSelect = (value: string) => {
+    setSelectedOption(value);
+    setOpen(false);
+  };
 
   const openInvoice = (member: Member) => {
     const query = new URLSearchParams({
@@ -46,6 +54,28 @@ export default function AddProductPage() {
         {/* Top Bar: Add Button + Search */}
         <div className={styles.topHeader}>
           {/* Left: Add Category */}
+          <div className={styles.dropdownWrapper}>
+            <div
+              className={styles.dropdownHeader}
+              onClick={() => setOpen((prev) => !prev)}
+            >
+              <span>{selectedOption}</span>
+              <IoChevronDownOutline className={styles.dropdownIcon} />
+            </div>
+            {open && (
+              <div className={styles.dropdownList}>
+                {['전체', '배송', '픽업'].map((option) => (
+                  <div
+                    key={option}
+                    className={styles.dropdownItem}
+                    onClick={() => handleSelect(option)}
+                  >
+                    {option}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Right: Search Bar */}
           <div className={styles.searchWrap}>

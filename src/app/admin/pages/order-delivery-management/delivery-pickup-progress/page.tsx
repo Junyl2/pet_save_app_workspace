@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import styles from './DeliveryPickup.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { orderService } from '@/app/api/services/client/memberService/order/orderService';
+import { orderStatusService } from '@/app/api/services/admin/orderStatusService/orderStatusService';
 import { SearchOrdersData } from '@/app/api/types/member/order/order';
 
 interface OrderRow {
+  orderItemId: string;
   orderNumber: string;
   createdAt: string;
   customerName: string;
@@ -15,7 +17,7 @@ interface OrderRow {
   productName: string;
   option: string;
   trackingNumber: string;
-  status: string; // Added to include DELIVERY_STARTED / READY_FOR_PICKUP
+  status: string; // DELIVERY_STARTED or READY_FOR_PICKUP
 }
 
 const PAGE_SIZE = 10;
@@ -26,72 +28,93 @@ export default function DeliveryPickupPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      try {
-        // Fetch both READY_FOR_PICKUP and DELIVERY_STARTED
-        const [pickupRes, deliveryRes] = await Promise.all([
-          orderService.searchOrders({
-            generalStatus: 'READY_FOR_PICKUP',
-            page: page - 1,
-            size: PAGE_SIZE,
-            sortBy: 'createdAt',
-            direction: 'desc',
-          }),
-          orderService.searchOrders({
-            generalStatus: 'DELIVERY_STARTED',
-            page: page - 1,
-            size: PAGE_SIZE,
-            sortBy: 'createdAt',
-            direction: 'desc',
-          }),
-        ]);
+  const fetchOrders = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const [pickupRes, deliveryRes] = await Promise.all([
+        orderService.searchOrders({
+          generalStatus: 'READY_FOR_PICKUP',
+          page: page - 1,
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        }),
+        orderService.searchOrders({
+          generalStatus: 'DELIVERY_STARTED',
+          page: page - 1,
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        }),
+      ]);
 
-        const pickupData = pickupRes.data?.data as SearchOrdersData | undefined;
-        const deliveryData = deliveryRes.data?.data as
-          | SearchOrdersData
-          | undefined;
+      const pickupData = pickupRes.data?.data as SearchOrdersData | undefined;
+      const deliveryData = deliveryRes.data?.data as
+        | SearchOrdersData
+        | undefined;
 
-        const allOrders = [
-          ...(pickupData?.content ?? []),
-          ...(deliveryData?.content ?? []),
-        ];
+      const allOrders = [
+        ...(pickupData?.content ?? []),
+        ...(deliveryData?.content ?? []),
+      ];
 
-        const mapped: OrderRow[] = allOrders.flatMap((o) =>
+      const mapped: OrderRow[] =
+        allOrders.flatMap((o) =>
           o.storeOrders?.flatMap((store: any) =>
             (store.items ?? []).map((item: any) => ({
+              orderItemId: item.orderItemId,
               orderNumber: o.orderNumber,
               createdAt: o.createdAt,
               customerName: o.customerName ?? '-',
               customerContact: o.customerContact ?? '-',
               productName: item.productName ?? '-',
-              option: o.generalStatus === 'DELIVERY_STARTED' ? '배송' : '픽업',
-              /*   trackingNumber: item.deliveryId ? `CJ / ${item.deliveryId}` : '-', */
+              option: store.shippingOption === 'DELIVERY' ? '배송' : '픽업',
+              trackingNumber: item.trackingNumber ?? '-', // cleaned: fallback only
               status: o.generalStatus,
             }))
           )
-        );
+        ) ?? [];
 
-        setOrders(mapped);
-        const maxPage =
-          Math.max(
-            pickupData?.pageInfo?.totalPages ?? 1,
-            deliveryData?.pageInfo?.totalPages ?? 1
-          ) || 1;
-        setTotalPages(maxPage);
-      } catch (err: unknown) {
-        console.error('Error fetching delivery/pickup orders:', err);
-        setOrders([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void fetchOrders();
+      setOrders(mapped);
+      const maxPage =
+        Math.max(
+          pickupData?.pageInfo?.totalPages ?? 1,
+          deliveryData?.pageInfo?.totalPages ?? 1
+        ) || 1;
+      setTotalPages(maxPage);
+    } catch (err) {
+      console.error('Error fetching delivery/pickup orders:', err);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
   }, [page]);
 
-  const handleComplete = (id: string) => console.log('수령 완료:', id);
+  useEffect(() => {
+    void fetchOrders();
+  }, [fetchOrders]);
+
+  const handleComplete = async (orderItemId: string): Promise<void> => {
+    if (!confirm('이 상품의 수령(배송 완료)을 처리하시겠습니까?')) return;
+
+    try {
+      const { data, error } = await orderStatusService.markOrderItemAsCompleted(
+        orderItemId
+      );
+
+      if (error || !data?.success) {
+        alert('처리 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
+        console.error('Complete failed:', error);
+        return;
+      }
+
+      alert('상품이 성공적으로 수령 완료 처리되었습니다.');
+      await fetchOrders(); // refresh dynamically
+    } catch (err) {
+      console.error('Completion error:', err);
+      alert('수령 완료 처리 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
     <>
@@ -104,6 +127,7 @@ export default function DeliveryPickupPage() {
           <div>상품명</div>
           <div>옵션</div>
           <div>운송장번호</div>
+          <div />
         </div>
 
         {loading && <div className={styles.loading}>불러오는 중...</div>}
@@ -117,7 +141,7 @@ export default function DeliveryPickupPage() {
         {!loading &&
           orders.map((order) => (
             <div
-              key={`${order.orderNumber}-${order.productName}-${order.status}`}
+              key={`${order.orderItemId}-${order.orderNumber}-${order.status}`}
               className={styles.row}
             >
               <div>{order.orderNumber}</div>
@@ -135,7 +159,7 @@ export default function DeliveryPickupPage() {
                 <button
                   type="button"
                   className={styles.completeBtn}
-                  onClick={() => handleComplete(order.orderNumber)}
+                  onClick={() => handleComplete(order.orderItemId)}
                 >
                   수령 완료
                 </button>

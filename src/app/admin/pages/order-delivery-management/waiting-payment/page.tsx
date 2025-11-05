@@ -5,15 +5,21 @@ import styles from './WaitingPayment.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { orderService } from '@/app/api/services/client/memberService/order/orderService';
-import { SearchOrdersData } from '@/app/api/types/member/order/order';
+import { paymentService } from '@/app/api/services/admin/paymentService/paymentService';
+import {
+  SearchOrdersData,
+  AdminCancelOrderItemsResponse,
+} from '@/app/api/types/member/order/order';
 
 interface OrderRow {
+  orderId: string;
   orderNumber: string;
   createdAt: string;
   customerName: string;
   customerContact: string;
   totalAmount: number;
   paymentMethod: string;
+  orderItemIds: string[];
 }
 
 const KRW = (n: number) => new Intl.NumberFormat('ko-KR').format(n) + '원';
@@ -25,50 +31,109 @@ export default function WaitingPaymentPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await orderService.searchOrders({
-          generalStatus: 'PENDING_PAYMENT',
-          page: page - 1, // API is 0-based
-          size: PAGE_SIZE,
-          sortBy: 'createdAt',
-          direction: 'desc',
-        });
+  // Fetch pending payment orders
+  const fetchOrders = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const { data, error } = await orderService.searchOrders({
+        generalStatus: 'PENDING_PAYMENT',
+        page: page - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      });
 
-        if (error || !data?.success) {
-          console.error('Fetch failed:', error);
-          setOrders([]);
-          return;
-        }
-
-        const result = data.data as SearchOrdersData;
-
-        const mapped: OrderRow[] =
-          result.content?.map((o) => ({
-            orderNumber: o.orderNumber,
-            createdAt: o.createdAt,
-            customerName: o.customerName ?? '-',
-            customerContact: o.customerContact ?? '-',
-            totalAmount: o.totalAmount ?? 0,
-            paymentMethod: o.paymentMethod ?? '-',
-          })) ?? [];
-
-        setOrders(mapped);
-        setTotalPages(result.pageInfo?.totalPages ?? 1);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+      if (error || !data?.success) {
+        console.error('Fetch failed:', error);
+        setOrders([]);
+        return;
       }
-    };
 
+      const result = data.data as SearchOrdersData;
+      const mapped: OrderRow[] =
+        result.content?.map((o) => ({
+          orderId: o.orderId,
+          orderNumber: o.orderNumber,
+          createdAt: o.createdAt,
+          customerName: o.customerName ?? '-',
+          customerContact: o.customerContact ?? '-',
+          totalAmount: o.totalAmount ?? 0,
+          paymentMethod: o.paymentMethod ?? '-',
+          orderItemIds:
+            o.storeOrders
+              ?.flatMap(
+                (store) => store.items?.map((item) => item.orderItemId) ?? []
+              )
+              .filter((id): id is string => typeof id === 'string') ?? [],
+        })) ?? [];
+
+      setOrders(mapped);
+      setTotalPages(result.pageInfo?.totalPages ?? 1);
+    } catch (err) {
+      console.error('Fetch orders error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchOrders();
   }, [page]);
 
-  const handleCancel = (id: string) => console.log('취소:', id);
-  const handleStart = (id: string) => console.log('상품 준비 시작:', id);
+  // Cancel specific order items (Admin API)
+  const handleCancelItems = async (orderItemIds: string[]): Promise<void> => {
+    if (!orderItemIds || orderItemIds.length === 0) {
+      alert('취소할 주문 상품이 없습니다.');
+      return;
+    }
+
+    const reason = prompt('취소 사유를 입력하세요:');
+    if (!reason) return;
+
+    if (!confirm('정말로 이 주문의 모든 상품을 취소하시겠습니까?')) return;
+
+    try {
+      const { data, error } = await orderService.cancelOrderItemsByAdmin(
+        orderItemIds,
+        reason
+      );
+
+      const res = data as AdminCancelOrderItemsResponse | null;
+
+      if (error || !res?.success) {
+        alert('상품 취소 실패: ' + (res?.resultMsg || '오류가 발생했습니다.'));
+        console.error('Cancel failed:', error);
+        return;
+      }
+
+      alert('선택한 주문 상품이 성공적으로 취소되었습니다.');
+      await fetchOrders(); // Refresh list without page reload
+    } catch (err) {
+      console.error('Cancel error:', err);
+      alert('주문 상품 취소 중 오류가 발생했습니다.');
+    }
+  };
+
+  // Confirm payment manually (Admin API)
+  const handleConfirmPayment = async (orderId: string): Promise<void> => {
+    if (!confirm('이 주문의 입금을 확인하시겠습니까?')) return;
+
+    try {
+      const { data, error } = await paymentService.confirmFullPayment(orderId);
+
+      if (error || !data?.success) {
+        alert('입금 확인 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
+        console.error('Confirm failed:', error);
+        return;
+      }
+
+      alert('입금이 성공적으로 확인되었습니다.');
+      await fetchOrders(); // Refresh list without page reload
+    } catch (err) {
+      console.error('Confirm payment error:', err);
+      alert('입금 확인 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
     <>
@@ -101,15 +166,15 @@ export default function WaitingPaymentPage() {
               <div className={styles.actions}>
                 <button
                   className={styles.cancelBtn}
-                  onClick={() => handleCancel(order.orderNumber)}
+                  onClick={() => handleCancelItems(order.orderItemIds)}
                 >
-                  취소
+                  상품 취소
                 </button>
                 <button
                   className={styles.startBtn}
-                  onClick={() => handleStart(order.orderNumber)}
+                  onClick={() => handleConfirmPayment(order.orderId)}
                 >
-                  상품 준비 시작
+                  입금 확인 처리
                 </button>
               </div>
             </div>

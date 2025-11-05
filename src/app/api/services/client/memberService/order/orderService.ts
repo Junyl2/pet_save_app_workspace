@@ -6,6 +6,7 @@ import {
   CheckoutResponse,
   SearchOrdersParams,
   SearchOrdersResponse,
+  AdminCancelOrderItemsResponse,
 } from '../../../../types/member/order/order';
 
 export const orderService = {
@@ -51,5 +52,40 @@ export const orderService = {
       : '';
 
     return await apiClient.get<SearchOrdersResponse>(`/orders${query}`);
+  },
+
+  /**
+   * Cancel order (Admin)
+   * POST /orders/{orderId}/admin-cancel?reason={reason}
+   */
+  cancelOrderByAdmin: async (
+    orderId: string,
+    reason: string
+  ): Promise<{ data: any | null; error?: string }> => {
+    return await apiClient.post<any>(
+      `/orders/${orderId}/admin-cancel?reason=${encodeURIComponent(reason)}`
+    );
+  },
+
+  /**
+   * Cancel specific order items (Admin Only)
+   * POST /orders/items/admin-cancel
+   */
+  cancelOrderItemsByAdmin: async (
+    orderItemIds: string[],
+    cancelReason: string
+  ): Promise<{
+    data: AdminCancelOrderItemsResponse | null;
+    error?: string;
+  }> => {
+    const query = new URLSearchParams();
+    orderItemIds.forEach((id) => query.append('orderItemIds', id));
+
+    const body = { cancelReason };
+
+    return await apiClient.post<AdminCancelOrderItemsResponse>(
+      `/orders/items/admin-cancel?${query.toString()}`,
+      body
+    );
   },
 };

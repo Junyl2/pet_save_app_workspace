@@ -38,8 +38,10 @@ function resolveActiveKey(pathname: string): string {
     return 'animal-category-management';
   if (pathname.includes('/admin/pages/product-management'))
     return 'product-management';
-  if (pathname.includes('/admin/pages/referrals')) return 'referral-codes';
-  if (pathname.includes('/admin/pages/support')) return 'support';
+  if (pathname.includes('/admin/pages/referrer-code-management'))
+    return 'referrer-code-management';
+  if (pathname.includes('/admin/pages/customer-service-center'))
+    return 'customer-service-center';
 
   // Default
   return 'order-delivery-management/waiting-payment';

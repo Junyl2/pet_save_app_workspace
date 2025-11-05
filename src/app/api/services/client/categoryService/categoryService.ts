@@ -1,5 +1,6 @@
 import { apiClient, ApiResponse } from '@/app/api/apiClient';
 import {
+  Category,
   CategoryApiResponse,
   CategorySearchParams,
 } from '@/app/api/types/category/category';
@@ -21,9 +22,7 @@ export class CategoryService {
     try {
       console.log('[CategoryService] Fetching categories with params:', params);
 
-      // Build query parameters
       const queryParams = new URLSearchParams();
-
       if (params?.keyword) queryParams.append('keyword', params.keyword);
       if (params?.categoryName)
         queryParams.append('categoryName', params.categoryName);
@@ -64,6 +63,47 @@ export class CategoryService {
         data: null,
         error:
           error instanceof Error ? error.message : 'Failed to fetch categories',
+      };
+    }
+  }
+
+  /**
+   * Get category by ID
+   * GET /api/pet-save/categories/{categoryId}
+   */
+  static async getCategoryById(
+    categoryId: string
+  ): Promise<ApiResponse<{ data: Category }>> {
+    try {
+      if (!categoryId) {
+        throw new Error('Category ID is required');
+      }
+
+      const url = `${this.BASE_URL}/${categoryId}`;
+      const response = await apiClient.get<{ data: Category }>(url);
+
+      if (response.error) {
+        console.error(
+          '[CategoryService] Failed to fetch category by ID:',
+          response.error
+        );
+        return response;
+      }
+
+      console.log('[CategoryService] Category fetched successfully:', {
+        categoryId,
+        categoryName: response.data?.data?.categoryName,
+      });
+
+      return response;
+    } catch (error) {
+      console.error('[CategoryService] getCategoryById error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch category by ID',
       };
     }
   }

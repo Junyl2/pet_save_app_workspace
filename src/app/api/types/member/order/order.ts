@@ -1,5 +1,3 @@
-// Order API Types
-
 export type ShippingOption = 'DELIVERY' | 'PICKUP';
 export type PaymentMethod = 'BANK' | 'CARD' | 'EASY_PAY';
 export type ReceiptType = 'TAX_INVOICE' | 'CASH_RECEIPT';
@@ -70,6 +68,7 @@ export type OrderGeneralStatus =
   | 'CANCELLED';
 
 export interface SearchOrdersParams {
+  orderId?: string;
   orderNumber?: string;
   keyword?: string;
   generalStatus?: OrderGeneralStatus;
@@ -80,6 +79,36 @@ export interface SearchOrdersParams {
   sortBy?: 'createdAt' | 'totalAmount' | 'status' | 'usedPoints';
   direction?: 'asc' | 'desc';
 }
+
+/** ────────────────  FIXED STORE + ITEM STRUCTURE ──────────────── **/
+
+export interface OrderItem {
+  orderItemId: string;
+  deliveryId: string | null;
+  productId: string;
+  productName: string;
+  productImageUrl?: string;
+  productCategory?: string[];
+  productExpiryDate?: string;
+  status: string;
+  quantity: number;
+  price: number;
+  subtotal: number;
+  appliedDiscountAmount: number;
+  totalAmount: number;
+}
+
+export interface StoreOrder {
+  orderStoreId: string;
+  storeId: string;
+  storeName: string;
+  shippingOption: string;
+  subtotal: number;
+  deliveryFee: number;
+  status: string;
+  items?: OrderItem[];
+}
+
 export interface SearchOrdersData {
   content: {
     orderId: string;
@@ -89,19 +118,9 @@ export interface SearchOrdersData {
     totalAmount: number;
     usedPoints: number;
     createdAt: string;
-
     customerName: string;
     customerContact: string;
-
-    storeOrders?: {
-      orderStoreId: string;
-      storeId: string;
-      storeName: string;
-      shippingOption: string;
-      subtotal: number;
-      deliveryFee: number;
-      status: string;
-    }[];
+    storeOrders?: StoreOrder[];
   }[];
   pageInfo?: {
     totalElements: number;
@@ -121,5 +140,23 @@ export interface SearchOrdersResponse {
   resultMsg: string;
   divisionCode: string | null;
   data: SearchOrdersData;
+  errorId?: string;
+}
+
+/** ────────────────  NEW ADMIN CANCEL ORDER ITEMS TYPES ──────────────── **/
+
+export interface AdminCancelOrderItemsRequest {
+  /** IDs of order items to cancel */
+  orderItemIds: string[];
+  /** Reason for cancellation */
+  cancelReason: string;
+}
+
+export interface AdminCancelOrderItemsResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: object;
   errorId?: string;
 }

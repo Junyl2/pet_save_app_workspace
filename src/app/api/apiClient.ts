@@ -134,8 +134,27 @@ const isPublicEndpoint = (
     '/auth/recovery/password/email',
     '/auth/recovery/password/phone',
     '/auth/recovery/password/reset',
-    '/categories',
   ];
+
+  // Category endpoints:
+  // Only the root /categories (list) is public.
+  // Anything deeper, like /categories/{id}, requires auth.
+  if (url.startsWith('/categories')) {
+    const isGetRequest = !method || method.toLowerCase() === 'get';
+    const isRootList = url === '/categories' || url.startsWith('/categories?');
+    const isDetail = /^\/categories\/[0-9a-fA-F-]+$/.test(url);
+
+    const isPublic = isGetRequest && isRootList;
+    console.log('🔍 Category endpoint classification:', {
+      url,
+      method: method || 'GET',
+      isGetRequest,
+      isRootList,
+      isDetail,
+      isPublic,
+    });
+    return isPublic;
+  }
 
   // Special handling for products endpoints
   // Only GET requests to /products (browsing) are public

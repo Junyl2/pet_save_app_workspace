@@ -2,31 +2,28 @@ import { apiClient, ApiResponse } from '../../../apiClient';
 import {
   BusinessRegistrationRequest,
   BusinessRegistrationResponse,
+  BusinessRegistrationListQuery,
+  BusinessRegistrationListResponse,
 } from '../../../types/auth/BusinessRegistration';
 
 /**
  * Business Registration Service
  *
- * Service for handling business registration applications.
- * Replaces the old seller membership upgrade functionality.
+ * Handles user and admin endpoints related to business registrations.
  */
 export class BusinessRegistrationService {
   /**
-   * Submit business registration application
+   * Submit new business registration application
    * Endpoint: POST /api/pet-save/business-registrations
-   *
-   * @param registrationData - Business registration application data
-   * @returns Promise<ApiResponse<BusinessRegistrationResponse>>
    */
   static async submitBusinessRegistration(
     registrationData: BusinessRegistrationRequest
   ): Promise<ApiResponse<BusinessRegistrationResponse>> {
     try {
-      console.log('Submitting business registration application:', {
+      console.log('Submitting business registration:', {
         businessName: registrationData.businessName,
         representativeName: registrationData.representativeName,
         businessRegistrationNumber: registrationData.businessRegistrationNumber,
-        businessEmail: registrationData.businessEmail,
       });
 
       const response = await apiClient.post<BusinessRegistrationResponse>(
@@ -34,37 +31,24 @@ export class BusinessRegistrationService {
         registrationData
       );
 
-      console.log('Business registration API response:', response);
-
       if (response.error) {
-        console.error(
-          'Business registration submission failed:',
-          response.error
-        );
+        console.error('Business registration failed:', response.error);
 
-        // Handle specific error cases for re-registration
+        // Attempt update if registration already exists
         if (
           response.error.includes('409') ||
-          response.error.includes('already exists') ||
           response.error.includes('duplicate') ||
+          response.error.includes('already exists') ||
           response.error.includes('이미 등록')
         ) {
-          console.log(
-            '🔄 User already has business registration, attempting update...'
-          );
+          console.log('Attempting to update existing registration...');
           return await this.updateBusinessRegistration(registrationData);
         }
-
-        return response;
       }
 
-      console.log(
-        'Business registration submitted successfully:',
-        response.data
-      );
       return response;
     } catch (error) {
-      console.error('Business registration service error:', error);
+      console.error('Submit business registration error:', error);
       return {
         data: null,
         error:
@@ -76,234 +60,187 @@ export class BusinessRegistrationService {
   }
 
   /**
-   * Update existing business registration (for rejected users re-applying)
+   * Update an existing business registration (for re-application)
    * Endpoint: PUT /api/pet-save/business-registrations
-   *
-   * @param registrationData - Updated business registration data
-   * @returns Promise<ApiResponse<BusinessRegistrationResponse>>
    */
   static async updateBusinessRegistration(
     registrationData: BusinessRegistrationRequest
   ): Promise<ApiResponse<BusinessRegistrationResponse>> {
     try {
-      console.log('Updating existing business registration:', {
-        businessName: registrationData.businessName,
-        representativeName: registrationData.representativeName,
-        businessRegistrationNumber: registrationData.businessRegistrationNumber,
-        businessEmail: registrationData.businessEmail,
-      });
+      console.log('Updating existing business registration...');
 
       const response = await apiClient.put<BusinessRegistrationResponse>(
         '/business-registrations',
         registrationData
       );
 
-      console.log('Business registration update response:', response);
-
       if (response.error) {
-        console.error('Business registration update failed:', response.error);
-        return response;
+        console.error('Update business registration failed:', response.error);
       }
 
-      console.log('Business registration updated successfully:', response.data);
       return response;
     } catch (error) {
-      console.error('Business registration update service error:', error);
+      console.error('Update business registration error:', error);
       return {
         data: null,
         error:
           error instanceof Error
             ? error.message
-            : 'Business registration update failed',
+            : 'Failed to update business registration',
       };
     }
   }
 
   /**
-   * Check if user has existing business registration
+   * Get current user's business registration (if any)
    * Endpoint: GET /api/pet-save/business-registrations/me
-   *
-   * @returns Promise<ApiResponse<BusinessRegistrationResponse>>
    */
   static async getExistingBusinessRegistration(): Promise<
     ApiResponse<BusinessRegistrationResponse>
   > {
     try {
-      console.log('Checking for existing business registration...');
-
+      console.log('Fetching existing business registration...');
       const response = await apiClient.get<BusinessRegistrationResponse>(
         '/business-registrations/me'
       );
 
-      console.log('Existing business registration response:', response);
-
       if (response.error) {
-        console.log('No existing business registration found:', response.error);
-        return response;
+        console.warn('No business registration found:', response.error);
       }
 
-      console.log('Existing business registration found:', response.data);
       return response;
     } catch (error) {
-      console.error('Error checking existing business registration:', error);
+      console.error('Get existing business registration error:', error);
       return {
         data: null,
         error:
           error instanceof Error
             ? error.message
-            : 'Failed to check existing business registration',
+            : 'Failed to fetch existing business registration',
       };
     }
   }
 
   /**
-   * Validate business registration data before submission
-   *
-   * @param registrationData - Business registration data to validate
-   * @returns Object with validation results
+   * Get all business registration applications (ADMIN)
+   * Endpoint: GET /api/pet-save/business-registrations
+   */
+  static async getAllBusinessRegistrations(
+    params?: BusinessRegistrationListQuery
+  ): Promise<ApiResponse<BusinessRegistrationListResponse>> {
+    try {
+      const query = new URLSearchParams();
+
+      if (params?.keyword) query.append('keyword', params.keyword);
+      if (params?.status) query.append('status', params.status);
+      if (params?.dateStart) query.append('dateStart', params.dateStart);
+      if (params?.dateEnd) query.append('dateEnd', params.dateEnd);
+      if (params?.page !== undefined)
+        query.append('page', params.page.toString());
+      if (params?.size !== undefined)
+        query.append('size', params.size.toString());
+      if (params?.sortBy) query.append('sortBy', params.sortBy);
+      if (params?.direction) query.append('direction', params.direction);
+
+      const url = `/business-registrations${
+        query.toString() ? `?${query}` : ''
+      }`;
+
+      const response = await apiClient.get<BusinessRegistrationListResponse>(
+        url
+      );
+
+      if (response.error) {
+        console.error(
+          'Failed to fetch business registrations:',
+          response.error
+        );
+        return response;
+      }
+
+      console.log(
+        `Fetched ${
+          response.data?.data?.content?.length ?? 0
+        } registrations (page ${
+          response.data?.data?.pageInfo?.currentPage ?? 0
+        })`
+      );
+
+      return response;
+    } catch (error) {
+      console.error('Admin business registrations fetch error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch business registrations',
+      };
+    }
+  }
+
+  /**
+   * Validate business registration form before submission
    */
   static validateBusinessRegistrationData(
     registrationData: Partial<BusinessRegistrationRequest>
   ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    // Required field validations
-    if (!registrationData.businessRegistrationNumber?.trim()) {
+    if (!registrationData.businessRegistrationNumber?.trim())
       errors.push('Business registration number is required');
-    }
-
-    if (!registrationData.representativeName?.trim()) {
+    if (!registrationData.representativeName?.trim())
       errors.push('Representative name is required');
-    }
-
-    if (!registrationData.businessName?.trim()) {
+    if (!registrationData.businessName?.trim())
       errors.push('Business name is required');
-    }
-
-    if (!registrationData.businessRegistrationCopyFileId?.trim()) {
+    if (!registrationData.businessRegistrationCopyFileId?.trim())
       errors.push('Business registration copy file is required');
-    }
-
-    if (!registrationData.roadAddress?.trim()) {
+    if (!registrationData.roadAddress?.trim())
       errors.push('Road address is required');
-    }
-
-    if (!registrationData.detailedAddress?.trim()) {
+    if (!registrationData.detailedAddress?.trim())
       errors.push('Detailed address is required');
-    }
-
-    if (!registrationData.zipCode?.trim()) {
-      errors.push('ZIP code is required');
-    }
-
-    if (!registrationData.bankName?.trim()) {
+    if (!registrationData.zipCode?.trim()) errors.push('ZIP code is required');
+    if (!registrationData.bankName?.trim())
       errors.push('Bank name is required');
-    }
-
-    if (!registrationData.accountNumber?.trim()) {
+    if (!registrationData.accountNumber?.trim())
       errors.push('Account number is required');
-    }
-
-    if (!registrationData.depositorName?.trim()) {
+    if (!registrationData.depositorName?.trim())
       errors.push('Depositor name is required');
-    }
-
-    if (!registrationData.bankbookFileId?.trim()) {
+    if (!registrationData.bankbookFileId?.trim())
       errors.push('Bankbook file is required');
-    }
-
-    if (!registrationData.businessEmail?.trim()) {
+    if (!registrationData.businessEmail?.trim())
       errors.push('Business email is required');
-    }
 
-    // Email format validation
     if (
       registrationData.businessEmail &&
       !this.isValidEmail(registrationData.businessEmail)
-    ) {
-      errors.push('Business email format is invalid');
-    }
+    )
+      errors.push('Invalid business email format');
 
-    // Business registration number format validation (Korean format: XXX-XX-XXXXX)
     if (
       registrationData.businessRegistrationNumber &&
       !this.isValidBusinessRegistrationNumber(
         registrationData.businessRegistrationNumber
       )
-    ) {
-      errors.push(
-        'Business registration number must be 10 digits (e.g., 123-45-67890)'
-      );
-    }
+    )
+      errors.push('Business registration number must have 10 digits');
 
-    // Coordinate validation
-    if (
-      registrationData.x !== undefined &&
-      (isNaN(registrationData.x) ||
-        registrationData.x < -180 ||
-        registrationData.x > 180)
-    ) {
-      errors.push('X coordinate must be a valid longitude (-180 to 180)');
-    }
-
-    if (
-      registrationData.y !== undefined &&
-      (isNaN(registrationData.y) ||
-        registrationData.y < -90 ||
-        registrationData.y > 90)
-    ) {
-      errors.push('Y coordinate must be a valid latitude (-90 to 90)');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return { isValid: errors.length === 0, errors };
   }
 
-  /**
-   * Validate email format
-   */
   private static isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
-  /**
-   * Validate and normalize Korean business registration number format
-   * Accepts any format and normalizes to XXX-XX-XXXXX
-   */
-  private static isValidBusinessRegistrationNumber(
-    businessNumber: string
-  ): boolean {
-    if (!businessNumber || typeof businessNumber !== 'string') {
-      return false;
-    }
-
-    // Remove all non-digit characters
-    const digits = businessNumber.replace(/\D/g, '');
-
-    // Must have exactly 10 digits
+  private static isValidBusinessRegistrationNumber(num: string): boolean {
+    const digits = num.replace(/\D/g, '');
     return digits.length === 10;
   }
 
-  /**
-   * Normalize business registration number to standard format (XXX-XX-XXXXX)
-   */
-  static normalizeBusinessRegistrationNumber(businessNumber: string): string {
-    if (!businessNumber || typeof businessNumber !== 'string') {
-      return '';
-    }
-
-    // Remove all non-digit characters
-    const digits = businessNumber.replace(/\D/g, '');
-
-    // If we have 10 digits, format as XXX-XX-XXXXX
-    if (digits.length === 10) {
-      return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
-    }
-
-    // Return original if not 10 digits (will be caught by validation)
-    return businessNumber;
+  static normalizeBusinessRegistrationNumber(num: string): string {
+    const digits = num.replace(/\D/g, '');
+    return digits.length === 10
+      ? `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
+      : num;
   }
 }

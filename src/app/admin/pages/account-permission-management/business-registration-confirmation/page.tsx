@@ -1,89 +1,157 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
+import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
+import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
+import { BusinessRegistrationService } from '@/app/api/services/client/auth/businessRegistrationService';
+import { BusinessRegistrationSummary } from '@/app/api/types/auth/BusinessRegistration';
 
-interface Member {
-  id: string;
-  name: string;
-  nickname: string;
-  contact: string;
-  email: string;
-  status: '승인 대기' | '승인 완료' | '반려';
-}
+type StatusLabel = '승인 대기' | '승인 완료' | '반려';
 
-const STATUS_COLORS: Record<Member['status'], string> = {
+const STATUS_COLORS: Record<StatusLabel, string> = {
   '승인 대기': '#E9B430',
   '승인 완료': '#009329',
   반려: '#EA080C',
 };
 
-const members: Member[] = Array.from({ length: 10 }).map((_, i) => ({
-  id: `20250401-00${i + 1}`,
-  name: `홍길동 ${i + 1}`,
-  nickname: `닉네임${i + 1}`,
-  contact: `010-0000-000${i}`,
-  email: `user${i + 1}@mail.com`,
-  status: i % 3 === 0 ? '승인 완료' : i % 3 === 1 ? '반려' : '승인 대기', // sample variety
-}));
+const PAGE_SIZE = 10;
 
 export default function BusinessRegistrationConfirmationPage() {
   const router = useRouter();
+  const { page, setPage } = usePageParam(1);
+  const [registrations, setRegistrations] = useState<
+    BusinessRegistrationSummary[]
+  >([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
 
-  const openInvoice = (member: Member): void => {
+  const mapStatusToLabel = (status: string): StatusLabel => {
+    switch (status) {
+      case 'APPROVED':
+        return '승인 완료';
+      case 'REJECTED':
+        return '반려';
+      default:
+        return '승인 대기';
+    }
+  };
+
+  useEffect(() => {
+    const fetchRegistrations = async () => {
+      setLoading(true);
+      try {
+        const response =
+          await BusinessRegistrationService.getAllBusinessRegistrations({
+            page: page - 1,
+            size: PAGE_SIZE,
+            sortBy: 'createdAt',
+            direction: 'desc',
+          });
+
+        if (response.error || !response.data?.success) {
+          console.error('❌ Failed to fetch registrations:', response.error);
+          setRegistrations([]);
+          return;
+        }
+
+        const data = response.data.data.content ?? [];
+        setRegistrations(data);
+        setTotalPages(response.data.data.pageInfo?.totalPages ?? 1);
+      } catch (error) {
+        console.error('Error loading business registrations:', error);
+        setRegistrations([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchRegistrations();
+  }, [page]);
+
+  const openInvoice = (item: BusinessRegistrationSummary): void => {
     const query = new URLSearchParams({
-      name: member.name,
-      nickname: member.nickname,
-      email: member.email,
-      phone: member.contact,
-      addressLine: '경기도 안양시 동안구 흥안대로427번길 57-2 (평촌동)',
-      zipOrDetail: '121112호 546432동',
+      name: item.applicantName,
+      nickname: item.applicantNickname,
+      email: item.applicantEmail,
+      phone: item.applicantPhoneNumber,
+      addressLine: item.roadAddress ?? '',
+      zipOrDetail: item.zipCode ?? '',
     }).toString();
 
     router.push(
-      `/admin/pages/account-permission-management/general-member/regular-member/${member.id}?${query}`
+      `/admin/pages/account-permission-management/general-member/regular-member/${item.applicantId}?${query}`
     );
   };
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.headerRow}>
-        <div className={styles.col}>이름</div>
-        <div className={styles.col}>닉네임</div>
-        <div className={styles.col}>연락처</div>
-        <div className={styles.col}>이메일</div>
-        <div className={styles.col}>요청상태</div>
+    <>
+      <div className={styles.wrapper}>
+        <div className={styles.headerRow}>
+          <div className={styles.col}>이름</div>
+          <div className={styles.col}>닉네임</div>
+          <div className={styles.col}>연락처</div>
+          <div className={styles.col}>이메일</div>
+          <div className={styles.col}>요청상태</div>
+        </div>
+
+        {loading && <div className={styles.loading}>불러오는 중...</div>}
+
+        {!loading && registrations.length === 0 && (
+          <div className={styles.empty}>사업자 등록 요청이 없습니다.</div>
+        )}
+
+        {!loading &&
+          registrations.map((reg) => {
+            const statusLabel = mapStatusToLabel(reg.status);
+            return (
+              <div
+                key={reg.requestId}
+                className={styles.dataRow}
+                role="button"
+                tabIndex={0}
+                onClick={() => openInvoice(reg)}
+                onKeyDown={(e) =>
+                  (e.key === 'Enter' || e.key === ' ') && openInvoice(reg)
+                }
+                aria-label={`${reg.applicantName} 정보 보기`}
+              >
+                <div className={styles.col}>{reg.applicantName}</div>
+                <div className={styles.col}>{reg.applicantNickname}</div>
+                <div className={styles.col}>{reg.applicantPhoneNumber}</div>
+                <div className={styles.col}>{reg.applicantEmail}</div>
+                <div
+                  className={styles.col}
+                  style={{
+                    color: STATUS_COLORS[statusLabel],
+                    fontWeight: 600,
+                  }}
+                >
+                  {statusLabel}
+                </div>
+                <div className={styles.actions}>
+                  <button className={styles.cancelBtn}>취소</button>
+                  <button className={styles.approveBtn}>승인</button>
+                </div>
+              </div>
+            );
+          })}
       </div>
 
-      {members.map((member) => (
+      {totalPages > 1 && (
         <div
-          key={member.id}
-          className={styles.dataRow}
-          role="button"
-          tabIndex={0}
-          onClick={() => openInvoice(member)}
-          onKeyDown={(e) =>
-            (e.key === 'Enter' || e.key === ' ') && openInvoice(member)
-          }
-          aria-label={`${member.name} 정보 보기`}
+          style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}
         >
-          <div className={styles.col}>{member.name}</div>
-          <div className={styles.col}>{member.nickname}</div>
-          <div className={styles.col}>{member.contact}</div>
-          <div className={styles.col}>{member.email}</div>
-          <div
-            className={styles.col}
-            style={{ color: STATUS_COLORS[member.status], fontWeight: 600 }}
-          >
-            {member.status}
-          </div>
-          <div className={styles.actions}>
-            <button className={styles.cancelBtn}>취소</button>
-            <button className={styles.approveBtn}>승인</button>
+          <div style={{ width: 320 }}>
+            <OrderPagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </div>
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
