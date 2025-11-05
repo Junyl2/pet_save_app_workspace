@@ -485,7 +485,7 @@ export default function RegisterProductForm() {
       // Navigate after a short delay to allow toast to be visible
       setTimeout(() => {
         router.push('/client/seller/pages/seller-product-list');
-      }, 200000);
+      }, 1500);
     } catch (error) {
       console.error('Product registration failed:', error);
       setError(
