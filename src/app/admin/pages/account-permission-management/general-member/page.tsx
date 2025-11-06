@@ -67,41 +67,43 @@ export default function GeneralMemberPage() {
   };
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.headerRow}>
-        <div className={styles.col}>이름</div>
-        <div className={styles.col}>닉네임</div>
-        <div className={styles.col}>연락처</div>
-        <div className={styles.col}>이메일</div>
-        <div className={styles.col}>회원분류</div>
+    <>
+      <div className={styles.wrapper}>
+        <div className={styles.headerRow}>
+          <div className={styles.col}>이름</div>
+          <div className={styles.col}>닉네임</div>
+          <div className={styles.col}>연락처</div>
+          <div className={styles.col}>이메일</div>
+          <div className={styles.col}>회원분류</div>
+        </div>
+
+        {loading && <div className={styles.loading}>불러오는 중...</div>}
+
+        {!loading && members.length === 0 && (
+          <div className={styles.empty}>등록된 회원이 없습니다.</div>
+        )}
+
+        {!loading &&
+          members.map((member) => (
+            <div
+              key={member.memberId}
+              className={styles.dataRow}
+              role="button"
+              tabIndex={0}
+              onClick={() => openInvoice(member)}
+              onKeyDown={(e) =>
+                (e.key === 'Enter' || e.key === ' ') && openInvoice(member)
+              }
+              aria-label={`${member.name} 상세 보기`}
+            >
+              <div className={styles.col}>{member.name ?? '-'}</div>
+              <div className={styles.col}>{member.name ?? '-'}</div>
+              <div className={styles.col}>{member.phoneNumber ?? '-'}</div>
+              <div className={styles.col}>{member.email ?? '-'}</div>
+              <div className={styles.col}>{member.classification ?? '-'}</div>
+            </div>
+          ))}
       </div>
-
-      {loading && <div className={styles.loading}>불러오는 중...</div>}
-
-      {!loading && members.length === 0 && (
-        <div className={styles.empty}>등록된 회원이 없습니다.</div>
-      )}
-
-      {!loading &&
-        members.map((member) => (
-          <div
-            key={member.memberId}
-            className={styles.dataRow}
-            role="button"
-            tabIndex={0}
-            onClick={() => openInvoice(member)}
-            onKeyDown={(e) =>
-              (e.key === 'Enter' || e.key === ' ') && openInvoice(member)
-            }
-            aria-label={`${member.name} 상세 보기`}
-          >
-            <div className={styles.col}>{member.name ?? '-'}</div>
-            <div className={styles.col}>{member.name ?? '-'}</div>
-            <div className={styles.col}>{member.phoneNumber ?? '-'}</div>
-            <div className={styles.col}>{member.email ?? '-'}</div>
-            <div className={styles.col}>{member.classification ?? '-'}</div>
-          </div>
-        ))}
 
       {totalPages > 1 && (
         <div
@@ -116,6 +118,6 @@ export default function GeneralMemberPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

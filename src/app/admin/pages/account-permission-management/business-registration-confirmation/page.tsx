@@ -6,11 +6,17 @@ import styles from './page.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { BusinessRegistrationService } from '@/app/api/services/client/auth/businessRegistrationService';
-import { BusinessRegistrationSummary } from '@/app/api/types/auth/BusinessRegistration';
 
-type StatusLabel = '승인 대기' | '승인 완료' | '반려';
+interface Member {
+  id: string;
+  name: string;
+  nickname: string;
+  contact: string;
+  email: string;
+  status: '승인 대기' | '승인 완료' | '반려';
+}
 
-const STATUS_COLORS: Record<StatusLabel, string> = {
+const STATUS_COLORS: Record<Member['status'], string> = {
   '승인 대기': '#E9B430',
   '승인 완료': '#009329',
   반려: '#EA080C',
@@ -21,69 +27,110 @@ const PAGE_SIZE = 10;
 export default function BusinessRegistrationConfirmationPage() {
   const router = useRouter();
   const { page, setPage } = usePageParam(1);
-  const [registrations, setRegistrations] = useState<
-    BusinessRegistrationSummary[]
-  >([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const mapStatusToLabel = (status: string): StatusLabel => {
-    switch (status) {
-      case 'APPROVED':
-        return '승인 완료';
-      case 'REJECTED':
-        return '반려';
-      default:
-        return '승인 대기';
+  /** Fetch real business registration data */
+  const fetchBusinessRegistrations = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const response =
+        await BusinessRegistrationService.getAllBusinessRegistrations({
+          page: page - 1,
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        });
+
+      const data = (response?.data as any)?.data;
+      const content = data?.content ?? [];
+      setTotalPages(data?.totalPages ?? 1);
+
+      const mapped: Member[] = content.map((item: any) => ({
+        id: item.requestId,
+        name: item.applicantName ?? '-',
+        nickname: item.applicantNickname ?? '-',
+        contact: item.applicantPhoneNumber ?? '-',
+        email: item.applicantEmail ?? '-',
+        status:
+          item.status === 'APPROVED'
+            ? '승인 완료'
+            : item.status === 'REJECTED'
+            ? '반려'
+            : '승인 대기',
+      }));
+
+      setMembers(mapped);
+    } catch (error) {
+      console.error('❌ Failed to fetch business registrations:', error);
+      setMembers([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchRegistrations = async () => {
-      setLoading(true);
-      try {
-        const response =
-          await BusinessRegistrationService.getAllBusinessRegistrations({
-            page: page - 1,
-            size: PAGE_SIZE,
-            sortBy: 'createdAt',
-            direction: 'desc',
-          });
-
-        if (response.error || !response.data?.success) {
-          console.error('❌ Failed to fetch registrations:', response.error);
-          setRegistrations([]);
-          return;
-        }
-
-        const data = response.data.data.content ?? [];
-        setRegistrations(data);
-        setTotalPages(response.data.data.pageInfo?.totalPages ?? 1);
-      } catch (error) {
-        console.error('Error loading business registrations:', error);
-        setRegistrations([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void fetchRegistrations();
+    void fetchBusinessRegistrations();
   }, [page]);
 
-  const openInvoice = (item: BusinessRegistrationSummary): void => {
+  /** Approve a registration */
+  const handleApprove = async (requestId: string): Promise<void> => {
+    if (!confirm('해당 사업자 등록을 승인하시겠습니까?')) return;
+    setProcessingId(requestId);
+    try {
+      await BusinessRegistrationService.approveBusinessRegistration(requestId, {
+        adminNotes: '관리자 승인 완료',
+      });
+      alert('승인되었습니다.');
+      await fetchBusinessRegistrations();
+    } catch (error) {
+      console.error('승인 실패:', error);
+      alert('승인 중 오류가 발생했습니다.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  /** Reject a registration */
+  const handleReject = async (requestId: string): Promise<void> => {
+    const reason = prompt('거절 사유를 입력하세요:');
+    if (!reason) return;
+    setProcessingId(requestId);
+    try {
+      await BusinessRegistrationService.rejectBusinessRegistration(requestId, {
+        rejectionReason: reason,
+        adminNotes: '관리자 검토 후 거절',
+      });
+      alert('거절되었습니다.');
+      await fetchBusinessRegistrations();
+    } catch (error) {
+      console.error('거절 실패:', error);
+      alert('거절 중 오류가 발생했습니다.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const openInvoice = (member: Member): void => {
     const query = new URLSearchParams({
-      name: item.applicantName,
-      nickname: item.applicantNickname,
-      email: item.applicantEmail,
-      phone: item.applicantPhoneNumber,
-      addressLine: item.roadAddress ?? '',
-      zipOrDetail: item.zipCode ?? '',
+      name: member.name,
+      nickname: member.nickname,
+      email: member.email,
+      phone: member.contact,
+      addressLine: '서울특별시 마포구 백범로 192',
+      zipOrDetail: '04196',
     }).toString();
 
     router.push(
-      `/admin/pages/account-permission-management/general-member/regular-member/${item.applicantId}?${query}`
+      `/admin/pages/account-permission-management/general-member/regular-member/${member.id}?${query}`
     );
   };
+
+  if (loading) {
+    return <div className={styles.loading}>로딩 중...</div>;
+  }
 
   return (
     <>
@@ -96,47 +143,59 @@ export default function BusinessRegistrationConfirmationPage() {
           <div className={styles.col}>요청상태</div>
         </div>
 
-        {loading && <div className={styles.loading}>불러오는 중...</div>}
-
-        {!loading && registrations.length === 0 && (
-          <div className={styles.empty}>사업자 등록 요청이 없습니다.</div>
-        )}
-
-        {!loading &&
-          registrations.map((reg) => {
-            const statusLabel = mapStatusToLabel(reg.status);
-            return (
+        {members.length === 0 ? (
+          <div className={styles.empty}>등록된 사업자 신청이 없습니다.</div>
+        ) : (
+          members.map((member) => (
+            <div
+              key={member.id}
+              className={styles.dataRow}
+              role="button"
+              tabIndex={0}
+              onClick={() => openInvoice(member)}
+              onKeyDown={(e) =>
+                (e.key === 'Enter' || e.key === ' ') && openInvoice(member)
+              }
+              aria-label={`${member.name} 정보 보기`}
+            >
+              <div className={styles.col}>{member.name}</div>
+              <div className={styles.col}>{member.nickname}</div>
+              <div className={styles.col}>{member.contact}</div>
+              <div className={styles.col}>{member.email}</div>
               <div
-                key={reg.requestId}
-                className={styles.dataRow}
-                role="button"
-                tabIndex={0}
-                onClick={() => openInvoice(reg)}
-                onKeyDown={(e) =>
-                  (e.key === 'Enter' || e.key === ' ') && openInvoice(reg)
-                }
-                aria-label={`${reg.applicantName} 정보 보기`}
+                className={styles.col}
+                style={{
+                  color: STATUS_COLORS[member.status],
+                  fontWeight: 600,
+                }}
               >
-                <div className={styles.col}>{reg.applicantName}</div>
-                <div className={styles.col}>{reg.applicantNickname}</div>
-                <div className={styles.col}>{reg.applicantPhoneNumber}</div>
-                <div className={styles.col}>{reg.applicantEmail}</div>
-                <div
-                  className={styles.col}
-                  style={{
-                    color: STATUS_COLORS[statusLabel],
-                    fontWeight: 600,
+                {member.status}
+              </div>
+              <div className={styles.actions}>
+                <button
+                  className={styles.cancelBtn}
+                  disabled={processingId === member.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleReject(member.id);
                   }}
                 >
-                  {statusLabel}
-                </div>
-                <div className={styles.actions}>
-                  <button className={styles.cancelBtn}>취소</button>
-                  <button className={styles.approveBtn}>승인</button>
-                </div>
+                  {processingId === member.id ? '반려...' : '반려'}
+                </button>
+                <button
+                  className={styles.approveBtn}
+                  disabled={processingId === member.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleApprove(member.id);
+                  }}
+                >
+                  {processingId === member.id ? '처리 중...' : '승인'}
+                </button>
               </div>
-            );
-          })}
+            </div>
+          ))
+        )}
       </div>
 
       {totalPages > 1 && (

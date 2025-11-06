@@ -181,6 +181,7 @@
 }
 
 .image {
+  position: relative;
   height: 120px;
   width: 120px;
   background-color: #d9d9d9;
@@ -189,6 +190,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.thumb {
+  object-fit: cover;
 }
 
 /* Buttons */
@@ -230,6 +234,10 @@
 
 .editBtn:hover {
   background-color: #245537;
+}
+
+.pagination {
+  margin-top: 2rem;
 }
 
 @media (max-width: 768px) {

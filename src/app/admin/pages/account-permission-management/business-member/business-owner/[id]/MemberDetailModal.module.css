@@ -1,0 +1,212 @@
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal {
+  width: 900px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  font-family: 'Pretendard', sans-serif;
+  color: #141414;
+  padding: 40px 0 80px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
+  max-height: 95vh;
+  overflow-y: auto;
+}
+
+/* Profile Section */
+.profileSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 60px;
+  margin-top: 1rem;
+}
+
+.avatarWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.avatarCircle {
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: #d9d9d9;
+}
+
+/* Info Section */
+.infoSection {
+  width: 900px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  height: 100px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.labelBox {
+  width: 278px;
+  height: 80px;
+  margin-left: 22.5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 500;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+/* Static value display */
+.valueBox {
+  margin-left: 30px;
+  width: 350px;
+  height: 50px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  padding-left: 30px;
+  font-size: 16px;
+}
+
+/* Editable input (matches .valueBox visually) */
+.valueInput {
+  margin-left: 30px;
+  width: 350px;
+  height: 50px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  padding-left: 30px;
+  font-size: 16px;
+  font-family: inherit;
+  color: #141414;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.valueInput:focus {
+  border-color: #2b6443;
+}
+
+/* Address Section */
+.addressRow {
+  display: flex;
+  align-items: flex-start;
+  height: 160px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.labelBoxLarge {
+  width: 278px;
+  height: 140px;
+  margin-left: 22.5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 500;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.addressBoxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-left: 30px;
+}
+
+/* Static address view */
+.addressBox {
+  width: 500px;
+  height: 50px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  padding-left: 30px;
+  font-size: 16px;
+}
+
+/* Editable address input (same size as addressBox) */
+.addressInput {
+  width: 500px;
+  height: 50px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  padding-left: 30px;
+  font-size: 16px;
+  font-family: inherit;
+  color: #141414;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.addressInput:focus {
+  border-color: #2b6443;
+}
+
+/* Buttons */
+.buttonRow {
+  margin-top: 50px;
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+
+.deleteBtn {
+  width: 350px;
+  height: 50px;
+  background: #fff;
+  color: #141414;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.editBtn {
+  width: 350px;
+  height: 50px;
+  background: #2b6443;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.deleteBtn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.editBtn:hover {
+  background: #245339;
+}
+
+/* Loading State */
+.loading {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 500;
+  padding: 80px 0;
+}

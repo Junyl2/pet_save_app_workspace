@@ -1,10 +1,119 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import styles from './Add.module.css';
+import { CategoryService } from '@/app/api/services/client/categoryService/categoryService';
+import { CategoryFileService } from '@/app/api/services/admin/adminCategoryService/categoryFileService';
 
 export default function AddCategoryPage() {
+  const router = useRouter();
+
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadedFileId, setUploadedFileId] = useState<string | null>(null);
+  const [encryptedId, setEncryptedId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    englishName: '',
+    displayOrder: 1,
+    visible: true,
+  });
+
+  /** Handle file upload */
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const { data, error } = await CategoryFileService.uploadFile({ file });
+      if (error || !data?.data) throw new Error(error || 'Upload failed');
+
+      const uploaded = data.data;
+      setUploadedFileId(uploaded.fileId);
+      setEncryptedId(uploaded.encryptedId);
+      setImagePreview(URL.createObjectURL(file));
+
+      console.log('[AddCategoryPage] File uploaded:', uploaded);
+    } catch (err) {
+      console.error('[AddCategoryPage] File upload error:', err);
+      alert('파일 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  /** Delete uploaded file */
+  const handleDeleteImage = async () => {
+    if (!encryptedId) {
+      alert('삭제할 이미지가 없습니다.');
+      return;
+    }
+
+    const confirmed = window.confirm('이미지를 삭제하시겠습니까?');
+    if (!confirmed) return;
+
+    try {
+      const { error } = await CategoryFileService.deleteFile(encryptedId);
+      if (error) throw new Error(error);
+
+      alert('이미지가 성공적으로 삭제되었습니다.');
+      setImagePreview(null);
+      setUploadedFileId(null);
+      setEncryptedId(null);
+    } catch (err) {
+      console.error('[AddCategoryPage] Delete image error:', err);
+      alert('이미지 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  /** Handle field changes */
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const target = e.target;
+    const { name, value } = target;
+    const isCheckbox =
+      target instanceof HTMLInputElement && target.type === 'checkbox';
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: isCheckbox ? target.checked : value,
+    }));
+  };
+
+  /** Create category */
+  const handleCreateCategory = async () => {
+    if (!encryptedId) {
+      alert('이미지를 먼저 업로드하세요.');
+      return;
+    }
+
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        englishName: formData.englishName.trim(),
+        displayOrder: Number(formData.displayOrder),
+        visible: formData.visible,
+        imageFileId: encryptedId, // must be encryptedId
+      };
+
+      console.log('[AddCategoryPage] Creating category:', payload);
+      const { data, error } = await CategoryService.createCategory(payload);
+
+      if (error) throw new Error(error);
+      if (!data?.success) throw new Error(data?.resultMsg || 'Creation failed');
+
+      alert('카테고리가 성공적으로 추가되었습니다.');
+      router.push('/admin/pages/animal-category-management');
+    } catch (err) {
+      console.error('[AddCategoryPage] Category creation failed:', err);
+      alert('카테고리 추가 중 오류가 발생했습니다.');
+    }
+  };
+
   return (
     <>
       {/* Top Header Section */}
@@ -15,7 +124,6 @@ export default function AddCategoryPage() {
 
       {/* Main Box */}
       <section className={styles.section}>
-        {/* Header */}
         <header className={styles.header}>
           <div className={styles.headerLeft}>
             <h4 className={styles.editInfo}>기본 정보 수정</h4>
@@ -25,60 +133,110 @@ export default function AddCategoryPage() {
           </div>
         </header>
 
-        {/* Content */}
         <div className={styles.content}>
           {/* Left Image Upload */}
           <div className={styles.imageSection}>
             <h2 className={styles.title}>기본 정보</h2>
             <label className={styles.label}>대표 이미지*</label>
             <div className={styles.imageBox}>
-              <Image
-                src="/mock-image.jpg" // mock placeholder
-                alt="대표 이미지"
-                fill
-                className={styles.image}
-                sizes="217px"
-                priority
-              />
+              {imagePreview ? (
+                <Image
+                  src={imagePreview}
+                  alt="대표 이미지"
+                  fill
+                  className={styles.image}
+                  sizes="217px"
+                  priority
+                />
+              ) : (
+                <Image
+                  src="/mock-image.jpg"
+                  alt="대표 이미지"
+                  fill
+                  className={styles.image}
+                  sizes="217px"
+                  priority
+                />
+              )}
             </div>
+
             <div className={styles.imageButtons}>
-              <button type="button" className={styles.deleteBtn}>
+              <button
+                type="button"
+                className={styles.deleteBtn}
+                onClick={handleDeleteImage}
+                disabled={isUploading}
+              >
                 삭제
               </button>
-              <button type="button" className={styles.selectBtn}>
+              <label className={styles.selectBtn}>
                 파일 선택
-              </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={handleFileSelect}
+                  disabled={isUploading}
+                />
+              </label>
             </div>
           </div>
+
           {/* Right Fields */}
           <div className={styles.fields}>
             <div className={styles.fieldGroup}>
               <label className={styles.label}>카테고리명*</label>
               <input
                 type="text"
+                name="name"
                 className={styles.input}
-                defaultValue="강아지"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="예: 강아지"
               />
             </div>
             <div className={styles.fieldGroup}>
               <label className={styles.label}>영문명 (선택)</label>
-              <input type="text" className={styles.input} defaultValue="Dog" />
+              <input
+                type="text"
+                name="englishName"
+                className={styles.input}
+                value={formData.englishName}
+                onChange={handleChange}
+                placeholder="예: PUPPY"
+              />
             </div>
             <div className={styles.fieldGroup}>
               <label className={styles.label}>정렬 순서*</label>
-              <input type="number" className={styles.input} defaultValue="1" />
+              <input
+                type="number"
+                name="displayOrder"
+                className={styles.input}
+                value={formData.displayOrder}
+                onChange={handleChange}
+                min={1}
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer Buttons (outside box) */}
+      {/* Footer Buttons */}
       <div className={styles.footerOutside}>
-        <button type="button" className={styles.footerBtnWhite}>
+        <button
+          type="button"
+          className={styles.footerBtnWhite}
+          onClick={() => router.push('/admin/pages/animal-category-management')}
+        >
           취소
         </button>
-        <button type="button" className={styles.footerBtnGreen}>
-          추가하기
+        <button
+          type="button"
+          className={styles.footerBtnGreen}
+          onClick={handleCreateCategory}
+          disabled={isUploading}
+        >
+          {isUploading ? '업로드 중...' : '추가하기'}
         </button>
       </div>
     </>

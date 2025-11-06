@@ -8,7 +8,11 @@ import styles from './AnimalCategory.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { CategoryService } from '@/app/api/services/client/categoryService/categoryService';
-import { Category } from '@/app/api/types/category/category';
+
+import {
+  Category,
+  CategoryUpdateRequest,
+} from '@/app/api/types/category/category';
 
 const PAGE_SIZE = 10;
 
@@ -20,6 +24,7 @@ export default function AnimalCategoryPage() {
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
 
+  /** Fetch real categories */
   useEffect(() => {
     const fetchCategories = async () => {
       setLoading(true);
@@ -32,17 +37,23 @@ export default function AnimalCategoryPage() {
           direction: 'desc',
         });
 
-        if (response.error || !response.data?.success) {
-          console.error('❌ Failed to fetch categories:', response.error);
+        if (response.error || !response.data) {
+          console.error(
+            '[AnimalCategoryPage] Failed to fetch:',
+            response.error
+          );
           setCategories([]);
           return;
         }
 
-        const result = response.data.data;
-        setCategories(result.content);
-        setTotalPages(result.totalPages);
+        const result = (response.data as any).data;
+        const content: Category[] = result?.content || [];
+        const total = result?.pageInfo?.totalPages || 1;
+
+        setCategories(content);
+        setTotalPages(total);
       } catch (err) {
-        console.error('Error fetching categories:', err);
+        console.error('[AnimalCategoryPage] Fetch error:', err);
         setCategories([]);
       } finally {
         setLoading(false);
@@ -52,22 +63,57 @@ export default function AnimalCategoryPage() {
     void fetchCategories();
   }, [page, keyword]);
 
+  /** Navigate to edit page */
   const openEditCategory = (category: Category) => {
-    const query = new URLSearchParams({
-      image: category.image ?? '',
-      type: category.categoryName,
-      situation: category.visible ? '표시 중' : '숨김',
-    }).toString();
-
     router.push(
-      `/admin/pages/animal-category-management/edit-category/${category.categoryId}?${query}`
+      `/admin/pages/animal-category-management/edit-category/${category.categoryId}`
     );
   };
 
+  /** Toggle visible/hidden state */
+  const toggleVisibility = async (category: Category) => {
+    try {
+      const newVisibility = !category.visible;
+
+      const payload: CategoryUpdateRequest = {
+        name: category.categoryName,
+        englishName: category.englishName,
+        displayOrder: category.displayOrder,
+        visible: newVisibility,
+        imageFileIds: [],
+      };
+
+      const { error } = await CategoryService.updateCategory(
+        category.categoryId,
+        payload
+      );
+
+      if (error) throw new Error(error);
+
+      // Update state
+      setCategories((prev) =>
+        prev.map((c) =>
+          c.categoryId === category.categoryId
+            ? { ...c, visible: newVisibility }
+            : c
+        )
+      );
+
+      alert(
+        `"${category.categoryName}" 카테고리가 ${
+          newVisibility ? '표시 중' : '숨김 상태'
+        }으로 변경되었습니다.`
+      );
+    } catch (err) {
+      console.error('[AnimalCategoryPage] Toggle error:', err);
+      alert('표시 상태 변경 중 오류가 발생했습니다.');
+    }
+  };
+
+  /** Handle keyword search */
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    setKeyword(keyword.trim());
   };
 
   return (
@@ -78,7 +124,7 @@ export default function AnimalCategoryPage() {
       </div>
 
       <div className={styles.wrapper}>
-        {/* Top Header: Add + Search */}
+        {/* Top Header */}
         <div className={styles.topHeader}>
           <button
             type="button"
@@ -109,7 +155,7 @@ export default function AnimalCategoryPage() {
 
         <div className={styles.headerRow}>
           <div className={styles.col}>아이콘 이미지</div>
-          <div className={styles.col}>분류</div>
+          <div className={styles.col}>분류명</div>
           <div className={styles.col}>상태</div>
         </div>
 
@@ -139,7 +185,10 @@ export default function AnimalCategoryPage() {
                 {cat.visible ? '표시 중' : '숨김'}
               </div>
               <div className={styles.actions}>
-                <button className={styles.hideBtn}>
+                <button
+                  className={styles.hideBtn}
+                  onClick={() => toggleVisibility(cat)}
+                >
                   {cat.visible ? '숨김 전환' : '표시 전환'}
                 </button>
                 <button
@@ -158,16 +207,12 @@ export default function AnimalCategoryPage() {
       </div>
 
       {totalPages > 1 && (
-        <div
-          style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}
-        >
-          <div style={{ width: 320 }}>
-            <OrderPagination
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
-          </div>
+        <div className={styles.paginationWrapper}>
+          <OrderPagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </>

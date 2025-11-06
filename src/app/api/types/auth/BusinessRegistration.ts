@@ -1,12 +1,14 @@
 /**
- * =========================
  * Business Registration API Types
- * =========================
+ * Covers:
+ * - POST /api/pet-save/business-registrations
+ * - POST /api/pet-save/business-registrations/{requestId}/approve
+ * - POST /api/pet-save/business-registrations/{requestId}/reject
+ * - File upload, attach, list, delete endpoints
  */
 
-/**
- * Request payload for business registration application
- */
+/** -------------------- Business Registration -------------------- **/
+
 export interface BusinessRegistrationRequest {
   businessRegistrationNumber: string;
   representativeName: string;
@@ -24,96 +26,100 @@ export interface BusinessRegistrationRequest {
   y: number;
 }
 
-/**
- * Base API envelope
- */
+/** -------------------- Approve / Reject (Admin) -------------------- **/
+
+export interface BusinessRegistrationActionRequest {
+  rejectionReason?: string;
+  adminNotes?: string;
+}
+
+/** -------------------- Common API Envelope -------------------- **/
+
 export interface ApiResponseEnvelope {
   success: boolean;
   status: number;
   resultMsg: string;
   divisionCode: string | null;
   data: Record<string, unknown>;
-  errorId?: string | null;
+  errorId?: string;
 }
 
-/**
- * Response for POST / PUT / GET /me
- */
 export interface BusinessRegistrationResponse extends ApiResponseEnvelope {
   data: Record<string, unknown>;
 }
 
-/**
- * =========================
- * Admin: List All Business Registrations
- * =========================
- */
+/** -------------------- File Upload / Metadata -------------------- **/
 
-/**
- * Query params for fetching all business registration requests (admin)
- */
-export interface BusinessRegistrationListQuery {
-  keyword?: string;
-  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
-  dateStart?: string;
-  dateEnd?: string;
-  page?: number;
-  size?: number;
-  sortBy?: 'createdAt';
-  direction?: 'asc' | 'desc';
+export interface BusinessFileMetadata {
+  entityType?: string;
+  entityId?: string;
+  documentType?: string;
+  [key: string]: unknown;
 }
 
-/**
- * Single business registration summary (admin)
- */
-export interface BusinessRegistrationSummary {
-  requestId: string;
-  applicantId: string;
-  applicantEmail: string;
-  applicantName: string;
-  applicantNickname: string;
-  applicantPhoneNumber: string;
-  businessRegistrationNumber: string;
-  representativeName: string;
-  businessName: string;
-  roadAddress: string;
-  detailedAddress: string;
-  zipCode: string;
-  fullAddress: string;
-  businessEmail: string;
-  bankName: string;
-  accountNumber: string;
-  depositorName: string;
-  businessRegistrationCopy: string;
-  bankbook: string;
-  latitude: number;
-  longitude: number;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  submittedAt: string;
-  reviewedAt?: string | null;
-  reviewedBy?: string | null;
+export interface BusinessFileUploadData {
+  fileId: string;
+  encryptedId: string;
+  filename: string;
+  originalFilename: string;
+  mimeType: string;
+  fileSize: number;
+  fileExtension: string;
+  url: string;
+  uploadedAt: string;
+  isAttached: boolean;
+  entityType: string;
+  entityId: string;
+  width?: number;
+  height?: number;
+  hasThumbnail: boolean;
+  documentType?: string;
+  pageCount?: number;
+  isTextExtractable?: boolean;
 }
 
-/**
- * Paginated response for GET /api/pet-save/business-registrations (admin)
- */
-export interface BusinessRegistrationListResponse {
+/** -------------------- File Endpoints -------------------- **/
+
+export interface BusinessFileUploadResponse {
   success: boolean;
   status: number;
   resultMsg: string;
-  divisionCode: string | null;
-  data: {
-    content: BusinessRegistrationSummary[];
-    pageInfo: {
-      totalElements: number;
-      totalPages: number;
-      currentPage: number;
-      pageSize: number;
-      first: boolean;
-      last: boolean;
-      hasNext: boolean;
-      hasPrevious: boolean;
-    };
-  };
-  errorId?: string | null;
+  divisionCode: string;
+  data: BusinessFileUploadData;
+  errorId: string;
+}
+
+export interface BusinessMultipleFileUploadResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: BusinessFileUploadData[];
+  errorId: string;
+}
+
+export interface BusinessFileAttachResponse extends ApiResponseEnvelope {
+  data: Record<string, unknown>;
+}
+
+export interface BusinessFileInfoResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: BusinessFileUploadData;
+  errorId: string;
+}
+
+export interface BusinessFileListResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: BusinessFileUploadData[];
+  errorId: string;
+}
+
+export interface BusinessFileDeleteResponse extends ApiResponseEnvelope {
+  data: Record<string, unknown>;
 }

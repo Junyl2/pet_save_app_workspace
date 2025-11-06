@@ -1,208 +1,133 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import styles from './page.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
-
-type Order = {
-  orderNumber: string;
-  orderedAt: string;
-  customer: string;
-  documentType: string;
-  issueNumber: string;
-  amount: string;
-  status: string;
-};
+import { invoiceService } from '@/app/api/services/admin/invoiceService/invoiceService';
+import { InvoiceItem } from '@/app/api/services/admin/invoiceService/invoiceTypes';
 
 const PAGE_SIZE = 10;
 
-const orders: Order[] = [
-  {
-    orderNumber: '20250401-010',
-    orderedAt: '2025-04-01 11:32',
-    customer: '홍길동',
-    documentType: 'Income Deduction (Personal)',
-    issueNumber: '010-0000-0000',
-    amount: '50,000 KRW',
-    status: 'Issued',
-  },
-  {
-    orderNumber: '20250401-010',
-    orderedAt: '2025-04-01 11:32',
-    customer: '홍길동',
-    documentType: 'Expense Proof (Business)',
-    issueNumber: '010-0000-0000',
-    amount: '50,000 KRW',
-    status: 'Pending',
-  },
-  {
-    orderNumber: '20250401-010',
-    orderedAt: '2025-04-01 11:32',
-    customer: '홍길동',
-    documentType: 'Tax Invoice',
-    issueNumber: '010-0000-0000',
-    amount: '50,000 KRW',
-    status: 'Pending',
-  },
-  {
-    orderNumber: '20250401-010',
-    orderedAt: '2025-04-01 11:32',
-    customer: '홍길동',
-    documentType: 'Expense Proof (Business)',
-    issueNumber: '010-0000-0000',
-    amount: '50,000 KRW',
-    status: 'Pending',
-  },
-  {
-    orderNumber: '20250401-010',
-    orderedAt: '2025-04-01 11:32',
-    customer: '홍길동',
-    documentType: 'Tax Invoice',
-    issueNumber: '010-0000-0000',
-    amount: '50,000 KRW',
-    status: 'Pending',
-  },
-  {
-    orderNumber: '20250401-010',
-    orderedAt: '2025-04-01 11:32',
-    customer: '홍길동',
-    documentType: 'Tax Invoice',
-    issueNumber: '010-0000-0000',
-    amount: '50,000 KRW',
-    status: 'Pending',
-  },
-  {
-    orderNumber: '20250401-010',
-    orderedAt: '2025-04-01 11:32',
-    customer: '홍길동',
-    documentType: 'Tax Invoice',
-    issueNumber: '010-0000-0000',
-    amount: '50,000 KRW',
-    status: 'Pending',
-  },
-  {
-    orderNumber: '20250401-010',
-    orderedAt: '2025-04-01 11:32',
-    customer: '홍길동',
-    documentType: 'Income Deduction (Personal)',
-    issueNumber: '010-0000-0000',
-    amount: '50,000 KRW',
-    status: 'Registered',
-  },
-  {
-    orderNumber: '20250401-010',
-    orderedAt: '2025-04-01 11:32',
-    customer: '홍길동',
-    documentType: 'Income Deduction (Personal)',
-    issueNumber: '010-0000-0000',
-    amount: '50,000 KRW',
-    status: 'Registered',
-  },
-  {
-    orderNumber: '20250401-010',
-    orderedAt: '2025-04-01 11:32',
-    customer: '홍길동',
-    documentType: 'Income Deduction (Personal)',
-    issueNumber: '010-0000-0000',
-    amount: '50,000 KRW',
-    status: 'Registered',
-  },
-  {
-    orderNumber: '20250401-020',
-    orderedAt: '2025-04-01 12:01',
-    customer: '김철수',
-    documentType: 'Tax Invoice',
-    issueNumber: '010-1234-5678',
-    amount: '75,000 KRW',
-    status: 'Issued',
-  },
-  {
-    orderNumber: '20250401-021',
-    orderedAt: '2025-04-01 12:45',
-    customer: '이영희',
-    documentType: 'Expense Proof (Business)',
-    issueNumber: '010-1111-2222',
-    amount: '120,000 KRW',
-    status: 'Pending',
-  },
-  {
-    orderNumber: '20250401-022',
-    orderedAt: '2025-04-01 13:10',
-    customer: '박민수',
-    documentType: 'Tax Invoice',
-    issueNumber: '010-2222-3333',
-    amount: '30,000 KRW',
-    status: 'Pending',
-  },
-  {
-    orderNumber: '20250401-023',
-    orderedAt: '2025-04-01 13:47',
-    customer: '최지우',
-    documentType: 'Income Deduction (Personal)',
-    issueNumber: '010-3333-4444',
-    amount: '60,000 KRW',
-    status: 'Registered',
-  },
-  {
-    orderNumber: '20250401-024',
-    orderedAt: '2025-04-01 14:18',
-    customer: '정우성',
-    documentType: 'Expense Proof (Business)',
-    issueNumber: '010-4444-5555',
-    amount: '90,000 KRW',
-    status: 'Pending',
-  },
-];
-
 export default function DocumentListPage() {
   const { page, setPage } = usePageParam(1);
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
 
-  const total = orders.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
+  useEffect(() => {
+    const fetchInvoices = async (): Promise<void> => {
+      setLoading(true);
+      try {
+        const { data, error } = await invoiceService.searchInvoices({
+          page: page - 1,
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        });
 
-  const pagedOrders = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return orders.slice(start, start + PAGE_SIZE);
-  }, [currentPage]);
+        if (error || !data?.success) {
+          console.error('Failed to fetch invoices:', error || data?.resultMsg);
+          setInvoices([]);
+          setTotalPages(1);
+          return;
+        }
+
+        setInvoices(data.data.content ?? []);
+        setTotalPages(data.data.pageInfo.totalPages || 1);
+      } catch (err) {
+        console.error('Error fetching invoices:', err);
+        setInvoices([]);
+        setTotalPages(1);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchInvoices();
+  }, [page]);
+
+  const pagedInvoices = useMemo(() => invoices ?? [], [invoices]);
 
   return (
     <>
       <div className={styles.container}>
+        {/* Header */}
         <div className={styles.header}>
-          <div>Order Number</div>
-          <div>Order Date & Time</div>
-          <div>Customer</div>
-          <div>Document Type</div>
-          <div>Issue Number</div>
-          <div>Amount</div>
-          <div>Status</div>
+          <div>주문번호</div>
+          <div>주문일시</div>
+          <div>고객명</div>
+          <div>문서 유형</div>
+          <div>발행 유형</div>
+          <div>금액</div>
+          <div>상태</div>
         </div>
 
-        {pagedOrders.map((order, idx) => (
-          <div
-            key={`${order.orderNumber}-${(currentPage - 1) * PAGE_SIZE + idx}`}
-            className={styles.row}
-          >
-            <div>{order.orderNumber}</div>
-            <div>{order.orderedAt}</div>
-            <div>{order.customer}</div>
-            <div>{order.documentType}</div>
-            <div>{order.issueNumber}</div>
-            <div>{order.amount}</div>
-            <div>{order.status}</div>
-          </div>
-        ))}
+        {/* Loading State */}
+        {loading && <div className={styles.loading}>불러오는 중...</div>}
+
+        {/* Empty State */}
+        {!loading && pagedInvoices.length === 0 && (
+          <div className={styles.empty}>조회된 송장이 없습니다.</div>
+        )}
+
+        {/* Data Rows */}
+        {!loading &&
+          pagedInvoices.map((inv) => (
+            <div key={inv.invoiceId} className={styles.row}>
+              <div>{inv.orderNumber ?? '-'}</div>
+              <div>
+                {inv.orderDate
+                  ? new Date(inv.orderDate).toLocaleString('ko-KR')
+                  : '-'}
+              </div>
+              <div>{inv.customerName ?? '-'}</div>
+              <div>
+                {inv.invoiceType === 'GENERAL_INVOICE'
+                  ? '일반 영수증'
+                  : inv.invoiceType === 'TAX_INVOICE'
+                  ? '세금계산서'
+                  : inv.invoiceType === 'CASH_RECEIPT'
+                  ? '현금영수증'
+                  : '-'}
+              </div>
+              <div>
+                {inv.issuanceType === 'PERSONAL_DEDUCTION'
+                  ? '소득공제용'
+                  : inv.issuanceType === 'BUSINESS_EXPENSE'
+                  ? '지출증빙용'
+                  : inv.issuanceType === 'TAX_INVOICE_ISSUANCE'
+                  ? '세금계산서 발행'
+                  : '-'}
+              </div>
+              <div>
+                {inv.totalAmount
+                  ? `${new Intl.NumberFormat('ko-KR').format(
+                      inv.totalAmount
+                    )}원`
+                  : '-'}
+              </div>
+              <div>
+                {inv.status === 'PENDING'
+                  ? '대기중'
+                  : inv.status === 'ISSUED'
+                  ? '발행완료'
+                  : inv.status === 'CANCELLED'
+                  ? '취소됨'
+                  : '-'}
+              </div>
+            </div>
+          ))}
       </div>
 
-      {total > PAGE_SIZE && (
+      {/* Pagination */}
+      {totalPages > 1 && (
         <div
           style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}
         >
           <div style={{ width: 320 }}>
             <OrderPagination
-              currentPage={currentPage}
+              currentPage={page}
               totalPages={totalPages}
               onPageChange={setPage}
             />

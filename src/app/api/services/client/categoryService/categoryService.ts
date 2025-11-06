@@ -3,6 +3,10 @@ import {
   Category,
   CategoryApiResponse,
   CategorySearchParams,
+  CategoryCreateRequest,
+  CategoryUpdateRequest,
+  CategoryResponse,
+  CategoryByIdResponse,
 } from '@/app/api/types/category/category';
 
 /**
@@ -105,6 +109,66 @@ export class CategoryService {
             ? error.message
             : 'Failed to fetch category by ID',
       };
+    }
+  }
+
+  /**
+   * Create a new category
+   * POST /api/pet-save/categories
+   */
+  static async createCategory(
+    request: CategoryCreateRequest
+  ): Promise<ApiResponse<CategoryResponse>> {
+    console.log('[CategoryService] Creating new category:', request.name);
+
+    try {
+      const response = await apiClient.raw.post<CategoryResponse>(
+        this.BASE_URL,
+        request,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      console.log(
+        '[CategoryService] Category created successfully:',
+        response.data
+      );
+      return { data: response.data, error: undefined };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Category creation failed';
+      console.error('[CategoryService] Failed to create category:', message);
+      return { data: null, error: message };
+    }
+  }
+
+  /**
+   * Update existing category information
+   * PUT /api/pet-save/categories/{categoryId}
+   * ADMIN permission required
+   */
+  static async updateCategory(
+    categoryId: string,
+    request: CategoryUpdateRequest
+  ): Promise<ApiResponse<CategoryResponse>> {
+    console.log('[CategoryService] Updating category:', categoryId);
+
+    try {
+      const response = await apiClient.raw.put<CategoryResponse>(
+        `${this.BASE_URL}/${categoryId}`,
+        request,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      console.log(
+        '[CategoryService] Category updated successfully:',
+        response.data
+      );
+      return { data: response.data, error: undefined };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Category update failed';
+      console.error('[CategoryService] Failed to update category:', message);
+      return { data: null, error: message };
     }
   }
 }

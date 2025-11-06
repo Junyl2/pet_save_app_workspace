@@ -181,6 +181,9 @@
   background-color: #245537;
 }
 
+.paginationWrapper {
+  margin-top: 2rem;
+}
 @media (max-width: 768px) {
   .wrapper {
     font-size: 14px;

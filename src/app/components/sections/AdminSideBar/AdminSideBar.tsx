@@ -30,7 +30,10 @@ const MENU: MenuItem[] = [
   },
   { key: 'animal-category-management', label: '동물 카테고리 관리' },
   { key: 'product-management', label: '상품 관리' },
-  { key: 'referrer-code-management', label: '추천인 코드 관리' },
+  {
+    key: 'referrer-code-management/set-payment-policy',
+    label: '추천인 코드 관리',
+  },
   { key: 'customer-service-center', label: '고객센터' },
 ];
 

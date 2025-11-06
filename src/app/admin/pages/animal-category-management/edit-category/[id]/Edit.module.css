@@ -121,6 +121,9 @@
 }
 
 .selectBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 105px;
   height: 29px;
   border-radius: 100px;
@@ -187,4 +190,18 @@
   color: #fff;
   font-size: 15px;
   cursor: pointer;
+}
+
+.outsideNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.4);
+  margin: 1rem 2rem 0;
+}
+
+.icon {
+  font-size: 16px;
+  opacity: 0.4;
 }

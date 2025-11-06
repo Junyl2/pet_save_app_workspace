@@ -39,7 +39,7 @@ function resolveActiveKey(pathname: string): string {
   if (pathname.includes('/admin/pages/product-management'))
     return 'product-management';
   if (pathname.includes('/admin/pages/referrer-code-management'))
-    return 'referrer-code-management';
+    return 'referrer-code-management/set-payment-policy';
   if (pathname.includes('/admin/pages/customer-service-center'))
     return 'customer-service-center';
 
@@ -60,6 +60,7 @@ export default function AdminPagesLayout({ children }: LayoutProps) {
   return (
     <div
       style={{
+        position: 'relative',
         display: 'grid',
         gridTemplateColumns: '337px 1fr',
         minHeight: '100vh',

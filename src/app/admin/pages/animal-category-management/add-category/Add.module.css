@@ -121,6 +121,9 @@
 }
 
 .selectBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 105px;
   height: 29px;
   border-radius: 100px;
