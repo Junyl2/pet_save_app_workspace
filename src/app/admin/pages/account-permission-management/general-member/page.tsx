@@ -51,18 +51,10 @@ export default function GeneralMemberPage() {
     void fetchMembers();
   }, [page]);
 
-  const openInvoice = (member: MemberSummary) => {
-    const query = new URLSearchParams({
-      name: member.name,
-      nickname: member.name ?? '',
-      email: member.email,
-      phone: member.phoneNumber,
-      addressLine: member.roadAddress ?? '',
-      zipOrDetail: member.detailedAddress ?? '',
-    }).toString();
-
+  /** Open member detail page */
+  const openMemberDetail = (member: MemberSummary) => {
     router.push(
-      `/admin/pages/account-permission-management/general-member/regular-member/${member.memberId}?${query}`
+      `/admin/pages/account-permission-management/general-member/regular-member/${member.memberId}`
     );
   };
 
@@ -90,9 +82,9 @@ export default function GeneralMemberPage() {
               className={styles.dataRow}
               role="button"
               tabIndex={0}
-              onClick={() => openInvoice(member)}
+              onClick={() => openMemberDetail(member)}
               onKeyDown={(e) =>
-                (e.key === 'Enter' || e.key === ' ') && openInvoice(member)
+                (e.key === 'Enter' || e.key === ' ') && openMemberDetail(member)
               }
               aria-label={`${member.name} 상세 보기`}
             >

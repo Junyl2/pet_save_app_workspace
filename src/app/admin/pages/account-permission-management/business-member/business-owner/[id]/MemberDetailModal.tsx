@@ -19,6 +19,9 @@ interface MemberBusinessInfo {
   roadAddress: string;
   detailedAddress: string;
   zipCode: string;
+  businessRegistrationNumber: string;
+  businessRegistrationCopy: string;
+  bankbook: string;
 }
 
 export default function MemberDetailModal({
@@ -48,27 +51,30 @@ export default function MemberDetailModal({
           return;
         }
 
-        // Convert safely to array
-        const raw = response.data.data;
-        const dataArray: Record<string, unknown>[] = Array.isArray(raw)
-          ? raw
-          : [raw];
+        const dataArray = Array.isArray(response.data.data)
+          ? response.data.data
+          : [];
 
         if (dataArray.length === 0) {
           setInfo(null);
           return;
         }
 
-        const data = dataArray[0];
+        const data = dataArray[0] as Record<string, unknown>;
 
         setInfo({
-          applicantName: (data.applicantName as string) ?? '',
-          applicantNickname: (data.applicantNickname as string) ?? '',
-          applicantEmail: (data.applicantEmail as string) ?? '',
-          applicantPhoneNumber: (data.applicantPhoneNumber as string) ?? '',
-          roadAddress: (data.roadAddress as string) ?? '',
-          detailedAddress: (data.detailedAddress as string) ?? '',
-          zipCode: (data.zipCode as string) ?? '',
+          applicantName: (data.applicantName as string) ?? '-',
+          applicantNickname: (data.applicantNickname as string) ?? '-',
+          applicantEmail: (data.applicantEmail as string) ?? '-',
+          applicantPhoneNumber: (data.applicantPhoneNumber as string) ?? '-',
+          roadAddress: (data.roadAddress as string) ?? '-',
+          detailedAddress: (data.detailedAddress as string) ?? '-',
+          zipCode: (data.zipCode as string) ?? '-',
+          businessRegistrationNumber:
+            (data.businessRegistrationNumber as string) ?? '-',
+          businessRegistrationCopy:
+            (data.businessRegistrationCopy as string) ?? '',
+          bankbook: (data.bankbook as string) ?? '',
         });
       } catch (error) {
         console.error('Error fetching member business info:', error);
@@ -96,15 +102,17 @@ export default function MemberDetailModal({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open, onClose]);
 
-  /** Handle input change */
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ): void => {
-    const { name, value } = e.target;
-    setInfo((prev) => (prev ? { ...prev, [name]: value } : prev));
-  };
-
   if (!open) return null;
+
+  const handleEditToggle = (): void => setIsEditing((prev) => !prev);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    key: keyof MemberBusinessInfo
+  ): void => {
+    if (!info) return;
+    setInfo({ ...info, [key]: e.target.value });
+  };
 
   return (
     <div className={styles.backdrop}>
@@ -113,7 +121,6 @@ export default function MemberDetailModal({
           <div className={styles.loading}>불러오는 중...</div>
         ) : (
           <>
-            {/* Profile Section */}
             <div className={styles.profileSection}>
               <div className={styles.avatarWrapper}>
                 <Image
@@ -127,99 +134,150 @@ export default function MemberDetailModal({
               </div>
 
               <div className={styles.infoSection}>
-                <div className={styles.infoRow}>
-                  <div className={styles.labelBox}>이름</div>
-                  <input
-                    type="text"
-                    name="applicantName"
-                    value={info?.applicantName ?? ''}
-                    onChange={handleChange}
-                    className={styles.valueInput}
-                    readOnly={!isEditing}
-                  />
-                </div>
+                {info && (
+                  <>
+                    <div className={styles.infoRow}>
+                      <div className={styles.labelBox}>이름</div>
+                      <input
+                        className={styles.valueBox}
+                        value={info.applicantName}
+                        onChange={(e) => handleInputChange(e, 'applicantName')}
+                        readOnly={!isEditing}
+                      />
+                    </div>
 
-                <div className={styles.infoRow}>
-                  <div className={styles.labelBox}>닉네임</div>
-                  <input
-                    type="text"
-                    name="applicantNickname"
-                    value={info?.applicantNickname ?? ''}
-                    onChange={handleChange}
-                    className={styles.valueInput}
-                    readOnly={!isEditing}
-                  />
-                </div>
+                    <div className={styles.infoRow}>
+                      <div className={styles.labelBox}>닉네임</div>
+                      <input
+                        className={styles.valueBox}
+                        value={info.applicantNickname}
+                        onChange={(e) =>
+                          handleInputChange(e, 'applicantNickname')
+                        }
+                        readOnly={!isEditing}
+                      />
+                    </div>
 
-                <div className={styles.infoRow}>
-                  <div className={styles.labelBox}>이메일</div>
-                  <input
-                    type="email"
-                    name="applicantEmail"
-                    value={info?.applicantEmail ?? ''}
-                    onChange={handleChange}
-                    className={styles.valueInput}
-                    readOnly={!isEditing}
-                  />
-                </div>
+                    <div className={styles.infoRow}>
+                      <div className={styles.labelBox}>이메일</div>
+                      <input
+                        className={styles.valueBox}
+                        value={info.applicantEmail}
+                        onChange={(e) => handleInputChange(e, 'applicantEmail')}
+                        readOnly={!isEditing}
+                      />
+                    </div>
 
-                <div className={styles.infoRow}>
-                  <div className={styles.labelBox}>휴대폰 번호</div>
-                  <input
-                    type="text"
-                    name="applicantPhoneNumber"
-                    value={info?.applicantPhoneNumber ?? ''}
-                    onChange={handleChange}
-                    className={styles.valueInput}
-                    readOnly={!isEditing}
-                  />
-                </div>
+                    <div className={styles.infoRow}>
+                      <div className={styles.labelBox}>휴대폰 번호</div>
+                      <input
+                        className={styles.valueBox}
+                        value={info.applicantPhoneNumber}
+                        onChange={(e) =>
+                          handleInputChange(e, 'applicantPhoneNumber')
+                        }
+                        readOnly={!isEditing}
+                      />
+                    </div>
 
-                <div className={styles.addressRow}>
-                  <div className={styles.labelBoxLarge}>우편 번호</div>
-                  <div className={styles.addressBoxGroup}>
-                    <input
-                      type="text"
-                      name="roadAddress"
-                      value={info?.roadAddress ?? ''}
-                      onChange={handleChange}
-                      className={styles.addressInput}
-                      readOnly={!isEditing}
-                    />
-                    <input
-                      type="text"
-                      name="detailedAddress"
-                      value={info?.detailedAddress ?? ''}
-                      onChange={handleChange}
-                      className={styles.addressInput}
-                      readOnly={!isEditing}
-                    />
-                    <input
-                      type="text"
-                      name="zipCode"
-                      value={info?.zipCode ?? ''}
-                      onChange={handleChange}
-                      className={styles.addressInput}
-                      readOnly={!isEditing}
-                    />
-                  </div>
-                </div>
+                    <div className={styles.infoRow}>
+                      <div className={styles.labelBox}>주소</div>
+                      <input
+                        className={styles.valueBox}
+                        value={info.roadAddress}
+                        onChange={(e) => handleInputChange(e, 'roadAddress')}
+                        readOnly={!isEditing}
+                      />
+                    </div>
+
+                    <div className={styles.infoRow}>
+                      <div className={styles.labelBox}>상세주소</div>
+                      <input
+                        className={styles.valueBox}
+                        value={info.detailedAddress}
+                        onChange={(e) =>
+                          handleInputChange(e, 'detailedAddress')
+                        }
+                        readOnly={!isEditing}
+                      />
+                    </div>
+
+                    <div className={styles.infoRow}>
+                      <div className={styles.labelBox}>우편번호</div>
+                      <input
+                        className={styles.valueBox}
+                        value={info.zipCode}
+                        onChange={(e) => handleInputChange(e, 'zipCode')}
+                        readOnly={!isEditing}
+                      />
+                    </div>
+
+                    <div className={styles.infoRow}>
+                      <div className={styles.labelBox}>사업자 등록번호</div>
+                      <input
+                        className={styles.valueBox}
+                        value={info.businessRegistrationNumber}
+                        onChange={(e) =>
+                          handleInputChange(e, 'businessRegistrationNumber')
+                        }
+                        readOnly={!isEditing}
+                      />
+                    </div>
+
+                    <div className={styles.infoRow}>
+                      <div className={styles.labelBox}>사업자 등록증</div>
+                      <div className={styles.fileBox}>
+                        <input
+                          className={styles.valueBox}
+                          value="Certificate.pdf"
+                          readOnly
+                        />
+                        {info.businessRegistrationCopy && (
+                          <a
+                            href={info.businessRegistrationCopy}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.viewBtn}
+                          >
+                            보기
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className={styles.infoRow}>
+                      <div className={styles.labelBox}>통장 사본</div>
+                      <div className={styles.fileBox}>
+                        <input
+                          className={styles.valueBox}
+                          value="Bank Account Copy.pdf"
+                          readOnly
+                        />
+                        {info.bankbook && (
+                          <a
+                            href={info.bankbook}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.viewBtn}
+                          >
+                            보기
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Buttons */}
             <div className={styles.buttonRow}>
-              <button
-                type="button"
-                className={styles.deleteBtn}
-                onClick={() => alert('삭제 기능 준비 중입니다.')}
-              >
+              <button type="button" className={styles.deleteBtn}>
                 삭제
               </button>
               <button
                 type="button"
                 className={styles.editBtn}
-                onClick={() => setIsEditing((prev) => !prev)}
+                onClick={handleEditToggle}
               >
                 {isEditing ? '저장' : '수정'}
               </button>

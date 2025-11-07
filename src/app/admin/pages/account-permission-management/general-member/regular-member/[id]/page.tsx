@@ -1,36 +1,59 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import styles from './page.module.css';
+import { MemberService } from '@/app/api/services/client/memberService/memberService';
+import { MemberInfo } from '@/app/api/types/member/member';
 
 export default function MemberDetailPanelPage() {
-  const searchParams = useSearchParams();
+  const { id } = useParams<{ id: string }>();
+  const [formData, setFormData] = useState<MemberInfo | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [formData, setFormData] = useState({
-    name: searchParams.get('name') || '홍길동',
-    nickname: searchParams.get('nickname') || '닝닝닝닝',
-    email: searchParams.get('email') || 'osdfkald@naver.com',
-    phone: searchParams.get('phone') || '010-0000-0000',
-    addressLine:
-      searchParams.get('addressLine') ||
-      '경기도 안양시 동안구 흥안대로427번길 57-2 (평촌동)',
-    zipOrDetail: searchParams.get('zipOrDetail') || '121112호 546432동',
-  });
+  /** Fetch member info */
+  useEffect(() => {
+    const fetchMember = async (): Promise<void> => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const response = await MemberService.getMemberById(id);
+
+        if (!response.data?.success || !response.data.data) {
+          console.error('Failed to fetch member info:', response);
+          return;
+        }
+
+        const data = response.data.data;
+        setFormData(data);
+      } catch (error) {
+        console.error('Error fetching member info:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchMember();
+  }, [id]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ): void => {
+    if (!formData) return;
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
     console.log('Updated Member Info:', formData);
-    // TODO: integrate update endpoint here
+    // TODO: integrate PUT /members/{memberId} update endpoint
   };
+
+  if (loading || !formData) {
+    return <div className={styles.loading}>불러오는 중...</div>;
+  }
 
   return (
     <div className={styles.container}>
@@ -38,7 +61,7 @@ export default function MemberDetailPanelPage() {
         {/* Avatar */}
         <div className={styles.avatar}>
           <Image
-            src="/images/logo/per-saves.png"
+            src={formData.profileImageUrl || '/images/logo/per-saves.png'}
             alt="Avatar"
             fill
             className={styles.thumb}
@@ -56,7 +79,7 @@ export default function MemberDetailPanelPage() {
               <input
                 type="text"
                 name="name"
-                value={formData.name}
+                value={formData.name ?? ''}
                 onChange={handleChange}
                 className={styles.value}
               />
@@ -72,7 +95,7 @@ export default function MemberDetailPanelPage() {
               <input
                 type="text"
                 name="nickname"
-                value={formData.nickname}
+                value={formData.nickname ?? ''}
                 onChange={handleChange}
                 className={styles.value}
               />
@@ -88,7 +111,7 @@ export default function MemberDetailPanelPage() {
               <input
                 type="email"
                 name="email"
-                value={formData.email}
+                value={formData.email ?? ''}
                 onChange={handleChange}
                 className={styles.value}
               />
@@ -103,8 +126,8 @@ export default function MemberDetailPanelPage() {
             <div className={styles.right350}>
               <input
                 type="tel"
-                name="phone"
-                value={formData.phone}
+                name="phoneNumber"
+                value={formData.phoneNumber ?? ''}
                 onChange={handleChange}
                 className={styles.value}
               />
@@ -120,8 +143,8 @@ export default function MemberDetailPanelPage() {
               <div className={styles.right500}>
                 <input
                   type="text"
-                  name="addressLine"
-                  value={formData.addressLine}
+                  name="roadAddress"
+                  value={formData.roadAddress ?? ''}
                   onChange={handleChange}
                   className={styles.value}
                 />
@@ -129,8 +152,17 @@ export default function MemberDetailPanelPage() {
               <div className={styles.right500}>
                 <input
                   type="text"
-                  name="zipOrDetail"
-                  value={formData.zipOrDetail}
+                  name="detailedAddress"
+                  value={formData.detailedAddress ?? ''}
+                  onChange={handleChange}
+                  className={styles.value}
+                />
+              </div>
+              <div className={styles.right500}>
+                <input
+                  type="text"
+                  name="zipCode"
+                  value={formData.zipCode ?? ''}
                   onChange={handleChange}
                   className={styles.value}
                 />

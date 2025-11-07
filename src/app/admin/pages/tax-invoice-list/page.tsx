@@ -56,10 +56,10 @@ export default function DocumentListPage() {
         <div className={styles.header}>
           <div>주문번호</div>
           <div>주문일시</div>
-          <div>고객명</div>
-          <div>문서 유형</div>
-          <div>발행 유형</div>
-          <div>금액</div>
+          <div>주문자</div>
+          <div>거래증빙서류</div>
+          <div>발행번호</div>
+          <div>결제금액</div>
           <div>상태</div>
         </div>
 
@@ -91,15 +91,8 @@ export default function DocumentListPage() {
                   ? '현금영수증'
                   : '-'}
               </div>
-              <div>
-                {inv.issuanceType === 'PERSONAL_DEDUCTION'
-                  ? '소득공제용'
-                  : inv.issuanceType === 'BUSINESS_EXPENSE'
-                  ? '지출증빙용'
-                  : inv.issuanceType === 'TAX_INVOICE_ISSUANCE'
-                  ? '세금계산서 발행'
-                  : '-'}
-              </div>
+              {/*  Updated to use invoiceNumber for 발행번호 */}
+              <div>{inv.invoiceNumber ?? '-'}</div>
               <div>
                 {inv.totalAmount
                   ? `${new Intl.NumberFormat('ko-KR').format(

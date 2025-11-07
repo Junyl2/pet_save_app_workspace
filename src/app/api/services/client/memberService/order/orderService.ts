@@ -7,33 +7,26 @@ import {
   SearchOrdersParams,
   SearchOrdersResponse,
   AdminCancelOrderItemsResponse,
+  AdminSearchOrdersParams,
+  AdminSearchOrdersResponse,
 } from '../../../../types/member/order/order';
 
 export const orderService = {
-  /**
-   * Create direct order (Buy Now)
-   * POST /orders/direct
-   */
+  /** Create direct order (Buy Now) */
   createDirectOrder: async (
     request: DirectOrderRequest
   ): Promise<{ data: DirectOrderResponse | null; error?: string }> => {
     return await apiClient.post<DirectOrderResponse>('/orders/direct', request);
   },
 
-  /**
-   * Checkout cart items
-   * POST /orders/checkout
-   */
+  /** Checkout cart items */
   checkoutCart: async (
     request: CheckoutRequest
   ): Promise<{ data: CheckoutResponse | null; error?: string }> => {
     return await apiClient.post<CheckoutResponse>('/orders/checkout', request);
   },
 
-  /**
-   * Search orders (Admin or user)
-   * GET /orders
-   */
+  /** Search orders (User or Admin) - legacy endpoint */
   searchOrders: async (
     params?: SearchOrdersParams
   ): Promise<{ data: SearchOrdersResponse | null; error?: string }> => {
@@ -54,23 +47,43 @@ export const orderService = {
     return await apiClient.get<SearchOrdersResponse>(`/orders${query}`);
   },
 
-  /**
-   * Cancel order (Admin)
-   * POST /orders/{orderId}/admin-cancel?reason={reason}
-   */
+  /** NEW: Search orders (Admin) - v2 */
+  searchOrdersV2: async (
+    params?: AdminSearchOrdersParams
+  ): Promise<{ data: AdminSearchOrdersResponse | null; error?: string }> => {
+    const query = params
+      ? '?' +
+        new URLSearchParams(
+          Object.entries(params).reduce<Record<string, string>>(
+            (acc, [key, value]) => {
+              if (value !== undefined && value !== null) {
+                if (Array.isArray(value)) {
+                  value.forEach((v) => (acc[key] = v));
+                } else {
+                  acc[key] = String(value);
+                }
+              }
+              return acc;
+            },
+            {}
+          )
+        ).toString()
+      : '';
+
+    return await apiClient.get<AdminSearchOrdersResponse>(`/v2/orders${query}`);
+  },
+
+  /** Cancel order (Admin) */
   cancelOrderByAdmin: async (
     orderId: string,
     reason: string
-  ): Promise<{ data: any | null; error?: string }> => {
-    return await apiClient.post<any>(
+  ): Promise<{ data: unknown | null; error?: string }> => {
+    return await apiClient.post(
       `/orders/${orderId}/admin-cancel?reason=${encodeURIComponent(reason)}`
     );
   },
 
-  /**
-   * Cancel specific order items (Admin Only)
-   * POST /orders/items/admin-cancel
-   */
+  /** Cancel specific order items (Admin Only) */
   cancelOrderItemsByAdmin: async (
     orderItemIds: string[],
     cancelReason: string

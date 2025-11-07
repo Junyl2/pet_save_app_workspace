@@ -160,3 +160,108 @@ export interface AdminCancelOrderItemsResponse {
   data: object;
   errorId?: string;
 }
+/** ──────────────── NEW V2 ADMIN ORDER SEARCH ──────────────── **/
+
+export type OrderStatusV2 =
+  | 'PENDING_PAYMENT'
+  | 'PAID'
+  | 'PREPARING'
+  | 'READY_FOR_PICKUP'
+  | 'DELIVERY_STARTED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'RETURNED'
+  | 'EXCHANGED';
+
+export interface AdminSearchOrdersParams {
+  orderNumber?: string;
+  keyword?: string;
+  status?: OrderStatusV2[]; // Multiple statuses allowed
+  shippingOption?: 'DELIVERY' | 'PICKUP';
+  dateStart?: string; // YYYY-MM-DD
+  dateEnd?: string; // YYYY-MM-DD
+  page?: number;
+  size?: number;
+  sortBy?: 'createdAt' | 'totalAmount';
+  direction?: 'asc' | 'desc';
+}
+
+/** ──────────────── Nested Objects from Response ──────────────── **/
+
+export interface AdminOrderCustomer {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+export interface AdminOrderDelivery {
+  deliveryId: string;
+  courierName: string;
+  trackingNumber: string | null;
+  receiverName: string;
+  orderId: string;
+  orderNumber: string;
+  receiverPhone: string;
+  receiverAddress: string;
+  deliveryNotes: string | null;
+  currentStatus: string;
+}
+
+/** ──────────────── Main Order Item ──────────────── **/
+
+export interface AdminSearchOrdersData {
+  orderItemId: string;
+  orderStoreId: string;
+  orderId: string;
+  orderNumber: string;
+  orderTotalAmount: number;
+  shippingOption: 'DELIVERY' | 'PICKUP';
+  paymentMethod: 'BANK' | 'CARD' | 'EASY_PAY';
+  status: OrderStatusV2;
+  storeId: string;
+  storeName: string;
+  storePhoneNumber: string | null;
+  storeAddress: string;
+  customer: AdminOrderCustomer;
+  productId: string;
+  productName: string;
+  productImageUrl: string;
+  productCategory: string[];
+  productExpiryDate: string;
+  quantity: number;
+  price: number;
+  subtotal: number;
+  appliedDiscountAmount: number;
+  deliveryFee: number;
+  totalAmount: number;
+  delivery: AdminOrderDelivery | null;
+  createdAt: string;
+}
+
+/** ──────────────── Pagination Structure ──────────────── **/
+
+export interface AdminSearchOrdersPage {
+  content: AdminSearchOrdersData[];
+  pageInfo: {
+    totalElements: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+    first: boolean;
+    last: boolean;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
+}
+
+/** ──────────────── API Response ──────────────── **/
+
+export interface AdminSearchOrdersResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: AdminSearchOrdersPage;
+  errorId?: string;
+}

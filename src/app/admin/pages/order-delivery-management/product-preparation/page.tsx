@@ -7,6 +7,7 @@ import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { orderService } from '@/app/api/services/client/memberService/order/orderService';
 import { orderStatusService } from '@/app/api/services/admin/orderStatusService/orderStatusService';
 import { SearchOrdersData } from '@/app/api/types/member/order/order';
+import { useRouter } from 'next/navigation';
 
 interface OrderRow {
   orderItemId: string;
@@ -21,6 +22,7 @@ interface OrderRow {
 const PAGE_SIZE = 10;
 
 export default function ProductPreperationPage() {
+  const router = useRouter();
   const { page, setPage } = usePageParam(1);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -178,12 +180,17 @@ export default function ProductPreperationPage() {
         {!loading && orders.length === 0 && (
           <div className={styles.empty}>상품 준비 중인 주문이 없습니다.</div>
         )}
-
         {!loading &&
           orders.map((order) => (
             <div
               key={`${order.orderNumber}-${order.orderItemId}`}
               className={styles.row}
+              onClick={() =>
+                router.push(
+                  `/admin/pages/order-delivery-management/product-preparation/order-details/${order.orderNumber}`
+                )
+              } // ← open modal route
+              style={{ cursor: 'pointer' }}
             >
               <div>{order.orderNumber}</div>
               <div>{order.createdAt}</div>
@@ -195,16 +202,20 @@ export default function ProductPreperationPage() {
                 <button
                   type="button"
                   className={styles.cancelBtn}
-                  onClick={() => handleCancel(order.orderItemId)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // prevent triggering modal open
+                    handleCancel(order.orderItemId);
+                  }}
                 >
                   취소
                 </button>
                 <button
                   type="button"
                   className={styles.startBtn}
-                  onClick={() =>
-                    handleProcess(order.orderItemId, order.receiveMethod)
-                  }
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleProcess(order.orderItemId, order.receiveMethod);
+                  }}
                 >
                   {order.receiveMethod === '배송'
                     ? '배송 처리 시작'

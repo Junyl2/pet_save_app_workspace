@@ -147,17 +147,7 @@ export default function BusinessRegistrationConfirmationPage() {
           <div className={styles.empty}>등록된 사업자 신청이 없습니다.</div>
         ) : (
           members.map((member) => (
-            <div
-              key={member.id}
-              className={styles.dataRow}
-              role="button"
-              tabIndex={0}
-              onClick={() => openInvoice(member)}
-              onKeyDown={(e) =>
-                (e.key === 'Enter' || e.key === ' ') && openInvoice(member)
-              }
-              aria-label={`${member.name} 정보 보기`}
-            >
+            <div key={member.id} className={styles.dataRow}>
               <div className={styles.col}>{member.name}</div>
               <div className={styles.col}>{member.nickname}</div>
               <div className={styles.col}>{member.contact}</div>

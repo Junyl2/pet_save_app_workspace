@@ -41,7 +41,7 @@ function resolveActiveKey(pathname: string): string {
   if (pathname.includes('/admin/pages/referrer-code-management'))
     return 'referrer-code-management/set-payment-policy';
   if (pathname.includes('/admin/pages/customer-service-center'))
-    return 'customer-service-center';
+    return 'customer-service-center/announcement';
 
   // Default
   return 'order-delivery-management/waiting-payment';

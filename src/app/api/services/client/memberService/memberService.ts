@@ -124,6 +124,45 @@ export class MemberService {
   }
 
   /**
+   * Get a specific member's summary information (Admin)
+   * Endpoint: GET /api/pet-save/members/{memberId}
+   */
+  static async getMemberById(
+    memberId: string
+  ): Promise<ApiResponse<MemberApiResponse>> {
+    try {
+      const response = await apiClient.get<MemberApiResponse>(
+        `/members/${memberId}`
+      );
+
+      if (response.error) {
+        console.error(' Get member by ID failed:', response.error);
+        return response;
+      }
+
+      if (!response.data?.success) {
+        console.warn(' Member fetch was not successful:', response.data);
+      }
+
+      console.log(
+        ' Member data fetched successfully:',
+        response.data?.data ?? '(empty)'
+      );
+
+      return response;
+    } catch (error) {
+      console.error(' MemberService.getMemberById error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch member information',
+      };
+    }
+  }
+
+  /**
    * Get members list (ADMIN)
    * Endpoint: GET /api/pet-save/members
    */

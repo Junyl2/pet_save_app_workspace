@@ -34,7 +34,7 @@ const MENU: MenuItem[] = [
     key: 'referrer-code-management/set-payment-policy',
     label: '추천인 코드 관리',
   },
-  { key: 'customer-service-center', label: '고객센터' },
+  { key: 'customer-service-center/announcement', label: '고객센터' },
 ];
 
 const CANCEL_CHILDREN: MenuItem[] = [
