@@ -11,6 +11,7 @@ import { useUser } from '@/app/context/userContext';
 import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
 import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
 import { baseURL } from '@/app/api/config';
+import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
 
 type InquiryType =
   | '전체'
@@ -30,7 +31,8 @@ const TYPE_OPTIONS: Exclude<InquiryType, '전체'>[] = [
   '기타 문의',
 ];
 
-// Helper: format date from YYYY-MM-DD to YY.MM.DD
+const PAGE_SIZE = 10;
+
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   const year = date.getFullYear().toString().slice(-2);
@@ -39,7 +41,6 @@ const formatDate = (dateString: string): string => {
   return `${year}.${month}.${day}`;
 };
 
-// Helper: construct proper file URL from file ID
 const constructFileUrl = (fileId: string | null | undefined): string => {
   if (!fileId) return '/images/products/dogfood.png';
   if (fileId.startsWith('http')) return fileId;
@@ -47,7 +48,6 @@ const constructFileUrl = (fileId: string | null | undefined): string => {
   return `${baseURL}/files/${fileId}`;
 };
 
-// Interface for the transformed inquiry data used in UI
 interface TransformedInquiry {
   id: number;
   inquiryId: string;
@@ -55,15 +55,14 @@ interface TransformedInquiry {
   productName: string;
   productPrice: number;
   productImage: string;
-  category: string; // raw API category (PRODUCT, DELIVERY, etc.)
-  uiCategory: InquiryType; // mapped UI label ('상품 문의' etc.)
+  category: string;
+  uiCategory: InquiryType;
   message: string;
   responseMessage: string;
   status: InquiryStatus;
   answering: boolean;
 }
 
-// Map API categories to UI categories (must match InquiryType)
 const mapApiCategoryToUI = (apiCategory: string): InquiryType => {
   switch (apiCategory) {
     case 'PRODUCT':
@@ -74,121 +73,119 @@ const mapApiCategoryToUI = (apiCategory: string): InquiryType => {
       return '교환/환불 문의';
     case 'PAYMENT':
       return '결제 문의';
-    case 'OTHER':
     default:
       return '기타 문의';
   }
 };
 
-// Helper function to transform API response to UI format
 const transformStoreInquiryToUI = (
   storeInquiry: StoreInquiry
 ): TransformedInquiry => {
-  try {
-    const productName =
-      storeInquiry.product?.productName ||
-      storeInquiry.productName ||
-      'Unknown Product';
+  const productName =
+    storeInquiry.product?.productName ||
+    storeInquiry.productName ||
+    'Unknown Product';
 
-    const productPrice =
-      storeInquiry.product?.discountedPrice ??
-      storeInquiry.product?.salePrice ??
-      0;
+  const productPrice =
+    storeInquiry.product?.discountedPrice ??
+    storeInquiry.product?.salePrice ??
+    0;
 
-    const productImage =
-      constructFileUrl(storeInquiry.product?.productThumbnail) ||
-      '/images/products/dogfood.png';
+  const productImage =
+    constructFileUrl(storeInquiry.product?.productThumbnail) ||
+    '/images/products/dogfood.png';
 
-    return {
-      id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0, // Convert UUID segment to number
-      inquiryId: storeInquiry.inquiryId,
-      date: storeInquiry.createdAt,
-      productName,
-      productPrice,
-      productImage,
-      category: storeInquiry.category,
-      uiCategory: mapApiCategoryToUI(storeInquiry.category),
-      message: storeInquiry.content,
-      responseMessage: storeInquiry.answer || '',
-      status: storeInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
-      answering: false,
-    };
-  } catch (error) {
-    console.error('Error transforming inquiry:', error, storeInquiry);
-    return {
-      id: 0,
-      inquiryId: storeInquiry.inquiryId || 'unknown',
-      date: storeInquiry.createdAt || new Date().toISOString(),
-      productName: 'Unknown Product',
-      productPrice: 0,
-      productImage: '/images/products/dogfood.png',
-      category: storeInquiry.category || 'OTHER',
-      uiCategory: '기타 문의',
-      message: storeInquiry.content || 'No content',
-      responseMessage: '',
-      status: '답변 대기 중',
-      answering: false,
-    };
-  }
+  return {
+    id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0,
+    inquiryId: storeInquiry.inquiryId,
+    date: storeInquiry.createdAt,
+    productName,
+    productPrice,
+    productImage,
+    category: storeInquiry.category,
+    uiCategory: mapApiCategoryToUI(storeInquiry.category),
+    message: storeInquiry.content,
+    responseMessage: storeInquiry.answer || '',
+    status: storeInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
+    answering: false,
+  };
 };
 
 export default function SellerInquiryDetails() {
   const router = useRouter();
   const { user } = useUser();
 
-  // tabs
   const [tab, setTab] = useState<InquiryStatus>('답변 대기 중');
-
-  // dropdown
   const [open, setOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<InquiryType>('전체');
   const ddRef = useRef<HTMLDivElement | null>(null);
 
-  // API data state
   const [inquiries, setInquiries] = useState<TransformedInquiry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is approved seller
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const hasFetchedOnce = useRef(false);
+
+  // Redirect non-sellers
   useEffect(() => {
     if (user?.role !== 'seller' || !user?.storeId) {
       router.push('/client/pages/homepage');
-      return;
     }
   }, [user, router]);
 
-  // Fetch store inquiries from API
+  // ✅ Fetch inquiries safely
   useEffect(() => {
-    const fetchInquiries = async () => {
-      if (!user?.role || user.role !== 'seller') return;
+    if (!user?.role || user.role !== 'seller' || !user.storeId) return;
 
+    // prevent StrictMode double-call
+    if (hasFetchedOnce.current) {
+      hasFetchedOnce.current = false;
+    } else {
+      hasFetchedOnce.current = true;
+    }
+
+    const fetchInquiries = async (): Promise<void> => {
       setLoading(true);
+      setInquiries([]); // clear old before loading new
+
       try {
+        const statusParam = tab === '답변 완료' ? 'ANSWERED' : 'WAITING';
+
         const response = await MemberStoreService.getMyStoreInquiries({
+          page: currentPage - 1,
+          size: PAGE_SIZE,
           sortBy: 'createdAt',
           direction: 'desc',
-          size: 100,
+          status: statusParam,
         });
 
         if (response.error || !response.data) {
           console.error('Failed to fetch store inquiries:', response.error);
           setInquiries([]);
-        } else {
-          const transformedInquiries = response.data.data.content.map(
-            transformStoreInquiryToUI
-          );
-          setInquiries(transformedInquiries);
+          setTotalPages(1);
+          return;
         }
+
+        const transformed = response.data.data.content.map(
+          transformStoreInquiryToUI
+        );
+        setInquiries(transformed);
+        setTotalPages(response.data.data.pageInfo?.totalPages ?? 1);
       } catch (error) {
         console.error('Error fetching store inquiries:', error);
         setInquiries([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
 
     fetchInquiries();
-  }, [user]);
+  }, [user?.storeId, currentPage, tab]); // ✅ refetch only when these change
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
       if (!ddRef.current) return;
@@ -199,13 +196,10 @@ export default function SellerInquiryDetails() {
   }, []);
 
   const filtered = useMemo(() => {
-    return inquiries.filter((q) => {
-      const byTab = q.status === tab;
-      const byType =
-        selectedType === '전체' ? true : q.uiCategory === selectedType;
-      return byTab && byType;
-    });
-  }, [inquiries, tab, selectedType]);
+    return inquiries.filter((q) =>
+      selectedType === '전체' ? true : q.uiCategory === selectedType
+    );
+  }, [inquiries, selectedType]);
 
   const handlePick = (t: InquiryType) => {
     setSelectedType(t);
@@ -215,10 +209,6 @@ export default function SellerInquiryDetails() {
   const handleInquiryClick = (inquiry: TransformedInquiry) => {
     router.push(`/client/seller/pages/reply-inquiry?id=${inquiry.inquiryId}`);
   };
-
-  if (!user || user.role !== 'seller' || !user.storeId) {
-    return null; // Will redirect in useEffect
-  }
 
   if (loading) {
     return (
@@ -238,13 +228,16 @@ export default function SellerInquiryDetails() {
     <>
       <ProductHeader />
       <div className={styles.page}>
-        {/* Top tabs (답변대기 / 답변완료) */}
+        {/* Tabs */}
         <div className={styles.tabs}>
           <button
             className={`${styles.tabBtn} ${
               tab === '답변 대기 중' ? styles.active : ''
             }`}
-            onClick={() => setTab('답변 대기 중')}
+            onClick={() => {
+              setTab('답변 대기 중');
+              setCurrentPage(1);
+            }}
           >
             답변대기
           </button>
@@ -252,13 +245,16 @@ export default function SellerInquiryDetails() {
             className={`${styles.tabBtn} ${
               tab === '답변 완료' ? styles.active : ''
             }`}
-            onClick={() => setTab('답변 완료')}
+            onClick={() => {
+              setTab('답변 완료');
+              setCurrentPage(1);
+            }}
           >
             답변완료
           </button>
         </div>
 
-        {/* Filter block */}
+        {/* Filter */}
         <div className={styles.filterWrap}>
           <div className={styles.filterRow} ref={ddRef}>
             <button
@@ -308,11 +304,15 @@ export default function SellerInquiryDetails() {
           </div>
         </div>
 
-        {/* List */}
+        {/* Inquiry list */}
         <div className={styles.list}>
+          {filtered.length === 0 && (
+            <div className={styles.empty}>해당 조건의 문의가 없습니다.</div>
+          )}
+
           {filtered.map((q) => (
             <article
-              key={q.id}
+              key={q.inquiryId}
               className={styles.card}
               onClick={() => handleInquiryClick(q)}
               style={{ cursor: 'pointer' }}
@@ -327,8 +327,6 @@ export default function SellerInquiryDetails() {
                     </span>
                   </span>
                 </div>
-
-                {/* Top right status only if tab is "답변 완료" */}
                 {tab === '답변 완료' && (
                   <div
                     className={`${styles.answerStatus} ${
@@ -343,7 +341,7 @@ export default function SellerInquiryDetails() {
               <div className={styles.itemRow}>
                 <div className={styles.thumbWrap}>
                   <Image
-                    src={q.productImage || '/images/products/dogfood.png'}
+                    src={q.productImage}
                     alt=""
                     width={60}
                     height={60}
@@ -363,11 +361,18 @@ export default function SellerInquiryDetails() {
               </div>
             </article>
           ))}
-
-          {filtered.length === 0 && (
-            <div className={styles.empty}>해당 조건의 문의가 없습니다.</div>
-          )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ marginTop: '2rem', marginBottom: '3rem' }}>
+            <ClientPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
       </div>
       <BottomBar />
     </>

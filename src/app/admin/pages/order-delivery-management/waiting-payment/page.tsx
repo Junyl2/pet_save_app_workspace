@@ -7,11 +7,13 @@ import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { orderService } from '@/app/api/services/client/memberService/order/orderService';
 import { paymentService } from '@/app/api/services/admin/paymentService/paymentService';
 import {
-  SearchOrdersData,
+  AdminSearchOrdersResponse,
+  AdminSearchOrdersData,
   AdminCancelOrderItemsResponse,
 } from '@/app/api/types/member/order/order';
 
 interface OrderRow {
+  orderItemId: string;
   orderId: string;
   orderNumber: string;
   createdAt: string;
@@ -19,24 +21,23 @@ interface OrderRow {
   customerContact: string;
   totalAmount: number;
   paymentMethod: string;
-  orderItemIds: string[];
 }
 
-const KRW = (n: number) => new Intl.NumberFormat('ko-KR').format(n) + '원';
+const KRW = (n: number): string =>
+  new Intl.NumberFormat('ko-KR').format(n) + '원';
 const PAGE_SIZE = 10;
 
-export default function WaitingPaymentPage() {
+export default function WaitingPaymentPage(): React.ReactElement {
   const { page, setPage } = usePageParam(1);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  // Fetch pending payment orders
   const fetchOrders = async (): Promise<void> => {
     setLoading(true);
     try {
-      const { data, error } = await orderService.searchOrders({
-        generalStatus: 'PENDING_PAYMENT',
+      const { data, error } = await orderService.searchOrdersV2({
+        status: ['PENDING_PAYMENT'],
         page: page - 1,
         size: PAGE_SIZE,
         sortBy: 'createdAt',
@@ -49,26 +50,23 @@ export default function WaitingPaymentPage() {
         return;
       }
 
-      const result = data.data as SearchOrdersData;
-      const mapped: OrderRow[] =
-        result.content?.map((o) => ({
-          orderId: o.orderId,
-          orderNumber: o.orderNumber,
-          createdAt: o.createdAt,
-          customerName: o.customerName ?? '-',
-          customerContact: o.customerContact ?? '-',
-          totalAmount: o.totalAmount ?? 0,
-          paymentMethod: o.paymentMethod ?? '-',
-          orderItemIds:
-            o.storeOrders
-              ?.flatMap(
-                (store) => store.items?.map((item) => item.orderItemId) ?? []
-              )
-              .filter((id): id is string => typeof id === 'string') ?? [],
-        })) ?? [];
+      const result = data as AdminSearchOrdersResponse;
+      const content: AdminSearchOrdersData[] = result.data?.content ?? [];
+
+      // Each item = 1 row (no grouping)
+      const mapped: OrderRow[] = content.map((item) => ({
+        orderItemId: item.orderItemId,
+        orderId: item.orderId,
+        orderNumber: item.orderNumber,
+        createdAt: item.createdAt,
+        customerName: item.customer.name ?? '-',
+        customerContact: item.customer.phone ?? '-',
+        totalAmount: item.totalAmount ?? 0,
+        paymentMethod: item.paymentMethod ?? '-',
+      }));
 
       setOrders(mapped);
-      setTotalPages(result.pageInfo?.totalPages ?? 1);
+      setTotalPages(result.data?.pageInfo?.totalPages ?? 1);
     } catch (err) {
       console.error('Fetch orders error:', err);
     } finally {
@@ -80,24 +78,16 @@ export default function WaitingPaymentPage() {
     fetchOrders();
   }, [page]);
 
-  // Cancel specific order items (Admin API)
-  const handleCancelItems = async (orderItemIds: string[]): Promise<void> => {
-    if (!orderItemIds || orderItemIds.length === 0) {
-      alert('취소할 주문 상품이 없습니다.');
-      return;
-    }
-
+  const handleCancelItem = async (orderItemId: string): Promise<void> => {
     const reason = prompt('취소 사유를 입력하세요:');
     if (!reason) return;
-
-    if (!confirm('정말로 이 주문의 모든 상품을 취소하시겠습니까?')) return;
+    if (!confirm('이 상품을 취소하시겠습니까?')) return;
 
     try {
       const { data, error } = await orderService.cancelOrderItemsByAdmin(
-        orderItemIds,
+        [orderItemId],
         reason
       );
-
       const res = data as AdminCancelOrderItemsResponse | null;
 
       if (error || !res?.success) {
@@ -106,15 +96,14 @@ export default function WaitingPaymentPage() {
         return;
       }
 
-      alert('선택한 주문 상품이 성공적으로 취소되었습니다.');
-      await fetchOrders(); // Refresh list without page reload
+      alert('상품이 성공적으로 취소되었습니다.');
+      await fetchOrders();
     } catch (err) {
       console.error('Cancel error:', err);
       alert('주문 상품 취소 중 오류가 발생했습니다.');
     }
   };
 
-  // Confirm payment manually (Admin API)
   const handleConfirmPayment = async (orderId: string): Promise<void> => {
     if (!confirm('이 주문의 입금을 확인하시겠습니까?')) return;
 
@@ -128,72 +117,95 @@ export default function WaitingPaymentPage() {
       }
 
       alert('입금이 성공적으로 확인되었습니다.');
-      await fetchOrders(); // Refresh list without page reload
+      await fetchOrders();
     } catch (err) {
       console.error('Confirm payment error:', err);
       alert('입금 확인 중 오류가 발생했습니다.');
     }
   };
 
-  return (
-    <>
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <div>주문번호</div>
-          <div>주문일시</div>
-          <div>주문자</div>
-          <div>연락처</div>
-          <div>상품 가격</div>
-          <div>결제 수단</div>
-          <div />
-        </div>
-
-        {loading && <div className={styles.loading}>불러오는 중...</div>}
-
-        {!loading && orders.length === 0 && (
-          <div className={styles.empty}>대기 중 결제 주문이 없습니다.</div>
-        )}
-
-        {!loading &&
-          orders.map((order) => (
-            <div key={order.orderNumber} className={styles.row}>
-              <div>{order.orderNumber}</div>
-              <div>{order.createdAt}</div>
-              <div>{order.customerName}</div>
-              <div>{order.customerContact}</div>
-              <div>{KRW(order.totalAmount)}</div>
-              <div>{order.paymentMethod}</div>
-              <div className={styles.actions}>
-                <button
-                  className={styles.cancelBtn}
-                  onClick={() => handleCancelItems(order.orderItemIds)}
-                >
-                  상품 취소
-                </button>
-                <button
-                  className={styles.startBtn}
-                  onClick={() => handleConfirmPayment(order.orderId)}
-                >
-                  입금 확인 처리
-                </button>
-              </div>
-            </div>
-          ))}
-      </div>
-
-      {totalPages > 1 && (
-        <div
-          style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}
-        >
-          <div style={{ width: 320 }}>
-            <OrderPagination
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
-          </div>
-        </div>
-      )}
-    </>
+  return React.createElement(
+    React.Fragment,
+    null,
+    React.createElement(
+      'div',
+      { className: styles.container },
+      React.createElement(
+        'div',
+        { className: styles.header },
+        React.createElement('div', null, '주문번호'),
+        React.createElement('div', null, '주문일시'),
+        React.createElement('div', null, '주문자'),
+        React.createElement('div', null, '연락처'),
+        React.createElement('div', null, '상품 가격'),
+        React.createElement('div', null, '결제 수단'),
+        React.createElement('div', null)
+      ),
+      loading
+        ? React.createElement(
+            'div',
+            { className: styles.loading },
+            '불러오는 중...'
+          )
+        : !orders.length
+        ? React.createElement(
+            'div',
+            { className: styles.empty },
+            '대기 중 결제 주문이 없습니다.'
+          )
+        : orders.map((order) =>
+            React.createElement(
+              'div',
+              { key: order.orderItemId, className: styles.row },
+              React.createElement('div', null, order.orderNumber),
+              React.createElement('div', null, order.createdAt),
+              React.createElement('div', null, order.customerName),
+              React.createElement('div', null, order.customerContact),
+              React.createElement('div', null, KRW(order.totalAmount)),
+              React.createElement('div', null, order.paymentMethod),
+              React.createElement(
+                'div',
+                { className: styles.actions },
+                React.createElement(
+                  'button',
+                  {
+                    className: styles.cancelBtn,
+                    onClick: () => handleCancelItem(order.orderItemId),
+                  },
+                  '상품 취소'
+                ),
+                React.createElement(
+                  'button',
+                  {
+                    className: styles.startBtn,
+                    onClick: () => handleConfirmPayment(order.orderId),
+                  },
+                  '입금 확인 처리'
+                )
+              )
+            )
+          )
+    ),
+    totalPages > 1
+      ? React.createElement(
+          'div',
+          {
+            style: {
+              display: 'flex',
+              justifyContent: 'center',
+              marginTop: 16,
+            },
+          },
+          React.createElement(
+            'div',
+            { style: { width: 320 } },
+            React.createElement(OrderPagination, {
+              currentPage: page,
+              totalPages,
+              onPageChange: setPage,
+            })
+          )
+        )
+      : null
   );
 }

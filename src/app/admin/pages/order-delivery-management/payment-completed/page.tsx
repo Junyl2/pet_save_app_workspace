@@ -6,32 +6,39 @@ import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagi
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { orderService } from '@/app/api/services/client/memberService/order/orderService';
 import { orderStatusService } from '@/app/api/services/admin/orderStatusService/orderStatusService';
-import { SearchOrdersData } from '@/app/api/types/member/order/order';
+import {
+  AdminSearchOrdersResponse,
+  AdminSearchOrdersData,
+} from '@/app/api/types/member/order/order';
 
 interface OrderRow {
+  orderItemId: string;
+  orderId: string;
   orderNumber: string;
   createdAt: string;
   customerName: string;
   customerContact: string;
   totalAmount: number;
   paymentMethod: string;
-  orderItemId: string;
 }
 
-const KRW = (n: number) => new Intl.NumberFormat('ko-KR').format(n) + '원';
+const KRW = (n: number): string =>
+  new Intl.NumberFormat('ko-KR').format(n) + '원';
+
 const PAGE_SIZE = 10;
 
-export default function PaymentCompletedPage() {
+export default function PaymentCompletedPage(): React.ReactElement {
   const { page, setPage } = usePageParam(1);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  /** Fetch all PAID orders from /v2/orders */
   const fetchOrders = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const { data, error } = await orderService.searchOrders({
-        generalStatus: 'PAID',
+      const { data, error } = await orderService.searchOrdersV2({
+        status: ['PAID'],
         page: page - 1,
         size: PAGE_SIZE,
         sortBy: 'createdAt',
@@ -39,38 +46,31 @@ export default function PaymentCompletedPage() {
       });
 
       if (error || !data?.success) {
-        console.error('Fetch failed:', error);
+        console.error('[PaymentCompletedPage] Fetch failed:', error);
         setOrders([]);
         return;
       }
 
-      const result = data.data as SearchOrdersData;
+      const result = data as AdminSearchOrdersResponse;
+      const content: AdminSearchOrdersData[] = result.data?.content ?? [];
 
-      const mapped: OrderRow[] =
-        result.content
-          ?.flatMap(
-            (o) =>
-              o.storeOrders?.flatMap(
-                (store) =>
-                  store.items
-                    ?.filter((item) => !!item.orderItemId)
-                    .map((item) => ({
-                      orderNumber: o.orderNumber,
-                      createdAt: o.createdAt,
-                      customerName: o.customerName ?? '-',
-                      customerContact: o.customerContact ?? '-',
-                      totalAmount: item.totalAmount ?? 0,
-                      paymentMethod: o.paymentMethod ?? '-',
-                      orderItemId: item.orderItemId!,
-                    })) ?? []
-              ) ?? []
-          )
-          .filter((row): row is OrderRow => !!row.orderItemId) ?? [];
+      // Each order item = one row
+      const mapped: OrderRow[] = content.map((item) => ({
+        orderItemId: item.orderItemId,
+        orderId: item.orderId,
+        orderNumber: item.orderNumber,
+        createdAt: item.createdAt,
+        customerName: item.customer.name ?? '-',
+        customerContact: item.customer.phone ?? '-',
+        totalAmount: item.totalAmount ?? 0,
+        paymentMethod: item.paymentMethod ?? '-',
+      }));
 
       setOrders(mapped);
-      setTotalPages(result.pageInfo?.totalPages ?? 1);
+      setTotalPages(result.data?.pageInfo?.totalPages ?? 1);
     } catch (err) {
-      console.error('Order fetch error:', err);
+      console.error('[PaymentCompletedPage] Order fetch error:', err);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -80,6 +80,7 @@ export default function PaymentCompletedPage() {
     fetchOrders();
   }, [fetchOrders]);
 
+  /** Cancel an order item */
   const handleCancel = async (orderItemId: string): Promise<void> => {
     if (!orderItemId) {
       alert('유효하지 않은 상품 ID입니다.');
@@ -90,6 +91,8 @@ export default function PaymentCompletedPage() {
     if (!reason) return;
     if (!confirm('정말로 이 상품을 취소하시겠습니까?')) return;
 
+    setOrders((prev) => prev.filter((o) => o.orderItemId !== orderItemId));
+
     try {
       const { data, error } = await orderStatusService.cancelOrderItem(
         orderItemId,
@@ -98,18 +101,21 @@ export default function PaymentCompletedPage() {
 
       if (error || !data?.success) {
         alert('상품 취소 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
-        console.error('Cancel failed:', error);
+        console.error('[PaymentCompletedPage] Cancel failed:', error);
+        await fetchOrders(); // rollback
         return;
       }
 
       alert('상품이 성공적으로 취소되었습니다.');
-      await fetchOrders(); // Refresh list without reloading
+      await fetchOrders();
     } catch (err) {
-      console.error('Cancel error:', err);
+      console.error('[PaymentCompletedPage] Cancel error:', err);
       alert('주문 상품 취소 중 오류가 발생했습니다.');
+      await fetchOrders();
     }
   };
 
+  /** Start preparing an order item */
   const handleStart = async (orderItemId: string): Promise<void> => {
     if (!orderItemId) {
       alert('유효하지 않은 상품 ID입니다.');
@@ -117,6 +123,8 @@ export default function PaymentCompletedPage() {
     }
 
     if (!confirm('이 상품의 준비를 시작하시겠습니까?')) return;
+
+    setOrders((prev) => prev.filter((o) => o.orderItemId !== orderItemId));
 
     try {
       const { data, error } = await orderStatusService.markOrderItemAsPreparing(
@@ -127,15 +135,17 @@ export default function PaymentCompletedPage() {
         alert(
           '준비 상태 변경 실패: ' + (data?.resultMsg || '오류가 발생했습니다.')
         );
-        console.error('Prepare failed:', error);
+        console.error('[PaymentCompletedPage] Prepare failed:', error);
+        await fetchOrders();
         return;
       }
 
       alert('상품 준비 상태가 시작되었습니다.');
-      await fetchOrders(); // Update list dynamically
+      await fetchOrders();
     } catch (err) {
-      console.error('Prepare error:', err);
+      console.error('[PaymentCompletedPage] Prepare error:', err);
       alert('상품 준비 중 오류가 발생했습니다.');
+      await fetchOrders();
     }
   };
 

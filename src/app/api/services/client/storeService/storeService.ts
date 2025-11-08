@@ -4,7 +4,7 @@ import {
   NearbyStoresApiResponse,
 } from '../../../types/stores/nearby';
 import {
-  /* StoreInfo, */ StoreApiResponse,
+  StoreApiResponse,
   StoreSearchRequest,
   StoreSearchApiResponse,
 } from '../../../types/member/store/store';
@@ -53,8 +53,8 @@ export class StoreService {
   static async getCurrentLocation(
     options: PositionOptions = {
       enableHighAccuracy: true,
-      timeout: 15000, // Increased timeout to 15 seconds
-      maximumAge: 300000, // 5 minutes
+      timeout: 15000,
+      maximumAge: 300000,
     }
   ): Promise<{
     data: LocationCoordinates | null;
@@ -62,12 +62,9 @@ export class StoreService {
   }> {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
-        console.error('❌ Geolocation is not supported by this browser');
         resolve({ data: null, error: 'POSITION_UNAVAILABLE' });
         return;
       }
-
-      console.log('📍 Requesting current location with options:', options);
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -75,39 +72,24 @@ export class StoreService {
             lat: position.coords.latitude,
             long: position.coords.longitude,
           };
-
-          console.log('✅ Current location obtained:', coordinates);
-          console.log('📍 Accuracy:', position.coords.accuracy, 'meters');
           resolve({ data: coordinates, error: null });
         },
         (error) => {
           let locationError: LocationError;
-
           switch (error.code) {
             case error.PERMISSION_DENIED:
               locationError = 'PERMISSION_DENIED';
-              console.error('❌ Location access denied by user');
               break;
             case error.POSITION_UNAVAILABLE:
               locationError = 'POSITION_UNAVAILABLE';
-              console.error('❌ Location information is unavailable');
               break;
             case error.TIMEOUT:
               locationError = 'TIMEOUT';
-              console.error('❌ Location request timed out');
               break;
             default:
               locationError = 'UNKNOWN_ERROR';
-              console.error('❌ Unknown location error:', error);
               break;
           }
-
-          console.error('📍 Geolocation error details:', {
-            code: error.code,
-            message: error.message,
-            type: locationError,
-          });
-
           resolve({ data: null, error: locationError });
         },
         options
@@ -116,32 +98,41 @@ export class StoreService {
   }
 
   /**
-   * Search nearby stores based on user location
+   * Search nearby stores based on user location.
+   * Reads lat/long from localStorage if not provided.
    * Endpoint: GET /api/pet-save/stores/nearby
-   * @param params - Search parameters including location and filters
    */
   static async searchNearbyStores(
     params: NearbyStoresRequest
   ): Promise<ApiResponse<NearbyStoresApiResponse>> {
     try {
-      console.log('🔍 Searching nearby stores:', {
-        lat: params.lat,
-        long: params.long,
-        radius: params.radius || 10,
-        keyword: params.keyword,
-        baseLocation: params.baseLocation,
-        page: params.page || 0,
-        size: params.size || 10,
-      });
+      // Auto-read saved coordinates if missing
+      let lat = params.lat;
+      let long = params.long;
 
-      // Build query parameters
+      if (lat == null || long == null) {
+        const savedLat = localStorage.getItem('selectedLocationLat');
+        const savedLong = localStorage.getItem('selectedLocationLong');
+        if (savedLat && savedLong) {
+          lat = parseFloat(savedLat);
+          long = parseFloat(savedLong);
+        }
+      }
+
+      if (lat == null || long == null) {
+        return {
+          data: null,
+          error:
+            'No location coordinates available in request or localStorage.',
+        };
+      }
+
       const queryParams = new URLSearchParams();
-
       if (params.keyword) queryParams.append('keyword', params.keyword);
       if (params.baseLocation)
         queryParams.append('baseLocation', params.baseLocation);
-      queryParams.append('lat', params.lat.toString());
-      queryParams.append('long', params.long.toString());
+      queryParams.append('lat', lat.toString());
+      queryParams.append('long', long.toString());
       if (params.radius) queryParams.append('radius', params.radius.toString());
       if (params.page !== undefined)
         queryParams.append('page', params.page.toString());
@@ -152,21 +143,10 @@ export class StoreService {
         `/stores/nearby?${queryParams.toString()}`
       );
 
-      if (response.error) {
-        console.error('❌ Search nearby stores failed:', response.error);
-        return response;
-      }
-
-      console.log('✅ Nearby stores search successful:', {
-        totalStores: response.data?.data?.pageInfo?.totalElements || 0,
-        currentPage: response.data?.data?.pageInfo?.currentPage || 0,
-        totalPages: response.data?.data?.pageInfo?.totalPages || 0,
-        storesFound: response.data?.data?.content?.length || 0,
-      });
+      if (response.error) return response;
 
       return response;
     } catch (error) {
-      console.error('💥 Nearby stores search service error:', error);
       return {
         data: null,
         error:
@@ -179,10 +159,6 @@ export class StoreService {
 
   /**
    * Get store summary by ID
-   * Endpoint: GET /api/pet-save/stores/{storeId}
-   * @param storeId - Store ID (UUID)
-   * @param lat - User latitude for distance calculation (optional)
-   * @param long - User longitude for distance calculation (optional)
    */
   static async getStoreSummary(
     storeId: string,
@@ -190,36 +166,15 @@ export class StoreService {
     long?: number
   ): Promise<ApiResponse<StoreApiResponse>> {
     try {
-      console.log('🔍 Getting store summary:', {
-        storeId,
-        lat,
-        long,
-      });
-
-      // Build query parameters
       const queryParams = new URLSearchParams();
       if (lat !== undefined) queryParams.append('lat', lat.toString());
       if (long !== undefined) queryParams.append('long', long.toString());
-
       const queryString = queryParams.toString();
       const url = `/stores/${storeId}${queryString ? `?${queryString}` : ''}`;
 
       const response = await apiClient.get<StoreApiResponse>(url);
-
-      if (response.error) {
-        console.error('❌ Get store summary failed:', response.error);
-        return response;
-      }
-
-      console.log('✅ Store summary retrieved successfully:', {
-        storeId: response.data?.data?.storeId,
-        storeName: response.data?.data?.storeName,
-        businessName: response.data?.data?.businessName,
-      });
-
       return response;
     } catch (error) {
-      console.error('💥 Get store summary service error:', error);
       return {
         data: null,
         error:
@@ -232,29 +187,20 @@ export class StoreService {
 
   /**
    * Search nearby stores using current GPS location
-   * @param params - Optional search parameters (excluding lat/long)
-   * @returns Promise with nearby stores or error
    */
   static async searchNearbyStoresWithCurrentLocation(
     params: Omit<NearbyStoresRequest, 'lat' | 'long'> = {}
   ): Promise<{ data: NearbyStoresApiResponse | null; error: string | null }> {
     try {
-      console.log('📍 Getting current location for nearby stores search...');
-
       const locationResult = await this.getCurrentLocation();
+      if (locationResult.error)
+        return {
+          data: null,
+          error: this.getLocationErrorMessage(locationResult.error),
+        };
 
-      if (locationResult.error) {
-        const errorMessage = this.getLocationErrorMessage(locationResult.error);
-        console.error('❌ Failed to get current location:', errorMessage);
-        return { data: null, error: errorMessage };
-      }
-
-      if (!locationResult.data) {
-        console.error('❌ No location data received');
+      if (!locationResult.data)
         return { data: null, error: 'Failed to get current location' };
-      }
-
-      console.log('🔍 Searching nearby stores with current location...');
 
       const searchParams: NearbyStoresRequest = {
         ...params,
@@ -263,17 +209,9 @@ export class StoreService {
       };
 
       const response = await this.searchNearbyStores(searchParams);
-
-      if (response.error) {
-        return { data: null, error: response.error };
-      }
-
+      if (response.error) return { data: null, error: response.error };
       return { data: response.data, error: null };
     } catch (error) {
-      console.error(
-        '💥 Search nearby stores with current location error:',
-        error
-      );
       return {
         data: null,
         error:
@@ -284,11 +222,6 @@ export class StoreService {
     }
   }
 
-  /**
-   * Get user-friendly error message for location errors
-   * @param error - Location error type
-   * @returns User-friendly error message
-   */
   private static getLocationErrorMessage(error: LocationError): string {
     switch (error) {
       case 'PERMISSION_DENIED':
@@ -304,41 +237,17 @@ export class StoreService {
     }
   }
 
-  /**
-   * Update store information
-   * Endpoint: PUT /api/pet-save/stores/{storeId}
-   * @param storeId - Store ID (UUID)
-   * @param updateData - Store information to update
-   */
   static async updateStore(
     storeId: string,
     updateData: UpdateStoreRequest
   ): Promise<ApiResponse<object>> {
     try {
-      console.log('🔄 Updating store information:', {
-        storeId,
-        updateData,
-      });
-
       const response = await apiClient.put<object>(
         `/stores/${storeId}`,
         updateData
       );
-
-      if (response.error) {
-        console.error('❌ Update store failed:', response.error);
-        console.error('❌ Request data:', updateData);
-        return response;
-      }
-
-      console.log('✅ Store information updated successfully:', {
-        storeId,
-        businessName: updateData.businessName,
-      });
-
       return response;
     } catch (error) {
-      console.error('💥 Update store service error:', error);
       return {
         data: null,
         error:
@@ -349,34 +258,14 @@ export class StoreService {
     }
   }
 
-  /**
-   * Search stores with keyword and location filters
-   * Endpoint: GET /api/pet-save/stores
-   * @param params - Search parameters including keyword, location, and pagination
-   */
   static async searchStores(
     params: StoreSearchRequest
   ): Promise<ApiResponse<StoreSearchApiResponse>> {
     try {
-      // Use provided coordinates
       const lat = params.lat;
       const long = params.long;
 
-      console.log('🔍 Searching stores:', {
-        keyword: params.keyword,
-        baseLocation: params.baseLocation,
-        lat: lat,
-        long: long,
-        page: params.page || 0,
-        size: params.size || 10,
-        sortBy: params.sortBy || 'createdAt',
-        direction: params.direction || 'desc',
-        userLocation: 'from params',
-      });
-
-      // Build query parameters
       const queryParams = new URLSearchParams();
-
       if (params.keyword) queryParams.append('keyword', params.keyword);
       if (params.baseLocation)
         queryParams.append('baseLocation', params.baseLocation);
@@ -392,23 +281,8 @@ export class StoreService {
       const response = await apiClient.get<StoreSearchApiResponse>(
         `/stores?${queryParams.toString()}`
       );
-
-      if (response.error) {
-        console.error('❌ Search stores failed:', response.error);
-        return response;
-      }
-
-      console.log('✅ Stores search successful:', {
-        totalStores: response.data?.data?.totalElements || 0,
-        currentPage: response.data?.data?.number || 0,
-        totalPages: response.data?.data?.totalPages || 0,
-        storesFound: response.data?.data?.content?.length || 0,
-        searchLocation: { lat, long },
-      });
-
       return response;
     } catch (error) {
-      console.error('💥 Search stores service error:', error);
       return {
         data: null,
         error:
@@ -417,21 +291,13 @@ export class StoreService {
     }
   }
 
-  /**
-   * Test the nearby stores API with default Seoul coordinates
-   * This is a helper method for testing the API
-   */
   static async testNearbyStoresAPI(): Promise<
     ApiResponse<NearbyStoresApiResponse>
   > {
-    console.log(
-      '🧪 Testing nearby stores API with default Seoul coordinates...'
-    );
-
     return this.searchNearbyStores({
-      lat: 37.5665, // Seoul latitude
-      long: 126.978, // Seoul longitude
-      radius: 10, // 10km radius
+      lat: 37.5665,
+      long: 126.978,
+      radius: 10,
       page: 0,
       size: 10,
     });

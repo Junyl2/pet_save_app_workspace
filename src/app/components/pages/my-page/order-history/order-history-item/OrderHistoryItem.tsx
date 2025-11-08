@@ -1,46 +1,54 @@
+'use client';
+
 import { OrderItem } from '@/app/components/types/order';
 import Image from 'next/image';
 import styles from './OrderHistoryItem.module.css';
-import { FiChevronRight } from 'react-icons/fi'; // ← added
+import { FiChevronRight } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { PAGE_URLS } from '@/app/utils/page_url';
+import { useAppDispatch } from '@/app/redux/hooks';
+import { fetchOrderDetails } from '@/app/redux/slices/cache/orderSlice';
 
 interface OrderHistoryItemProps {
-  orderId: string;
+  orderItemId: string;
   orderNumber: string;
-  status: string; // e.g. "배송중", "픽업 완료"
-  date: string; // e.g. "2025.07.28"
-  item: OrderItem;
+  status: string;
+  date: string;
+  item: OrderItem & { orderId?: string };
 }
 
 export default function OrderHistoryItem({
-  orderId,
+  orderItemId,
   orderNumber,
   status,
   date,
   item,
 }: OrderHistoryItemProps) {
-  const { product, quantity } = item;
+  const { product, quantity, orderId } = item;
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
-  const handleDetailClick = (orderId: string) => {
-    router.push(PAGE_URLS.ORDER_DETAILS(orderId));
+  const handleDetailClick = async (): Promise<void> => {
+    try {
+      if (orderId) {
+        await dispatch(fetchOrderDetails(orderId)).unwrap();
+      }
+    } catch (error) {
+      console.warn('[OrderHistoryItem] preload failed:', error);
+    } finally {
+      router.push(PAGE_URLS.ORDER_DETAILS(orderItemId));
+    }
   };
 
   return (
     <div className={styles.card}>
-      {/* Header */}
       <div className={styles.header}>
         <span className={styles.status}>{status}</span>
-        <button
-          className={styles.detailButton}
-          onClick={() => handleDetailClick(orderId)}
-        >
+        <button className={styles.detailButton} onClick={handleDetailClick}>
           상세보기 <FiChevronRight className={styles.icon} />
         </button>
       </div>
 
-      {/* Body */}
       <div className={styles.body}>
         <div className={styles.imageWrapper}>
           <Image

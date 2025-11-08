@@ -12,34 +12,21 @@ import LogoutModal from '@/app/components/ui/modal/LogoutModal/LogoutModal';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import { fetchUserInfo } from '@/app/redux/slices/cache/userSlice';
 
-const ProfileMenu = () => {
+const ProfileMenu = (): React.ReactElement => {
   const { user } = useUser();
   const dispatch = useAppDispatch();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Redux state
   const { userInfo } = useAppSelector((state) => state.user);
+  const role = userInfo?.role || user?.role;
+  const businessApproved =
+    userInfo?.businessApprovalStatus || user?.businessApprovalStatus;
+  const storeId = userInfo?.storeId || user?.storeId;
 
-  // Fetch user info using Redux when component mounts
   useEffect(() => {
     dispatch(fetchUserInfo());
   }, [dispatch]);
-
-  // Debug logging for user state
-  useEffect(() => {
-    console.log(' ProfileMenu - User State Debug:');
-    console.log('  - User (context):', user);
-    console.log('  - UserInfo (Redux):', userInfo);
-    console.log('  - Role:', userInfo?.role || user?.role);
-    console.log(
-      '  - Business Approval Status:',
-      userInfo?.businessApprovalStatus || user?.businessApprovalStatus
-    );
-    console.log(
-      '  - Should show seller options:',
-      (userInfo?.role || user?.role) === 'seller'
-    );
-  }, [user, userInfo]);
 
   return (
     <>
@@ -54,10 +41,8 @@ const ProfileMenu = () => {
             route="/client/pages/my-page/history-inquiry"
           />
 
-          {/* Show Business option depending on role and approval status */}
-          {(userInfo?.role || user?.role) === 'seller' ||
-          userInfo?.businessApprovalStatus ||
-          user?.businessApprovalStatus ? (
+          {/* Business Registration / Info */}
+          {role === 'seller' || businessApproved ? (
             <ProfileItem
               label="사업자 정보 보기"
               route={PAGE_URLS.BUSINESS_INFORMATION}
@@ -69,16 +54,13 @@ const ProfileMenu = () => {
             />
           )}
 
-          {/* Show Store Information for sellers with storeId */}
-          {(userInfo?.role || user?.role) === 'seller' &&
-            !!(userInfo?.storeId || user?.storeId) && (
-              <ProfileItem
-                label="사업장 정보"
-                route={`${PAGE_URLS.SELLER_STORE_INFO}?storeId=${
-                  userInfo?.storeId || user?.storeId
-                }`}
-              />
-            )}
+          {/* Store Info (for sellers with a storeId) */}
+          {role === 'seller' && !!storeId && (
+            <ProfileItem
+              label="사업장 정보"
+              route={`${PAGE_URLS.SELLER_STORE_INFO}?storeId=${storeId}`}
+            />
+          )}
 
           <ProfileItem
             label="약관 및 정책"
@@ -110,11 +92,16 @@ const ProfileMenu = () => {
             route={PAGE_URLS.NOTICE_PAGE}
             showChevron={false}
           />
-          <ProfileItem
-            label="내 추천인 코드"
-            route={PAGE_URLS.MY_REFFERAL_CODE}
-            showChevron={false}
-          />
+
+          {/* Show referral code only for sellers */}
+          {role === 'seller' && (
+            <ProfileItem
+              label="내 추천인 코드"
+              route={PAGE_URLS.MY_REFFERAL_CODE}
+              showChevron={false}
+            />
+          )}
+
           <ProfileItem
             label="로그아웃"
             onClick={() => setShowLogoutModal(true)}

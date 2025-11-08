@@ -52,6 +52,15 @@ type LoginApiData = {
   loginType?: string;
 };
 
+export interface EmailValidationResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode?: string | null;
+  data?: unknown;
+  errorId?: string | null;
+}
+
 type LoginApiEnvelope = { success?: boolean; data: LoginApiData };
 type LoginAlt1 = { accessToken: string; refreshToken?: string; user: UserInfo };
 type LoginAlt2 = { token: string; refreshToken?: string; user: UserInfo };
@@ -117,6 +126,54 @@ export class AuthService {
         data: null,
         error: error instanceof Error ? error.message : 'Signup failed',
       };
+    }
+  }
+
+  /**
+   * Check email availability
+   * Endpoint: GET /api/pet-save/auth/emails/validate
+   */
+  static async validateEmailAvailability(
+    email: string
+  ): Promise<ApiResponse<EmailValidationResponse>> {
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+
+      console.log('Validating email availability:', normalizedEmail);
+
+      const response = await apiClient.get<EmailValidationResponse>(
+        `/auth/emails/validate?email=${encodeURIComponent(normalizedEmail)}`
+      );
+
+      if (response.error) {
+        console.error('Email validation failed:', response.error);
+        return response;
+      }
+
+      console.log('Email validation successful:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Email validation service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to validate email availability',
+      };
+    }
+  }
+
+  /**
+   * Returns true if the email is available for use
+   */
+  static async isEmailAvailable(email: string): Promise<boolean> {
+    try {
+      const response = await this.validateEmailAvailability(email);
+      return !response.error && response.data?.success === true;
+    } catch (error) {
+      console.error('Error checking email availability:', error);
+      return false;
     }
   }
 

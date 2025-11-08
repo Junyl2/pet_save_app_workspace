@@ -93,12 +93,26 @@ export const orderService = {
   }> => {
     const query = new URLSearchParams();
     orderItemIds.forEach((id) => query.append('orderItemIds', id));
-
     const body = { cancelReason };
 
     return await apiClient.post<AdminCancelOrderItemsResponse>(
       `/orders/items/admin-cancel?${query.toString()}`,
       body
     );
+  },
+
+  /** ──────────────── NEW: Customer cancels entire order ──────────────── **/
+  cancelOrderByCustomer: async (
+    orderId: string,
+    reason: string
+  ): Promise<{ data: unknown | null; error?: string }> => {
+    try {
+      return await apiClient.post(
+        `/orders/${orderId}/cancel?reason=${encodeURIComponent(reason)}`
+      );
+    } catch (error) {
+      console.error('[orderService.cancelOrderByCustomer] Error:', error);
+      return { data: null, error: (error as Error).message };
+    }
   },
 };

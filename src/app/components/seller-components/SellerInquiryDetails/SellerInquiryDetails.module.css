@@ -1,8 +1,7 @@
 .page {
   background: #fff;
-  min-height: 100vh;
+  min-height: calc(100vh - 72px) !important;
   margin-top: 71.59px;
-  margin-bottom: 72px;
 }
 
 .tabs {

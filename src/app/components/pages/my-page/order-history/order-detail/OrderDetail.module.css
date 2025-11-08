@@ -290,6 +290,7 @@
 }
 
 /* --- Modal Overlay --- */
+
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -367,4 +368,147 @@
 
 .confirmButton:hover {
   background: #5dc9b0;
+}
+/* ────────────── 주문 취소 사유 모달 ────────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.25s ease;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 420px;
+  max-width: 90%;
+  padding: 28px 32px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.25s ease;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 8px;
+  color: #222;
+}
+
+.modalSubtitle {
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.reasonList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.reasonOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: #333;
+  cursor: pointer;
+}
+
+.reasonOption input[type='radio'] {
+  accent-color: #66bfa7;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.customReason {
+  width: 100%;
+  min-height: 80px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.customReason:focus {
+  border-color: #66bfa7;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.cancelButton {
+  background: #eaeaea;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: #d6d6d6;
+}
+
+.confirmButton {
+  background: #66bfa7;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.confirmButton:hover:not(:disabled) {
+  background: #57a993;
+}
+
+.cancelButton:disabled,
+.confirmButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

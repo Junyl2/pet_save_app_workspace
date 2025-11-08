@@ -32,6 +32,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [locationLoaded, setLocationLoaded] = useState<boolean>(false);
+  const [shopKeywords, setShopKeywords] = useState<string[]>([]);
 
   /** Helpers */
   const isShoplist = pathname.startsWith('/shops');
@@ -188,6 +189,13 @@ export default function TopBar({ onSearch }: TopBarProps) {
     loadSearchHistory();
   }, [getStorageKey, isLoggedIn, pathname, normalizeHistory]);
 
+  useEffect(() => {
+    if (isShoplist) {
+      const stored = localStorage.getItem('shopSearchKeywords');
+      setShopKeywords(stored ? JSON.parse(stored) : []);
+    }
+  }, [isShoplist, showHistory]);
+
   /** Load selected location on component mount & refresh */
   useEffect(() => {
     loadSelectedLocation();
@@ -259,6 +267,17 @@ export default function TopBar({ onSearch }: TopBarProps) {
   /** Submit search */
   const submitSearch = useCallback(async () => {
     const term = inputValue.trim();
+
+    if (pathname === '/shops') {
+      const stored = localStorage.getItem('shopSearchKeywords');
+      const keywords = stored ? JSON.parse(stored) : [];
+      const updated = [
+        term,
+        ...keywords.filter((k: string) => k !== term),
+      ].slice(0, 10);
+      localStorage.setItem('shopSearchKeywords', JSON.stringify(updated));
+      setShopKeywords(updated);
+    }
     if (!term) {
       toast.error('검색어를 입력해주세요.');
       return;
@@ -295,6 +314,17 @@ export default function TopBar({ onSearch }: TopBarProps) {
     } else {
       // 🔹 For all other pages, save via backend as usual
       saveHistory(term);
+    }
+
+    // Save search keyword locally for shops
+    if (isShoplist) {
+      const stored = localStorage.getItem('shopSearchKeywords');
+      const keywords = stored ? JSON.parse(stored) : [];
+      const updated = [
+        term,
+        ...keywords.filter((k: string) => k !== term),
+      ].slice(0, 10);
+      localStorage.setItem('shopSearchKeywords', JSON.stringify(updated));
     }
 
     if (onSearch) {
@@ -487,77 +517,165 @@ export default function TopBar({ onSearch }: TopBarProps) {
             </form>
 
             {showHistory && (
-              <div
-                onClick={() => setShowHistory(false)}
-                aria-hidden="true"
-                className={
-                  pathname === '/shops'
-                    ? styles.shopHistoryDropdown
-                    : styles.historyDropdown
-                }
-              >
+              <div aria-hidden="true" className={styles.historyDropdown}>
                 <div className={styles.historyHeader}>
                   <span className={styles.historyTitle}>최근 검색어</span>
                   <button
                     type="button"
                     className={styles.clearAllBtn}
-                    onClick={handleClearAll}
+                    onClick={() => {
+                      if (isShoplist) {
+                        localStorage.removeItem('shopSearchKeywords');
+                        setShopKeywords([]);
+                      } else {
+                        handleClearAll();
+                      }
+                    }}
                   >
                     전체 삭제
                   </button>
                 </div>
 
-                {loadingHistory ? (
+                {(isShoplist ? shopKeywords.length > 0 : history.length > 0) ? (
+                  (isShoplist ? shopKeywords : history).map(
+                    (item: any, idx: number) => {
+                      const keyword = isShoplist ? item : item.keyword;
+                      const searchedAt = !isShoplist ? item.searchedAt : null;
+
+                      return (
+                        <div
+                          key={`history-${idx}`}
+                          className={styles.historyItem}
+                          onClick={() => handleSelectHistory(keyword)}
+                        >
+                          <div className={styles.historyContent}>
+                            <div className={styles.historyLeft}>
+                              <CiClock2 className={styles.historyIcon} />
+                              <span className={styles.historyTerm}>
+                                {keyword}
+                              </span>
+                            </div>
+
+                            <div className={styles.historyRight}>
+                              {!isShoplist && searchedAt && (
+                                <span className={styles.historyTime}>
+                                  {new Date(searchedAt).toLocaleDateString(
+                                    'ko-KR'
+                                  )}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                className={styles.historyDelete}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isShoplist) {
+                                    setShopKeywords((prev) =>
+                                      prev.filter((k) => k !== keyword)
+                                    );
+                                    localStorage.setItem(
+                                      'shopSearchKeywords',
+                                      JSON.stringify(
+                                        shopKeywords.filter(
+                                          (k) => k !== keyword
+                                        )
+                                      )
+                                    );
+                                  } else {
+                                    handleDeleteItem(e, keyword);
+                                  }
+                                }}
+                              >
+                                <IoClose />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                  )
+                ) : (
                   <div className={styles.historyItem}>
                     <div className={styles.historyContent}>
-                      <span>검색 기록을 불러오는 중...</span>
+                      <span>최근 검색 기록이 없습니다.</span>
                     </div>
                   </div>
-                ) : history.length > 0 && pathname !== '/shops' ? (
-                  history.map((item) => (
-                    <div key={item.id} className={styles.historyItem}>
-                      <div
-                        className={styles.historyContent}
-                        onClick={() => handleSelectHistory(item.keyword)}
-                      >
-                        <div className={styles.historyLeft}>
-                          <CiClock2 className={styles.historyIcon} />
-                          <span className={styles.historyTerm}>
-                            {item.keyword}
-                          </span>
-                        </div>
-
-                        <div className={styles.historyRight}>
-                          <span className={styles.historyTime}>
-                            {new Date(item.searchedAt).toLocaleDateString(
-                              'ko-KR'
-                            )}
-                          </span>
-                          <button
-                            type="button"
-                            className={styles.historyDelete}
-                            onClick={(e) => handleDeleteItem(e, item.keyword)}
-                          >
-                            <IoClose />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  pathname !== '/shops' && (
-                    <div className={styles.historyItem}>
-                      <div className={styles.historyContent}>
-                        <span>최근 검색 기록이 없습니다.</span>
-                      </div>
-                    </div>
-                  )
                 )}
               </div>
             )}
 
             {isShoplist && (
-              <button className={styles.currentBtn}>
+              <button
+                className={styles.currentBtn}
+                onClick={async () => {
+                  if (!navigator.geolocation) {
+                    toast.error(
+                      '이 브라우저에서는 위치 서비스를 지원하지 않습니다.'
+                    );
+                    return;
+                  }
+
+                  toast.loading('현재 위치를 불러오는 중...', {
+                    id: 'getLocation',
+                  });
+
+                  try {
+                    const position = await new Promise<GeolocationPosition>(
+                      (resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(
+                          resolve,
+                          reject,
+                          {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 300000, // cache up to 5 min
+                          }
+                        );
+                      }
+                    );
+
+                    const { latitude, longitude } = position.coords;
+
+                    // Store in localStorage (like LocationPage)
+                    localStorage.setItem('selectedLocation', '현재 위치');
+                    localStorage.setItem(
+                      'selectedLocationLat',
+                      latitude.toString()
+                    );
+                    localStorage.setItem(
+                      'selectedLocationLong',
+                      longitude.toString()
+                    );
+
+                    // Notify app that location changed
+                    window.dispatchEvent(new CustomEvent('locationChanged'));
+
+                    toast.success('현재 위치를 업데이트했습니다.', {
+                      id: 'getLocation',
+                    });
+                  } catch (error) {
+                    toast.dismiss('getLocation');
+
+                    if (error instanceof GeolocationPositionError) {
+                      switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                          toast.error('위치 접근이 거부되었습니다.');
+                          break;
+                        case error.POSITION_UNAVAILABLE:
+                          toast.error('위치 정보를 사용할 수 없습니다.');
+                          break;
+                        case error.TIMEOUT:
+                          toast.error('위치 정보 요청이 시간 초과되었습니다.');
+                          break;
+                        default:
+                          toast.error('위치 정보를 가져올 수 없습니다.');
+                      }
+                    } else {
+                      toast.error('현재 위치를 찾을 수 없습니다.');
+                    }
+                  }
+                }}
+              >
                 <Image
                   src="/images/icons/mage_location.png"
                   alt="Location Icon"

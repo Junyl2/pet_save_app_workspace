@@ -81,12 +81,9 @@ export class MemberService {
    */
   static async getMyInfo(): Promise<ApiResponse<MemberApiResponse>> {
     try {
-      const response = await apiClient.get<MemberApiResponse>('/members/me');
-      if (response.error)
-        console.error('Get member info failed:', response.error);
-      return response;
+      return await apiClient.get<MemberApiResponse>('/members/me');
     } catch (error) {
-      console.error('Member service error:', error);
+      console.error('MemberService.getMyInfo error:', error);
       return {
         data: null,
         error:
@@ -104,15 +101,12 @@ export class MemberService {
     updateData: MemberUpdateRequest
   ): Promise<ApiResponse<MemberUpdateResponse>> {
     try {
-      const response = await apiClient.put<MemberUpdateResponse>(
+      return await apiClient.put<MemberUpdateResponse>(
         `/members/${memberId}`,
         updateData
       );
-      if (response.error)
-        console.error('Update member info failed:', response.error);
-      return response;
     } catch (error) {
-      console.error('Member service update error:', error);
+      console.error('MemberService.updateMemberInfo error:', error);
       return {
         data: null,
         error:
@@ -131,33 +125,46 @@ export class MemberService {
     memberId: string
   ): Promise<ApiResponse<MemberApiResponse>> {
     try {
-      const response = await apiClient.get<MemberApiResponse>(
-        `/members/${memberId}`
-      );
-
-      if (response.error) {
-        console.error(' Get member by ID failed:', response.error);
-        return response;
-      }
-
-      if (!response.data?.success) {
-        console.warn(' Member fetch was not successful:', response.data);
-      }
-
-      console.log(
-        ' Member data fetched successfully:',
-        response.data?.data ?? '(empty)'
-      );
-
-      return response;
+      return await apiClient.get<MemberApiResponse>(`/members/${memberId}`);
     } catch (error) {
-      console.error(' MemberService.getMemberById error:', error);
+      console.error('MemberService.getMemberById error:', error);
       return {
         data: null,
         error:
           error instanceof Error
             ? error.message
             : 'Failed to fetch member information',
+      };
+    }
+  }
+
+  /**
+   * Get detailed member information (OWNER / ADMIN)
+   * Endpoint: GET /api/pet-save/members/{memberId}/details
+   */
+  static async getMemberDetails(
+    memberId: string
+  ): Promise<ApiResponse<MemberApiResponse>> {
+    try {
+      const response = await apiClient.get<MemberApiResponse>(
+        `/members/${memberId}/details`
+      );
+
+      if (response.error) {
+        console.error('Get member details failed:', response.error);
+      } else if (!response.data?.success) {
+        console.warn('Member details fetch not successful:', response.data);
+      }
+
+      return response;
+    } catch (error) {
+      console.error('MemberService.getMemberDetails error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch member details',
       };
     }
   }
@@ -170,7 +177,6 @@ export class MemberService {
     params: MemberListQuery
   ): Promise<ApiResponse<MemberListApiResponse>> {
     try {
-      // Build query string manually (safe for your existing apiClient)
       const query = new URLSearchParams();
       if (params.keyword) query.append('keyword', params.keyword);
       if (params.dateStart) query.append('dateStart', params.dateStart);
@@ -184,23 +190,9 @@ export class MemberService {
       if (params.direction) query.append('direction', params.direction);
 
       const url = `/members${query.toString() ? `?${query.toString()}` : ''}`;
-
-      const response = await apiClient.get<MemberListApiResponse>(url);
-
-      if (response.error) {
-        console.error('Get members list failed:', response.error);
-        return response;
-      }
-
-      console.log(
-        `Fetched ${response.data?.data?.content?.length ?? 0} members (page ${
-          response.data?.data?.pageInfo?.currentPage ?? 0
-        })`
-      );
-
-      return response;
+      return await apiClient.get<MemberListApiResponse>(url);
     } catch (error) {
-      console.error('Member service list error:', error);
+      console.error('MemberService.getMembersList error:', error);
       return {
         data: null,
         error:

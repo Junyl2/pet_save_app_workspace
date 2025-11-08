@@ -5,13 +5,14 @@
   padding-top: 80px;
   max-width: 1200px;
   margin: 0 -1rem;
+  min-height: 100vh;
 }
 
 .inner {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 0 1rem; /* reapply padding *inside* if you still want breathing space */
+  padding: 0 1rem;
 }
 .emptyContainer {
   display: flex;
@@ -32,4 +33,13 @@
 .emptyText {
   font-size: 15px;
   color: #777;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  background-color: #fff;
+  margin: 1rem 0rem;
+  padding: 1rem 0rem;
 }

@@ -6,7 +6,10 @@ import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagi
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { orderService } from '@/app/api/services/client/memberService/order/orderService';
 import { orderStatusService } from '@/app/api/services/admin/orderStatusService/orderStatusService';
-import { SearchOrdersData } from '@/app/api/types/member/order/order';
+import {
+  AdminSearchOrdersResponse,
+  AdminSearchOrdersData,
+} from '@/app/api/types/member/order/order';
 
 interface OrderRow {
   orderItemId: string;
@@ -22,68 +25,50 @@ interface OrderRow {
 
 const PAGE_SIZE = 10;
 
-export default function DeliveryPickupPage() {
+export default function DeliveryPickupPage(): React.ReactElement {
   const { page, setPage } = usePageParam(1);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  /** Fetch both READY_FOR_PICKUP and DELIVERY_STARTED from /v2/orders */
   const fetchOrders = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const [pickupRes, deliveryRes] = await Promise.all([
-        orderService.searchOrders({
-          generalStatus: 'READY_FOR_PICKUP',
-          page: page - 1,
-          size: PAGE_SIZE,
-          sortBy: 'createdAt',
-          direction: 'desc',
-        }),
-        orderService.searchOrders({
-          generalStatus: 'DELIVERY_STARTED',
-          page: page - 1,
-          size: PAGE_SIZE,
-          sortBy: 'createdAt',
-          direction: 'desc',
-        }),
-      ]);
+      const { data, error } = await orderService.searchOrdersV2({
+        status: ['READY_FOR_PICKUP', 'DELIVERY_STARTED'],
+        page: page - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      });
 
-      const pickupData = pickupRes.data?.data as SearchOrdersData | undefined;
-      const deliveryData = deliveryRes.data?.data as
-        | SearchOrdersData
-        | undefined;
+      if (error || !data?.success) {
+        console.error('[DeliveryPickupPage] Fetch failed:', error);
+        setOrders([]);
+        return;
+      }
 
-      const allOrders = [
-        ...(pickupData?.content ?? []),
-        ...(deliveryData?.content ?? []),
-      ];
+      const result = data as AdminSearchOrdersResponse;
+      const content: AdminSearchOrdersData[] = result.data?.content ?? [];
 
-      const mapped: OrderRow[] =
-        allOrders.flatMap((o) =>
-          o.storeOrders?.flatMap((store: any) =>
-            (store.items ?? []).map((item: any) => ({
-              orderItemId: item.orderItemId,
-              orderNumber: o.orderNumber,
-              createdAt: o.createdAt,
-              customerName: o.customerName ?? '-',
-              customerContact: o.customerContact ?? '-',
-              productName: item.productName ?? '-',
-              option: store.shippingOption === 'DELIVERY' ? '배송' : '픽업',
-              trackingNumber: item.trackingNumber ?? '-', // cleaned: fallback only
-              status: o.generalStatus,
-            }))
-          )
-        ) ?? [];
+      // Map each order item into a row
+      const mapped: OrderRow[] = content.map((item) => ({
+        orderItemId: item.orderItemId,
+        orderNumber: item.orderNumber,
+        createdAt: item.createdAt,
+        customerName: item.customer.name ?? '-',
+        customerContact: item.customer.phone ?? '-',
+        productName: item.productName ?? '-',
+        option: item.shippingOption === 'DELIVERY' ? '배송' : '픽업',
+        trackingNumber: item.delivery?.trackingNumber ?? '-',
+        status: item.status ?? '-',
+      }));
 
       setOrders(mapped);
-      const maxPage =
-        Math.max(
-          pickupData?.pageInfo?.totalPages ?? 1,
-          deliveryData?.pageInfo?.totalPages ?? 1
-        ) || 1;
-      setTotalPages(maxPage);
+      setTotalPages(result.data?.pageInfo?.totalPages ?? 1);
     } catch (err) {
-      console.error('Error fetching delivery/pickup orders:', err);
+      console.error('[DeliveryPickupPage] Fetch error:', err);
       setOrders([]);
     } finally {
       setLoading(false);
@@ -94,6 +79,7 @@ export default function DeliveryPickupPage() {
     void fetchOrders();
   }, [fetchOrders]);
 
+  /** Mark order item as completed */
   const handleComplete = async (orderItemId: string): Promise<void> => {
     if (!confirm('이 상품의 수령(배송 완료)을 처리하시겠습니까?')) return;
 
@@ -104,14 +90,14 @@ export default function DeliveryPickupPage() {
 
       if (error || !data?.success) {
         alert('처리 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
-        console.error('Complete failed:', error);
+        console.error('[DeliveryPickupPage] Complete failed:', error);
         return;
       }
 
       alert('상품이 성공적으로 수령 완료 처리되었습니다.');
-      await fetchOrders(); // refresh dynamically
+      await fetchOrders();
     } catch (err) {
-      console.error('Completion error:', err);
+      console.error('[DeliveryPickupPage] Completion error:', err);
       alert('수령 완료 처리 중 오류가 발생했습니다.');
     }
   };

@@ -46,6 +46,9 @@ export default function PointsPage() {
     ReviewableProduct[]
   >([]);
 
+  //  control how many products to show initially
+  const [showAllReviewables, setShowAllReviewables] = useState(false);
+
   useEffect(() => {
     const loadPointsData = async () => {
       try {
@@ -93,7 +96,7 @@ export default function PointsPage() {
           setPointHistory(transformedHistory);
         }
 
-        // ✅ Fetch real reviewable products
+        //  Fetch reviewable products
         const reviewableResult = await orderDetailsService.getMyOrderHistory({
           onlyReviewable: true,
         });
@@ -126,6 +129,11 @@ export default function PointsPage() {
       </>
     );
   }
+
+  // Show only first 5 products unless "show all" is true
+  const visibleProducts = showAllReviewables
+    ? reviewableProducts
+    : reviewableProducts.slice(0, 5);
 
   return (
     <>
@@ -215,14 +223,18 @@ export default function PointsPage() {
           <span className={styles.rewardsCount}>
             {reviewableProducts.length}개
           </span>
-          <button className={styles.viewAllButton}>
+          {/*  View All navigates to reviews page */}
+          <button
+            className={styles.viewAllButton}
+            onClick={() => router.push('/client/pages/my-page/reviews')}
+          >
             전체보기 <FaChevronRight className={styles.smallChevron} />
           </button>
         </div>
 
         <div className={styles.rewardsSection}>
           <div className={styles.productList}>
-            {reviewableProducts.map((product) => (
+            {visibleProducts.map((product) => (
               <div key={product.orderItemId} className={styles.productItem}>
                 <Image
                   src={product.image}

@@ -1,10 +1,14 @@
 'use client';
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { FaStar } from 'react-icons/fa';
 import ReviewSkeleton from '@/app/components/ui/SkeletonLoading/ReviewSkeleton/ReviewSkeleton';
+import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
+import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import {
   fetchReviews,
@@ -19,7 +23,8 @@ import { orderDetailsService } from '@/app/api/services/client/memberService/ord
 import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
 import styles from './Reviews.module.css';
 
-// Helper: convert rating to Korean comment
+const PAGE_SIZE = 10;
+
 const getRatingComment = (rating: number): string => {
   switch (rating) {
     case 5:
@@ -44,39 +49,38 @@ export default function ReviewsPage() {
   const [reviewableProducts, setReviewableProducts] = useState<
     OrderItemResponse[]
   >([]);
-  const [loadingReviewable, setLoadingReviewable] = useState<boolean>(true);
+  const [loadingReviewable, setLoadingReviewable] = useState(true);
   const [errorReviewable, setErrorReviewable] = useState<string | null>(null);
 
-  // Redux review cache
+  const { page, setPage } = usePageParam(1);
   const { cache, loading, error } = useAppSelector((state) => state.reviews);
-
   const hasLoadedOnce = useAppSelector(
     (state) => state.loading.hasLoadedOnce[`reviews-page-${activeTab}`] || false
   );
 
-  const getCurrentCacheKey = (): string =>
-    activeTab === 'my-reviews'
-      ? `my_reviews_0_50_createdAt_desc`
-      : `all_all_all_0_50_createdAt_desc`;
-
-  const currentCacheKeyString = getCurrentCacheKey();
-  const cachedData = cache[currentCacheKeyString];
-  const writtenReviews = useMemo(
-    () => cachedData?.reviews || [],
-    [cachedData?.reviews]
+  /** Compute cache key dynamically based on page */
+  const cacheKey: ReviewCacheKey = useMemo(
+    () => ({
+      page: page - 1,
+      size: PAGE_SIZE,
+      sortBy: 'createdAt',
+      direction: 'desc',
+    }),
+    [page]
   );
 
-  const formatPrice = (price: number) => `${price.toLocaleString('ko-KR')}원`;
+  const cacheKeyString =
+    activeTab === 'my-reviews'
+      ? `my_reviews_${cacheKey.page}_${cacheKey.size}_${cacheKey.sortBy}_${cacheKey.direction}`
+      : `all_all_all_${cacheKey.page}_${cacheKey.size}_${cacheKey.sortBy}_${cacheKey.direction}`;
 
-  const handleWriteReview = (productId: string) => {
-    router.push(`/client/pages/my-page/reviews/write?productId=${productId}`);
-  };
+  const cachedData = cache[cacheKeyString];
+  const writtenReviews = useMemo(() => cachedData?.reviews || [], [cachedData]);
+  const totalPages =
+    cachedData?.pageInfo?.totalPages ??
+    Math.ceil((cachedData?.reviews?.length ?? 0) / PAGE_SIZE);
 
-  const handleViewReview = (reviewId: string) => {
-    router.push(`/client/pages/my-page/reviews/view?reviewId=${reviewId}`);
-  };
-
-  /** ✅ Fetch reviewable products using onlyReviewable=true */
+  /** Fetch reviewable products */
   useEffect(() => {
     const fetchReviewable = async () => {
       try {
@@ -88,75 +92,62 @@ export default function ReviewsPage() {
           sortBy: 'createdAt',
           direction: 'desc',
         });
-
-        if (error) {
-          setErrorReviewable(error);
-          setReviewableProducts([]);
-        } else if (data?.data?.content) {
-          setReviewableProducts(data.data.content);
-        } else {
-          setReviewableProducts([]);
-        }
-      } catch (err) {
+        if (error) setErrorReviewable(error);
+        else setReviewableProducts(data?.data?.content || []);
+      } catch {
         setErrorReviewable('리뷰 가능한 상품을 불러오지 못했습니다.');
-        setReviewableProducts([]);
       } finally {
         setLoadingReviewable(false);
       }
     };
-
     fetchReviewable();
   }, []);
 
-  /** ✅ Redux fetch for reviews */
+  /** Fetch reviews per page */
   useEffect(() => {
     if (activeTab === 'my-reviews') {
-      dispatch(
-        fetchMyReviews({
-          page: 0,
-          size: 50,
-          sortBy: 'createdAt',
-          direction: 'desc',
-        })
-      );
-    } else {
-      const cacheKeyParams: ReviewCacheKey = {
-        page: 0,
-        size: 50,
+      const params: MyReviewsParams = {
+        page: page - 1,
+        size: PAGE_SIZE,
         sortBy: 'createdAt',
         direction: 'desc',
       };
-      dispatch(fetchReviews(cacheKeyParams));
+      dispatch(fetchMyReviews(params));
+    } else {
+      dispatch(fetchReviews(cacheKey));
     }
-
     dispatch(setHasLoadedOnce(`reviews-page-${activeTab}`));
-  }, [dispatch, activeTab]);
+  }, [dispatch, activeTab, page]);
 
-  /** Background revalidation for my reviews */
+  /** Background revalidation */
   useEffect(() => {
-    if (activeTab === 'my-reviews' && writtenReviews.length > 0) {
-      const cacheKey = `my_reviews_0_50_createdAt_desc`;
-      const cached = cache[cacheKey];
-      if (cached) {
-        const now = Date.now();
-        const isStale = now - cached.timestamp >= 10_000;
-        if (isStale) {
-          const params: MyReviewsParams = {
-            page: 0,
-            size: 50,
-            sortBy: 'createdAt',
-            direction: 'desc',
-          };
-          dispatch(revalidateMyReviewsInBackground(params));
-        }
+    if (activeTab === 'my-reviews' && cachedData) {
+      const now = Date.now();
+      const isStale = now - cachedData.timestamp >= 10_000;
+      if (isStale) {
+        const params: MyReviewsParams = {
+          page: page - 1,
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        };
+        dispatch(revalidateMyReviewsInBackground(params));
       }
     }
-  }, [dispatch, activeTab, writtenReviews.length, cache]);
+  }, [dispatch, activeTab, cachedData, page]);
 
-  /** Check stale status */
+  /** Check stale */
   useEffect(() => {
     if (activeTab === 'my-reviews') dispatch(checkStaleStatus());
-  }, [dispatch, activeTab, writtenReviews]);
+  }, [dispatch, activeTab, cachedData]);
+
+  const handleWriteReview = (productId: string) => {
+    router.push(`/client/pages/my-page/reviews/write?productId=${productId}`);
+  };
+
+  const handleViewReview = (reviewId: string) => {
+    router.push(`/client/pages/my-page/reviews/view?reviewId=${reviewId}`);
+  };
 
   const renderStars = (rating: number) =>
     Array.from({ length: 5 }, (_, i) => (
@@ -168,9 +159,14 @@ export default function ReviewsPage() {
       />
     ));
 
-  const shouldShowLoading =
-    loading && !hasLoadedOnce && activeTab === 'my-reviews';
-  if (shouldShowLoading) {
+  // Determine when to show the skeleton loader
+  const shouldShowSkeleton =
+    (activeTab === 'my-reviews' && (loading || !hasLoadedOnce)) ||
+    (activeTab === 'write' &&
+      loadingReviewable &&
+      reviewableProducts.length === 0);
+
+  if (shouldShowSkeleton) {
     return (
       <div className={styles.container}>
         <ProductHeader />
@@ -182,9 +178,8 @@ export default function ReviewsPage() {
   return (
     <div className={styles.container}>
       <ProductHeader />
-
       <div className={styles.content}>
-        {/* Tab Navigation */}
+        {/* Tabs */}
         <div className={styles.tabContainer}>
           <button
             className={`${styles.tab} ${
@@ -206,7 +201,7 @@ export default function ReviewsPage() {
 
         {/* Write Tab */}
         {activeTab === 'write' ? (
-          <div key="write-tab" className={styles.writeReviewSection}>
+          <div className={styles.writeReviewSection}>
             <div className={styles.sectionTitle}>
               쓸 수 있는 리뷰 {reviewableProducts.length}개
             </div>
@@ -214,9 +209,7 @@ export default function ReviewsPage() {
             {loadingReviewable ? (
               <div className={styles.emptyState}>로딩 중...</div>
             ) : errorReviewable ? (
-              <div className={styles.emptyState}>
-                오류가 발생했습니다: {errorReviewable}
-              </div>
+              <div className={styles.emptyState}>오류: {errorReviewable}</div>
             ) : reviewableProducts.length === 0 ? (
               <div className={styles.emptyState}>
                 아직 리뷰 가능한 상품이 없습니다.
@@ -231,19 +224,17 @@ export default function ReviewsPage() {
                         alt={product.productName}
                       />
                     </div>
-
                     <div className={styles.productInfo}>
                       <div className={styles.productName}>
                         {product.productName}
                       </div>
                       <div className={styles.productPrice}>
-                        {formatPrice(product.price)}
+                        {product.price.toLocaleString('ko-KR')}원
                       </div>
                       <div className={styles.productStore}>
                         {product.storeName}
                       </div>
                     </div>
-
                     <button
                       className={styles.reviewButton}
                       onClick={() => handleWriteReview(product.productId)}
@@ -257,73 +248,91 @@ export default function ReviewsPage() {
           </div>
         ) : (
           /** My Reviews Tab */
-          <div key="my-reviews-tab" className={styles.myReviewsSection}>
+          <div className={styles.myReviewsSection}>
             {error ? (
               <div className={styles.emptyState}>에러: {error}</div>
             ) : writtenReviews.length > 0 ? (
-              <div className={styles.detailedReviewContainer}>
-                {writtenReviews.map((review) => (
-                  <div key={review.reviewId} className={styles.detailedReview}>
-                    <div className={styles.reviewHeader}>
-                      <div className={styles.userInfo}>
-                        <div className={styles.profileImage}>
-                          <img
-                            src={
-                              review.reviewer.profileImageUrl ||
-                              '/images/icons/profile-default.png'
-                            }
-                            alt="Profile"
-                          />
-                        </div>
-                        <div className={styles.userDetails}>
-                          <div className={styles.usernameAndRating}>
-                            <span className={styles.username}>
-                              {getRatingComment(review.rating)}
-                            </span>
-                            <div className={styles.starsContainer}>
-                              {renderStars(review.rating)}
+              <>
+                <div className={styles.detailedReviewContainer}>
+                  {writtenReviews.map((review) => (
+                    <div
+                      key={review.reviewId}
+                      className={styles.detailedReview}
+                    >
+                      <div className={styles.reviewHeader}>
+                        <div className={styles.userInfo}>
+                          <div className={styles.profileImage}>
+                            <img
+                              src={
+                                review.reviewer.profileImageUrl ||
+                                '/images/icons/profile-default.png'
+                              }
+                              alt="Profile"
+                            />
+                          </div>
+                          <div className={styles.userDetails}>
+                            <div className={styles.usernameAndRating}>
+                              <span className={styles.username}>
+                                {getRatingComment(review.rating)}
+                              </span>
+                              <div className={styles.starsContainer}>
+                                {renderStars(review.rating)}
+                              </div>
+                            </div>
+                            <div className={styles.userIdAndDate}>
+                              {review.reviewer.name} |{' '}
+                              {new Date(review.createdAt).toLocaleDateString(
+                                'ko-KR'
+                              )}
                             </div>
                           </div>
-                          <div className={styles.userIdAndDate}>
-                            {review.reviewer.name} |{' '}
-                            {new Date(review.createdAt).toLocaleDateString(
-                              'ko-KR'
-                            )}
-                          </div>
                         </div>
+
+                        <button
+                          className={styles.editButton}
+                          onClick={() => handleViewReview(review.reviewId)}
+                        >
+                          리뷰보기
+                        </button>
                       </div>
 
-                      <button
-                        className={styles.editButton}
-                        onClick={() => handleViewReview(review.reviewId)}
-                      >
-                        리뷰보기
-                      </button>
-                    </div>
-
-                    <div className={styles.reviewProductName}>
-                      {review.productName}
-                    </div>
-
-                    {review.imageUrls?.length > 0 && (
-                      <div className={styles.reviewImagesContainer}>
-                        {review.imageUrls.map((image, idx) => (
-                          <div
-                            key={`${review.reviewId}-image-${idx}`}
-                            className={styles.reviewImageItem}
-                          >
-                            <img src={image} alt="Review image" />
-                          </div>
-                        ))}
+                      <div className={styles.reviewProductName}>
+                        {review.productName}
                       </div>
-                    )}
 
-                    <div className={styles.reviewTextContent}>
-                      {review.content}
+                      {review.imageUrls?.length > 0 && (
+                        <div className={styles.reviewImagesContainer}>
+                          {review.imageUrls.map((image, idx) => (
+                            <div
+                              key={`${review.reviewId}-img-${idx}`}
+                              className={styles.reviewImageItem}
+                            >
+                              <img src={image} alt="Review" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className={styles.reviewTextContent}>
+                        {review.content}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className={styles.pagination}>
+                    <div style={{ width: 320 }}>
+                      <ClientPagination
+                        currentPage={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                      />
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             ) : (
               <div className={styles.emptyState}>
                 아직 작성한 리뷰가 없습니다.

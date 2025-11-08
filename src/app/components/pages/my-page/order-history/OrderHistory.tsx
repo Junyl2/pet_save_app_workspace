@@ -1,18 +1,23 @@
 'use client';
 import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
+import styles from './OrderHistory.module.css';
+import FilterBar from '../../../sections/FilterBar/FilterBar';
+import OrderHistoryItem from './order-history-item/OrderHistoryItem';
+import OrderHistorySkeleton from '../../../ui/SkeletonLoading/OrderHistorySkeleton';
+import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
+import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import {
   fetchOrderHistory,
   revalidateOrderHistoryInBackground,
   checkStaleStatus,
+  createOrderHistoryCacheKey,
 } from '@/app/redux/slices/cache/orderSlice';
-import FilterBar from '../../../sections/FilterBar/FilterBar';
-import OrderHistoryItem from './order-history-item/OrderHistoryItem';
-import OrderHistorySkeleton from '../../../ui/SkeletonLoading/OrderHistorySkeleton';
-import styles from './OrderHistory.module.css';
 import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
 import { OrderItem } from '@/app/components/types/order';
+
+const PAGE_SIZE = 10;
 
 export default function OrderHistory() {
   const dispatch = useAppDispatch();
@@ -20,34 +25,67 @@ export default function OrderHistory() {
     (state) => state.orders
   );
 
-  const cachedData = orderHistoryCache['default'];
+  const { page, setPage } = usePageParam(1);
+  const [selectedPeriod, setSelectedPeriod] = useState('3개월');
+  const [selectedStatus, setSelectedStatus] = useState('전체보기');
 
+  /** Create cache key based on current page */
+  const cacheKey = useMemo(
+    () =>
+      createOrderHistoryCacheKey({
+        page: page - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      }),
+    [page]
+  );
+
+  /** Current cached data for this page */
+  const cachedData = orderHistoryCache[cacheKey];
   const orders = useMemo<OrderItemResponse[]>(
     () => cachedData?.data?.data?.content || [],
     [cachedData]
   );
 
-  const [selectedPeriod, setSelectedPeriod] = useState('3개월');
-  const [selectedStatus, setSelectedStatus] = useState('전체보기');
-
+  /** Fetch on mount + when page changes */
   useEffect(() => {
-    dispatch(fetchOrderHistory());
-  }, [dispatch]);
+    dispatch(
+      fetchOrderHistory({
+        page: page - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      })
+    );
+  }, [dispatch, page]);
 
+  /** Background revalidation */
   useEffect(() => {
     if (cachedData) {
       const now = Date.now();
       const cacheAge = now - cachedData.timestamp;
-      if (cacheAge >= 10_000) dispatch(revalidateOrderHistoryInBackground());
+      if (cacheAge >= 10_000)
+        dispatch(
+          revalidateOrderHistoryInBackground({
+            page: page - 1,
+            size: PAGE_SIZE,
+            sortBy: 'createdAt',
+            direction: 'desc',
+          })
+        );
     }
-  }, [cachedData, dispatch]);
+  }, [cachedData, dispatch, page]);
 
+  /** Check stale status on cache change */
   useEffect(() => {
     dispatch(checkStaleStatus());
   }, [dispatch, cachedData]);
 
-  /** Convert API response item to OrderItem used by UI */
-  const convertToOrderItem = (orderItem: OrderItemResponse): OrderItem => ({
+  /** Map to UI type */
+  const convertToOrderItem = (
+    orderItem: OrderItemResponse
+  ): OrderItem & { orderId: string } => ({
     product: {
       id: parseInt(orderItem.productId.split('-')[0], 16),
       name: orderItem.productName,
@@ -62,9 +100,10 @@ export default function OrderHistory() {
         orderItem.shippingOption === 'DELIVERY' ? 'delivery' : 'pickup',
     },
     quantity: orderItem.quantity,
+    orderId: orderItem.orderId,
   });
 
-  /** Map backend status → human readable Korean text */
+  /** Backend → readable Korean status */
   const getStatusDisplayText = (status: string): string => {
     const map: Record<string, string> = {
       PENDING_PAYMENT: '결제 대기',
@@ -80,26 +119,17 @@ export default function OrderHistory() {
     return map[status] || status;
   };
 
-  /** Extract date (yyyy.mm.dd) from orderNumber (ORD-YYMMDD-xxxx) */
+  /** Extract date (yyyy.mm.dd) from orderNumber */
   const formatDate = (orderNumber: string): string => {
     const match = orderNumber.match(/ORD-(\d{6})-/);
     if (match) {
-      const dateStr = match[1];
-      const year = '20' + dateStr.substring(0, 2);
-      const month = dateStr.substring(2, 4);
-      const day = dateStr.substring(4, 6);
-      return `${year}.${month}.${day}`;
+      const d = match[1];
+      return `20${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4, 6)}`;
     }
-    return new Date()
-      .toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      })
-      .replace(/\s/g, '');
+    return new Date().toLocaleDateString('ko-KR').replace(/\s/g, '');
   };
 
-  /** Filter orders by selected status and date range */
+  /** Filters */
   const filteredOrders = useMemo(() => {
     let result = orders;
 
@@ -128,10 +158,7 @@ export default function OrderHistory() {
         if (!match) return true;
         const date = match[1];
         const orderDate = new Date(
-          `20${date.substring(0, 2)}-${date.substring(2, 4)}-${date.substring(
-            4,
-            6
-          )}`
+          `20${date.slice(0, 2)}-${date.slice(2, 4)}-${date.slice(4, 6)}`
         );
         return orderDate >= cutoff;
       });
@@ -140,7 +167,12 @@ export default function OrderHistory() {
     return result;
   }, [orders, selectedStatus, selectedPeriod]);
 
-  /** Skeleton or Error State */
+  /** Pagination info */
+  const totalPages =
+    cachedData?.data?.data?.pageInfo?.totalPages ??
+    Math.ceil(filteredOrders.length / PAGE_SIZE);
+
+  /** Loading state */
   if (loading && !cachedData) {
     return (
       <div className={styles.container}>
@@ -159,6 +191,7 @@ export default function OrderHistory() {
     );
   }
 
+  /** Error state */
   if (error) {
     return (
       <div className={styles.container}>
@@ -185,6 +218,7 @@ export default function OrderHistory() {
           selectedStatus={selectedStatus}
           onStatusChange={setSelectedStatus}
         />
+
         <div className={styles.list}>
           {filteredOrders.length === 0 ? (
             <div className={styles.emptyContainer}>
@@ -201,7 +235,7 @@ export default function OrderHistory() {
             filteredOrders.map((orderItem) => (
               <OrderHistoryItem
                 key={orderItem.orderItemId}
-                orderId={orderItem.orderId}
+                orderItemId={orderItem.orderItemId}
                 orderNumber={orderItem.orderNumber}
                 status={getStatusDisplayText(orderItem.status)}
                 date={formatDate(orderItem.orderNumber)}
@@ -210,6 +244,19 @@ export default function OrderHistory() {
             ))
           )}
         </div>
+
+        {/* Pagination Section */}
+        {totalPages > 1 && (
+          <div className={styles.pagination}>
+            <div style={{ width: 320 }}>
+              <ClientPagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

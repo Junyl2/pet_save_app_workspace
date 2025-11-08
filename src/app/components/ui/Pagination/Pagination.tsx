@@ -33,26 +33,49 @@ export const Pagination = ({
     '/client/seller/pages/seller-product-list'
   );
 
-  // Don't render pagination if there's only one page or no pages
-  if (totalPages <= 1) {
-    return null;
-  }
+  // Skip rendering if only one page
+  if (totalPages <= 1) return null;
 
-  const handlePageChange = (page: number) => {
-    console.log('Pagination: handlePageChange called with page:', page);
-    onPageChange(page);
+  const handlePageChange = (page: number): void => {
+    if (page >= 0 && page < totalPages) onPageChange(page);
   };
 
+  const maxVisible = 5;
   const pages: React.ReactNode[] = [];
-  const maxVisiblePages = 5;
 
-  let startPage = Math.max(0, currentPage - Math.floor(maxVisiblePages / 2));
-  const endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
+  let startPage = Math.max(
+    0,
+    Math.min(currentPage - Math.floor(maxVisible / 2), totalPages - maxVisible)
+  );
+  let endPage = Math.min(totalPages - 1, startPage + maxVisible - 1);
 
-  if (endPage - startPage < maxVisiblePages - 1) {
-    startPage = Math.max(0, endPage - maxVisiblePages + 1);
+  // Adjust range for small totals
+  if (totalPages <= maxVisible) {
+    startPage = 0;
+    endPage = totalPages - 1;
   }
 
+  // Add leading pages (1 ... )
+  if (startPage > 0) {
+    pages.push(
+      <button
+        key={0}
+        className={styles.pageButton}
+        onClick={() => handlePageChange(0)}
+      >
+        1
+      </button>
+    );
+    if (startPage > 1) {
+      pages.push(
+        <span key="dots-start" className={styles.ellipsis}>
+          ...
+        </span>
+      );
+    }
+  }
+
+  // Add visible pages
   for (let i = startPage; i <= endPage; i++) {
     pages.push(
       <button
@@ -68,12 +91,33 @@ export const Pagination = ({
     );
   }
 
+  // Add trailing pages (... last)
+  if (endPage < totalPages - 1) {
+    if (endPage < totalPages - 2) {
+      pages.push(
+        <span key="dots-end" className={styles.ellipsis}>
+          ...
+        </span>
+      );
+    }
+    pages.push(
+      <button
+        key={totalPages - 1}
+        className={styles.pageButton}
+        onClick={() => handlePageChange(totalPages - 1)}
+      >
+        {totalPages}
+      </button>
+    );
+  }
+
   return (
     <div
       className={`${styles.pagination} ${
         isProductListPage ? styles.productListPage : ''
       } ${className || ''}`}
     >
+      {/* Prev */}
       <button
         className={`${styles.pageButton} ${styles.navButton}`}
         onClick={() => handlePageChange(currentPage - 1)}
@@ -82,34 +126,9 @@ export const Pagination = ({
         이전
       </button>
 
-      {startPage > 0 && (
-        <>
-          <button
-            className={styles.pageButton}
-            onClick={() => handlePageChange(0)}
-          >
-            1
-          </button>
-          {startPage > 1 && <span className={styles.ellipsis}>...</span>}
-        </>
-      )}
-
       {pages}
 
-      {endPage < totalPages - 1 && (
-        <>
-          {endPage < totalPages - 2 && (
-            <span className={styles.ellipsis}>...</span>
-          )}
-          <button
-            className={styles.pageButton}
-            onClick={() => handlePageChange(totalPages - 1)}
-          >
-            {totalPages}
-          </button>
-        </>
-      )}
-
+      {/* Next */}
       <button
         className={`${styles.pageButton} ${styles.navButton}`}
         onClick={() => handlePageChange(currentPage + 1)}

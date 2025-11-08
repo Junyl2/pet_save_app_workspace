@@ -41,6 +41,7 @@ export interface CheckoutRequest {
   cartItemIds: string[];
   shippingOption: ShippingOption;
   deliveryAddress?: string;
+  deliveryNote?: string;
   usePointsAmount?: number;
   paymentDetails: PaymentDetails;
 }

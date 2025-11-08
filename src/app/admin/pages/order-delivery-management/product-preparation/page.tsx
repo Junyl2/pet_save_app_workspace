@@ -6,7 +6,10 @@ import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagi
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { orderService } from '@/app/api/services/client/memberService/order/orderService';
 import { orderStatusService } from '@/app/api/services/admin/orderStatusService/orderStatusService';
-import { SearchOrdersData } from '@/app/api/types/member/order/order';
+import {
+  AdminSearchOrdersResponse,
+  AdminSearchOrdersData,
+} from '@/app/api/types/member/order/order';
 import { useRouter } from 'next/navigation';
 
 interface OrderRow {
@@ -21,18 +24,19 @@ interface OrderRow {
 
 const PAGE_SIZE = 10;
 
-export default function ProductPreperationPage() {
+export default function ProductPreperationPage(): React.ReactElement {
   const router = useRouter();
   const { page, setPage } = usePageParam(1);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  /** Fetch PREPARING items using /v2/orders */
   const fetchOrders = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const { data, error } = await orderService.searchOrders({
-        generalStatus: 'PREPARING',
+      const { data, error } = await orderService.searchOrdersV2({
+        status: ['PREPARING'],
         page: page - 1,
         size: PAGE_SIZE,
         sortBy: 'createdAt',
@@ -40,36 +44,30 @@ export default function ProductPreperationPage() {
       });
 
       if (error || !data?.success) {
-        console.error('Fetch failed:', error);
+        console.error('[ProductPreperationPage] Fetch failed:', error);
         setOrders([]);
         return;
       }
 
-      const result = data.data as SearchOrdersData;
+      const result = data as AdminSearchOrdersResponse;
+      const content: AdminSearchOrdersData[] = result.data?.content ?? [];
 
-      const mapped: OrderRow[] =
-        result.content?.flatMap(
-          (o) =>
-            o.storeOrders?.flatMap((store) =>
-              (store.items ?? [])
-                .filter((item) => !!item.orderItemId)
-                .map((item) => ({
-                  orderItemId: item.orderItemId!,
-                  orderNumber: o.orderNumber,
-                  createdAt: o.createdAt,
-                  customerName: o.customerName ?? '-',
-                  customerContact: o.customerContact ?? '-',
-                  productName: item.productName ?? '-',
-                  receiveMethod:
-                    store.shippingOption === 'DELIVERY' ? '배송' : '픽업',
-                }))
-            ) ?? []
-        ) ?? [];
+      // Each item = one row
+      const mapped: OrderRow[] = content.map((item) => ({
+        orderItemId: item.orderItemId,
+        orderNumber: item.orderNumber,
+        createdAt: item.createdAt,
+        customerName: item.customer.name ?? '-',
+        customerContact: item.customer.phone ?? '-',
+        productName: item.productName ?? '-',
+        receiveMethod: item.shippingOption === 'DELIVERY' ? '배송' : '픽업',
+      }));
 
       setOrders(mapped);
-      setTotalPages(result.pageInfo?.totalPages ?? 1);
+      setTotalPages(result.data?.pageInfo?.totalPages ?? 1);
     } catch (err) {
-      console.error('Fetch error:', err);
+      console.error('[ProductPreperationPage] Fetch error:', err);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -79,6 +77,7 @@ export default function ProductPreperationPage() {
     void fetchOrders();
   }, [fetchOrders]);
 
+  /** Cancel an order item */
   const handleCancel = async (orderItemId: string): Promise<void> => {
     const reason = prompt('취소 사유를 입력하세요:');
     if (!reason) return;
@@ -92,18 +91,19 @@ export default function ProductPreperationPage() {
 
       if (error || !data?.success) {
         alert('상품 취소 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
-        console.error('Cancel failed:', error);
+        console.error('[ProductPreperationPage] Cancel failed:', error);
         return;
       }
 
       alert('상품이 성공적으로 취소되었습니다.');
-      await fetchOrders(); // re-fetch instead of reload
+      await fetchOrders();
     } catch (err) {
-      console.error('Cancel error:', err);
+      console.error('[ProductPreperationPage] Cancel error:', err);
       alert('상품 취소 중 오류가 발생했습니다.');
     }
   };
 
+  /** Start delivery or pickup */
   const handleProcess = async (
     orderItemId: string,
     receiveMethod: '배송' | '픽업'
@@ -114,7 +114,6 @@ export default function ProductPreperationPage() {
         alert('운송장 번호는 필수 입력 항목입니다.');
         return;
       }
-
       if (!confirm('이 상품의 배송을 시작하시겠습니까?')) return;
 
       try {
@@ -127,14 +126,17 @@ export default function ProductPreperationPage() {
           alert(
             '배송 시작 실패: ' + (data?.resultMsg || '오류가 발생했습니다.')
           );
-          console.error('Delivery start failed:', error);
+          console.error(
+            '[ProductPreperationPage] Delivery start failed:',
+            error
+          );
           return;
         }
 
         alert('배송이 성공적으로 시작되었습니다.');
-        await fetchOrders(); // refresh state only
+        await fetchOrders();
       } catch (err) {
-        console.error('Delivery error:', err);
+        console.error('[ProductPreperationPage] Delivery error:', err);
         alert('배송 처리 중 오류가 발생했습니다.');
       }
     } else {
@@ -149,14 +151,14 @@ export default function ProductPreperationPage() {
           alert(
             '픽업 시작 실패: ' + (data?.resultMsg || '오류가 발생했습니다.')
           );
-          console.error('Pickup start failed:', error);
+          console.error('[ProductPreperationPage] Pickup start failed:', error);
           return;
         }
 
         alert('픽업이 성공적으로 시작되었습니다.');
-        await fetchOrders(); // refresh state only
+        await fetchOrders();
       } catch (err) {
-        console.error('Pickup error:', err);
+        console.error('[ProductPreperationPage] Pickup error:', err);
         alert('픽업 처리 중 오류가 발생했습니다.');
       }
     }
@@ -180,6 +182,7 @@ export default function ProductPreperationPage() {
         {!loading && orders.length === 0 && (
           <div className={styles.empty}>상품 준비 중인 주문이 없습니다.</div>
         )}
+
         {!loading &&
           orders.map((order) => (
             <div
@@ -189,7 +192,7 @@ export default function ProductPreperationPage() {
                 router.push(
                   `/admin/pages/order-delivery-management/product-preparation/order-details/${order.orderNumber}`
                 )
-              } // ← open modal route
+              }
               style={{ cursor: 'pointer' }}
             >
               <div>{order.orderNumber}</div>
@@ -203,7 +206,7 @@ export default function ProductPreperationPage() {
                   type="button"
                   className={styles.cancelBtn}
                   onClick={(e) => {
-                    e.stopPropagation(); // prevent triggering modal open
+                    e.stopPropagation();
                     handleCancel(order.orderItemId);
                   }}
                 >

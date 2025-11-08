@@ -233,6 +233,8 @@ export default function DeliveryPaymentPage() {
         usePoints={usePoints}
         paymentMethod={{ payCategory, quickBrand }}
         deliveryAddress={defaultAddress}
+        requestNote={requestNote}
+        customRequest={customRequest}
       />
     </div>
   );

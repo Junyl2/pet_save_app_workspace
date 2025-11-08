@@ -63,7 +63,7 @@ export default function GeneralMemberPage() {
       <div className={styles.wrapper}>
         <div className={styles.headerRow}>
           <div className={styles.col}>이름</div>
-          <div className={styles.col}>닉네임</div>
+          {/*      <div className={styles.col}>닉네임</div> */}
           <div className={styles.col}>연락처</div>
           <div className={styles.col}>이메일</div>
           <div className={styles.col}>회원분류</div>
@@ -89,7 +89,7 @@ export default function GeneralMemberPage() {
               aria-label={`${member.name} 상세 보기`}
             >
               <div className={styles.col}>{member.name ?? '-'}</div>
-              <div className={styles.col}>{member.name ?? '-'}</div>
+              {/*   <div className={styles.col}>{member.name ?? '-'}</div> */}
               <div className={styles.col}>{member.phoneNumber ?? '-'}</div>
               <div className={styles.col}>{member.email ?? '-'}</div>
               <div className={styles.col}>{member.classification ?? '-'}</div>

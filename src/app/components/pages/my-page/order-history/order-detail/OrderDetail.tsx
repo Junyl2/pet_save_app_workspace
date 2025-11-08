@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DateRange from '@/app/components/ui/DateRange/DateRange';
@@ -8,28 +9,16 @@ import { ExchangeReturnModal } from '../exchange-return-modal/ExchangeReturnModa
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import { fetchOrderDetails } from '@/app/redux/slices/cache/orderSlice';
 import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
+import { orderService } from '@/app/api/services/client/memberService/order/orderService';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 
-export enum OrderStatus {
-  ORDERED = '주문 완료',
-  CANCELLED = '주문 취소',
-  PREPARING_SHIPMENT = '배송 준비중',
-  SHIPPING = '배송중',
-  DELIVERED = '배송 완료',
-  PREPARING_PRODUCT = '상품 준비중',
-  PRODUCT_READY = '상품 준비완료',
-  PICKUP_IN_PROGRESS = '픽업중',
-  PICKUP_COMPLETED = '픽업 완료',
-  EXCHANGE_REQUESTED = '교환 신청',
-  EXCHANGE_COMPLETED = '교환 완료',
-  REFUND_REQUESTED = '환불 신청',
-  REFUND_COMPLETED = '환불 완료',
-  COMPLETED = '주문 완료 완료',
-}
-
+/**
+ * Displays detailed order information for a single orderItemId.
+ * Fetches the parent orderId via /orders/items/{orderItemId}.
+ */
 export default function OrderDetail() {
   const params = useParams();
-  const orderId = params?.orderId as string;
+  const orderItemId = params?.orderItemId as string;
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -37,99 +26,84 @@ export default function OrderDetail() {
     (state) => state.orders
   );
 
+  const [resolvedOrderId, setResolvedOrderId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string } | null>(null);
   const [isExchangeRefundOpen, setIsExchangeRefundOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [toast, setToast] = useState<{ message: string } | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
 
-  const cachedData = orderDetailsCache[orderId];
-  const orderItems = cachedData?.orderItems || [];
-
+  /**
+   * Step 1 — Resolve parent orderId using backend endpoint /orders/items/{orderItemId}.
+   * Then fetch full order details and cache them.
+   */
   useEffect(() => {
-    if (orderId) {
-      dispatch(fetchOrderDetails(orderId));
-    }
-  }, [orderId, dispatch]);
+    if (!orderItemId) return;
 
-  useEffect(() => {
-    document.body.style.overflow = isDeleteModalOpen ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isDeleteModalOpen]);
+    (async () => {
+      try {
+        const { data, error } =
+          await orderDetailsService.getOrderDetailsByItemId(orderItemId);
+        if (error || !data?.data?.content?.length) {
+          setToast({ message: 'Order information not found.' });
+          return;
+        }
 
-  if (loading && !cachedData) {
+        const parentOrderId = data.data.content[0].orderId;
+        setResolvedOrderId(parentOrderId);
+        dispatch(fetchOrderDetails(parentOrderId));
+      } catch {
+        setToast({ message: 'Error fetching order details.' });
+      }
+    })();
+  }, [orderItemId, dispatch]);
+
+  /**
+   * Step 2 — Access cached order details from Redux once fetched.
+   */
+  const cachedData = resolvedOrderId
+    ? orderDetailsCache[resolvedOrderId]
+    : undefined;
+  const orderItems = cachedData?.orderItems ?? [];
+
+  // --- Loading / Error states ---
+  if (loading && !cachedData)
     return (
       <div className={styles.container}>
-        <p>주문 내역을 불러오는 중...</p>
+        <p>Loading order details...</p>
       </div>
     );
-  }
 
-  if (error) {
+  if (error)
     return (
       <div className={styles.container}>
-        <p>오류: {error}</p>
+        <p>Error: {error}</p>
       </div>
     );
-  }
 
-  if (orderItems.length === 0) {
+  if (orderItems.length === 0)
     return (
       <div className={styles.container}>
-        <p>주문 내역을 찾을 수 없습니다.</p>
+        <p>No order information found.</p>
       </div>
     );
-  }
 
-  const mainOrderItem = orderItems[0];
-  const orderNumber = mainOrderItem.orderNumber;
-  const status = mainOrderItem.status;
-  const recipientName = mainOrderItem.customer.name;
-  const shippingOption = mainOrderItem.shippingOption;
-  const deliveryFee = mainOrderItem.deliveryFee ?? 0;
-
+  // --- Utility formatters ---
   const formatDate = (orderNumber: string): string => {
     const match = orderNumber.match(/ORD-(\d{6})-/);
     if (match) {
-      const [_, yymmdd] = match;
-      return `20${yymmdd.substring(0, 2)}.${yymmdd.substring(
-        2,
-        4
-      )}.${yymmdd.substring(4, 6)}`;
+      const d = match[1];
+      return `20${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4, 6)}`;
     }
-    return new Date()
-      .toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      })
-      .replace(/\./g, '.')
-      .replace(/\s/g, '');
+    return new Date().toLocaleDateString('ko-KR').replace(/\s/g, '');
   };
 
-  const date = formatDate(orderNumber);
-  const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-  const totalDiscount = orderItems.reduce(
-    (sum, item) => sum + item.appliedDiscountAmount,
-    0
-  );
-  const total =
-    subtotal +
-    (shippingOption === 'DELIVERY' ? deliveryFee : 0) -
-    totalDiscount;
+  const formatPrice = (price: number): string => price.toLocaleString('ko-KR');
 
-  const deliveryAddress = {
-    address:
-      shippingOption === 'DELIVERY'
-        ? mainOrderItem.customer.address
-        : mainOrderItem.delivery?.receiverAddress || '배송지 정보 없음',
-  };
-
-  const paymentMethod = mainOrderItem.paymentMethod;
-  const formatPrice = (price: number) => price.toLocaleString();
-
-  const getStatusText = (status: string): string => {
+  const getStatusText = (s: string): string => {
     const map: Record<string, string> = {
       PENDING_PAYMENT: '결제 대기',
       PAID: '결제 완료',
@@ -143,11 +117,11 @@ export default function OrderDetail() {
       RETURNED: '반품',
       REFUNDED: '환불 완료',
     };
-    return map[status] || status;
+    return map[s] || s;
   };
 
-  const getStatusClass = (status: string): string => {
-    switch (status) {
+  const getStatusClass = (s: string): string => {
+    switch (s) {
       case 'CANCELLED':
       case 'RETURNED':
       case 'REFUNDED':
@@ -165,88 +139,95 @@ export default function OrderDetail() {
     }
   };
 
-  const handleTrackDelivery = () =>
-    router.push(PAGE_URLS.ORDER_TRACKING(orderId));
-  const handleOpenExchangeRefundModal = () => setIsExchangeRefundOpen(true);
-  const handleCloseExchangeRefundModal = () => setIsExchangeRefundOpen(false);
+  // --- Derived order info ---
+  const mainOrderItem = orderItems[0];
+  const orderNumber = mainOrderItem.orderNumber;
+  const date = formatDate(orderNumber);
+  const subtotal = orderItems.reduce((s, i) => s + i.subtotal, 0);
+  const totalDiscount = orderItems.reduce(
+    (s, i) => s + i.appliedDiscountAmount,
+    0
+  );
+  const deliveryFee = mainOrderItem.deliveryFee ?? 0;
+  const total =
+    subtotal +
+    (mainOrderItem.shippingOption === 'DELIVERY' ? deliveryFee : 0) -
+    totalDiscount;
+  const paymentMethod = mainOrderItem.paymentMethod;
+  const status = mainOrderItem.status;
 
-  const handleWriteReview = () => {
-    if (orderItems.length > 0) {
-      router.push(
-        `/client/pages/my-page/reviews/write?productId=${orderItems[0].productId}`
-      );
-    }
+  /**
+   * Navigate to order tracking page.
+   */
+  const handleTrackDelivery = (): void => {
+    if (resolvedOrderId) router.push(PAGE_URLS.ORDER_TRACKING(resolvedOrderId));
   };
 
-  const handleDeleteClick = () => setIsDeleteModalOpen(true);
-
-  const handleConfirmDelete = async () => {
+  /**
+   * Delete order history.
+   */
+  const handleConfirmDelete = async (): Promise<void> => {
+    if (!resolvedOrderId) return;
     try {
       setIsDeleting(true);
-      const response = await orderDetailsService.deleteOrderHistory(orderId);
+      const response = await orderDetailsService.deleteOrderHistory(
+        resolvedOrderId
+      );
       if (response.error) {
-        setToast({ message: `삭제 실패: ${response.error}` });
+        setToast({ message: `Delete failed: ${response.error}` });
       } else {
-        setToast({ message: '주문 내역이 삭제되었습니다.' });
+        setToast({ message: 'Order history deleted.' });
         setTimeout(() => router.push(PAGE_URLS.MYPAGE), 1200);
       }
     } catch {
-      setToast({ message: '삭제 중 오류가 발생했습니다.' });
+      setToast({ message: 'Error deleting order history.' });
     } finally {
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
     }
   };
 
-  const handleCancelDelete = () => setIsDeleteModalOpen(false);
-
-  const renderActions = (status: string) => {
-    switch (status) {
-      case 'PAID':
-        return <button className={styles.secondaryButton}>주문 취소</button>;
-      case 'DELIVERED':
-      case 'COMPLETED':
-      case 'PICKUP_COMPLETED':
-        return (
-          <>
-            <button
-              className={styles.secondaryButton}
-              onClick={handleOpenExchangeRefundModal}
-            >
-              교환, 반품 신청
-            </button>
-            <button
-              onClick={handleTrackDelivery}
-              className={styles.secondaryButton}
-            >
-              배송 조회
-            </button>
-          </>
-        );
-      case 'DELIVERY_STARTED':
-      case 'PREPARING':
-        return (
-          <button
-            onClick={handleTrackDelivery}
-            className={styles.secondaryButton}
-          >
-            배송 조회
-          </button>
-        );
-      default:
-        return null;
+  /**
+   * Submit order cancellation request.
+   */
+  const handleSubmitCancel = async (): Promise<void> => {
+    if (!resolvedOrderId) return;
+    if (!selectedReason && !customReason) {
+      setToast({
+        message: 'Please select or enter a reason for cancellation.',
+      });
+      return;
+    }
+    try {
+      setIsCancelling(true);
+      const reason = customReason || selectedReason;
+      const res = await orderService.cancelOrderByCustomer(
+        resolvedOrderId,
+        reason
+      );
+      if (res.error) {
+        setToast({ message: `Cancellation failed: ${res.error}` });
+      } else {
+        setToast({ message: 'Order has been cancelled.' });
+        await dispatch(fetchOrderDetails(resolvedOrderId));
+        setIsCancelModalOpen(false);
+      }
+    } catch {
+      setToast({ message: 'Error while cancelling order.' });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
   const allCompleted = orderItems.every((i) => i.status === 'COMPLETED');
 
+  // --- UI Rendering ---
   return (
     <div className={styles.container}>
+      {/* Header & Payment Info */}
       <div className={styles.content}>
         <div className={styles.orderHeader}>
-          <div className={styles.dateRangeWrapper}>
-            <DateRange start={date} end={date} />
-          </div>
+          <DateRange start={date} end={date} />
           <p className={styles.orderNumber}>주문번호 {orderNumber}</p>
         </div>
 
@@ -259,8 +240,6 @@ export default function OrderDetail() {
                 {formatPrice(subtotal)}원
               </span>
             </div>
-
-            {/* 포인트 사용 추가 */}
             {totalDiscount > 0 && (
               <div className={styles.priceItem}>
                 <span className={styles.priceLabel}>포인트 사용</span>
@@ -269,8 +248,7 @@ export default function OrderDetail() {
                 </span>
               </div>
             )}
-
-            {shippingOption === 'DELIVERY' && (
+            {mainOrderItem.shippingOption === 'DELIVERY' && (
               <div className={styles.priceItem}>
                 <span className={styles.priceLabel}>배송비</span>
                 <span className={styles.priceValue}>
@@ -278,14 +256,12 @@ export default function OrderDetail() {
                 </span>
               </div>
             )}
-
             <div className={`${styles.priceItem} ${styles.paymentMethod}`}>
               <span className={styles.priceLabel}>
                 {paymentMethod} / 일시불
               </span>
               <span className={styles.priceValue}>{formatPrice(total)}원</span>
             </div>
-
             <div className={styles.totalPrice}>
               <span className={styles.totalLabel}>총 결제금액</span>
               <span className={styles.totalValue}>{formatPrice(total)}원</span>
@@ -293,60 +269,12 @@ export default function OrderDetail() {
           </div>
         </div>
       </div>
-      <div className={styles.deliverySection}>
-        <div className={styles.itemsHeader}>
-          <h3 className={styles.sectionTitle}>
-            {shippingOption === 'DELIVERY' ? '배송지' : '픽업 장소'}
-          </h3>
-        </div>
 
-        {shippingOption === 'DELIVERY' ? (
-          <>
-            <div className={styles.recipientInfo}>
-              <p className={styles.recipientName}>
-                {mainOrderItem.delivery?.receiverName ?? '수령인 정보 없음'}
-              </p>
-              <p className={styles.pickupMethod}>
-                {mainOrderItem.delivery?.receiverPhone ?? '연락처 정보 없음'}
-              </p>
-            </div>
-
-            <div className={styles.pickupAddress}>
-              <p>
-                {mainOrderItem.delivery?.receiverAddress ?? '주소 정보 없음'}
-              </p>
-            </div>
-
-            <hr className={styles.divider} />
-
-            <div className={styles.pickupNote}>
-              <p className={styles.deliveryNoteText}>
-                <span className={styles.request}>배송요청사항:</span>
-                {mainOrderItem.delivery?.deliveryNotes
-                  ? mainOrderItem.delivery.deliveryNotes
-                  : '요청사항이 없습니다.'}
-              </p>
-              <p className={styles.deliveryNoteText}>
-                <span className={styles.request}>현재 상태:</span>
-                {mainOrderItem.delivery?.currentStatus ?? '상태 정보 없음'}
-              </p>
-            </div>
-          </>
-        ) : (
-          <div className={styles.pickupAddress}>
-            <p>{mainOrderItem.storeAddress}</p>
-            <p>{mainOrderItem.storePhoneNumber}</p>
-          </div>
-        )}
-      </div>
-
+      {/* Ordered Items */}
       <div className={styles.itemsSection}>
-        <div className={styles.itemsHeader}>
-          <h3 className={`${styles.sectionTitle} ${getStatusClass(status)}`}>
-            {getStatusText(status)}
-          </h3>
-        </div>
-
+        <h3 className={`${styles.sectionTitle} ${getStatusClass(status)}`}>
+          {getStatusText(status)}
+        </h3>
         {orderItems.map((item) => (
           <div key={item.orderItemId} className={styles.orderItem}>
             <div className={styles.itemContent}>
@@ -373,21 +301,23 @@ export default function OrderDetail() {
             </div>
           </div>
         ))}
-
-        <div className={styles.primaryActions}>{renderActions(status)}</div>
       </div>
 
+      {/* Bottom Actions */}
       <div className={styles.actionsSection}>
         <div className={styles.additionalActions}>
           {allCompleted && (
-            <button className={styles.actionButton} onClick={handleWriteReview}>
+            <button
+              className={styles.actionButton}
+              onClick={() => router.push(PAGE_URLS.REVIEWS)}
+            >
               리뷰 쓰기
             </button>
           )}
           <button className={styles.actionButton}>문의하기</button>
           <button
             className={styles.actionButton}
-            onClick={handleDeleteClick}
+            onClick={() => setIsDeleteModalOpen(true)}
             disabled={isDeleting}
           >
             {isDeleting ? '삭제 중...' : '주문내역 삭제'}
@@ -395,39 +325,16 @@ export default function OrderDetail() {
         </div>
       </div>
 
-      {isDeleteModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <h3>주문 내역을 삭제하시겠습니까?</h3>
-            <p>삭제 후에는 복구할 수 없습니다.</p>
-            <div className={styles.modalActions}>
-              <button
-                className={styles.cancelButton}
-                onClick={handleCancelDelete}
-                disabled={isDeleting}
-              >
-                취소
-              </button>
-              <button
-                className={styles.confirmButton}
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? '삭제 중...' : '삭제'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Toast */}
       {toast && (
         <ToastMessage message={toast.message} onClose={() => setToast(null)} />
       )}
 
+      {/* Exchange / Return Modal */}
       <ExchangeReturnModal
         open={isExchangeRefundOpen}
-        onClose={handleCloseExchangeRefundModal}
-        orderId={orderId}
+        onClose={() => setIsExchangeRefundOpen(false)}
+        orderId={resolvedOrderId ?? ''}
         product={{
           id: Number(mainOrderItem.productId),
           orderItemId: mainOrderItem.orderItemId,

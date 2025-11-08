@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './SetPolicy.module.css';
 import { usePathname, useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { ReferralPolicyService } from '@/app/api/services/admin/referralPolicyService/referralPolicyService';
+import { ReferralPolicy } from '@/app/api/services/admin/referralPolicyService/referralPolicy';
 
 const slugToTabKey = {
   'set-payment-policy': '지급 정책 설정',
@@ -19,17 +20,47 @@ export default function SetPaymentPolicyPage() {
     Object.keys(slugToTabKey).find((slug) => pathname.includes(slug)) ||
     'set-payment-policy';
 
+  const [policy, setPolicy] = useState<ReferralPolicy | null>(null);
   const [pointsPerMember, setPointsPerMember] = useState<number>(1000);
   const [monthlyLimitPerSeller, setMonthlyLimitPerSeller] =
     useState<number>(1000);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
-  const handleReset = () => {
-    setPointsPerMember(1000);
-    setMonthlyLimitPerSeller(1000);
+  /** Fetch current referral policy */
+  useEffect(() => {
+    const fetchPolicy = async (): Promise<void> => {
+      setInitializing(true);
+      try {
+        const { data, error } = await ReferralPolicyService.getAllPolicies();
+
+        if (error || !data?.success || !data.data?.length) {
+          console.warn('[SetPolicy] No existing policy found.');
+          setPolicy(null);
+          setPointsPerMember(1000);
+          setMonthlyLimitPerSeller(1000);
+        } else {
+          const existing = data.data[0];
+          setPolicy(existing);
+          setPointsPerMember(existing.pointsPerMember);
+          setMonthlyLimitPerSeller(existing.monthlyLimitPerSeller);
+        }
+      } catch (err) {
+        console.error('[SetPolicy] Failed to fetch policy:', err);
+      } finally {
+        setInitializing(false);
+      }
+    };
+
+    void fetchPolicy();
+  }, []);
+
+  const handleReset = (): void => {
+    setPointsPerMember(policy?.pointsPerMember ?? 1000);
+    setMonthlyLimitPerSeller(policy?.monthlyLimitPerSeller ?? 1000);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<void> => {
     if (loading) return;
     setLoading(true);
 
@@ -37,19 +68,47 @@ export default function SetPaymentPolicyPage() {
       const payload = {
         pointsPerMember,
         monthlyLimitPerSeller,
+        isActive: true,
       };
 
-      const { data, error } = await ReferralPolicyService.createPolicy(payload);
-
-      if (error || !data?.success) {
-        console.error(
-          '[SetPolicy] Failed to save policy:',
-          error ?? data?.resultMsg
+      if (policy?.policyId) {
+        const { data, error } = await ReferralPolicyService.updatePolicy(
+          policy.policyId,
+          payload
         );
-        alert('정책 저장에 실패했습니다. 다시 시도해주세요.');
+
+        if (error || !data?.success) {
+          console.error(
+            '[SetPolicy] Failed to update policy:',
+            error ?? data?.resultMsg
+          );
+          alert('정책 저장에 실패했습니다. 다시 시도해주세요.');
+        } else {
+          alert('정책이 성공적으로 수정되었습니다.');
+          setPolicy((prev) =>
+            prev
+              ? { ...prev, pointsPerMember, monthlyLimitPerSeller }
+              : ({ ...payload, policyId: '' } as ReferralPolicy)
+          );
+        }
       } else {
-        console.log('[SetPolicy] Policy saved successfully:', data);
-        alert('정책이 성공적으로 저장되었습니다.');
+        const { data, error } = await ReferralPolicyService.createPolicy(
+          payload
+        );
+
+        if (error || !data?.success) {
+          console.error(
+            '[SetPolicy] Failed to create policy:',
+            error ?? data?.resultMsg
+          );
+          alert('정책 생성에 실패했습니다.');
+        } else {
+          alert('새로운 정책이 성공적으로 생성되었습니다.');
+          void (async () => {
+            const refresh = await ReferralPolicyService.getAllPolicies();
+            if (refresh.data?.data?.[0]) setPolicy(refresh.data.data[0]);
+          })();
+        }
       }
     } catch (err) {
       console.error('[SetPolicy] Unexpected error:', err);
@@ -58,6 +117,10 @@ export default function SetPaymentPolicyPage() {
       setLoading(false);
     }
   };
+
+  if (initializing) {
+    return <div className={styles.loading}>불러오는 중...</div>;
+  }
 
   return (
     <div className={styles.pageContainer}>
@@ -83,30 +146,16 @@ export default function SetPaymentPolicyPage() {
         </nav>
       </header>
 
-      {/* === Search Area === */}
-      <div className={styles.topBar}>
-        <div className={styles.searchWrap}>
-          <input
-            type="text"
-            placeholder="검색어를 입력하세요"
-            className={styles.searchInput}
-          />
-          <button type="button" className={styles.searchBtn}>
-            검색
-          </button>
-        </div>
-      </div>
-
       {/* === Header Section === */}
       <div className={styles.sectionHeader}>
         <div className={styles.sectionTitle}>지급 정책 설정</div>
         <div className={styles.sectionDesc}>
-          가입자 (구매자)가 판매자 추천코드로 가입 시 자동 지급되는 포인트를
+          가입자(구매자)가 판매자 추천코드로 가입 시 자동 지급되는 포인트를
           관리합니다.
         </div>
       </div>
 
-      {/* === White Box === */}
+      {/* === Policy Form === */}
       <div className={styles.contentBox}>
         <div className={styles.row}>
           <label className={styles.label}>가입 1명당 지급 포인트</label>
@@ -134,12 +183,13 @@ export default function SetPaymentPolicyPage() {
           </div>
         </div>
 
-        {/* === Action Buttons === */}
+        {/* === Actions === */}
         <div className={styles.actions}>
           <button
             type="button"
             className={styles.resetBtn}
             onClick={handleReset}
+            disabled={loading}
           >
             초기화
           </button>
@@ -153,6 +203,22 @@ export default function SetPaymentPolicyPage() {
           </button>
         </div>
       </div>
+
+      {/* === Existing Policy Info === */}
+      {policy && (
+        <div className={styles.policyInfo}>
+          <p>
+            <strong>정책 ID:</strong> {policy.policyId}
+          </p>
+          <p>
+            <strong>생성일:</strong>{' '}
+            {new Date(policy.createdAt ?? '').toLocaleString()}
+          </p>
+          <p>
+            <strong>상태:</strong> {policy.isActive ? '활성화됨' : '비활성화됨'}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,28 +1,17 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import styles from './ReceiptComplete.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { orderService } from '@/app/api/services/client/memberService/order/orderService';
-import { SearchOrdersData } from '@/app/api/types/member/order/order';
-
-interface StoreOrder {
-  orderStoreId: string;
-  storeId: string;
-  storeName: string;
-  shippingOption: 'DELIVERY' | 'PICKUP';
-  subtotal: number;
-  deliveryFee: number;
-  status: string;
-  trackingNumber?: string | null;
-  items?: {
-    orderItemId: string;
-    productName: string;
-  }[];
-}
+import {
+  AdminSearchOrdersResponse,
+  AdminSearchOrdersData,
+} from '@/app/api/types/member/order/order';
 
 interface OrderRow {
+  orderItemId: string;
   orderNumber: string;
   createdAt: string;
   customerName: string;
@@ -36,66 +25,63 @@ interface OrderRow {
 
 const PAGE_SIZE = 10;
 
-export default function ReceiptCompletePage() {
+export default function ReceiptCompletePage(): React.ReactElement {
   const { page, setPage } = usePageParam(1);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchOrders = async (): Promise<void> => {
-      setLoading(true);
-      try {
-        const { data, error } = await orderService.searchOrders({
-          generalStatus: 'COMPLETED',
-          page: page - 1,
-          size: PAGE_SIZE,
-          sortBy: 'createdAt',
-          direction: 'desc',
-        });
+  /** Fetch COMPLETED orders from admin v2 endpoint */
+  const fetchOrders = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const { data, error } = await orderService.searchOrdersV2({
+        status: ['COMPLETED'],
+        page: page - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      });
 
-        if (error || !data?.success) {
-          console.error('Fetch failed:', error);
-          setOrders([]);
-          return;
-        }
-
-        const result = data.data as SearchOrdersData;
-
-        const mapped: OrderRow[] =
-          result.content?.flatMap((order) => {
-            const storeOrders = (order.storeOrders ?? []) as StoreOrder[];
-            return storeOrders.flatMap((store) =>
-              (store.items ?? []).map((item) => ({
-                orderNumber: order.orderNumber,
-                createdAt: order.createdAt,
-                customerName: order.customerName ?? '-',
-                customerContact: order.customerContact ?? '-',
-                productName: item.productName ?? '-', // fixed: now shows productName
-                option: store.shippingOption === 'DELIVERY' ? '배송' : '픽업',
-                trackingNumber: store.trackingNumber ?? '—',
-                completedAt:
-                  store.status === 'COMPLETED'
-                    ? order.createdAt.split('T')[0]
-                    : '-',
-                shippingOption: store.shippingOption,
-              }))
-            );
-          }) ?? [];
-
-        setOrders(mapped);
-        setTotalPages(result.pageInfo?.totalPages ?? 1);
-      } catch (err) {
-        console.error('Error fetching completed orders:', err);
+      if (error || !data?.success) {
+        console.error('[ReceiptCompletePage] Fetch failed:', error);
         setOrders([]);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    void fetchOrders();
+      const result = data as AdminSearchOrdersResponse;
+      const content: AdminSearchOrdersData[] = result.data?.content ?? [];
+
+      // Map each item into the table row
+      const mapped: OrderRow[] = content.map((item) => ({
+        orderItemId: item.orderItemId,
+        orderNumber: item.orderNumber,
+        createdAt: item.createdAt,
+        customerName: item.customer.name ?? '-',
+        customerContact: item.customer.phone ?? '-',
+        productName: item.productName ?? '-',
+        option: item.shippingOption === 'DELIVERY' ? '배송' : '픽업',
+        trackingNumber: item.delivery?.trackingNumber ?? '-',
+        completedAt:
+          item.status === 'COMPLETED' ? item.createdAt.split('T')[0] : '-',
+        shippingOption: item.shippingOption,
+      }));
+
+      setOrders(mapped);
+      setTotalPages(result.data?.pageInfo?.totalPages ?? 1);
+    } catch (err) {
+      console.error('[ReceiptCompletePage] Fetch error:', err);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
   }, [page]);
 
+  useEffect(() => {
+    void fetchOrders();
+  }, [fetchOrders]);
+
+  /** Placeholder actions */
   const handleCancel = (id: string): void => {
     console.log('취소:', id);
   };
@@ -130,7 +116,7 @@ export default function ReceiptCompletePage() {
             const reviewEnabled = order.shippingOption === 'DELIVERY';
             return (
               <div
-                key={`${order.orderNumber}-${order.productName}-${order.trackingNumber}`}
+                key={`${order.orderItemId}-${order.orderNumber}-${order.trackingNumber}`}
                 className={styles.row}
               >
                 <div>{order.orderNumber}</div>
@@ -145,7 +131,7 @@ export default function ReceiptCompletePage() {
                   <button
                     type="button"
                     className={styles.cancelBtn}
-                    onClick={() => handleCancel(order.orderNumber)}
+                    onClick={() => handleCancel(order.orderItemId)}
                   >
                     취소
                   </button>
@@ -155,7 +141,7 @@ export default function ReceiptCompletePage() {
                       !reviewEnabled ? styles.disabled : ''
                     }`}
                     onClick={() =>
-                      reviewEnabled && handleReview(order.orderNumber)
+                      reviewEnabled && handleReview(order.orderItemId)
                     }
                     disabled={!reviewEnabled}
                     aria-disabled={!reviewEnabled}

@@ -1,34 +1,35 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './page.module.css';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
-import { MemberInfo } from '@/app/api/types/member/member';
+import { MemberInfo, MemberUpdateRequest } from '@/app/api/types/member/member';
 
 export default function MemberDetailPanelPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [formData, setFormData] = useState<MemberInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  /** Fetch member info */
+  /** Fetch member detailed info (ADMIN/OWNER only) */
   useEffect(() => {
     const fetchMember = async (): Promise<void> => {
       if (!id) return;
       setLoading(true);
       try {
-        const response = await MemberService.getMemberById(id);
+        const response = await MemberService.getMemberDetails(id);
 
         if (!response.data?.success || !response.data.data) {
-          console.error('Failed to fetch member info:', response);
+          console.error('Failed to fetch member details:', response);
           return;
         }
 
-        const data = response.data.data;
-        setFormData(data);
+        setFormData(response.data.data);
       } catch (error) {
-        console.error('Error fetching member info:', error);
+        console.error('Error fetching member details:', error);
       } finally {
         setLoading(false);
       }
@@ -37,18 +38,53 @@ export default function MemberDetailPanelPage() {
     void fetchMember();
   }, [id]);
 
+  /** Handle input change */
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ): void => {
     if (!formData) return;
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => (prev ? { ...prev, [name]: value } : prev));
   };
 
-  const handleSubmit = (e: React.FormEvent): void => {
+  /** Handle Save (PUT /members/{memberId}) */
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    console.log('Updated Member Info:', formData);
-    // TODO: integrate PUT /members/{memberId} update endpoint
+    if (!formData || !id) return;
+
+    setSaving(true);
+    try {
+      const payload: MemberUpdateRequest = {
+        email: formData.email,
+        name: formData.name,
+        phoneNumber: formData.phoneNumber,
+        deliveryAddress: formData.roadAddress,
+      };
+
+      const res = await MemberService.updateMemberInfo(id, payload);
+
+      if (res.error || !res.data?.success) {
+        alert('회원 정보 수정 실패: ' + (res.error ?? res.data?.resultMsg));
+        return;
+      }
+
+      alert('회원 정보가 성공적으로 수정되었습니다.');
+      router.push('/admin/pages/account-permission-management/general-member');
+    } catch (error) {
+      console.error('Error updating member:', error);
+      alert('회원 정보 수정 중 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /** Handle Delete (placeholder for future use) */
+  const handleDelete = async (): Promise<void> => {
+    if (!id) return;
+    const confirmDelete = confirm('정말로 이 회원을 삭제하시겠습니까?');
+    if (!confirmDelete) return;
+
+    alert('삭제 기능은 아직 구현되지 않았습니다.');
   };
 
   if (loading || !formData) {
@@ -80,22 +116,6 @@ export default function MemberDetailPanelPage() {
                 type="text"
                 name="name"
                 value={formData.name ?? ''}
-                onChange={handleChange}
-                className={styles.value}
-              />
-            </div>
-          </div>
-
-          {/* 닉네임 */}
-          <div className={styles.row100}>
-            <div className={styles.left80}>
-              <span className={styles.leftLabel}>닉네임</span>
-            </div>
-            <div className={styles.right350}>
-              <input
-                type="text"
-                name="nickname"
-                value={formData.nickname ?? ''}
                 onChange={handleChange}
                 className={styles.value}
               />
@@ -137,7 +157,7 @@ export default function MemberDetailPanelPage() {
           {/* 주소 + 상세 */}
           <div className={styles.row160}>
             <div className={styles.left140}>
-              <span className={styles.leftLabel}>우편 번호</span>
+              <span className={styles.leftLabel}>주소</span>
             </div>
             <div className={styles.rightStack}>
               <div className={styles.right500}>
@@ -147,6 +167,7 @@ export default function MemberDetailPanelPage() {
                   value={formData.roadAddress ?? ''}
                   onChange={handleChange}
                   className={styles.value}
+                  placeholder="도로명 주소"
                 />
               </div>
               <div className={styles.right500}>
@@ -156,6 +177,7 @@ export default function MemberDetailPanelPage() {
                   value={formData.detailedAddress ?? ''}
                   onChange={handleChange}
                   className={styles.value}
+                  placeholder="상세 주소"
                 />
               </div>
               <div className={styles.right500}>
@@ -165,6 +187,7 @@ export default function MemberDetailPanelPage() {
                   value={formData.zipCode ?? ''}
                   onChange={handleChange}
                   className={styles.value}
+                  placeholder="우편번호"
                 />
               </div>
             </div>
@@ -173,11 +196,15 @@ export default function MemberDetailPanelPage() {
 
         {/* Actions */}
         <div className={styles.actions}>
-          <button type="button" className={styles.btnOutline}>
+          <button
+            type="button"
+            className={styles.btnOutline}
+            onClick={handleDelete}
+          >
             삭제
           </button>
-          <button type="submit" className={styles.btnPrimary}>
-            저장
+          <button type="submit" className={styles.btnPrimary} disabled={saving}>
+            {saving ? '저장 중...' : '저장'}
           </button>
         </div>
       </form>

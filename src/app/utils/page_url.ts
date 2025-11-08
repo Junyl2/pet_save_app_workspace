@@ -55,8 +55,8 @@ export const PAGE_URLS = {
     '/client/pages/my-page/terms-and-conditions/marketing-consent',
 
   //Order history sub pages
-  ORDER_DETAILS: (orderId: string) =>
-    `/client/pages/my-page/order-history/${orderId}`,
+  ORDER_DETAILS: (orderItemId: string) =>
+    `/client/pages/my-page/order-history/items/${orderItemId}`,
   ORDER_CANCEL: (orderId: string) =>
     `/client/pages/my-page/order-history/${orderId}/cancel`,
   ORDER_TRACKING: (orderId: string) =>

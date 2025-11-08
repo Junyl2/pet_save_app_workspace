@@ -2,10 +2,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Modal from '@/app/components/ui/modal/Modal';
-import { orderService } from '@/app/api/services/client/memberService/order/orderService';
-import styles from './styles.module.css';
 import Image from 'next/image';
+import Modal from '@/app/components/ui/modal/Modal';
+import styles from './styles.module.css';
+import { orderService } from '@/app/api/services/client/memberService/order/orderService';
+import { orderStatusService } from '@/app/api/services/admin/orderStatusService/orderStatusService';
+import {
+  AdminSearchOrdersResponse,
+  AdminSearchOrdersData,
+} from '@/app/api/types/member/order/order';
 
 type FulfillmentType = 'DELIVERY' | 'PICKUP';
 
@@ -14,26 +19,16 @@ interface ProductInfo {
   vendor: string;
   price: number;
   qty: number;
-  location: string;
   deliveryMethod: string;
   imageUrl?: string;
   orderItemId: string;
 }
 
 interface ShippingInfo {
-  memo: string | null;
   courier: string;
-  trackingNumber: string | null;
   receiverName: string;
   receiverPhone: string;
   receiverAddress: string;
-}
-
-interface PickupInfo {
-  recipientName: string;
-  contact: string;
-  storeName: string;
-  storeAddress: string;
 }
 
 interface OrderDetails {
@@ -45,7 +40,6 @@ interface OrderDetails {
   fulfillmentType: FulfillmentType;
   product: ProductInfo;
   shipping?: ShippingInfo;
-  pickup?: PickupInfo;
 }
 
 const formatKRW = (n: number): string =>
@@ -55,13 +49,21 @@ export default function OrderDetailsPage({
   params,
 }: {
   params: { id: string };
-}) {
+}): React.ReactElement {
   const router = useRouter();
   const [open, setOpen] = useState(true);
   const [details, setDetails] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [trackingNumber, setTrackingNumber] = useState<string>('');
 
-  /** Fetch from new v2 endpoint using orderNumber param */
+  /** Reset tracking number when new order opens */
+  useEffect(() => {
+    setTrackingNumber('');
+  }, [params.id]);
+
+  /** Fetch order details via /v2/orders */
   useEffect(() => {
     const fetchOrderDetails = async (): Promise<void> => {
       setLoading(true);
@@ -71,60 +73,53 @@ export default function OrderDetailsPage({
           size: 10,
         });
 
-        if (error || !data?.success || !data.data.content.length) {
-          console.error('Failed to fetch order details:', error);
+        if (error || !data?.success) {
+          console.error('[OrderDetailsPage] Fetch failed:', error);
           setLoading(false);
           return;
         }
 
-        // Pick first matching order item
-        const order = data.data.content[0];
-        const customer = order.customer ?? {};
-        const delivery = order.delivery;
+        const result = data as AdminSearchOrdersResponse;
+        const orderItem = result.data?.content?.find(
+          (i) => i.orderNumber === params.id
+        );
+        if (!orderItem) {
+          setLoading(false);
+          return;
+        }
 
+        const { customer, delivery } = orderItem;
         const mapped: OrderDetails = {
-          id: order.orderNumber,
-          orderedAt: new Date(order.createdAt).toLocaleString(),
-          buyer: customer.name ?? '-',
-          contact: customer.phone ?? '-',
-          address: customer.address ?? '-',
-          fulfillmentType: order.shippingOption as FulfillmentType,
+          id: orderItem.orderNumber,
+          orderedAt: new Date(orderItem.createdAt).toLocaleString(),
+          buyer: customer?.name ?? '-',
+          contact: customer?.phone ?? '-',
+          address: customer?.address ?? '-',
+          fulfillmentType: orderItem.shippingOption,
           product: {
-            name: order.productName,
-            vendor: order.storeName ?? '-',
-            price: order.price,
-            qty: order.quantity,
-            location: '-',
+            name: orderItem.productName,
+            vendor: orderItem.storeName ?? '-',
+            price: orderItem.price,
+            qty: orderItem.quantity,
             deliveryMethod:
-              order.shippingOption === 'DELIVERY' ? '배송' : '픽업',
-            imageUrl: order.productImageUrl,
-            orderItemId: order.orderItemId,
+              orderItem.shippingOption === 'DELIVERY' ? '배송' : '픽업',
+            imageUrl: orderItem.productImageUrl,
+            orderItemId: orderItem.orderItemId,
           },
           shipping:
-            order.shippingOption === 'DELIVERY' && delivery
+            orderItem.shippingOption === 'DELIVERY' && delivery
               ? {
-                  memo: delivery.deliveryNotes ?? null,
                   courier: delivery.courierName ?? '-',
-                  trackingNumber: delivery.trackingNumber,
                   receiverName: delivery.receiverName ?? '-',
                   receiverPhone: delivery.receiverPhone ?? '-',
                   receiverAddress: delivery.receiverAddress ?? '-',
-                }
-              : undefined,
-          pickup:
-            order.shippingOption === 'PICKUP'
-              ? {
-                  recipientName: customer.name ?? '-',
-                  contact: customer.phone ?? '-',
-                  storeName: order.storeName ?? '-',
-                  storeAddress: order.storeAddress ?? '-',
                 }
               : undefined,
         };
 
         setDetails(mapped);
       } catch (err) {
-        console.error('Fetch order error:', err);
+        console.error('[OrderDetailsPage] Fetch error:', err);
       } finally {
         setLoading(false);
       }
@@ -138,33 +133,60 @@ export default function OrderDetailsPage({
     router.back();
   };
 
+  /** 배송/픽업 시작 POST */
   const handleFulfillmentStart = async (): Promise<void> => {
     if (!details) return;
-    const endpoint =
-      details.fulfillmentType === 'DELIVERY'
-        ? `/api/pet-save/orders/items/${details.product.orderItemId}/prepare`
-        : `/api/pet-save/orders/items/${details.product.orderItemId}/pickup`;
+    setErrorMsg(null);
+    setSubmitting(true);
 
     try {
-      await fetch(endpoint, { method: 'POST' });
-      const actionLabel =
-        details.fulfillmentType === 'DELIVERY' ? '배송' : '픽업 준비';
-      alert(`${actionLabel} 처리가 시작되었습니다.`);
-    } catch (e) {
-      console.error(e);
-      alert('처리 시작에 실패했습니다.');
+      const orderItemId = details.product.orderItemId;
+
+      if (details.fulfillmentType === 'DELIVERY') {
+        if (!trackingNumber.trim()) {
+          setErrorMsg('운송장 번호를 입력하세요.');
+          setSubmitting(false);
+          return;
+        }
+
+        const { data, error } = await orderStatusService.beginDelivery(
+          orderItemId,
+          trackingNumber.trim()
+        );
+
+        if (error || !data?.success) {
+          const msg = data?.resultMsg?.includes('이미 할당되어')
+            ? '이미 등록된 운송장 번호입니다. 다른 번호를 입력하세요.'
+            : data?.resultMsg ?? '배송 시작 중 오류가 발생했습니다.';
+          setErrorMsg(msg);
+          setSubmitting(false);
+          return;
+        }
+      } else {
+        const { data, error } = await orderStatusService.beginPickup(
+          orderItemId
+        );
+        if (error || !data?.success) {
+          setErrorMsg(data?.resultMsg ?? '픽업 시작 중 오류가 발생했습니다.');
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      // 성공 시 input 초기화 및 모달 닫기
+      setTrackingNumber('');
+      setSubmitting(false);
+      setTimeout(() => handleClose(), 800);
+    } catch (err) {
+      console.error('[OrderDetailsPage] Fulfillment start error:', err);
+      setErrorMsg('처리 중 오류가 발생했습니다.');
+      setSubmitting(false);
     }
   };
 
   if (loading || !details) {
     return (
-      <Modal
-        open={open}
-        onClose={handleClose}
-        title="주문 상세"
-        width={780}
-        height={400}
-      >
+      <Modal open={open} onClose={handleClose} title="주문 상세" width={780}>
         <div className={styles.loading}>불러오는 중...</div>
       </Modal>
     );
@@ -178,9 +200,8 @@ export default function OrderDetailsPage({
         details.fulfillmentType === 'DELIVERY' ? '배송' : '픽업'
       }`}
       width={780}
-      height={930}
+      height={900}
     >
-      {/* Header */}
       <div className={styles.headerWrap}>
         <div className={styles.headerInner}>
           <div className={styles.headerTitleBlock}>
@@ -191,7 +212,7 @@ export default function OrderDetailsPage({
         </div>
       </div>
 
-      <div className={styles.sectionDivider}></div>
+      <div className={styles.sectionDivider} />
 
       {/* 고객 정보 */}
       <section className={styles.section}>
@@ -210,7 +231,7 @@ export default function OrderDetailsPage({
         </div>
       </section>
 
-      <div className={styles.sectionDivider}></div>
+      <div className={styles.sectionDivider} />
 
       {/* 상품 정보 */}
       <section className={styles.section}>
@@ -249,9 +270,9 @@ export default function OrderDetailsPage({
         </div>
       </section>
 
-      <div className={styles.sectionDivider}></div>
+      <div className={styles.sectionDivider} />
 
-      {/* Fulfillment Details */}
+      {/* 배송 입력 */}
       {details.fulfillmentType === 'DELIVERY' && details.shipping && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>배송 정보</h2>
@@ -263,22 +284,16 @@ export default function OrderDetailsPage({
             <div className={styles.infoLabel}>운송장 번호</div>
             <input
               className={styles.input}
-              value={details.shipping.trackingNumber ?? ''}
-              onChange={(e) =>
-                setDetails((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        shipping: {
-                          ...prev.shipping!,
-                          trackingNumber: e.target.value,
-                        },
-                      }
-                    : prev
-                )
-              }
+              placeholder="운송장 번호 입력"
+              value={trackingNumber}
+              onChange={(e) => setTrackingNumber(e.target.value)}
             />
           </div>
+          {errorMsg && (
+            <p className={styles.errorText} role="alert">
+              {errorMsg}
+            </p>
+          )}
           <div className={styles.infoRow}>
             <div className={styles.infoLabel}>수령자</div>
             <div className={styles.infoValue}>
@@ -297,52 +312,32 @@ export default function OrderDetailsPage({
               {details.shipping.receiverAddress}
             </div>
           </div>
-          <div className={styles.infoRow}>
-            <div className={styles.infoLabel}>배송 메모</div>
-            <div className={styles.infoValue}>
-              {details.shipping.memo ?? '메모 없음'}
-            </div>
-          </div>
         </section>
       )}
 
-      {details.fulfillmentType === 'PICKUP' && details.pickup && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>픽업 정보</h2>
-          <div className={styles.infoRow}>
-            <div className={styles.infoLabel}>수령자명</div>
-            <div className={styles.infoValue}>
-              {details.pickup.recipientName}
-            </div>
-          </div>
-          <div className={styles.infoRow}>
-            <div className={styles.infoLabel}>연락처</div>
-            <div className={styles.infoValue}>{details.pickup.contact}</div>
-          </div>
-          <div className={styles.infoRow}>
-            <div className={styles.infoLabel}>매장명</div>
-            <div className={styles.infoValue}>{details.pickup.storeName}</div>
-          </div>
-          <div className={styles.infoRow}>
-            <div className={styles.infoLabel}>매장 주소</div>
-            <div className={styles.infoValue}>
-              {details.pickup.storeAddress}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <div className={styles.sectionDivider}></div>
+      <div className={styles.sectionDivider} />
 
       {/* Footer */}
       <footer className={styles.footer}>
-        <button className={styles.btn} onClick={handleClose}>
+        <button
+          type="button"
+          className={styles.btn}
+          onClick={handleClose}
+          disabled={submitting}
+        >
           닫기
         </button>
-        <button className={styles.btnPrimary} onClick={handleFulfillmentStart}>
-          {details.fulfillmentType === 'DELIVERY'
+        <button
+          type="button"
+          className={styles.btnPrimary}
+          onClick={handleFulfillmentStart}
+          disabled={submitting}
+        >
+          {submitting
+            ? '처리 중...'
+            : details.fulfillmentType === 'DELIVERY'
             ? '배송 처리 시작'
-            : '픽업 준비 시작'}
+            : '픽업 처리 시작'}
         </button>
       </footer>
     </Modal>

@@ -33,6 +33,8 @@ interface PayButtonProps {
     quickBrand: 'toss' | 'kakao' | 'naver' | null;
   };
   deliveryAddress?: string | null;
+  requestNote?: string;
+  customRequest?: string;
 }
 
 interface OrderResponseData {
@@ -47,6 +49,8 @@ export default function PayButton({
   usePoints,
   paymentMethod,
   deliveryAddress,
+  requestNote,
+  customRequest,
 }: PayButtonProps) {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -87,6 +91,25 @@ export default function PayButton({
           shippingOption,
           deliveryAddress:
             deliveryOption === 'delivery' ? deliveryAddress || '' : undefined,
+          deliveryNote:
+            requestNote === 'custom'
+              ? customRequest || ''
+              : requestNote
+              ? (() => {
+                  switch (requestNote) {
+                    case 'guard':
+                      return '부재시 경비실에 맡겨주세요.';
+                    case 'front':
+                      return '집앞에 놔주세요.';
+                    case 'locker':
+                      return '택배함에 놔주세요.';
+                    case 'call':
+                      return '배송 전에 꼭 연락주세요.';
+                    default:
+                      return '';
+                  }
+                })()
+              : '',
           usePointsAmount: usePoints,
           paymentDetails: { method },
         };
@@ -111,13 +134,12 @@ export default function PayButton({
         throw new Error(orderResponse.data?.resultMsg || '주문 생성 실패');
       }
 
-      //  Safely extract orderNo
       const orderData = orderResponse.data?.data as
         | OrderResponseData
         | undefined;
       const orderNo = orderData?.orderNo ?? `ORDER-${Date.now()}`;
 
-      //  Manual bank transfer → skip toast, go directly to confirmation page
+      // Manual bank transfer: go directly to confirmation
       if (method === 'BANK') {
         sessionStorage.setItem(
           'orderConfirmation',
@@ -130,14 +152,11 @@ export default function PayButton({
             date: new Date().toISOString(),
           })
         );
-
-        router.push(
-          '/client/pages/shopping-cart/delivery-payment/order-confirmation'
-        );
+        router.push(PAGE_URLS.ORDER_CONFIRMATION);
         return;
       }
 
-      //  TossPayments redirect flow
+      // TossPayments redirect flow
       const tossPayments = await loadTossPayments(
         process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!
       );
@@ -153,7 +172,7 @@ export default function PayButton({
         orderId: tossOrderId,
         orderName,
         customerName: '홍길동',
-        successUrl: `${window.location.origin}/client/pages/shopping-cart/delivery-payment/order-confirmation`,
+        successUrl: `${window.location.origin}${PAGE_URLS.ORDER_CONFIRMATION}`,
         failUrl: `${window.location.origin}/client/pages/shopping-cart/delivery-payment/payment-fail`,
       });
     } catch (err: unknown) {

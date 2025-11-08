@@ -123,3 +123,12 @@ export interface BusinessFileListResponse {
 export interface BusinessFileDeleteResponse extends ApiResponseEnvelope {
   data: Record<string, unknown>;
 }
+
+export interface EmailValidationResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: Record<string, unknown>;
+  errorId?: string;
+}

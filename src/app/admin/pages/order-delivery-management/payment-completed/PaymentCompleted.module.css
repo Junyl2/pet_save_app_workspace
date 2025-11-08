@@ -30,9 +30,13 @@
   background-color: #ffffff;
 }
 
+.paginationWrap {
+  margin-top: 1rem;
+}
+
 .actions {
   display: flex;
-  justify-content: center; /* ✅ center actions too */
+  justify-content: center;
   align-items: center;
   gap: 12px;
 }

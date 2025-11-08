@@ -11,7 +11,7 @@ import styles from './ContactInbox.module.css';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { DotMenu } from '../../ui/DotMenu/DotMenu';
 import { useRouter } from 'next/navigation';
-/* import toast from 'react-hot-toast'; */
+import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
 
 type RangeLabel = '1개월' | '6개월' | '1년' | '전체보기';
 
@@ -21,24 +21,24 @@ type ContactInboxProps = {
   initialRange?: RangeLabel;
 };
 
-// Helper function to transform API response to ContactInquiry format
+const PAGE_SIZE = 10;
+
+// Convert API response type to ContactInquiry
 const transformMyInquiryToContactInquiry = (
   myInquiry: MyInquiry
-): ContactInquiry => {
-  return {
-    id: parseInt(myInquiry.inquiryId.split('-')[0], 16) || 0, // Convert UUID to number for compatibility
-    inquiryId: myInquiry.inquiryId,
-    date: myInquiry.createdAt,
-    shopName: myInquiry.store.name,
-    shopLocation: myInquiry.store.address,
-    shopImage: myInquiry.store.profileUrl || '/images/shops/shop1.png', // fallback image
-    category: myInquiry.category,
-    message: myInquiry.content,
-    responseMessage: myInquiry.answer || '',
-    status: myInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
-    productId: myInquiry.product.productId, // Store productId for routing
-  };
-};
+): ContactInquiry => ({
+  id: parseInt(myInquiry.inquiryId.split('-')[0], 16) || 0,
+  inquiryId: myInquiry.inquiryId,
+  date: myInquiry.createdAt,
+  shopName: myInquiry.store.name,
+  shopLocation: myInquiry.store.address,
+  shopImage: myInquiry.store.profileUrl || '/images/shops/shop1.png',
+  category: myInquiry.category,
+  message: myInquiry.content,
+  responseMessage: myInquiry.answer || '',
+  status: myInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
+  productId: myInquiry.product.productId,
+});
 
 export default function ContactInbox({
   hideMenu = false,
@@ -48,160 +48,82 @@ export default function ContactInbox({
   const router = useRouter();
   const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState<RangeLabel>(initialRange);
+  const [currentPage, setCurrentPage] = useState(1); // 1-based
+  const [totalPages, setTotalPages] = useState(1);
+
   const rangeOptions: RangeLabel[] = ['1개월', '6개월', '1년', '전체보기'];
 
-  // Helper function to get date range parameters
   const getDateRangeParams = (range: RangeLabel) => {
     const now = new Date();
-    const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
-
-    console.log('📅 Current date:', today);
+    const today = now.toISOString().split('T')[0];
 
     switch (range) {
       case '1개월': {
-        const oneMonthAgo = new Date(now);
-        oneMonthAgo.setMonth(now.getMonth() - 1);
-        const dateStart = oneMonthAgo.toISOString().split('T')[0];
-        console.log('📅 1개월 range:', { dateStart, dateEnd: today });
-        return { dateStart, dateEnd: today };
+        const d = new Date(now);
+        d.setMonth(now.getMonth() - 1);
+        return { dateStart: d.toISOString().split('T')[0], dateEnd: today };
       }
       case '6개월': {
-        const sixMonthsAgo = new Date(now);
-        sixMonthsAgo.setMonth(now.getMonth() - 6);
-        const dateStart = sixMonthsAgo.toISOString().split('T')[0];
-        console.log('📅 6개월 range:', { dateStart, dateEnd: today });
-        return { dateStart, dateEnd: today };
+        const d = new Date(now);
+        d.setMonth(now.getMonth() - 6);
+        return { dateStart: d.toISOString().split('T')[0], dateEnd: today };
       }
       case '1년': {
-        const oneYearAgo = new Date(now);
-        oneYearAgo.setFullYear(now.getFullYear() - 1);
-        const dateStart = oneYearAgo.toISOString().split('T')[0];
-        console.log('📅 1년 range:', { dateStart, dateEnd: today });
-        return { dateStart, dateEnd: today };
+        const d = new Date(now);
+        d.setFullYear(now.getFullYear() - 1);
+        return { dateStart: d.toISOString().split('T')[0], dateEnd: today };
       }
-      case '전체보기':
       default:
-        console.log('📅 전체보기 - no date filtering');
-        return {}; // No date filtering for 전체보기
+        return {};
     }
   };
 
-  const fetchInquiries = useCallback(async (range: RangeLabel) => {
-    setLoading(true);
-    try {
-      const dateParams = getDateRangeParams(range);
+  const fetchInquiries = useCallback(
+    async (range: RangeLabel, page: number) => {
+      setLoading(true);
+      try {
+        const dateParams = getDateRangeParams(range);
+        const response = await MemberInquiryService.getMyInquiries({
+          ...dateParams,
+          page: page - 1, // zero-based for API
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        });
 
-      console.log(
-        '🔍 Fetching inquiries for range:',
-        range,
-        'with date params:',
-        dateParams
-      );
-
-      // Use the new API to get inquiries with date filtering
-      const response = await MemberInquiryService.getMyInquiries({
-        ...dateParams,
-        sortBy: 'createdAt',
-        direction: 'desc',
-        size: 100, // Get more items to ensure we have all data for the range
-      });
-
-      if (response.error || !response.data) {
-        console.error('Failed to fetch inquiries:', response.error);
-        // Fallback to mock data if API fails
+        if (response.error || !response.data) {
+          const mockData = await contactService.getAllInquiries();
+          setInquiries(mockData);
+          setTotalPages(1);
+        } else {
+          const transformed = response.data.data.content.map(
+            transformMyInquiryToContactInquiry
+          );
+          setInquiries(transformed);
+          setTotalPages(response.data.data.pageInfo?.totalPages ?? 1);
+        }
+      } catch (err) {
+        console.error('Error fetching inquiries:', err);
         const mockData = await contactService.getAllInquiries();
         setInquiries(mockData);
-      } else {
-        // Transform API response to ContactInquiry format
-        const transformedInquiries = response.data.data.content.map(
-          transformMyInquiryToContactInquiry
-        );
-
-        console.log(
-          '📅 Raw API data dates:',
-          response.data.data.content.map((inq) => ({
-            inquiryId: inq.inquiryId,
-            createdAt: inq.createdAt,
-            date: new Date(inq.createdAt).toLocaleDateString('ko-KR'),
-          }))
-        );
-
-        console.log(
-          '📅 Transformed inquiries dates:',
-          transformedInquiries.map((inq) => ({
-            id: inq.id,
-            date: inq.date,
-            formattedDate: new Date(inq.date).toLocaleDateString('ko-KR'),
-          }))
-        );
-
-        // Apply client-side filtering as backup in case API filtering doesn't work
-        const clientFilteredInquiries = applyClientSideDateFilter(
-          transformedInquiries,
-          range
-        );
-
-        console.log(
-          '🔍 Client-side filtered count:',
-          clientFilteredInquiries.length,
-          'out of',
-          transformedInquiries.length
-        );
-
-        setInquiries(clientFilteredInquiries);
+        setTotalPages(1);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching inquiries:', error);
-      // Fallback to mock data on error
-      const mockData = await contactService.getAllInquiries();
-      setInquiries(mockData);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Client-side date filtering as backup
-  const applyClientSideDateFilter = (
-    inquiries: ContactInquiry[],
-    range: RangeLabel
-  ): ContactInquiry[] => {
-    if (range === '전체보기') return inquiries;
-
-    const now = new Date();
-    const inquiryDate = (inq: ContactInquiry) => new Date(inq.date);
-
-    switch (range) {
-      case '1개월': {
-        const oneMonthAgo = new Date(now);
-        oneMonthAgo.setMonth(now.getMonth() - 1);
-        return inquiries.filter((inq) => inquiryDate(inq) >= oneMonthAgo);
-      }
-      case '6개월': {
-        const sixMonthsAgo = new Date(now);
-        sixMonthsAgo.setMonth(now.getMonth() - 6);
-        return inquiries.filter((inq) => inquiryDate(inq) >= sixMonthsAgo);
-      }
-      case '1년': {
-        const oneYearAgo = new Date(now);
-        oneYearAgo.setFullYear(now.getFullYear() - 1);
-        return inquiries.filter((inq) => inquiryDate(inq) >= oneYearAgo);
-      }
-      default:
-        return inquiries;
-    }
-  };
+    },
+    []
+  );
 
   useEffect(() => {
-    fetchInquiries(selectedRange);
-  }, [selectedRange, fetchInquiries]);
+    fetchInquiries(selectedRange, currentPage);
+  }, [selectedRange, currentPage, fetchInquiries]);
 
   const handleSelectRange = (option: RangeLabel) => {
     setSelectedRange(option);
+    setCurrentPage(1);
     setDropdownOpen(false);
-    // The useEffect will automatically trigger a new API call with the selected range
   };
 
   if (loading) return <ContactInboxSkeleton />;
@@ -210,11 +132,11 @@ export default function ContactInbox({
     <>
       <ProductHeader />
 
-      {/* Top toolbar: extra actions + period dropdown */}
+      {/* Top toolbar */}
       <div className={styles.topToolbar}>
-        {extraActionsRender ? (
+        {extraActionsRender && (
           <div className={styles.extraActions}>{extraActionsRender}</div>
-        ) : null}
+        )}
 
         <div className={styles.dropdownContainer}>
           <button
@@ -258,6 +180,7 @@ export default function ContactInbox({
         </div>
       </div>
 
+      {/* Inquiries List */}
       <div className={styles.container}>
         {inquiries.length === 0 ? (
           <div className={styles.emptyInbox}>
@@ -274,36 +197,25 @@ export default function ContactInbox({
               year: '2-digit',
               month: '2-digit',
               day: '2-digit',
-            }).format(new Date(inq.date)); // e.g., 25.07.30
+            }).format(new Date(inq.date));
 
             const handleCardClick = () => {
-              if (dropdownOpen) return; // prevent accidental clicks while dropdown open
-              // add a shared state if needed for modal open
               if (isCompleted) {
-                const targetId = inq.inquiryId || inq.id.toString();
                 router.push(
-                  `/client/pages/my-page/history-inquiry/reply/${targetId}`
+                  `/client/pages/my-page/history-inquiry/reply/${inq.inquiryId}`
                 );
               } else {
-                // Use productId for waiting reply page routing
-                const productId = inq.productId || inq.id.toString();
-                router.push(`/inquiries/waiting-reply/${productId}`);
+                router.push(`/inquiries/waiting-reply/${inq.productId}`);
               }
             };
 
-            /*    const handleConfirmDelete = async () => {
-              await contactService.deleteInquiry(inq.id);
-              setInquiries((prev) => prev.filter((i) => i.id !== inq.id));
-            }; */
-
             const handleConfirmDelete = async () => {
-              const idForApi = inq.inquiryId;
-              if (!idForApi) return;
-              const res = await MemberInquiryService.deleteInquiry(idForApi);
+              if (!inq.inquiryId) return;
+              const res = await MemberInquiryService.deleteInquiry(
+                inq.inquiryId
+              );
               if (!res.error) {
                 setInquiries((prev) => prev.filter((i) => i.id !== inq.id));
-              } else {
-                console.error('Failed to delete inquiry:', res.error);
               }
             };
 
@@ -321,12 +233,9 @@ export default function ContactInbox({
                   }
                 }}
               >
-                {/* prevent menu click from triggering card click */}
                 {!hideMenu && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
                     className={styles.dotMenu}
                   >
                     <DotMenu mode="deletePage" onDelete={handleConfirmDelete} />
@@ -347,6 +256,16 @@ export default function ContactInbox({
               </div>
             );
           })
+        )}
+
+        {totalPages > 1 && (
+          <div className={styles.pagination}>
+            <ClientPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
         )}
       </div>
     </>
