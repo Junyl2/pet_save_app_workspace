@@ -73,9 +73,8 @@ const ProfileHeader = () => {
             <Image
               src="/images/icons/profile-default.png"
               alt="Profile"
-              width={100}
-              height={100}
-              className={styles.profileImage}
+              fill
+              className={styles.profile}
             />
           </div>
           <div className={styles.profileInfo}>

@@ -59,3 +59,22 @@ export interface ConfirmPaymentResponse {
   data: object;
   errorId?: string;
 }
+/** ────────────────  HANDLE PAYMENT SUCCESS ──────────────── **/
+export interface PaymentSuccessResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode?: string;
+  data: object;
+  errorId?: string;
+}
+
+/** ────────────────  HANDLE PAYMENT FAIL ──────────────── **/
+export interface PaymentFailResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode?: string;
+  data: object;
+  errorId?: string;
+}

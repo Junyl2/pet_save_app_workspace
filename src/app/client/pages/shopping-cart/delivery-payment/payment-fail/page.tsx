@@ -1,42 +1,45 @@
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { paymentService } from '@/app/api/services/admin/paymentService/paymentService';
 import styles from './PaymentFail.module.css';
-import toast from 'react-hot-toast';
 
 export default function PaymentFailPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const [message, setMessage] = useState('결제 실패를 처리 중입니다...');
 
-  const code = searchParams.get('code');
-  const message = searchParams.get('message');
-  const orderId = searchParams.get('orderId');
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const failMsg = searchParams.get('message');
+    const orderId = searchParams.get('orderId');
+
+    if (!code || !failMsg || !orderId) {
+      setMessage('잘못된 접근입니다.');
+      return;
+    }
+
+    (async () => {
+      try {
+        const { data, error } = await paymentService.handlePaymentFail(
+          code,
+          failMsg,
+          orderId
+        );
+        if (error || !data?.success)
+          throw new Error(data?.resultMsg ?? error ?? '');
+        setMessage('결제가 실패했습니다. 다시 시도해주세요.');
+      } catch (err) {
+        console.error('결제 실패 처리 오류:', err);
+        setMessage('결제 실패 후 처리 중 오류가 발생했습니다.');
+      }
+    })();
+  }, [searchParams]);
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>결제에 실패했습니다.</h2>
-      <p className={styles.message}>
-        {message
-          ? `사유: ${decodeURIComponent(message)}`
-          : '결제가 정상적으로 완료되지 않았습니다.'}
-      </p>
-      {code && <p className={styles.code}>에러 코드: {code}</p>}
-      {orderId && <p className={styles.orderId}>주문번호: {orderId}</p>}
-
-      <button
-        className={styles.retryButton}
-        onClick={() =>
-          router.push('/client/pages/shopping-cart/delivery-payment')
-        }
-      >
-        다시 결제하기
-      </button>
-      <button
-        className={styles.homeButton}
-        onClick={() => router.push('/client/pages/homepage')}
-      >
-        홈으로 이동
-      </button>
+      <h1 className={styles.title}>결제 실패</h1>
+      <p className={styles.message}>{message}</p>
     </div>
   );
 }

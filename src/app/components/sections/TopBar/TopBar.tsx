@@ -37,7 +37,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
   /** Helpers */
   const isShoplist = pathname.startsWith('/shops');
 
-  // --- type guard to avoid `any` ---
   const isRecord = (v: unknown): v is Record<string, unknown> =>
     typeof v === 'object' && v !== null;
 
@@ -45,7 +44,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
     if (!Array.isArray(raw)) return [];
     return raw.map((item: unknown, index: number): SearchHistoryItem => {
       if (typeof item === 'string') {
-        // API returned array of keywords
         return {
           id: `keyword-${index}`,
           keyword: item,
@@ -61,7 +59,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
             : new Date().toISOString();
         return { id, keyword, searchedAt };
       }
-      // Fallback shape
       return {
         id: `item-${index}`,
         keyword: '',
@@ -69,16 +66,13 @@ export default function TopBar({ onSearch }: TopBarProps) {
       };
     });
   }, []);
-  // ----------------------------------
 
-  /** Format address to show only first 2 parts */
   const formatAddress = useCallback((address: string): string => {
     if (!address) return '';
     const parts = address.split(' ');
     return parts.slice(0, 2).join(' ');
   }, []);
 
-  /** Load selected location from localStorage */
   const loadSelectedLocation = useCallback(() => {
     const savedLocation = localStorage.getItem('selectedLocation');
     const savedLat = localStorage.getItem('selectedLocationLat');
@@ -87,7 +81,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
     if (savedLocation) {
       setSelectedLocation(savedLocation);
       if (savedLat && savedLong) {
-        // just log if needed
         console.log('📍 coords', {
           address: savedLocation,
           latitude: parseFloat(savedLat),
@@ -98,32 +91,25 @@ export default function TopBar({ onSearch }: TopBarProps) {
     setLocationLoaded(true);
   }, []);
 
-  /** Determine storage key based on path */
   const getStorageKey = useCallback(() => {
     return pathname === '/shops'
       ? 'searchHistoryShops'
       : 'searchHistoryProducts';
   }, [pathname]);
 
-  /** Load history from API (skip entirely on /shops) */
+  /** Load history */
   useEffect(() => {
     const loadSearchHistory = async () => {
       try {
         setLoadingHistory(true);
-
-        // Do NOT use API for shops, and don’t show any history there
         if (pathname === '/shops' || !isLoggedIn) {
           setHistory([]);
           return;
         }
 
-        // Optional: quick count (kept as your original diagnostic step)
         await SearchHistoryService.getSearchHistoryCount();
-
-        // Try recent first
         let response = await SearchHistoryService.getRecentSearches();
 
-        // Fallback to paged list
         if (
           response.error ||
           !response.data?.data ||
@@ -141,7 +127,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
           }
         }
 
-        // If still empty, fallback to distinct keywords
         if (
           !response.error &&
           (!response.data?.data ||
@@ -169,7 +154,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
         if (response.error) {
           console.error('Failed to load search history:', response.error);
-          // local fallback (for products page only)
           const stored = localStorage.getItem(getStorageKey());
           if (stored) setHistory(normalizeHistory(JSON.parse(stored)));
         } else {
@@ -178,7 +162,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
         }
       } catch (error) {
         console.error('Error loading search history:', error);
-        // local fallback (for products page only)
         const stored = localStorage.getItem(getStorageKey());
         if (stored) setHistory(normalizeHistory(JSON.parse(stored)));
       } finally {
@@ -196,27 +179,20 @@ export default function TopBar({ onSearch }: TopBarProps) {
     }
   }, [isShoplist, showHistory]);
 
-  /** Load selected location on component mount & refresh */
-  useEffect(() => {
-    loadSelectedLocation();
-  }, [loadSelectedLocation]);
   useEffect(() => {
     loadSelectedLocation();
   }, [loadSelectedLocation]);
 
   useEffect(() => {
     if (showHistory) {
-      // prevent background scroll
       const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-
       return () => {
         document.body.style.overflow = prev;
       };
     }
   }, [showHistory]);
 
-  /** Listen for storage changes to update selected location */
   useEffect(() => {
     const handleStorageChange = () => {
       loadSelectedLocation();
@@ -229,12 +205,10 @@ export default function TopBar({ onSearch }: TopBarProps) {
     };
   }, [loadSelectedLocation]);
 
-  /** Save search term via API (skip for /shops) */
+  /** Save history */
   const saveHistory = useCallback(
     (term: string) => {
       if (!term?.trim()) return;
-
-      // Only save when logged in AND not on /shops
       if (!isLoggedIn || pathname === '/shops') return;
 
       (async () => {
@@ -248,7 +222,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
             return;
           }
 
-          // Refresh recent list after successful add
           const refresh = await SearchHistoryService.getRecentSearches();
           if (!refresh.error) {
             const raw = refresh.data?.data || refresh.data || [];
@@ -278,23 +251,14 @@ export default function TopBar({ onSearch }: TopBarProps) {
       localStorage.setItem('shopSearchKeywords', JSON.stringify(updated));
       setShopKeywords(updated);
     }
+
     if (!term) {
       toast.error('검색어를 입력해주세요.');
       return;
     }
 
-    // 🔹 Save keyword to localStorage only for /shops
     if (pathname === '/shops') {
-      const stored = localStorage.getItem('shopSearchKeywords');
-      const keywords = stored ? JSON.parse(stored) : [];
-      const updated = [
-        term,
-        ...keywords.filter((k: string) => k !== term),
-      ].slice(0, 10); // keep only 10
-      localStorage.setItem('shopSearchKeywords', JSON.stringify(updated));
-
       try {
-        // 🔹 Use the new POST address search endpoint for /shops
         const response = await AddressService.searchAddressByKeywordAlternative(
           {
             keyword: term,
@@ -312,11 +276,9 @@ export default function TopBar({ onSearch }: TopBarProps) {
         console.error('[TopBar] Address search POST error:', error);
       }
     } else {
-      // 🔹 For all other pages, save via backend as usual
       saveHistory(term);
     }
 
-    // Save search keyword locally for shops
     if (isShoplist) {
       const stored = localStorage.getItem('shopSearchKeywords');
       const keywords = stored ? JSON.parse(stored) : [];
@@ -340,7 +302,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
     setInputValue('');
     inputRef.current?.blur();
     setShowHistory(false);
-  }, [inputValue, pathname, router, onSearch, saveHistory]);
+  }, [inputValue, pathname, router, onSearch, saveHistory, isShoplist]);
 
   const handleBack = () => {
     if (pathname.startsWith('/products/search')) {
@@ -350,7 +312,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
     }
   };
 
-  /** Handle Enter safely for Korean/Japanese IME */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -363,7 +324,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
     submitSearch();
   };
 
-  /** Select from history */
   const handleSelectHistory = (term: string) => {
     setInputValue(term);
     if (onSearch) onSearch(term);
@@ -377,12 +337,10 @@ export default function TopBar({ onSearch }: TopBarProps) {
     setShowHistory(false);
   };
 
-  /** Delete one item */
   const handleDeleteItem = async (
     e: React.MouseEvent<HTMLButtonElement>,
     keyword: string
   ) => {
-    // prevent parent click (select/navigate) + any default behavior
     e.preventDefault();
     e.stopPropagation();
 
@@ -404,7 +362,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
     }
   };
 
-  /** Delete all */
   const handleClearAll = async () => {
     try {
       const response = await SearchHistoryService.clearSearchHistory();
@@ -421,9 +378,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
     }
   };
 
-  const handleFocus = () => {
-    setShowHistory(true);
-  };
+  const handleFocus = () => setShowHistory(true);
   const handleBlur = () => setTimeout(() => setShowHistory(false), 200);
 
   return (
@@ -442,7 +397,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
       }
     >
       <div className={styles.inner}>
-        {/* Logo / Back / Location */}
         <div className={styles.logoWrapper}>
           {pathname === '/client/pages/homepage' ||
           pathname === '/shops' ||
@@ -479,7 +433,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
             </button>
           )}
         </div>
-
         <TopIcons />
       </div>
 
@@ -541,7 +494,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
                     (item: any, idx: number) => {
                       const keyword = isShoplist ? item : item.keyword;
                       const searchedAt = !isShoplist ? item.searchedAt : null;
-
                       return (
                         <div
                           key={`history-${idx}`}
@@ -555,7 +507,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
                                 {keyword}
                               </span>
                             </div>
-
                             <div className={styles.historyRight}>
                               {!isShoplist && searchedAt && (
                                 <span className={styles.historyTime}>
@@ -628,7 +579,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
                           {
                             enableHighAccuracy: true,
                             timeout: 10000,
-                            maximumAge: 300000, // cache up to 5 min
+                            maximumAge: 300000,
                           }
                         );
                       }
@@ -636,7 +587,6 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
                     const { latitude, longitude } = position.coords;
 
-                    // Store in localStorage (like LocationPage)
                     localStorage.setItem('selectedLocation', '현재 위치');
                     localStorage.setItem(
                       'selectedLocationLat',
@@ -647,9 +597,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
                       longitude.toString()
                     );
 
-                    // Notify app that location changed
                     window.dispatchEvent(new CustomEvent('locationChanged'));
-
                     toast.success('현재 위치를 업데이트했습니다.', {
                       id: 'getLocation',
                     });

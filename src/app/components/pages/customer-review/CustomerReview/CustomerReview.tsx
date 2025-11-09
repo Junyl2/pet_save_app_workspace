@@ -10,14 +10,15 @@ import {
   ReviewSearchParams,
 } from '@/app/api/types/member/review/review';
 import ReportModal from '@/app/components/ui/modal/ReportModal/ReportModal';
-import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination'; // ✅ import pagination
+import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
+import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
 import styles from './CustomerReviews.module.css';
 
 interface CustomerReviewsProps {
   productId: string;
 }
 
-const PAGE_SIZE = 5; // show 5 reviews per page
+const PAGE_SIZE = 10;
 
 // Helper function to get Korean rating comment
 const getRatingComment = (rating: number): string => {
@@ -164,20 +165,9 @@ export const CustomerReviews = ({ productId }: CustomerReviewsProps) => {
               <p className={styles.productName}>{review.productName}</p>
             )}
 
-            {review.imageUrls && review.imageUrls.length > 0 && (
-              <div className={styles.images}>
-                {review.imageUrls.map((img, idx) => (
-                  <Image
-                    key={idx}
-                    src={img}
-                    alt={`review-${review.reviewId}-img-${idx}`}
-                    width={100}
-                    height={100}
-                    className={styles.reviewImage}
-                  />
-                ))}
-              </div>
-            )}
+            {review.imageUrls?.length ? (
+              <ReviewImageGallery images={review.imageUrls} />
+            ) : null}
 
             <p className={styles.content}>{review.content}</p>
 

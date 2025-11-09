@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import styles from './ProductGrid.module.css';
 import { useFavorites } from '@/app/context/FavoritesContext';
@@ -19,13 +19,16 @@ import {
 } from '@/app/redux/slices/cache/productSlice';
 import { useStoreDetails } from '../../hooks/use-store-details';
 import { useLocationState } from '../../hooks/use-location-state';
+import { BlockService } from '@/app/api/services/client/memberService/block/blockService';
 
 interface ProductGridProps {
   products?: Product[];
-  category?: string;
+  categoryName?: string;
   searchTerm?: string;
   storeId?: string;
   currentPage?: number;
+  sortBy?: ProductCacheKey['sortBy'];
+  direction?: ProductCacheKey['direction'];
   onPageChange?: (page: number) => void;
   onProductClick?: (product: Product) => void;
   onAddToCart?: (product: Product) => void;
@@ -33,30 +36,25 @@ interface ProductGridProps {
 
 export const ProductGrid = ({
   products: initialProducts,
-  category,
+  categoryName,
   searchTerm = '',
   storeId,
   currentPage: externalCurrentPage,
   onPageChange: externalOnPageChange,
   onProductClick,
   onAddToCart,
+  sortBy = 'createdAt',
+  direction = 'desc',
 }: ProductGridProps) => {
   const { toggleFavorite, isFavorited } = useFavorites();
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-  // Store details hook
-  const {
-    storeDetails,
-    fetchStoreDetails,
-    getStoreDetails,
-    isLoading: isStoreLoading,
-  } = useStoreDetails();
-
-  // Location state hook
+  const searchParams = useSearchParams();
   const { isLocationAvailable } = useLocationState();
+  const { storeDetails, fetchStoreDetails, getStoreDetails, isLoading } =
+    useStoreDetails();
 
-  // Redux state
   const { cache, loading, backgroundLoading, isStale } = useAppSelector(
     (state) => state.products
   );
@@ -64,32 +62,48 @@ export const ProductGrid = ({
   const [currentPage, setCurrentPage] = useState(externalCurrentPage || 0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [isStoreBlocked, setIsStoreBlocked] = useState<boolean | null>(null);
 
-  // Get current cache key
-  const getCurrentCacheKey = (): string => {
-    return `${storeId || 'general'}_${category || 'all'}_${
-      searchTerm || ''
-    }_${currentPage}`;
-  };
+  /** 🔍 Check if store is blocked */
+  useEffect(() => {
+    const checkBlockStatus = async () => {
+      if (!storeId) {
+        setIsStoreBlocked(false);
+        return;
+      }
+      try {
+        const res = await BlockService.checkIfStoreBlocked(storeId);
+        const blocked =
+          res.data?.data?.isBlocked === true ||
+          res.data?.resultMsg?.toLowerCase().includes('blocked');
+        setIsStoreBlocked(!!blocked);
+      } catch (err) {
+        console.error('[ProductGrid] Failed to check block status', err);
+        setIsStoreBlocked(false);
+      }
+    };
+    checkBlockStatus();
+  }, [storeId]);
 
-  // Get current products and page info from cache
-  const currentCacheKeyString = getCurrentCacheKey();
-  const cachedData = cache[currentCacheKeyString];
-  const products = useMemo(() => {
-    return cachedData?.products || initialProducts || [];
-  }, [cachedData?.products, initialProducts]);
+  /** Cache key per combination */
+  const getCacheKey = (): string =>
+    `${storeId || 'general'}_${categoryName || 'all'}_${searchTerm}_${currentPage}_${sortBy || 'createdAt'}_${direction || 'desc'}`;
+
+  const currentCacheKey = getCacheKey();
+  const cachedData = cache[currentCacheKey];
+  const products = useMemo(
+    () => cachedData?.products || initialProducts || [],
+    [cachedData?.products, initialProducts]
+  );
+
   const pageInfo = cachedData?.pageInfo || {
     totalElements: 0,
     totalPages: 0,
     currentPage: 0,
     pageSize: 10,
-    first: true,
-    last: false,
-    hasNext: false,
-    hasPrevious: false,
   };
 
-  // Sync external currentPage with internal state
+  /** Sync external page with state */
   useEffect(() => {
     if (
       externalCurrentPage !== undefined &&
@@ -99,138 +113,133 @@ export const ProductGrid = ({
     }
   }, [externalCurrentPage, currentPage]);
 
-  // Fetch products using Redux
+  /** Fetch products if not initial */
   useEffect(() => {
-    if (initialProducts) return;
+    if (initialProducts || isStoreBlocked) return;
 
-    const cacheKeyParams: ProductCacheKey = {
-      category,
+    const key: ProductCacheKey = {
+      categoryName,
       searchTerm,
       storeId,
       page: currentPage,
+      sortBy,
+      direction,
     };
 
-    console.log('Dispatching fetchProducts with params:', cacheKeyParams);
-    dispatch(fetchProducts(cacheKeyParams));
-  }, [category, searchTerm, storeId, currentPage, initialProducts, dispatch]);
+    dispatch(fetchProducts(key));
+  }, [
+    categoryName,
+    searchTerm,
+    storeId,
+    currentPage,
+    initialProducts,
+    sortBy,
+    direction,
+    dispatch,
+    isStoreBlocked,
+  ]);
 
-  // Reset pagination when category or search term changes (but not when currentPage changes)
-  // Only reset if we're not using external pagination control
+  /** Reset when category/search/sort changes */
   useEffect(() => {
     if (initialProducts || externalOnPageChange) return;
-    console.log('Category or search term changed, resetting to page 0');
     setCurrentPage(0);
-  }, [category, searchTerm, storeId, initialProducts, externalOnPageChange]);
+  }, [categoryName, searchTerm, storeId, sortBy, direction]);
 
-  // Debug useEffect to track currentPage changes
-  useEffect(() => {
-    console.log('currentPage changed to:', currentPage);
-  }, [currentPage]);
-
-  // Listen for location changes and invalidate cache
+  /** Handle location change invalidation */
   useEffect(() => {
     const handleLocationChange = () => {
-      console.log('📍 Location changed, invalidating product cache');
       dispatch(invalidateCacheForLocationChange());
-
-      // Re-fetch store details for all products when location changes
-      if (products.length > 0 && isLocationAvailable) {
-        console.log('🔄 Re-fetching store details due to location change');
-        const uniqueStoreIds = new Set<string>();
-        products.forEach((product) => {
-          const productStoreId = product.storeId || product.store?.storeId;
-          if (productStoreId) {
-            uniqueStoreIds.add(String(productStoreId));
-          }
-        });
-
-        uniqueStoreIds.forEach((storeId) => {
-          console.log('🔍 Re-fetching details for storeId:', storeId);
-          fetchStoreDetails(storeId);
-        });
+      if (isLocationAvailable && products.length) {
+        const uniqueStoreIds = new Set(
+          products
+            .map((p) => (p.storeId || p.store?.storeId)?.toString())
+            .filter((id): id is string => Boolean(id))
+        );
+        uniqueStoreIds.forEach((id) => fetchStoreDetails(id));
       }
     };
-
     window.addEventListener('locationChanged', handleLocationChange);
     return () =>
       window.removeEventListener('locationChanged', handleLocationChange);
   }, [dispatch, products, fetchStoreDetails, isLocationAvailable]);
 
-  // Background revalidation when data becomes stale
+  /** Background revalidation */
   useEffect(() => {
-    if (isStale && !loading && !backgroundLoading) {
-      console.log('🔄 Data is stale, starting background revalidation');
-      const cacheKeyParams: ProductCacheKey = {
-        category,
+    if (isStale && !loading && !backgroundLoading && !isStoreBlocked) {
+      const params: ProductCacheKey = {
+        categoryName,
         searchTerm,
         storeId,
         page: currentPage,
+        sortBy,
+        direction,
       };
-      dispatch(revalidateProductsInBackground(cacheKeyParams));
+      dispatch(revalidateProductsInBackground(params));
     }
   }, [
     isStale,
     loading,
     backgroundLoading,
-    category,
+    categoryName,
     searchTerm,
     storeId,
     currentPage,
+    sortBy,
+    direction,
     dispatch,
+    isStoreBlocked,
   ]);
 
-  // Fetch store details for all products
+  /** Fetch store details if available */
   useEffect(() => {
-    if (products.length === 0) return;
-
-    // Check if location is available before attempting to fetch store details
-    if (!isLocationAvailable) {
-      console.log('⚠️ No location selected, skipping store details fetch');
-      return;
-    }
-
-    console.log('🔄 Fetching store details for products:', products.length);
-
-    // Get unique store IDs from products
-    const uniqueStoreIds = new Set<string>();
-
-    products.forEach((product) => {
-      const productStoreId = product.storeId || product.store?.storeId;
-      if (productStoreId) {
-        uniqueStoreIds.add(String(productStoreId));
-      }
-    });
-
-    // Fetch store details for each unique store ID
-    uniqueStoreIds.forEach((storeId) => {
-      if (!storeDetails[storeId] && !isStoreLoading(storeId)) {
-        console.log('🔍 Fetching details for storeId:', storeId);
-        fetchStoreDetails(storeId);
-      }
+    if (!isLocationAvailable || !products.length) return;
+    const uniqueIds = new Set(
+      products
+        .map((p) => (p.storeId || p.store?.storeId)?.toString())
+        .filter((id): id is string => Boolean(id))
+    );
+    uniqueIds.forEach((id) => {
+      if (!storeDetails[id] && !isLoading(id)) fetchStoreDetails(id);
     });
   }, [
     products,
     storeDetails,
-    isStoreLoading,
     fetchStoreDetails,
+    isLoading,
     isLocationAvailable,
   ]);
 
+  /** Pagination handler */
   const handlePageChange = (page: number) => {
-    console.log('ProductGrid: handlePageChange called with page:', page);
-    if (externalOnPageChange) {
-      externalOnPageChange(page);
-    } else {
-      setCurrentPage(page);
-    }
+    if (externalOnPageChange) externalOnPageChange(page);
+    else setCurrentPage(page);
   };
 
-  // Show loading only if we don't have cached data and are loading
+  /** 🚫 Hide everything if blocked */
+  if (storeId && isStoreBlocked === null) {
+    return <ProductSkeleton count={5} />;
+  }
+
+  if (storeId && isStoreBlocked === true) {
+    return (
+      <div className={styles.emptyContainer}>
+        <Image
+          src="/images/products/blocked.png"
+          alt="Blocked store"
+          width={90}
+          height={90}
+          className={styles.emptyImage}
+        />
+        <p className={styles.emptyText}>
+          이 매장은 차단되어 있어 상품을 표시할 수 없습니다.
+        </p>
+      </div>
+    );
+  }
+
+  /** Show skeleton when fetching */
   const shouldShowLoading = loading && !cachedData && !initialProducts;
   if (shouldShowLoading) return <ProductSkeleton count={5} />;
-
-  // Show background loading indicator if data is being revalidated
-  const showBackgroundLoading = backgroundLoading && cachedData;
 
   if (products.length === 0)
     return (
@@ -244,61 +253,36 @@ export const ProductGrid = ({
         />
         <p className={styles.emptyText}>
           {storeId
-            ? '이 매장 카테고리에는 상품이 없습니다.'
-            : '이 카테고리에는 제품이 없습니다.'}
+            ? '이 매장에는 상품이 없습니다.'
+            : '해당 카테고리에 등록된 상품이 없습니다.'}
         </p>
       </div>
     );
 
   return (
     <div className={styles.mainContainer}>
-      {/* Background loading indicator */}
-      {showBackgroundLoading && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '10px',
-            right: '10px',
-            background: 'rgba(0,0,0,0.7)',
-            color: 'white',
-            padding: '8px 12px',
-            borderRadius: '4px',
-            fontSize: '12px',
-            zIndex: 1000,
-          }}
-        >
-          🔄 업데이트 중...
-        </div>
-      )}
       <div className={styles.grid}>
         {products.map((product) => {
-          // Add safety check for product.id (API uses productId)
-          const productId = product?.productId || product?.id;
-          if (!product || !productId) {
-            console.warn('Product missing id:', product);
-            return null;
-          }
+          const productId = product.productId ?? product.id;
+          if (!productId) return null;
 
-          const isProductFavorited = isFavorited(productId.toString());
-
-          // Get store details for this product
-          const productStoreId = product.storeId || product.store?.storeId;
-          const storeDetails = productStoreId
-            ? getStoreDetails(String(productStoreId))
+          const productIdStr = String(productId);
+          const isFav = isFavorited(productIdStr);
+          const productStoreId =
+            (product.storeId ?? product.store?.storeId)?.toString() || '';
+          const details = productStoreId
+            ? getStoreDetails(productStoreId)
             : null;
 
           return (
             <div
-              key={productId}
+              key={productIdStr}
               className={styles.card}
-              onClick={() => {
-                if (onProductClick) {
-                  onProductClick(product);
-                } else {
-                  router.push(`/client/pages/products/${productId}`);
-                }
-              }}
-              style={{ cursor: 'pointer' }}
+              onClick={() =>
+                onProductClick
+                  ? onProductClick(product)
+                  : router.push(`/client/pages/products/${productIdStr}`)
+              }
             >
               <div className={styles.imageWrapper}>
                 <Image
@@ -312,18 +296,13 @@ export const ProductGrid = ({
                   width={120}
                   height={120}
                   className={styles.image}
-                  unoptimized={(
-                    product.thumbnail ||
-                    product.image ||
-                    (product as Product & { images?: string[] }).images?.[0] ||
-                    ''
-                  ).includes('211.107.13.167')}
+                  unoptimized
                 />
               </div>
               <div className={styles.content}>
                 <div className={styles.header}>
                   <h3 className={styles.name}>
-                    {product.name || product.productName || 'Unnamed Product'}
+                    {product.name || product.productName}
                   </h3>
                   <div className={styles.icons}>
                     <button
@@ -336,89 +315,65 @@ export const ProductGrid = ({
                       }}
                     >
                       <Image
-                        src={'/images/icons/Cart.png'}
+                        src="/images/icons/Cart.png"
                         alt="Cart Icon"
                         width={24}
                         height={22}
-                        className="object-contain"
                       />
                     </button>
                     <button
+                      className={styles.iconBtn}
                       onClick={async (e) => {
                         e.stopPropagation();
-                        await toggleFavorite(productId.toString());
+                        await toggleFavorite(productIdStr);
                       }}
-                      className={styles.iconBtn}
                     >
                       <Image
                         src={
-                          isProductFavorited
+                          isFav
                             ? '/images/products/heart-active.png'
                             : '/images/products/heart-default.png'
                         }
                         alt="Heart Icon"
                         width={24}
                         height={22}
-                        className="object-contain"
                       />
                     </button>
                   </div>
                 </div>
-                <p className={styles.detail}>
-                  {/*   {product.weight || product.productWeight || 'N/A'} */}
-                </p>
                 <p className={styles.price}>
                   {(() => {
-                    // For your API: salePrice is the higher price, discountedPrice is the lower price
-                    const higherPrice =
+                    const high =
                       product.salePrice ||
                       product.price ||
                       product.originalPrice ||
                       product.regularPrice ||
                       product.productPrice;
-                    const lowerPrice =
+                    const low =
                       product.discountedPrice || product.discountPrice;
 
-                    // If we have both prices and they're different, show both with strike-through
-                    if (
-                      higherPrice &&
-                      lowerPrice &&
-                      higherPrice !== lowerPrice
-                    ) {
+                    if (high && low && high !== low) {
                       return (
                         <>
                           <span className={styles.original}>
-                            {higherPrice.toLocaleString('ko-KR')}원
+                            {high.toLocaleString('ko-KR')}원
                           </span>
                           <span className={styles.discount}>
-                            {lowerPrice.toLocaleString('ko-KR')}원
+                            {low.toLocaleString('ko-KR')}원
                           </span>
                         </>
                       );
                     }
-                    // If we only have one price, show it
-                    else if (higherPrice || lowerPrice) {
-                      const priceToShow = higherPrice || lowerPrice || 0;
-                      return `${priceToShow.toLocaleString('ko-KR')}원`;
-                    }
-                    // Fallback
-                    else {
-                      return '0원';
-                    }
+                    const show = low || high || 0;
+                    return `${show.toLocaleString('ko-KR')}원`;
                   })()}
                 </p>
                 <p className={styles.info}>
-                  {product.expiryDate
-                    ? new Date(product.expiryDate).toLocaleDateString('ko-KR') +
-                      '까지'
-                    : product.expiration || 'N/A'}{' '}
+                  {formatAddressForDisplay(product.store?.address || '')}
                   <br />
-                  {formatAddressForDisplay(product.store?.address || '')} <br />
-                  {/* Show distanceKm from store details if available, otherwise fallback to existing distance */}
-                  {storeDetails?.distanceKm !== null &&
-                  storeDetails?.distanceKm !== undefined
-                    ? `${storeDetails.distanceKm.toFixed(1)}km`
-                    : product.distance || product.storeDistance || 'N/A'}
+                  {details?.distanceKm
+                    ? `${details.distanceKm.toFixed(1)}km`
+                    : product.distance || '∞km'}
                 </p>
               </div>
             </div>
@@ -426,12 +381,10 @@ export const ProductGrid = ({
         })}
       </div>
 
-      {/* Pagination - show if there are multiple pages */}
       {pageInfo.totalPages > 1 && (
         <Pagination pageInfo={pageInfo} onPageChange={handlePageChange} />
       )}
 
-      {/* cart modal */}
       {selectedProduct && (
         <CartModal
           open={cartOpen}
@@ -439,21 +392,15 @@ export const ProductGrid = ({
           productName={
             selectedProduct.name || selectedProduct.productName || 'Product'
           }
-          productPrice={(() => {
-            // Use the lower price (discounted price) for cart
-            const lowerPrice =
-              selectedProduct.discountedPrice || selectedProduct.discountPrice;
-            const higherPrice =
-              selectedProduct.salePrice ||
-              selectedProduct.price ||
-              selectedProduct.originalPrice ||
-              selectedProduct.regularPrice ||
-              selectedProduct.productPrice;
-            return lowerPrice || higherPrice || 0;
-          })()}
-          productId={String(selectedProduct.productId || selectedProduct.id)}
+          productPrice={
+            selectedProduct.discountedPrice ||
+            selectedProduct.discountPrice ||
+            selectedProduct.price ||
+            0
+          }
+          productId={String(selectedProduct.productId ?? selectedProduct.id)}
           storeId={String(
-            selectedProduct.storeId || selectedProduct.store?.storeId
+            selectedProduct.storeId ?? selectedProduct.store?.storeId ?? ''
           )}
         />
       )}

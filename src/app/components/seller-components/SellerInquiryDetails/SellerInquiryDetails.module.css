@@ -2,6 +2,7 @@
   background: #fff;
   min-height: calc(100vh - 72px) !important;
   margin-top: 71.59px;
+  padding-bottom: 5rem;
 }
 
 .tabs {
@@ -123,6 +124,7 @@
   margin-left: -1rem;
   margin-right: -1rem;
 }
+
 .card {
   background: rgba(255, 255, 255, 0.8);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);

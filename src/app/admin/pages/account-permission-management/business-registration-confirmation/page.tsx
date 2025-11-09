@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
@@ -32,8 +32,8 @@ export default function BusinessRegistrationConfirmationPage() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  /** Fetch real business registration data */
-  const fetchBusinessRegistrations = async (): Promise<void> => {
+  /** Fetch business registration data */
+  const fetchBusinessRegistrations = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
       const response =
@@ -69,13 +69,13 @@ export default function BusinessRegistrationConfirmationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
 
   useEffect(() => {
     void fetchBusinessRegistrations();
-  }, [page]);
+  }, [fetchBusinessRegistrations]);
 
-  /** Approve a registration */
+  /** Approve registration */
   const handleApprove = async (requestId: string): Promise<void> => {
     if (!confirm('해당 사업자 등록을 승인하시겠습니까?')) return;
     setProcessingId(requestId);
@@ -93,7 +93,7 @@ export default function BusinessRegistrationConfirmationPage() {
     }
   };
 
-  /** Reject a registration */
+  /** Reject registration */
   const handleReject = async (requestId: string): Promise<void> => {
     const reason = prompt('거절 사유를 입력하세요:');
     if (!reason) return;

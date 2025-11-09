@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from './SellerInquiryDetails.module.css';
-import { FaChevronDown } from 'react-icons/fa';
 import Image from 'next/image';
+import { FaChevronDown } from 'react-icons/fa';
+import styles from './SellerInquiryDetails.module.css';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import BottomBar from '../../sections/BottomBar/BottomBar';
 import { useUser } from '@/app/context/userContext';
@@ -126,29 +126,21 @@ export default function SellerInquiryDetails() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const hasFetchedOnce = useRef(false);
-
   // Redirect non-sellers
   useEffect(() => {
-    if (user?.role !== 'seller' || !user?.storeId) {
+    if (!user) return;
+    if (user.role !== 'seller' || !user.storeId) {
       router.push('/client/pages/homepage');
     }
-  }, [user, router]);
+  }, [user, user?.role, user?.storeId, router]);
 
-  // ✅ Fetch inquiries safely
+  // Fetch inquiries
   useEffect(() => {
-    if (!user?.role || user.role !== 'seller' || !user.storeId) return;
-
-    // prevent StrictMode double-call
-    if (hasFetchedOnce.current) {
-      hasFetchedOnce.current = false;
-    } else {
-      hasFetchedOnce.current = true;
-    }
+    if (!user || user.role !== 'seller' || !user.storeId) return;
 
     const fetchInquiries = async (): Promise<void> => {
       setLoading(true);
-      setInquiries([]); // clear old before loading new
+      setInquiries([]);
 
       try {
         const statusParam = tab === '답변 완료' ? 'ANSWERED' : 'WAITING';
@@ -182,8 +174,8 @@ export default function SellerInquiryDetails() {
       }
     };
 
-    fetchInquiries();
-  }, [user?.storeId, currentPage, tab]); // ✅ refetch only when these change
+    void fetchInquiries();
+  }, [user, user?.role, user?.storeId, currentPage, tab]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -365,7 +357,7 @@ export default function SellerInquiryDetails() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ marginTop: '2rem', marginBottom: '3rem' }}>
+          <div style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
             <ClientPagination
               currentPage={currentPage}
               totalPages={totalPages}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import styles from './page.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
@@ -23,10 +23,9 @@ interface ReferrerData {
 
 const PAGE_SIZE = 10;
 
-export default function DocumentListPage() {
+export default function DocumentListPage(): React.ReactElement {
   const [selectedOption, setSelectedOption] = useState('전체');
   const [open, setOpen] = useState(false);
-
   const { page, setPage } = usePageParam(1);
   const router = useRouter();
   const pathname = usePathname();
@@ -112,7 +111,17 @@ export default function DocumentListPage() {
     () => mockData.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
     [page]
   );
+
   const totalPages = Math.ceil(mockData.length / PAGE_SIZE);
+
+  /** Toggle dropdown visibility */
+  const toggleDropdown = useCallback(() => setOpen((prev) => !prev), []);
+
+  /** Select filter option */
+  const handleSelectOption = useCallback((option: string): void => {
+    setSelectedOption(option);
+    setOpen(false);
+  }, []);
 
   return (
     <>
@@ -138,15 +147,27 @@ export default function DocumentListPage() {
       </header>
 
       <div className={styles.topHeader}>
+        {/* Dropdown */}
         <div className={styles.dropdownWrapper}>
-          <div className={styles.dropdownHeader}>
+          <div
+            className={styles.dropdownHeader}
+            onClick={toggleDropdown}
+            role="button"
+            tabIndex={0}
+          >
             <span>{selectedOption}</span>
             <IoChevronDownOutline className={styles.dropdownIcon} />
           </div>
           {open && (
             <div className={styles.dropdownList}>
               {['전체', '판매중', '품절'].map((option) => (
-                <div key={option} className={styles.dropdownItem}>
+                <div
+                  key={option}
+                  className={styles.dropdownItem}
+                  onClick={() => handleSelectOption(option)}
+                  role="button"
+                  tabIndex={0}
+                >
                   {option}
                 </div>
               ))}
@@ -154,6 +175,7 @@ export default function DocumentListPage() {
           )}
         </div>
 
+        {/* Search Bar */}
         <div className={styles.searchWrap}>
           <input
             type="text"
@@ -166,17 +188,16 @@ export default function DocumentListPage() {
         </div>
       </div>
 
+      {/* Table */}
       <div className={styles.container}>
-        {/* Header */}
         <div className={styles.header}>
           <div>판매자</div>
           <div>총 가입자</div>
           <div>총 지급액</div>
           <div>상태</div>
-          <div></div>
+          <div />
         </div>
 
-        {/* Data Rows */}
         {pagedData.map((item) => (
           <div key={item.id} className={styles.row}>
             <div>{item.storeName}</div>

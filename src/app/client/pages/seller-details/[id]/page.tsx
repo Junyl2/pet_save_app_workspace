@@ -36,7 +36,7 @@ export default function SellerDetailsPage() {
 
   // Get current page and category from URL parameters
   const currentPage = parseInt(searchParams.get('page') || '0', 10);
-  const urlCategory = searchParams.get('category') || '';
+  const urlCategory = searchParams.get('categoryName') || '';
 
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>(urlCategory);
@@ -200,12 +200,12 @@ export default function SellerDetailsPage() {
   };
 
   // Handle category change by updating URL
-  const handleCategoryChange = (category: string) => {
+  const handleCategoryChange = (categoryName: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (category === '') {
-      params.delete('category');
+    if (categoryName === '') {
+      params.delete('categoryName');
     } else {
-      params.set('category', category);
+      params.set('categoryName', categoryName);
     }
     // Reset to page 0 when changing category
     params.delete('page');
@@ -307,7 +307,7 @@ export default function SellerDetailsPage() {
         </div>
 
         <ProductGrid
-          category={selectedCategory}
+          categoryName={selectedCategory}
           storeId={storeId}
           currentPage={currentPage}
           onPageChange={handlePageChange}
@@ -319,7 +319,6 @@ export default function SellerDetailsPage() {
               console.error('Product missing ID:', product);
             }
           }}
-        />
       </div>
     </>
   );

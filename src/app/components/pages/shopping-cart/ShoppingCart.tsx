@@ -617,7 +617,6 @@ export default function ShoppingCartPage() {
                         product.id !== undefined && toggleSelectItem(product.id)
                       }
                       className={styles.checkbox}
-                      disabled={isProductExpired(product.expiration)}
                     />
                   </div>
                   <div className={styles.left}>

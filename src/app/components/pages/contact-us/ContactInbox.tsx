@@ -1,33 +1,33 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { ContactInquiry } from '@/app/api/types/contact/contact';
+import { MyInquiry } from '@/app/api/types/member/inquiry-details/inquiry';
 import { contactService } from '@/app/api/services/contact-service/contactService';
 import { MemberInquiryService } from '@/app/api/services/client/memberService/inquiry-details/memberInquiryService';
-import { MyInquiry } from '@/app/api/types/member/inquiry-details/inquiry';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import ContactInboxSkeleton from '../../ui/SkeletonLoading/ContactInboxSkeleton/ContactInboxSkeleton';
-import styles from './ContactInbox.module.css';
-import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import { DotMenu } from '../../ui/DotMenu/DotMenu';
-import { useRouter } from 'next/navigation';
 import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
+import { DotMenu } from '../../ui/DotMenu/DotMenu';
+import styles from './ContactInbox.module.css';
 
 type RangeLabel = '1개월' | '6개월' | '1년' | '전체보기';
 
-type ContactInboxProps = {
+interface ContactInboxProps {
   hideMenu?: boolean;
   extraActionsRender?: React.ReactNode;
   initialRange?: RangeLabel;
-};
+}
 
 const PAGE_SIZE = 10;
 
-// Convert API response type to ContactInquiry
+/** Normalize API inquiry → UI inquiry */
 const transformMyInquiryToContactInquiry = (
   myInquiry: MyInquiry
 ): ContactInquiry => ({
-  id: parseInt(myInquiry.inquiryId.split('-')[0], 16) || 0,
+  id: myInquiry.inquiryId,
   inquiryId: myInquiry.inquiryId,
   date: myInquiry.createdAt,
   shopName: myInquiry.store.name,
@@ -50,62 +50,72 @@ export default function ContactInbox({
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState<RangeLabel>(initialRange);
-  const [currentPage, setCurrentPage] = useState(1); // 1-based
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   const rangeOptions: RangeLabel[] = ['1개월', '6개월', '1년', '전체보기'];
 
-  const getDateRangeParams = (range: RangeLabel) => {
+  /** Always return explicit params for the selected range */
+  const getDateRangeParams = useCallback((range: RangeLabel) => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
 
-    switch (range) {
-      case '1개월': {
-        const d = new Date(now);
-        d.setMonth(now.getMonth() - 1);
-        return { dateStart: d.toISOString().split('T')[0], dateEnd: today };
-      }
-      case '6개월': {
-        const d = new Date(now);
-        d.setMonth(now.getMonth() - 6);
-        return { dateStart: d.toISOString().split('T')[0], dateEnd: today };
-      }
-      case '1년': {
-        const d = new Date(now);
-        d.setFullYear(now.getFullYear() - 1);
-        return { dateStart: d.toISOString().split('T')[0], dateEnd: today };
-      }
-      default:
-        return {};
-    }
-  };
+    const getPastDate = (monthsAgo: number): string => {
+      const d = new Date(now);
+      d.setMonth(now.getMonth() - monthsAgo);
+      return d.toISOString().split('T')[0];
+    };
 
+    if (range === '1개월') {
+      return { dateStart: getPastDate(1), dateEnd: today };
+    }
+    if (range === '6개월') {
+      return { dateStart: getPastDate(6), dateEnd: today };
+    }
+    if (range === '1년') {
+      const d = new Date(now);
+      d.setFullYear(now.getFullYear() - 1);
+      return { dateStart: d.toISOString().split('T')[0], dateEnd: today };
+    }
+    // 전체보기
+    return { dateStart: undefined, dateEnd: undefined };
+  }, []);
+
+  /** Fetch inquiries with date + pagination */
   const fetchInquiries = useCallback(
     async (range: RangeLabel, page: number) => {
       setLoading(true);
       try {
-        const dateParams = getDateRangeParams(range);
-        const response = await MemberInquiryService.getMyInquiries({
-          ...dateParams,
-          page: page - 1, // zero-based for API
+        const { dateStart, dateEnd } = getDateRangeParams(range);
+        const params = {
+          page: page - 1,
           size: PAGE_SIZE,
           sortBy: 'createdAt',
-          direction: 'desc',
-        });
+          direction: 'desc' as const,
+          ...(dateStart && dateEnd ? { dateStart, dateEnd } : {}),
+        };
+
+        console.log(
+          '🔍 [ContactInbox] Fetching inquiries with params:',
+          params
+        );
+
+        const response = await MemberInquiryService.getMyInquiries(params);
 
         if (response.error || !response.data) {
+          console.warn('[ContactInbox] Using fallback mock data');
           const mockData = await contactService.getAllInquiries();
           setInquiries(mockData);
           setTotalPages(1);
         } else {
-          const transformed = response.data.data.content.map(
+          const content = response.data.data.content.map(
             transformMyInquiryToContactInquiry
           );
-          setInquiries(transformed);
+          setInquiries(content);
           setTotalPages(response.data.data.pageInfo?.totalPages ?? 1);
         }
-      } catch (err) {
-        console.error('Error fetching inquiries:', err);
+      } catch (error) {
+        console.error('[ContactInbox] Error fetching inquiries:', error);
         const mockData = await contactService.getAllInquiries();
         setInquiries(mockData);
         setTotalPages(1);
@@ -113,9 +123,10 @@ export default function ContactInbox({
         setLoading(false);
       }
     },
-    []
+    [getDateRangeParams]
   );
 
+  /** Re-fetch when date range or page changes */
   useEffect(() => {
     fetchInquiries(selectedRange, currentPage);
   }, [selectedRange, currentPage, fetchInquiries]);
@@ -132,7 +143,7 @@ export default function ContactInbox({
     <>
       <ProductHeader />
 
-      {/* Top toolbar */}
+      {/* Toolbar */}
       <div className={styles.topToolbar}>
         {extraActionsRender && (
           <div className={styles.extraActions}>{extraActionsRender}</div>
@@ -147,19 +158,14 @@ export default function ContactInbox({
             aria-haspopup="listbox"
             aria-expanded={dropdownOpen}
           >
-            <span
-              className={`${styles.dropdownLabel} ${
-                selectedRange ? styles.selected : ''
-              }`}
-            >
-              {selectedRange}
-            </span>
+            <span className={styles.dropdownLabel}>{selectedRange}</span>
             {dropdownOpen ? (
               <FaChevronUp className={styles.dropdownArrow} />
             ) : (
               <FaChevronDown className={styles.dropdownArrow} />
             )}
           </button>
+
           {dropdownOpen && (
             <ul className={styles.dropdownMenu} role="listbox">
               {rangeOptions.map((option) => (
@@ -180,7 +186,7 @@ export default function ContactInbox({
         </div>
       </div>
 
-      {/* Inquiries List */}
+      {/* Inquiry List */}
       <div className={styles.container}>
         {inquiries.length === 0 ? (
           <div className={styles.emptyInbox}>
@@ -215,13 +221,15 @@ export default function ContactInbox({
                 inq.inquiryId
               );
               if (!res.error) {
-                setInquiries((prev) => prev.filter((i) => i.id !== inq.id));
+                setInquiries((prev) =>
+                  prev.filter((i) => i.inquiryId !== inq.inquiryId)
+                );
               }
             };
 
             return (
               <div
-                key={inq.id}
+                key={inq.inquiryId}
                 className={`${styles.inquiryCard} ${styles.clickable}`}
                 role="button"
                 tabIndex={0}
@@ -250,6 +258,7 @@ export default function ContactInbox({
                   </span>{' '}
                   <span className={styles.date}>{formattedDate}</span>
                 </p>
+
                 <p className={styles.shopInfo}>{inq.shopName}</p>
                 <p>{inq.category}</p>
                 <p className={styles.message}>{inq.message}</p>

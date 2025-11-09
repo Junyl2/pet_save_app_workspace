@@ -22,6 +22,7 @@ import { MyReviewsParams } from '@/app/api/types/member/review/review';
 import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
 import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
 import styles from './Reviews.module.css';
+import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
 
 const PAGE_SIZE = 10;
 
@@ -159,7 +160,6 @@ export default function ReviewsPage() {
       />
     ));
 
-  // Determine when to show the skeleton loader
   const shouldShowSkeleton =
     (activeTab === 'my-reviews' && (loading || !hasLoadedOnce)) ||
     (activeTab === 'write' &&
@@ -302,14 +302,7 @@ export default function ReviewsPage() {
 
                       {review.imageUrls?.length > 0 && (
                         <div className={styles.reviewImagesContainer}>
-                          {review.imageUrls.map((image, idx) => (
-                            <div
-                              key={`${review.reviewId}-img-${idx}`}
-                              className={styles.reviewImageItem}
-                            >
-                              <img src={image} alt="Review" />
-                            </div>
-                          ))}
+                          <ReviewImageGallery images={review.imageUrls} />
                         </div>
                       )}
 

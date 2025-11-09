@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import styles from './CustomerService.module.css';
@@ -19,7 +19,7 @@ export default function CustomerServicePage() {
   const [loading, setLoading] = useState(true);
 
   /** Fetch inquiries */
-  const fetchInquiries = async (): Promise<void> => {
+  const fetchInquiries = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
       const response = await AdminInquiryService.searchInquiries({
@@ -41,11 +41,11 @@ export default function CustomerServicePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
 
   useEffect(() => {
     void fetchInquiries();
-  }, [page]);
+  }, [fetchInquiries]);
 
   if (loading) return <div className={styles.loading}>로딩 중...</div>;
 

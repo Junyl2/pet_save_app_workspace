@@ -5,16 +5,14 @@ import {
   PreparePaymentResponse,
   ProcessPaymentResponse,
   ConfirmPaymentResponse,
+  PaymentSuccessResponse,
+  PaymentFailResponse,
 } from '@/app/api/types/admin/payment/payment';
 
 export const paymentService = {
   /**
    * Add payment to order (For bank transfer or real-time transfer ONLY)
    * POST /api/pet-save/payments/order/{orderId}/create
-   *
-   * Purpose:
-   * - Adds a new payment record for an existing order
-   * - Typically used for manual bank transfers or partial payments
    */
   addPaymentToOrder: async (
     orderId: string,
@@ -29,10 +27,6 @@ export const paymentService = {
   /**
    * Set payment amount (Manual transfer setup)
    * POST /api/pet-save/payments/{paymentId}/prepare?amount={amount}
-   *
-   * Purpose:
-   * - Used to manually set or adjust the amount to be paid
-   * - Only applicable for manual or bank transfers
    */
   preparePaymentAmount: async (
     paymentId: string,
@@ -46,10 +40,6 @@ export const paymentService = {
   /**
    * Process or confirm payment for an order
    * POST /api/pet-save/payments/orders/{paymentId}/process
-   *
-   * Purpose:
-   * - Marks a payment as successful or completed
-   * - Automatically issues an invoice if order is fully paid
    */
   processPayment: async (
     paymentId: string
@@ -62,17 +52,40 @@ export const paymentService = {
   /**
    * Confirm payment automatically (Full manual payment)
    * POST /api/pet-save/payments/orders/{orderId}/confirm
-   *
-   * Purpose:
-   * - Automatically sets existing payment as full
-   * - Used for one-step manual payment confirmation
-   * - Shortcut for /prepare -> /process
    */
   confirmFullPayment: async (
     orderId: string
   ): Promise<{ data: ConfirmPaymentResponse | null; error?: string }> => {
     return await apiClient.post<ConfirmPaymentResponse>(
       `/payments/orders/${orderId}/confirm`
+    );
+  },
+
+  /**
+   * Handle payment success (Success redirect URL for TossPayments)
+   * GET /api/pet-save/payments/success?paymentKey={key}&orderId={id}&amount={amount}
+   */
+  handlePaymentSuccess: async (
+    paymentKey: string,
+    orderId: string,
+    amount: number
+  ): Promise<{ data: PaymentSuccessResponse | null; error?: string }> => {
+    return await apiClient.get<PaymentSuccessResponse>(
+      `/payments/success?paymentKey=${paymentKey}&orderId=${orderId}&amount=${amount}`
+    );
+  },
+
+  /**
+   * Handle payment failure (Fail redirect URL for TossPayments)
+   * GET /api/pet-save/payments/fail?code={code}&message={message}&orderId={id}
+   */
+  handlePaymentFail: async (
+    code: string,
+    message: string,
+    orderId: string
+  ): Promise<{ data: PaymentFailResponse | null; error?: string }> => {
+    return await apiClient.get<PaymentFailResponse>(
+      `/payments/fail?code=${code}&message=${message}&orderId=${orderId}`
     );
   },
 };

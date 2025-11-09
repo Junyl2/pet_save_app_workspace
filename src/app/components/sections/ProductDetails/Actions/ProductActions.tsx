@@ -39,7 +39,7 @@ export const ProductActions = ({
     price: number | string,
     mode: 'buy' | 'cart'
   ) => {
-    // ✅ Ensure correct types for ProductDrawer
+    //  Ensure correct types for ProductDrawer
     const normalizedId = String(id);
     const normalizedPrice =
       typeof price === 'string' ? parseFloat(price) || 0 : price;

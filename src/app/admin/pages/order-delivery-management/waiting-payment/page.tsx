@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import styles from './WaitingPayment.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
@@ -25,6 +25,7 @@ interface OrderRow {
 
 const KRW = (n: number): string =>
   new Intl.NumberFormat('ko-KR').format(n) + '원';
+
 const PAGE_SIZE = 10;
 
 export default function WaitingPaymentPage(): React.ReactElement {
@@ -33,7 +34,8 @@ export default function WaitingPaymentPage(): React.ReactElement {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  const fetchOrders = async (): Promise<void> => {
+  /** Fetch orders */
+  const fetchOrders = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
       const { data, error } = await orderService.searchOrdersV2({
@@ -53,7 +55,6 @@ export default function WaitingPaymentPage(): React.ReactElement {
       const result = data as AdminSearchOrdersResponse;
       const content: AdminSearchOrdersData[] = result.data?.content ?? [];
 
-      // Each item = 1 row (no grouping)
       const mapped: OrderRow[] = content.map((item) => ({
         orderItemId: item.orderItemId,
         orderId: item.orderId,
@@ -72,12 +73,13 @@ export default function WaitingPaymentPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchOrders();
   }, [page]);
 
+  useEffect(() => {
+    void fetchOrders();
+  }, [fetchOrders]);
+
+  /** Cancel a specific order item */
   const handleCancelItem = async (orderItemId: string): Promise<void> => {
     const reason = prompt('취소 사유를 입력하세요:');
     if (!reason) return;
@@ -104,6 +106,7 @@ export default function WaitingPaymentPage(): React.ReactElement {
     }
   };
 
+  /** Confirm payment manually */
   const handleConfirmPayment = async (orderId: string): Promise<void> => {
     if (!confirm('이 주문의 입금을 확인하시겠습니까?')) return;
 
@@ -124,88 +127,64 @@ export default function WaitingPaymentPage(): React.ReactElement {
     }
   };
 
-  return React.createElement(
-    React.Fragment,
-    null,
-    React.createElement(
-      'div',
-      { className: styles.container },
-      React.createElement(
-        'div',
-        { className: styles.header },
-        React.createElement('div', null, '주문번호'),
-        React.createElement('div', null, '주문일시'),
-        React.createElement('div', null, '주문자'),
-        React.createElement('div', null, '연락처'),
-        React.createElement('div', null, '상품 가격'),
-        React.createElement('div', null, '결제 수단'),
-        React.createElement('div', null)
-      ),
-      loading
-        ? React.createElement(
-            'div',
-            { className: styles.loading },
-            '불러오는 중...'
-          )
-        : !orders.length
-        ? React.createElement(
-            'div',
-            { className: styles.empty },
-            '대기 중 결제 주문이 없습니다.'
-          )
-        : orders.map((order) =>
-            React.createElement(
-              'div',
-              { key: order.orderItemId, className: styles.row },
-              React.createElement('div', null, order.orderNumber),
-              React.createElement('div', null, order.createdAt),
-              React.createElement('div', null, order.customerName),
-              React.createElement('div', null, order.customerContact),
-              React.createElement('div', null, KRW(order.totalAmount)),
-              React.createElement('div', null, order.paymentMethod),
-              React.createElement(
-                'div',
-                { className: styles.actions },
-                React.createElement(
-                  'button',
-                  {
-                    className: styles.cancelBtn,
-                    onClick: () => handleCancelItem(order.orderItemId),
-                  },
-                  '상품 취소'
-                ),
-                React.createElement(
-                  'button',
-                  {
-                    className: styles.startBtn,
-                    onClick: () => handleConfirmPayment(order.orderId),
-                  },
-                  '입금 확인 처리'
-                )
-              )
-            )
-          )
-    ),
-    totalPages > 1
-      ? React.createElement(
-          'div',
-          {
-            style: {
-              display: 'flex',
-              justifyContent: 'center',
-              marginTop: 16,
-            },
-          },
-          React.createElement(
-            'div',
-            { style: { width: 320 } },
-            React.createElement(OrderPagination, {
-              currentPage: page,
-              totalPages,
-              onPageChange: setPage,
-            })
-          )
-        )
-      : null
+  return (
+    <>
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <div>주문번호</div>
+          <div>주문일시</div>
+          <div>주문자</div>
+          <div>연락처</div>
+          <div>상품 가격</div>
+          <div>결제 수단</div>
+          <div />
+        </div>
+
+        {loading ? (
+          <div className={styles.loading}>불러오는 중...</div>
+        ) : !orders.length ? (
+          <div className={styles.empty}>대기 중 결제 주문이 없습니다.</div>
+        ) : (
+          orders.map((order) => (
+            <div key={order.orderItemId} className={styles.row}>
+              <div>{order.orderNumber}</div>
+              <div>{order.createdAt}</div>
+              <div>{order.customerName}</div>
+              <div>{order.customerContact}</div>
+              <div>{KRW(order.totalAmount)}</div>
+              <div>{order.paymentMethod}</div>
+              <div className={styles.actions}>
+                <button
+                  className={styles.cancelBtn}
+                  onClick={() => handleCancelItem(order.orderItemId)}
+                >
+                  상품 취소
+                </button>
+                <button
+                  className={styles.startBtn}
+                  onClick={() => handleConfirmPayment(order.orderId)}
+                >
+                  입금 확인 처리
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {totalPages > 1 && (
+        <div
+          style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}
+        >
+          <div style={{ width: 320 }}>
+            <OrderPagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

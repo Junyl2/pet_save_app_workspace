@@ -63,7 +63,6 @@
 .productList {
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
 .productItem {
@@ -79,12 +78,13 @@
 }
 
 .productImage {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   border-radius: 8px;
   overflow: hidden;
   margin-right: 12px;
   flex-shrink: 0;
+  background-color: #e1e4e5c8;
 }
 
 .productImage img {
@@ -97,7 +97,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   margin-right: 12px;
 }
 

@@ -1,5 +1,5 @@
 .container {
-  min-height: 100vh;
+  min-height: calc(100vh - 71.59px);
   margin-top: 71.59px;
   background-color: #ffffff;
 }
@@ -249,6 +249,7 @@
   height: 70px;
   border-radius: 8px;
   object-fit: cover;
+  background-color: #edeef0dc;
 }
 
 .productInfo {

@@ -82,7 +82,7 @@ const ProfileMenu = (): React.ReactElement => {
             label="배송지 관리"
             route={PAGE_URLS.DELIVERY_ADDRESS_MANAGEMENT}
           />
-          <ProfileItem label="차단 리스트" route="/my-page/block-list" />
+          <ProfileItem label="차단 리스트" route={PAGE_URLS.BLOCK_LISTS} />
         </ProfileSection>
 
         {/* Etc */}

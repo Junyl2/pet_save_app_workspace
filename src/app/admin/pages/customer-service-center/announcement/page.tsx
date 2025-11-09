@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import styles from './CustomerService.module.css';
@@ -19,7 +19,7 @@ export default function NoticePage() {
   const [loading, setLoading] = useState(true);
 
   /** Fetch notices */
-  const fetchNotices = async (): Promise<void> => {
+  const fetchNotices = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
       const response = await AdminNoticeService.searchNotices({
@@ -41,11 +41,11 @@ export default function NoticePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
 
   useEffect(() => {
     void fetchNotices();
-  }, [page]);
+  }, [fetchNotices]);
 
   if (loading) {
     return <div className={styles.loading}>로딩 중...</div>;

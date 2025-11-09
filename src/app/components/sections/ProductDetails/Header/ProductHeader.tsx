@@ -21,6 +21,9 @@ export const ProductHeader = () => {
     '/client/seller/pages/change-profile'
   );
   const isShoplist = pathname.startsWith('/shops');
+  const isOrderHistory = pathname.startsWith(
+    '/client/pages/my-page/order-history'
+  );
 
   const isReturnExchangeFlow =
     pathname.includes('/client/pages/my-page/order-history/') &&
@@ -34,6 +37,8 @@ export const ProductHeader = () => {
       router.push('/client/pages/homepage');
     } else if (isShoplist) {
       router.push('/shops');
+    } else if (isOrderHistory) {
+      router.push('/client/pages/my-page');
     } else if (isOrderConfirmation) {
       router.push('/client/pages/homepage');
     } else if (isSellerBusinessInformation) {

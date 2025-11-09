@@ -26,9 +26,7 @@ export default function ShopList() {
   const [stores, setStores] = useState<NearbyStoreInfo[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedShopPhone, setSelectedShopPhone] = useState<string | null>(
-    null
-  );
+  const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -60,15 +58,13 @@ export default function ShopList() {
 
     loadSelectedLocation();
 
-    // whenever TopBar updates location, trigger reload
     window.addEventListener('locationChanged', loadSelectedLocation);
-
     return () => {
       window.removeEventListener('locationChanged', loadSelectedLocation);
     };
   }, []);
 
-  // Automatically fetch nearby stores when location updates (send lat/long saved from localStorage)
+  // Automatically fetch nearby stores when location updates
   useEffect(() => {
     if (latitude == null || longitude == null) return;
 
@@ -132,7 +128,7 @@ export default function ShopList() {
       ? `${km.toFixed(1)}km`
       : '거리 정보 없음';
 
-  // Search nearby stores by keyword and coordinates (using localStorage lat/long)
+  // Search nearby stores by keyword
   const handleAddressSearch = async (keyword: string) => {
     if (!keyword.trim()) {
       setAddressSearchError('주소를 입력해주세요.');
@@ -145,7 +141,6 @@ export default function ShopList() {
     setHasSearched(true);
 
     try {
-      // Always read fresh lat/long from localStorage to ensure latest location from TopBar
       const savedLat = localStorage.getItem('selectedLocationLat');
       const savedLong = localStorage.getItem('selectedLocationLong');
       const lat = savedLat ? parseFloat(savedLat) : latitude;
@@ -181,7 +176,6 @@ export default function ShopList() {
     }
   };
 
-  // Initialize geolocation availability
   useEffect(() => {
     if (typeof navigator !== 'undefined' && !navigator.geolocation) {
       setLocationError('이 브라우저는 위치 서비스를 지원하지 않습니다.');
@@ -203,12 +197,12 @@ export default function ShopList() {
     if (term.trim()) void handleAddressSearch(term);
   };
 
-  const handlePhoneClick = (e: React.MouseEvent, phone: string) => {
+  const handlePhoneClick = (e: React.MouseEvent, storeId: string) => {
     e.stopPropagation();
-    setSelectedShopPhone(phone);
+    setSelectedStoreId(storeId);
   };
 
-  const handleCloseDrawer = () => setSelectedShopPhone(null);
+  const handleCloseDrawer = () => setSelectedStoreId(null);
 
   const handleCardClick = (storeId: string) =>
     router.push(`/seller-details/${storeId}`);
@@ -249,7 +243,6 @@ export default function ShopList() {
           <div className={styles.list}>
             {filteredStores.map((store) => {
               const s = store as NearbyStoreWithOptional;
-              const phone = getFallbackPhone(s);
               const imgSrc = getStoreImageSrc(s);
               return (
                 <div
@@ -265,7 +258,7 @@ export default function ShopList() {
                 >
                   <button
                     className={styles.phoneButton}
-                    onClick={(e) => handlePhoneClick(e, phone)}
+                    onClick={(e) => handlePhoneClick(e, store.storeId)}
                     aria-label="연락처 보기"
                     type="button"
                   >
@@ -307,7 +300,12 @@ export default function ShopList() {
         )}
 
         <SellerPanel />
-        {selectedShopPhone && <ContactDrawer onClose={handleCloseDrawer} />}
+        {selectedStoreId && (
+          <ContactDrawer
+            storeId={selectedStoreId}
+            onClose={handleCloseDrawer}
+          />
+        )}
       </div>
     </>
   );

@@ -3,12 +3,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import styles from './ReceiptComplete.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
+import { useRouter } from 'next/navigation';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { orderService } from '@/app/api/services/client/memberService/order/orderService';
+import { orderStatusService } from '@/app/api/services/admin/orderStatusService/orderStatusService';
 import {
   AdminSearchOrdersResponse,
   AdminSearchOrdersData,
 } from '@/app/api/types/member/order/order';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 
 interface OrderRow {
   orderItemId: string;
@@ -16,6 +19,7 @@ interface OrderRow {
   createdAt: string;
   customerName: string;
   customerContact: string;
+  productId: string;
   productName: string;
   option: string;
   trackingNumber: string;
@@ -26,10 +30,15 @@ interface OrderRow {
 const PAGE_SIZE = 10;
 
 export default function ReceiptCompletePage(): React.ReactElement {
+  const router = useRouter();
   const { page, setPage } = usePageParam(1);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ message: string; key: number } | null>(
+    null
+  );
+  const [isCancelling, setIsCancelling] = useState(false);
 
   /** Fetch COMPLETED orders from admin v2 endpoint */
   const fetchOrders = useCallback(async (): Promise<void> => {
@@ -52,13 +61,13 @@ export default function ReceiptCompletePage(): React.ReactElement {
       const result = data as AdminSearchOrdersResponse;
       const content: AdminSearchOrdersData[] = result.data?.content ?? [];
 
-      // Map each item into the table row
       const mapped: OrderRow[] = content.map((item) => ({
         orderItemId: item.orderItemId,
         orderNumber: item.orderNumber,
         createdAt: item.createdAt,
         customerName: item.customer.name ?? '-',
         customerContact: item.customer.phone ?? '-',
+        productId: item.productId,
         productName: item.productName ?? '-',
         option: item.shippingOption === 'DELIVERY' ? '배송' : '픽업',
         trackingNumber: item.delivery?.trackingNumber ?? '-',
@@ -81,13 +90,50 @@ export default function ReceiptCompletePage(): React.ReactElement {
     void fetchOrders();
   }, [fetchOrders]);
 
-  /** Placeholder actions */
-  const handleCancel = (id: string): void => {
-    console.log('취소:', id);
+  /** Cancel order item (prompt reason before posting) */
+  const handleCancel = async (orderItemId: string): Promise<void> => {
+    const cancelReason = window.prompt(
+      '취소 사유를 입력하세요 (예: 단순 변심)'
+    );
+    if (!cancelReason || !cancelReason.trim()) {
+      setToast({
+        message: '취소 사유가 입력되지 않았습니다.',
+        key: Date.now(),
+      });
+      return;
+    }
+
+    setIsCancelling(true);
+    try {
+      const { data, error } = await orderStatusService.cancelOrderItem(
+        orderItemId,
+        cancelReason
+      );
+
+      if (error || !data) {
+        console.error('[Cancel Error]', error);
+        setToast({
+          message: '주문 취소 중 오류가 발생했습니다.',
+          key: Date.now(),
+        });
+        return;
+      }
+
+      setToast({
+        message: `주문이 성공적으로 취소되었습니다.`,
+        key: Date.now(),
+      });
+      await fetchOrders();
+    } catch (err) {
+      console.error('[handleCancel] Error:', err);
+      setToast({ message: '주문 취소 실패', key: Date.now() });
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
-  const handleReview = (id: string): void => {
-    console.log('후기 보기:', id);
+  const handleReview = (productId: string): void => {
+    window.open(`/customer-reviews?productId=${productId}`, '_blank');
   };
 
   return (
@@ -132,8 +178,9 @@ export default function ReceiptCompletePage(): React.ReactElement {
                     type="button"
                     className={styles.cancelBtn}
                     onClick={() => handleCancel(order.orderItemId)}
+                    disabled={isCancelling}
                   >
-                    취소
+                    {isCancelling ? '취소 중...' : '취소'}
                   </button>
                   <button
                     type="button"
@@ -141,7 +188,7 @@ export default function ReceiptCompletePage(): React.ReactElement {
                       !reviewEnabled ? styles.disabled : ''
                     }`}
                     onClick={() =>
-                      reviewEnabled && handleReview(order.orderItemId)
+                      reviewEnabled && handleReview(order.productId)
                     }
                     disabled={!reviewEnabled}
                     aria-disabled={!reviewEnabled}
@@ -169,6 +216,16 @@ export default function ReceiptCompletePage(): React.ReactElement {
             />
           </div>
         </div>
+      )}
+
+      {/*  Toast Renderer */}
+      {toast && (
+        <ToastMessage
+          key={toast.key}
+          message={toast.message}
+          onClose={() => setToast(null)}
+          duration={2500}
+        />
       )}
     </>
   );

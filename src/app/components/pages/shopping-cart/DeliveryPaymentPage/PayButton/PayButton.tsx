@@ -172,7 +172,7 @@ export default function PayButton({
         orderId: tossOrderId,
         orderName,
         customerName: '홍길동',
-        successUrl: `${window.location.origin}${PAGE_URLS.ORDER_CONFIRMATION}`,
+        successUrl: `${window.location.origin}/client/pages/shopping-cart/delivery-payment/payment-success`,
         failUrl: `${window.location.origin}/client/pages/shopping-cart/delivery-payment/payment-fail`,
       });
     } catch (err: unknown) {

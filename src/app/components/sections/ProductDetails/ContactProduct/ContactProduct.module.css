@@ -48,6 +48,29 @@
   border-radius: 50%;
   object-fit: cover;
 }
+.profileWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  width: 50px;
+  border-radius: 100%;
+  background-color: #d9d9d9;
+  object-fit: cover;
+  position: relative;
+}
+
+.imageWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  width: 80px;
+  border-radius: 5px;
+  background-color: #d9d9d9;
+  object-fit: cover;
+  position: relative;
+}
 
 .shopInfo h3 {
   margin: 0;

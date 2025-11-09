@@ -7,6 +7,7 @@ import {
   StoreApiResponse,
   StoreSearchRequest,
   StoreSearchApiResponse,
+  StoreInfo,
 } from '../../../types/member/store/store';
 
 /**
@@ -47,8 +48,6 @@ export type LocationError =
 export class StoreService {
   /**
    * Get current GPS location of the user
-   * @param options - Geolocation options
-   * @returns Promise with location coordinates or error
    */
   static async getCurrentLocation(
     options: PositionOptions = {
@@ -98,17 +97,13 @@ export class StoreService {
   }
 
   /**
-   * Search nearby stores based on user location.
-   * Reads lat/long from localStorage if not provided.
-   * Endpoint: GET /api/pet-save/stores/nearby
+   * Search nearby stores (GET /api/pet-save/stores/nearby)
    */
   static async searchNearbyStores(
     params: NearbyStoresRequest
   ): Promise<ApiResponse<NearbyStoresApiResponse>> {
     try {
-      // Auto-read saved coordinates if missing
-      let lat = params.lat;
-      let long = params.long;
+      let { lat, long } = params;
 
       if (lat == null || long == null) {
         const savedLat = localStorage.getItem('selectedLocationLat');
@@ -143,8 +138,6 @@ export class StoreService {
         `/stores/nearby?${queryParams.toString()}`
       );
 
-      if (response.error) return response;
-
       return response;
     } catch (error) {
       return {
@@ -158,7 +151,7 @@ export class StoreService {
   }
 
   /**
-   * Get store summary by ID
+   * Get store summary by ID (legacy)
    */
   static async getStoreSummary(
     storeId: string,
@@ -186,7 +179,30 @@ export class StoreService {
   }
 
   /**
-   * Search nearby stores using current GPS location
+   * New: Get full store details by ID
+   * Endpoint: GET /api/pet-save/stores/{storeId}
+   */
+  static async getStoreDetails(
+    storeId: string
+  ): Promise<ApiResponse<StoreApiResponse>> {
+    try {
+      const response = await apiClient.get<StoreApiResponse>(
+        `/stores/${storeId}`
+      );
+      return response;
+    } catch (error) {
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch store details',
+      };
+    }
+  }
+
+  /**
+   * Search nearby stores using current location
    */
   static async searchNearbyStoresWithCurrentLocation(
     params: Omit<NearbyStoresRequest, 'lat' | 'long'> = {}
@@ -237,6 +253,9 @@ export class StoreService {
     }
   }
 
+  /**
+   * Update store info (PUT /stores/{storeId})
+   */
   static async updateStore(
     storeId: string,
     updateData: UpdateStoreRequest
@@ -258,19 +277,21 @@ export class StoreService {
     }
   }
 
+  /**
+   * Search stores (GET /stores)
+   */
   static async searchStores(
     params: StoreSearchRequest
   ): Promise<ApiResponse<StoreSearchApiResponse>> {
     try {
-      const lat = params.lat;
-      const long = params.long;
-
       const queryParams = new URLSearchParams();
       if (params.keyword) queryParams.append('keyword', params.keyword);
       if (params.baseLocation)
         queryParams.append('baseLocation', params.baseLocation);
-      if (lat !== undefined) queryParams.append('lat', lat.toString());
-      if (long !== undefined) queryParams.append('long', long.toString());
+      if (params.lat !== undefined)
+        queryParams.append('lat', params.lat.toString());
+      if (params.long !== undefined)
+        queryParams.append('long', params.long.toString());
       if (params.page !== undefined)
         queryParams.append('page', params.page.toString());
       if (params.size !== undefined)
