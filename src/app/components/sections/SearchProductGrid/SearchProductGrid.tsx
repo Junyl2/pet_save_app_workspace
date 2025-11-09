@@ -36,6 +36,11 @@ export default function SearchProductGrid({
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [catalogReady, setCatalogReady] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const handleImageError = (productId: string) => {
+    setImageErrors((prev) => ({ ...prev, [productId]: true }));
+  };
 
   // Load full catalog once
   useEffect(() => {
@@ -112,6 +117,11 @@ export default function SearchProductGrid({
       isMounted = false;
     };
   }, [searchTerm]);
+
+  // Reset image errors when products change
+  useEffect(() => {
+    setImageErrors({});
+  }, [products]);
 
   // Sorting
   const filteredProducts = useMemo(() => {
@@ -264,7 +274,11 @@ export default function SearchProductGrid({
                 <div className={styles.imageWrapper}>
                   <Image
                     src={
-                      product.image || product.thumbnail || '/placeholder.png'
+                      imageErrors[String(productId)]
+                        ? '/images/products/product-fallback.svg'
+                        : product.image ||
+                          product.thumbnail ||
+                          '/images/products/product-fallback.svg'
                     }
                     alt={product.name || product.productName || 'Product'}
                     width={162}
@@ -275,6 +289,7 @@ export default function SearchProductGrid({
                       product.thumbnail ||
                       ''
                     ).includes('211.107.13.167')}
+                    onError={() => handleImageError(String(productId))}
                   />
                   <div className={styles.icons}>
                     <button

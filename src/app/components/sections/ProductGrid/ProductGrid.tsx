@@ -63,6 +63,11 @@ export const ProductGrid = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [isStoreBlocked, setIsStoreBlocked] = useState<boolean | null>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const handleImageError = (productId: string) => {
+    setImageErrors((prev) => ({ ...prev, [productId]: true }));
+  };
 
   /** 🔍 Check if store is blocked */
   useEffect(() => {
@@ -87,7 +92,11 @@ export const ProductGrid = ({
 
   /** Cache key per combination */
   const getCacheKey = (): string =>
-    `${storeId || 'general'}_${categoryName || 'all'}_${searchTerm}_${currentPage}_${sortBy || 'createdAt'}_${direction || 'desc'}`;
+    `${storeId || 'general'}_${
+      categoryName || 'all'
+    }_${searchTerm}_${currentPage}_${sortBy || 'createdAt'}_${
+      direction || 'desc'
+    }`;
 
   const currentCacheKey = getCacheKey();
   const cachedData = cache[currentCacheKey];
@@ -102,6 +111,11 @@ export const ProductGrid = ({
     currentPage: 0,
     pageSize: 10,
   };
+
+  /** Reset image errors when products change */
+  useEffect(() => {
+    setImageErrors({});
+  }, [products]);
 
   /** Sync external page with state */
   useEffect(() => {
@@ -143,7 +157,15 @@ export const ProductGrid = ({
   useEffect(() => {
     if (initialProducts || externalOnPageChange) return;
     setCurrentPage(0);
-  }, [categoryName, searchTerm, storeId, sortBy, direction, initialProducts, externalOnPageChange]);
+  }, [
+    categoryName,
+    searchTerm,
+    storeId,
+    sortBy,
+    direction,
+    initialProducts,
+    externalOnPageChange,
+  ]);
 
   /** Handle location change invalidation */
   useEffect(() => {
@@ -287,16 +309,20 @@ export const ProductGrid = ({
               <div className={styles.imageWrapper}>
                 <Image
                   src={
-                    product.thumbnail ||
-                    product.image ||
-                    (product as Product & { images?: string[] }).images?.[0] ||
-                    '/placeholder.png'
+                    imageErrors[productIdStr]
+                      ? '/images/products/product-fallback.svg'
+                      : product.thumbnail ||
+                        product.image ||
+                        (product as Product & { images?: string[] })
+                          .images?.[0] ||
+                        '/images/products/product-fallback.svg'
                   }
                   alt={product.name || product.productName || 'Product'}
                   width={120}
                   height={120}
                   className={styles.image}
                   unoptimized
+                  onError={() => handleImageError(productIdStr)}
                 />
               </div>
               <div className={styles.content}>

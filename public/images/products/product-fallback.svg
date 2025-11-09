@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Near-white background with balanced, thicker border -->
+  <rect width="120" height="120" rx="12" fill="#F9FCFB" stroke="#66bfa7" stroke-width="4"></rect>
+
+  <!-- Abstract image icon (mountains) -->
+  <path d="M28 78 L48 52 L64 68 L74 58 L92 78 Z" fill="none" stroke="#66bfa7" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+
+  <!-- Sun / photo circle -->
+  <circle cx="42" cy="42" r="6" fill="#66bfa7"></circle>
+</svg>
