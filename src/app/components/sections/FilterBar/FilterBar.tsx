@@ -21,13 +21,16 @@ export default function FilterBar({
   const periodOptions = ['1개월', '3개월', '6개월', '1년', '전체보기'];
 
   const statusOptions = [
-    '상품 준비중', // PREPARING
-    '배송중', // DELIVERY_STARTED
-    '픽업 준비완료',
-    /*     '픽업중', */ // PICKUP_IN_PROGRESS
-    '픽업 완료', // PICKUP_COMPLETED
-    '배송완료', // COMPLETED
     '전체보기',
+    '결제 대기', // PENDING_PAYMENT
+    '결제 완료', // PAID
+    '상품 준비중', // PREPARING
+    '픽업 준비완료', // READY_FOR_PICKUP
+    '배송중', // DELIVERY_STARTED
+    '배송 완료', // COMPLETED
+    '주문 취소', // CANCELLED
+    '반품', // RETURNED
+    '교환 완료', // EXCHANGED
   ];
 
   return (

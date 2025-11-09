@@ -52,6 +52,12 @@ export default function ContactInbox({
   const [selectedRange, setSelectedRange] = useState<RangeLabel>(initialRange);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedCategory, setSelectedCategory] = useState<
+    'EXCHANGE_RETURN' | 'PRODUCT' | 'DELIVERY' | 'PAYMENT' | 'OTHER' | undefined
+  >(undefined);
+  const [selectedStatus, setSelectedStatus] = useState<
+    'WAITING' | 'ANSWERED' | undefined
+  >(undefined);
 
   const rangeOptions: RangeLabel[] = ['1개월', '6개월', '1년', '전체보기'];
 
@@ -88,17 +94,17 @@ export default function ContactInbox({
       try {
         const { dateStart, dateEnd } = getDateRangeParams(range);
         const params = {
+          category: selectedCategory || undefined,
+          status: selectedStatus || undefined,
+          dateStart,
+          dateEnd,
           page: page - 1,
           size: PAGE_SIZE,
           sortBy: 'createdAt',
           direction: 'desc' as const,
-          ...(dateStart && dateEnd ? { dateStart, dateEnd } : {}),
         };
 
-        console.log(
-          '🔍 [ContactInbox] Fetching inquiries with params:',
-          params
-        );
+        console.log('[ContactInbox] Fetching inquiries with params:', params);
 
         const response = await MemberInquiryService.getMyInquiries(params);
 
@@ -123,7 +129,7 @@ export default function ContactInbox({
         setLoading(false);
       }
     },
-    [getDateRangeParams]
+    [getDateRangeParams, selectedCategory, selectedStatus]
   );
 
   /** Re-fetch when date range or page changes */

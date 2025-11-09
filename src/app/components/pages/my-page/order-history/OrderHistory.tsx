@@ -14,10 +14,47 @@ import {
   checkStaleStatus,
   createOrderHistoryCacheKey,
 } from '@/app/redux/slices/cache/orderSlice';
-import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
+import {
+  OrderItemResponse,
+  OrderStatus,
+} from '@/app/api/types/member/order/orderDetails';
 import { OrderItem } from '@/app/components/types/order';
 
 const PAGE_SIZE = 10;
+
+const backendStatusMap: Record<string, OrderStatus | 'EXCHANGED'> = {
+  '결제 대기': 'PENDING_PAYMENT',
+  '결제 완료': 'PAID',
+  '상품 준비중': 'PREPARING',
+  '픽업 준비완료': 'READY_FOR_PICKUP',
+  배송중: 'DELIVERY_STARTED',
+  '배송 완료': 'COMPLETED',
+  '주문 취소': 'CANCELLED',
+  반품: 'RETURNED',
+  '교환 완료': 'EXCHANGED',
+};
+
+const getDateRange = (period: string) => {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const monthsAgo = (m: number) => {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() - m);
+    return d.toISOString().split('T')[0];
+  };
+  switch (period) {
+    case '1개월':
+      return { dateStart: monthsAgo(1), dateEnd: today };
+    case '3개월':
+      return { dateStart: monthsAgo(3), dateEnd: today };
+    case '6개월':
+      return { dateStart: monthsAgo(6), dateEnd: today };
+    case '1년':
+      return { dateStart: monthsAgo(12), dateEnd: today };
+    default:
+      return {};
+  }
+};
 
 export default function OrderHistory() {
   const dispatch = useAppDispatch();
@@ -29,16 +66,35 @@ export default function OrderHistory() {
   const [selectedPeriod, setSelectedPeriod] = useState('3개월');
   const [selectedStatus, setSelectedStatus] = useState('전체보기');
 
-  /** Create cache key based on current page */
+  /** Reset page to 1 when filters change */
+  useEffect(() => {
+    setPage(1);
+  }, [selectedPeriod, selectedStatus, setPage]);
+
+  const { dateStart, dateEnd } = getDateRange(selectedPeriod);
+  const statusParam: OrderStatus | undefined =
+    selectedStatus !== '전체보기'
+      ? (backendStatusMap[selectedStatus] as OrderStatus | undefined)
+      : undefined;
+
+  const queryParams = useMemo(
+    () => ({
+      status: statusParam,
+      dateStart,
+      dateEnd,
+      onlyReviewable: false,
+      page: page - 1,
+      size: PAGE_SIZE,
+      sortBy: 'createdAt' as const,
+      direction: 'desc' as const,
+    }),
+    [statusParam, dateStart, dateEnd, page]
+  );
+
+  /** Create cache key based on current filters and page */
   const cacheKey = useMemo(
-    () =>
-      createOrderHistoryCacheKey({
-        page: page - 1,
-        size: PAGE_SIZE,
-        sortBy: 'createdAt',
-        direction: 'desc',
-      }),
-    [page]
+    () => createOrderHistoryCacheKey(queryParams),
+    [queryParams]
   );
 
   /** Current cached data for this page */
@@ -48,34 +104,21 @@ export default function OrderHistory() {
     [cachedData]
   );
 
-  /** Fetch on mount + when page changes */
+  /** Fetch on mount + when filters or page changes */
   useEffect(() => {
-    dispatch(
-      fetchOrderHistory({
-        page: page - 1,
-        size: PAGE_SIZE,
-        sortBy: 'createdAt',
-        direction: 'desc',
-      })
-    );
-  }, [dispatch, page]);
+    dispatch(fetchOrderHistory(queryParams));
+  }, [dispatch, queryParams]);
 
   /** Background revalidation */
   useEffect(() => {
     if (cachedData) {
       const now = Date.now();
       const cacheAge = now - cachedData.timestamp;
-      if (cacheAge >= 10_000)
-        dispatch(
-          revalidateOrderHistoryInBackground({
-            page: page - 1,
-            size: PAGE_SIZE,
-            sortBy: 'createdAt',
-            direction: 'desc',
-          })
-        );
+      if (cacheAge >= 10_000) {
+        dispatch(revalidateOrderHistoryInBackground(queryParams));
+      }
     }
-  }, [cachedData, dispatch, page]);
+  }, [cachedData, dispatch, queryParams]);
 
   /** Check stale status on cache change */
   useEffect(() => {
@@ -129,48 +172,8 @@ export default function OrderHistory() {
     return new Date().toLocaleDateString('ko-KR').replace(/\s/g, '');
   };
 
-  /** Filters */
-  const filteredOrders = useMemo(() => {
-    let result = orders;
-
-    if (selectedStatus !== '전체보기') {
-      result = result.filter(
-        (o) => getStatusDisplayText(o.status) === selectedStatus
-      );
-    }
-
-    if (selectedPeriod !== '전체보기') {
-      const months =
-        selectedPeriod === '1개월'
-          ? 1
-          : selectedPeriod === '3개월'
-          ? 3
-          : selectedPeriod === '6개월'
-          ? 6
-          : 12;
-
-      const now = new Date();
-      const cutoff = new Date(now);
-      cutoff.setMonth(now.getMonth() - months);
-
-      result = result.filter((o) => {
-        const match = o.orderNumber.match(/ORD-(\d{6})-/);
-        if (!match) return true;
-        const date = match[1];
-        const orderDate = new Date(
-          `20${date.slice(0, 2)}-${date.slice(2, 4)}-${date.slice(4, 6)}`
-        );
-        return orderDate >= cutoff;
-      });
-    }
-
-    return result;
-  }, [orders, selectedStatus, selectedPeriod]);
-
   /** Pagination info */
-  const totalPages =
-    cachedData?.data?.data?.pageInfo?.totalPages ??
-    Math.ceil(filteredOrders.length / PAGE_SIZE);
+  const totalPages = cachedData?.data?.data?.pageInfo?.totalPages ?? 0;
 
   /** Loading state */
   if (loading && !cachedData) {
@@ -220,7 +223,7 @@ export default function OrderHistory() {
         />
 
         <div className={styles.list}>
-          {filteredOrders.length === 0 ? (
+          {orders.length === 0 ? (
             <div className={styles.emptyContainer}>
               <Image
                 src="/images/products/noresult.png"
@@ -232,7 +235,7 @@ export default function OrderHistory() {
               <p className={styles.emptyText}>주문 내역이 없습니다.</p>
             </div>
           ) : (
-            filteredOrders.map((orderItem) => (
+            orders.map((orderItem) => (
               <OrderHistoryItem
                 key={orderItem.orderItemId}
                 orderItemId={orderItem.orderItemId}
