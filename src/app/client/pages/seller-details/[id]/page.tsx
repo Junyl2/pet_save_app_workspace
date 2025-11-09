@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   useRouter,
   useParams,
@@ -139,12 +139,12 @@ export default function SellerDetailsPage() {
 
   if (error) {
     return (
-      <>
+      <React.Fragment>
         <ProductHeader />
         <div className={styles.container}>
           <p style={{ padding: 16, color: 'crimson' }}>{error}</p>
         </div>
-      </>
+      </React.Fragment>
     );
   }
 
@@ -214,7 +214,7 @@ export default function SellerDetailsPage() {
   };
 
   return (
-    <>
+    <React.Fragment>
       <ProductHeader />
       <div className={styles.container}>
         <div className={styles.profileDetails}>
@@ -319,7 +319,8 @@ export default function SellerDetailsPage() {
               console.error('Product missing ID:', product);
             }
           }}
+        />
       </div>
-    </>
+    </React.Fragment>
   );
 }

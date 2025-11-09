@@ -8,6 +8,7 @@ import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagi
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { AdminNoticeService } from '@/app/api/services/admin/adminNoticeService/adminNoticeService';
 import { NoticeItem } from '@/app/api/services/admin/adminNoticeService/adminNotice';
+import { useOrderFilter } from '@/app/context/orderFilterContext';
 
 const PAGE_SIZE = 10;
 
@@ -18,16 +19,40 @@ export default function NoticePage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  const { filters, filterTrigger } = useOrderFilter();
+
   /** Fetch notices */
   const fetchNotices = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const response = await AdminNoticeService.searchNotices({
+      const params: {
+        page: number;
+        size: number;
+        sortBy: 'createdAt';
+        direction: 'desc';
+        keyword?: string;
+        dateStart?: string;
+        dateEnd?: string;
+      } = {
         page: page - 1,
         size: PAGE_SIZE,
         sortBy: 'createdAt',
         direction: 'desc',
-      });
+      };
+
+      if (filters.dateStart?.trim()) {
+        const dateStart = filters.dateStart.trim();
+        params.dateStart = dateStart.includes('T') ? dateStart.split('T')[0] : dateStart;
+      }
+      if (filters.dateEnd?.trim()) {
+        const dateEnd = filters.dateEnd.trim();
+        params.dateEnd = dateEnd.includes('T') ? dateEnd.split('T')[0] : dateEnd;
+      }
+      if (filters.keyword?.trim()) {
+        params.keyword = filters.keyword.trim();
+      }
+
+      const response = await AdminNoticeService.searchNotices(params);
 
       const data = response.data?.data;
       const content = data?.content ?? [];
@@ -41,7 +66,13 @@ export default function NoticePage() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, filters.dateStart, filters.dateEnd, filters.keyword, filterTrigger]);
+
+  useEffect(() => {
+    if (filterTrigger > 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [filterTrigger, page, setPage]);
 
   useEffect(() => {
     void fetchNotices();

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import styles from './page.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { invoiceService } from '@/app/api/services/admin/invoiceService/invoiceService';
 import { InvoiceItem } from '@/app/api/services/admin/invoiceService/invoiceTypes';
+import { useOrderFilter } from '@/app/context/orderFilterContext';
 
 const PAGE_SIZE = 10;
 
@@ -15,39 +16,65 @@ export default function DocumentListPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchInvoices = async (): Promise<void> => {
-      setLoading(true);
-      try {
-        const { data, error } = await invoiceService.searchInvoices({
-          page: page - 1,
-          size: PAGE_SIZE,
-          sortBy: 'createdAt',
-          direction: 'desc',
-        });
+  const { filters, filterTrigger } = useOrderFilter();
 
-        if (error || !data?.success) {
-          console.error('Failed to fetch invoices:', error || data?.resultMsg);
-          setInvoices([]);
-          setTotalPages(1);
-          return;
-        }
+  const fetchInvoices = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const params: {
+        page: number;
+        size: number;
+        sortBy: 'createdAt';
+        direction: 'desc';
+        keyword?: string;
+        createdStart?: string;
+        createdEnd?: string;
+      } = {
+        page: page - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      };
 
-        setInvoices(data.data.content ?? []);
-        setTotalPages(data.data.pageInfo.totalPages || 1);
-      } catch (err) {
-        console.error('Error fetching invoices:', err);
+      if (filters.dateStart) {
+        params.createdStart = filters.dateStart;
+      }
+      if (filters.dateEnd) {
+        params.createdEnd = filters.dateEnd;
+      }
+      if (filters.keyword) {
+        params.keyword = filters.keyword;
+      }
+
+      const { data, error } = await invoiceService.searchInvoices(params);
+
+      if (error || !data?.success) {
+        console.error('Failed to fetch invoices:', error || data?.resultMsg);
         setInvoices([]);
         setTotalPages(1);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
+      setInvoices(data.data.content ?? []);
+      setTotalPages(data.data.pageInfo.totalPages || 1);
+    } catch (err) {
+      console.error('Error fetching invoices:', err);
+      setInvoices([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, filters.dateStart, filters.dateEnd, filters.keyword, filterTrigger]);
+
+  useEffect(() => {
+    if (filterTrigger > 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [filterTrigger, page, setPage]);
+
+  useEffect(() => {
     void fetchInvoices();
-  }, [page]);
-
-  const pagedInvoices = useMemo(() => invoices ?? [], [invoices]);
+  }, [fetchInvoices]);
 
   return (
     <>
@@ -67,13 +94,13 @@ export default function DocumentListPage() {
         {loading && <div className={styles.loading}>불러오는 중...</div>}
 
         {/* Empty State */}
-        {!loading && pagedInvoices.length === 0 && (
+        {!loading && invoices.length === 0 && (
           <div className={styles.empty}>조회된 송장이 없습니다.</div>
         )}
 
         {/* Data Rows */}
         {!loading &&
-          pagedInvoices.map((inv) => (
+          invoices.map((inv) => (
             <div key={inv.invoiceId} className={styles.row}>
               <div>{inv.orderNumber ?? '-'}</div>
               <div>

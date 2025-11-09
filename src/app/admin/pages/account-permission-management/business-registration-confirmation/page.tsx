@@ -6,6 +6,7 @@ import styles from './page.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { BusinessRegistrationService } from '@/app/api/services/client/auth/businessRegistrationService';
+import { useOrderFilter } from '@/app/context/orderFilterContext';
 
 interface Member {
   id: string;
@@ -32,17 +33,45 @@ export default function BusinessRegistrationConfirmationPage() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
+  const { filters, filterTrigger } = useOrderFilter();
+
   /** Fetch business registration data */
   const fetchBusinessRegistrations = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
+      const params: {
+        page: number;
+        size: number;
+        sortBy: 'createdAt';
+        direction: 'desc';
+        keyword?: string;
+        dateStart?: string;
+        dateEnd?: string;
+      } = {
+        page: page - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      };
+
+      if (filters.dateStart?.trim()) {
+        const dateStart = filters.dateStart.trim();
+        params.dateStart = dateStart.includes('T')
+          ? dateStart.split('T')[0]
+          : dateStart;
+      }
+      if (filters.dateEnd?.trim()) {
+        const dateEnd = filters.dateEnd.trim();
+        params.dateEnd = dateEnd.includes('T')
+          ? dateEnd.split('T')[0]
+          : dateEnd;
+      }
+      if (filters.keyword?.trim()) {
+        params.keyword = filters.keyword.trim();
+      }
+
       const response =
-        await BusinessRegistrationService.getAllBusinessRegistrations({
-          page: page - 1,
-          size: PAGE_SIZE,
-          sortBy: 'createdAt',
-          direction: 'desc',
-        });
+        await BusinessRegistrationService.getAllBusinessRegistrations(params);
 
       const data = (response?.data as any)?.data;
       const content = data?.content ?? [];
@@ -69,7 +98,19 @@ export default function BusinessRegistrationConfirmationPage() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [
+    page,
+    filters.dateStart,
+    filters.dateEnd,
+    filters.keyword,
+    filterTrigger,
+  ]);
+
+  useEffect(() => {
+    if (filterTrigger > 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [filterTrigger, page, setPage]);
 
   useEffect(() => {
     void fetchBusinessRegistrations();

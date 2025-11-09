@@ -9,6 +9,7 @@ import {
   MemberService,
   MemberSummary,
 } from '@/app/api/services/client/memberService/memberService';
+import { useOrderFilter } from '@/app/context/orderFilterContext';
 
 const PAGE_SIZE = 10;
 
@@ -20,16 +21,40 @@ export default function GeneralMemberPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  const { filters, filterTrigger } = useOrderFilter();
+
   useEffect(() => {
     const fetchMembers = async () => {
       setLoading(true);
       try {
-        const response = await MemberService.getMembersList({
+        const params: {
+          page: number;
+          size: number;
+          sortBy: string;
+          direction: 'desc';
+          keyword?: string;
+          dateStart?: string;
+          dateEnd?: string;
+        } = {
           page: page - 1,
           size: PAGE_SIZE,
           sortBy: 'createdAt',
           direction: 'desc',
-        });
+        };
+
+        if (filters.dateStart?.trim()) {
+          const dateStart = filters.dateStart.trim();
+          params.dateStart = dateStart.includes('T') ? dateStart.split('T')[0] : dateStart;
+        }
+        if (filters.dateEnd?.trim()) {
+          const dateEnd = filters.dateEnd.trim();
+          params.dateEnd = dateEnd.includes('T') ? dateEnd.split('T')[0] : dateEnd;
+        }
+        if (filters.keyword?.trim()) {
+          params.keyword = filters.keyword.trim();
+        }
+
+        const response = await MemberService.getMembersList(params);
 
         if (response.error || !response.data?.success) {
           console.error('Failed to fetch members:', response.error);
@@ -49,7 +74,13 @@ export default function GeneralMemberPage() {
     };
 
     void fetchMembers();
-  }, [page]);
+  }, [page, filters.dateStart, filters.dateEnd, filters.keyword, filterTrigger]);
+
+  useEffect(() => {
+    if (filterTrigger > 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [filterTrigger, page, setPage]);
 
   /** Open member detail page */
   const openMemberDetail = (member: MemberSummary) => {

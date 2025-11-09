@@ -9,7 +9,9 @@ import { orderStatusService } from '@/app/api/services/admin/orderStatusService/
 import {
   AdminSearchOrdersResponse,
   AdminSearchOrdersData,
+  AdminSearchOrdersParams,
 } from '@/app/api/types/member/order/order';
+import { useOrderFilter } from '@/app/context/orderFilterContext';
 
 interface OrderRow {
   orderItemId: string;
@@ -33,17 +35,31 @@ export default function PaymentCompletedPage(): React.ReactElement {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  const { filters, filterTrigger } = useOrderFilter();
+
   /** Fetch all PAID orders from /v2/orders */
   const fetchOrders = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const { data, error } = await orderService.searchOrdersV2({
+      const params: AdminSearchOrdersParams = {
         status: ['PAID'],
         page: page - 1,
         size: PAGE_SIZE,
         sortBy: 'createdAt',
         direction: 'desc',
-      });
+      };
+
+      if (filters.dateStart) {
+        params.dateStart = filters.dateStart;
+      }
+      if (filters.dateEnd) {
+        params.dateEnd = filters.dateEnd;
+      }
+      if (filters.keyword) {
+        params.keyword = filters.keyword;
+      }
+
+      const { data, error } = await orderService.searchOrdersV2(params);
 
       if (error || !data?.success) {
         console.error('[PaymentCompletedPage] Fetch failed:', error);
@@ -74,7 +90,13 @@ export default function PaymentCompletedPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, filters.dateStart, filters.dateEnd, filters.keyword, filterTrigger]);
+
+  useEffect(() => {
+    if (filterTrigger > 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [filterTrigger, page, setPage]);
 
   useEffect(() => {
     fetchOrders();

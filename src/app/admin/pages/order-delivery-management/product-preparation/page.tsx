@@ -9,8 +9,10 @@ import { orderStatusService } from '@/app/api/services/admin/orderStatusService/
 import {
   AdminSearchOrdersResponse,
   AdminSearchOrdersData,
+  AdminSearchOrdersParams,
 } from '@/app/api/types/member/order/order';
 import { useRouter } from 'next/navigation';
+import { useOrderFilter } from '@/app/context/orderFilterContext';
 
 interface OrderRow {
   orderItemId: string;
@@ -31,17 +33,34 @@ export default function ProductPreperationPage(): React.ReactElement {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  const { filters, filterTrigger } = useOrderFilter();
+
   /** Fetch PREPARING items using /v2/orders */
   const fetchOrders = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const { data, error } = await orderService.searchOrdersV2({
+      const params: AdminSearchOrdersParams = {
         status: ['PREPARING'],
         page: page - 1,
         size: PAGE_SIZE,
         sortBy: 'createdAt',
         direction: 'desc',
-      });
+      };
+
+      if (filters.dateStart) {
+        params.dateStart = filters.dateStart;
+      }
+      if (filters.dateEnd) {
+        params.dateEnd = filters.dateEnd;
+      }
+      if (filters.keyword) {
+        params.keyword = filters.keyword;
+      }
+      if (filters.shippingOption) {
+        params.shippingOption = filters.shippingOption;
+      }
+
+      const { data, error } = await orderService.searchOrdersV2(params);
 
       if (error || !data?.success) {
         console.error('[ProductPreperationPage] Fetch failed:', error);
@@ -71,7 +90,20 @@ export default function ProductPreperationPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [
+    page,
+    filters.dateStart,
+    filters.dateEnd,
+    filters.keyword,
+    filters.shippingOption,
+    filterTrigger,
+  ]);
+
+  useEffect(() => {
+    if (filterTrigger > 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [filterTrigger, page, setPage]);
 
   useEffect(() => {
     void fetchOrders();

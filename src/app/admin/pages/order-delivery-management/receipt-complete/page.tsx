@@ -10,8 +10,10 @@ import { orderStatusService } from '@/app/api/services/admin/orderStatusService/
 import {
   AdminSearchOrdersResponse,
   AdminSearchOrdersData,
+  AdminSearchOrdersParams,
 } from '@/app/api/types/member/order/order';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
+import { useOrderFilter } from '@/app/context/orderFilterContext';
 
 interface OrderRow {
   orderItemId: string;
@@ -40,17 +42,34 @@ export default function ReceiptCompletePage(): React.ReactElement {
   );
   const [isCancelling, setIsCancelling] = useState(false);
 
+  const { filters, filterTrigger } = useOrderFilter();
+
   /** Fetch COMPLETED orders from admin v2 endpoint */
   const fetchOrders = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const { data, error } = await orderService.searchOrdersV2({
+      const params: AdminSearchOrdersParams = {
         status: ['COMPLETED'],
         page: page - 1,
         size: PAGE_SIZE,
         sortBy: 'createdAt',
         direction: 'desc',
-      });
+      };
+
+      if (filters.dateStart) {
+        params.dateStart = filters.dateStart;
+      }
+      if (filters.dateEnd) {
+        params.dateEnd = filters.dateEnd;
+      }
+      if (filters.keyword) {
+        params.keyword = filters.keyword;
+      }
+      if (filters.shippingOption) {
+        params.shippingOption = filters.shippingOption;
+      }
+
+      const { data, error } = await orderService.searchOrdersV2(params);
 
       if (error || !data?.success) {
         console.error('[ReceiptCompletePage] Fetch failed:', error);
@@ -84,7 +103,20 @@ export default function ReceiptCompletePage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [
+    page,
+    filters.dateStart,
+    filters.dateEnd,
+    filters.keyword,
+    filters.shippingOption,
+    filterTrigger,
+  ]);
+
+  useEffect(() => {
+    if (filterTrigger > 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [filterTrigger, page, setPage]);
 
   useEffect(() => {
     void fetchOrders();

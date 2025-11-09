@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import styles from './page.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { returnExchangeService } from '@/app/api/services/client/return-exchange/returnExchangeService';
 import { BaseApiResponse } from '@/app/api/types/member/return-exchange/returnExchange';
+import { useOrderFilter } from '@/app/context/orderFilterContext';
 
 interface ExchangeRequestRow {
   orderNumber: string;
@@ -61,51 +62,77 @@ export default function ExchangeRequestPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchExchangeRequests = async (): Promise<void> => {
-      setLoading(true);
-      try {
-        const { data } = await returnExchangeService.getAll({
-          page: page - 1,
-          size: PAGE_SIZE,
-          sortBy: 'createdAt',
-          direction: 'desc',
-        });
+  const { filters, filterTrigger } = useOrderFilter();
 
-        const res = data as unknown as BaseApiResponse<ReturnExchangeResponse>;
-        const result = res.data;
+  const fetchExchangeRequests = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const params: {
+        page: number;
+        size: number;
+        sortBy: 'createdAt';
+        direction: 'desc';
+        type: 'EXCHANGE';
+        dateStart?: string;
+        dateEnd?: string;
+      } = {
+        page: page - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        direction: 'desc',
+        type: 'EXCHANGE',
+      };
 
-        const mapped: ExchangeRequestRow[] =
-          result.content
-            ?.filter((r) => r.type === 'EXCHANGE')
-            .map((r) => ({
-              orderNumber: r.orderNumber ?? '-',
-              orderDate: new Date(r.updatedAt).toLocaleString('ko-KR', {
-                dateStyle: 'short',
-                timeStyle: 'short',
-              }),
-              requesterName: r.requester.name ?? '-',
-              requesterContact: '-', // not provided in payload
-              productName: r.items?.[0]?.product?.productName ?? '-',
-              exchangeDate: new Date(r.createdAt).toLocaleString('ko-KR', {
-                dateStyle: 'short',
-                timeStyle: 'short',
-              }),
-              typeLabel: r.type === 'EXCHANGE' ? '교환' : '반품',
-            })) ?? [];
+      if (filters.dateStart) {
+        params.dateStart = filters.dateStart;
+      }
+      if (filters.dateEnd) {
+        params.dateEnd = filters.dateEnd;
+      }
 
-        setRequests(mapped);
-        setTotalPages(result.pageInfo?.totalPages ?? 1);
+      const { data } = await returnExchangeService.getAll(params);
+
+      const res = data as unknown as BaseApiResponse<ReturnExchangeResponse>;
+      const result = res.data;
+
+      const mapped: ExchangeRequestRow[] =
+        result.content
+          ?.filter((r) => r.type === 'EXCHANGE')
+          .map((r) => ({
+            orderNumber: r.orderNumber ?? '-',
+            orderDate: new Date(r.updatedAt).toLocaleString('ko-KR', {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            }),
+            requesterName: r.requester.name ?? '-',
+            requesterContact: '-', // not provided in payload
+            productName: r.items?.[0]?.product?.productName ?? '-',
+            exchangeDate: new Date(r.createdAt).toLocaleString('ko-KR', {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            }),
+            typeLabel: r.type === 'EXCHANGE' ? '교환' : '반품',
+          })) ?? [];
+
+      setRequests(mapped);
+      setTotalPages(result.pageInfo?.totalPages ?? 1);
       } catch (err) {
         console.error('Failed to fetch exchange requests:', err);
         setRequests([]);
       } finally {
         setLoading(false);
       }
-    };
+  }, [page, filters.dateStart, filters.dateEnd, filterTrigger]);
 
-    fetchExchangeRequests();
-  }, [page]);
+  useEffect(() => {
+    if (filterTrigger > 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [filterTrigger, page, setPage]);
+
+  useEffect(() => {
+    void fetchExchangeRequests();
+  }, [fetchExchangeRequests]);
 
   return (
     <>
