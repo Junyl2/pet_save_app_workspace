@@ -42,6 +42,7 @@
   background-color: #fff;
   margin: 1rem 0rem;
   padding: 1rem 0rem;
+
 }
 .emptyContainer {
   display: flex;
@@ -62,4 +63,5 @@
 .emptyText {
   font-size: 15px;
   color: #777;
+
 }
