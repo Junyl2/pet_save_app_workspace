@@ -68,6 +68,14 @@ export default function LoginForm() {
   const handleUsernameChange = (value: string) => {
     setUsername(value);
     setError('');
+    // If "remember" is checked, save username to localStorage as user types
+    if (remember && value.trim()) {
+      try {
+        localStorage.setItem('rememberedUsername', value.trim());
+      } catch {
+        // ignore localStorage errors
+      }
+    }
   };
 
   // Prefill username if previously remembered
@@ -120,10 +128,14 @@ export default function LoginForm() {
           });
 
           // Store/clear remembered username
-          if (remember) {
-            localStorage.setItem('rememberedUsername', username);
-          } else {
-            localStorage.removeItem('rememberedUsername');
+          try {
+            if (remember) {
+              localStorage.setItem('rememberedUsername', username.trim());
+            } else {
+              localStorage.removeItem('rememberedUsername');
+            }
+          } catch {
+            // ignore localStorage errors
           }
 
           // Clear any previous seller id (since this is client login)
@@ -228,11 +240,14 @@ export default function LoginForm() {
                   onChange={(e) => {
                     const checked = e.target.checked;
                     setRemember(checked);
-                    if (checked && username) {
-                      localStorage.setItem('rememberedUsername', username);
-                    }
-                    if (!checked) {
-                      localStorage.removeItem('rememberedUsername');
+                    try {
+                      if (checked && username.trim()) {
+                        localStorage.setItem('rememberedUsername', username.trim());
+                      } else if (!checked) {
+                        localStorage.removeItem('rememberedUsername');
+                      }
+                    } catch {
+                      // ignore localStorage errors
                     }
                   }}
                 />{' '}

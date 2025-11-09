@@ -317,7 +317,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem('userName');
       localStorage.removeItem('rememberedUsername');
       localStorage.removeItem('sellerId');
-      localStorage.removeItem('favorites'); // Clear favorites on logout
+      localStorage.removeItem('favorites');
+      localStorage.removeItem('checkoutItems');
+
+      // Remove all seller profile keys (seller:profile:*)
+      if (typeof window !== 'undefined') {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('seller:profile:')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+      }
+
       sessionStorage.clear();
     }
   };

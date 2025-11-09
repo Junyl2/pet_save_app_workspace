@@ -22,23 +22,19 @@
 .title {
   font-size: 28px;
   font-weight: 700;
-  line-height: 38px;
   color: #141414;
 }
 
 .orderId {
   font-size: 16px;
-  line-height: 24px;
   color: rgba(20, 20, 20, 0.8);
 }
 
 .orderedAt {
   font-size: 16px;
-  line-height: 24px;
   color: #141414;
 }
 
-/* Sections */
 .section {
   position: relative;
 }
@@ -46,53 +42,20 @@
 .sectionDivider {
   height: 1px;
   background: #bababa;
-  margin-left: -1.2rem;
-  margin-right: -1.2rem;
+  margin: 0 -1.2rem;
 }
 
 .sectionInner {
-  position: relative;
   padding: 24px 40px;
 }
 
 .sectionTitle {
   font-size: 20px;
   font-weight: 700;
-  line-height: 29px;
   color: #141414;
   margin-bottom: 16px;
 }
 
-/* 고객 정보 */
-.sectionCustomer {
-  /* natural height via content */
-}
-
-/* 결제 내역 */
-.sectionPayment {
-  /* natural height via content */
-}
-
-.paymentRow {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-/* 소득공제용(일반개인용) */
-.sectionReceipt {
-  /* natural height via content */
-}
-
-.receiptType {
-  font-size: 16px;
-  font-weight: 700;
-  color: #141414;
-  margin-bottom: 12px;
-}
-
-/* 공통 라벨/값 */
 .infoRow,
 .paymentRow {
   display: grid;
@@ -114,7 +77,6 @@
   text-overflow: ellipsis;
 }
 
-/* Footer Buttons */
 .footer {
   display: flex;
   justify-content: space-between;

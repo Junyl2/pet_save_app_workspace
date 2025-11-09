@@ -153,9 +153,11 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
           : [];
 
         if (!permissions.includes('ADMIN')) {
-          toast.error('관리자 권한이 없습니다.');
+          const errorMessage = '관리자만 로그인이 허용됩니다';
+          toast.error(errorMessage);
+          setError(errorMessage);
           clearAuthState();
-          return { success: false, error: '관리자 권한이 없습니다.' };
+          return { success: false, error: errorMessage };
         }
 
         // Copy existing tokens as admin tokens for separation

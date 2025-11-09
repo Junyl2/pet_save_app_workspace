@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
@@ -11,6 +12,7 @@ import { useOrderFilter } from '@/app/context/orderFilterContext';
 const PAGE_SIZE = 10;
 
 export default function DocumentListPage() {
+  const router = useRouter();
   const { page, setPage } = usePageParam(1);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -76,6 +78,25 @@ export default function DocumentListPage() {
     void fetchInvoices();
   }, [fetchInvoices]);
 
+  const handleRowClick = (invoice: InvoiceItem): void => {
+    if (!invoice.issuanceType) {
+      return;
+    }
+
+    let route = '';
+    if (invoice.issuanceType === 'BUSINESS_EXPENSE') {
+      route = `/admin/pages/tax-invoice-list/business-expense/${invoice.invoiceId}`;
+    } else if (invoice.issuanceType === 'PERSONAL_DEDUCTION') {
+      route = `/admin/pages/tax-invoice-list/personal-deduction/${invoice.invoiceId}`;
+    } else if (invoice.issuanceType === 'TAX_INVOICE_ISSUANCE') {
+      route = `/admin/pages/tax-invoice-list/tax-invoice-issuance/${invoice.invoiceId}`;
+    }
+
+    if (route) {
+      router.push(route);
+    }
+  };
+
   return (
     <>
       <div className={styles.container}>
@@ -101,7 +122,12 @@ export default function DocumentListPage() {
         {/* Data Rows */}
         {!loading &&
           invoices.map((inv) => (
-            <div key={inv.invoiceId} className={styles.row}>
+            <div
+              key={inv.invoiceId}
+              className={styles.row}
+              onClick={() => handleRowClick(inv)}
+              style={{ cursor: inv.issuanceType ? 'pointer' : 'default' }}
+            >
               <div>{inv.orderNumber ?? '-'}</div>
               <div>
                 {inv.orderDate
@@ -110,12 +136,12 @@ export default function DocumentListPage() {
               </div>
               <div>{inv.customerName ?? '-'}</div>
               <div>
-                {inv.invoiceType === 'GENERAL_INVOICE'
-                  ? '일반 영수증'
-                  : inv.invoiceType === 'TAX_INVOICE'
+                {inv.issuanceType === 'PERSONAL_DEDUCTION'
+                  ? '소득공제용(일반개인용)'
+                  : inv.issuanceType === 'BUSINESS_EXPENSE'
+                  ? '지출증빙용(사업자용)'
+                  : inv.issuanceType === 'TAX_INVOICE_ISSUANCE'
                   ? '세금계산서'
-                  : inv.invoiceType === 'CASH_RECEIPT'
-                  ? '현금영수증'
                   : '-'}
               </div>
               {/*  Updated to use invoiceNumber for 발행번호 */}

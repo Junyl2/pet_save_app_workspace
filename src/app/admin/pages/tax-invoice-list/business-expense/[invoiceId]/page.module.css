@@ -38,7 +38,6 @@
   color: #141414;
 }
 
-/* Sections */
 .section {
   position: relative;
 }
@@ -63,38 +62,8 @@
   margin-bottom: 16px;
 }
 
-/* 고객 정보 */
-.sectionCustomer {
-  /* natural height via content */
-}
-
-/* 결제 내역 */
-.sectionPayment {
-  /* natural height via content */
-}
-
-.paymentRow {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-/* 소득공제용(일반개인용) */
-.sectionReceipt {
-  /* natural height via content */
-}
-
-.receiptType {
-  font-size: 16px;
-  font-weight: 700;
-  color: #141414;
-  margin-bottom: 12px;
-}
-
-/* 공통 라벨/값 */
-.infoRow,
-.paymentRow {
+.paymentRow,
+.infoRow {
   display: grid;
   grid-template-columns: 120px 1fr;
   align-items: center;
@@ -114,7 +83,13 @@
   text-overflow: ellipsis;
 }
 
-/* Footer Buttons */
+.receiptType {
+  font-size: 16px;
+  font-weight: 700;
+  color: #141414;
+  margin-bottom: 12px;
+}
+
 .footer {
   display: flex;
   justify-content: space-between;

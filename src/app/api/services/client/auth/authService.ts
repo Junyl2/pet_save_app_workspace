@@ -352,9 +352,20 @@ export class AuthService {
 
       // Remove cart & location data
       localStorage.removeItem('cart');
+      localStorage.removeItem('checkoutItems');
       localStorage.removeItem('selectedLocation');
       localStorage.removeItem('selectedLocationLat');
       localStorage.removeItem('selectedLocationLong');
+
+      // Remove all seller profile keys (seller:profile:*)
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('seller:profile:')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
 
       sessionStorage.clear();
 
@@ -1126,8 +1137,8 @@ export class AuthService {
           (data.accessToken as string) ||
           (data.token as string) ||
           (data.data &&
-            typeof data.data === 'object' &&
-            (data.data as Record<string, unknown>).accessToken
+          typeof data.data === 'object' &&
+          (data.data as Record<string, unknown>).accessToken
             ? ((data.data as Record<string, unknown>).accessToken as string)
             : null);
 

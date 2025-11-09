@@ -6,6 +6,7 @@ import Image from 'next/image';
 import styles from './page.module.css';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
 import { MemberInfo, MemberUpdateRequest } from '@/app/api/types/member/member';
+import { MemberManagementService } from '@/app/api/services/admin/memberManagementService/memberManangementService';
 
 export default function MemberDetailPanelPage() {
   const { id } = useParams<{ id: string }>();
@@ -78,13 +79,31 @@ export default function MemberDetailPanelPage() {
     }
   };
 
-  /** Handle Delete (placeholder for future use) */
+  /** Handle Delete */
   const handleDelete = async (): Promise<void> => {
     if (!id) return;
     const confirmDelete = confirm('정말로 이 회원을 삭제하시겠습니까?');
     if (!confirmDelete) return;
 
-    alert('삭제 기능은 아직 구현되지 않았습니다.');
+    try {
+      const response =
+        await MemberManagementService.removeMemberPermissionNoAdmin(id, {
+          permission: 'ADMIN',
+        });
+
+      if (response.error || !response.data?.success) {
+        alert(
+          '권한 제거 실패: ' + (response.error ?? response.data?.resultMsg)
+        );
+        return;
+      }
+
+      alert('권한이 성공적으로 제거되었습니다.');
+      router.push('/admin/pages/account-permission-management/general-member');
+    } catch (error) {
+      console.error('Error removing member permission:', error);
+      alert('권한 제거 중 오류가 발생했습니다.');
+    }
   };
 
   if (loading || !formData) {

@@ -1,9 +1,14 @@
 import { apiClient, ApiResponse } from '@/app/api/apiClient';
-import { InvoiceSearchParams, InvoiceSearchResponse } from './invoiceTypes';
+import {
+  InvoiceSearchParams,
+  InvoiceSearchResponse,
+  InvoiceDetailResponse,
+  IssueInvoiceResponse,
+} from './invoiceTypes';
 
 /**
  * Invoice Service (ADMIN)
- * Provides invoice search functionality.
+ * Provides invoice search, detail, and issue functionality.
  */
 export const invoiceService = {
   /**
@@ -30,5 +35,27 @@ export const invoiceService = {
 
     const url = `/invoices?${query.toString()}`;
     return await apiClient.get<InvoiceSearchResponse>(url);
+  },
+
+  /**
+   * Get invoice details (ADMIN only)
+   * GET /api/pet-save/invoices/{invoiceId}
+   */
+  getInvoiceDetails: async (
+    invoiceId: string
+  ): Promise<ApiResponse<InvoiceDetailResponse>> => {
+    const url = `/invoices/${invoiceId}`;
+    return await apiClient.get<InvoiceDetailResponse>(url);
+  },
+
+  /**
+   * Issue invoice (ADMIN only)
+   * PUT /api/pet-save/invoices/{invoiceId}/issue
+   */
+  issueInvoice: async (
+    invoiceId: string
+  ): Promise<ApiResponse<IssueInvoiceResponse>> => {
+    const url = `/invoices/${invoiceId}/issue`;
+    return await apiClient.put<IssueInvoiceResponse>(url);
   },
 };

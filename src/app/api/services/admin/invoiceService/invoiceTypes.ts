@@ -67,3 +67,95 @@ export interface InvoiceSearchResponse {
     pageInfo: InvoicePageInfo;
   };
 }
+
+export interface CompanyInfo {
+  businessNumber: string | null;
+  businessName: string | null;
+  representativeName: string | null;
+  businessAddress: string | null;
+  businessType: string | null;
+  businessCategory: string | null;
+  businessEmail: string | null;
+}
+
+export interface InvoiceLineItem {
+  orderItemId: string;
+  productId: string;
+  productName: string;
+  productDescription: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  appliedDiscount: number;
+  totalAmount: number;
+  invoicedQuantity: number;
+  invoicedAmount: number;
+  isPartialInvoice: boolean;
+  effectiveUnitPrice: number;
+  notes: string | null;
+}
+
+export interface Payment {
+  paymentId: string;
+  paymentMethod: string;
+  amount: number;
+  transactionIds: string[];
+  status: string;
+  paidAt: string;
+}
+
+export interface Refund {
+  refundId?: string;
+  amount?: number;
+  refundedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface InvoiceDetail {
+  invoiceId: string;
+  invoiceNumber: string;
+  invoiceSequence: number;
+  status: InvoiceStatus;
+  invoiceType: InvoiceType;
+  invoiceNature: InvoiceNature;
+  totalAmount: number;
+  taxAmount: number | null;
+  totalRefundedAmount: number;
+  netAmount: number;
+  issueDate: string | null;
+  dueDate: string | null;
+  orderId: string;
+  orderNumber: string;
+  orderDate: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  companyInfo: CompanyInfo;
+  issueNumber: string;
+  issuanceType: IssuanceType | null;
+  items: InvoiceLineItem[];
+  payments: Payment[];
+  refunds: Refund[];
+  totalQuantity: number;
+  hasPartialLineItems: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvoiceDetailResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: InvoiceDetail;
+}
+
+export interface IssueInvoiceResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: Record<string, never>;
+}

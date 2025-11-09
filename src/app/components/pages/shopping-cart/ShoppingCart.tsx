@@ -241,25 +241,34 @@ export default function ShoppingCartPage() {
   };
 
   // group by shop - use only API store data
+  // Filter out stores with no items or only expired items
   const grouped = useMemo(() => {
     const map: Record<string, CartItem[]> = {};
     apiCartStores.forEach((store) => {
-      const storeName = store.store.name;
-      map[storeName] = store.items.map((item) => ({
-        product: {
-          id: item.product.productId, // Use productId as string for API operations
-          cartItemId: item.cartItemId, // Keep cartItemId for reference
-          name: item.product.productName,
-          price: item.product.salePrice,
-          image:
-            item.product.productThumbnail || '/images/products/placeholder.png',
-          shopName: store.store.name,
-          storeId: store.store.storeId,
-          discountPrice: item.product.discountedPrice,
-          expiration: item.product.expiryDate,
-        },
-        quantity: item.quantity,
-      }));
+      // Filter out expired items
+      const validItems = store.items.filter(
+        (item) => !isProductExpired(item.product.expiryDate)
+      );
+
+      // Only add store if it has at least one valid (non-expired) item
+      if (validItems.length > 0) {
+        const storeName = store.store.name;
+        map[storeName] = validItems.map((item) => ({
+          product: {
+            id: item.product.productId, // Use productId as string for API operations
+            cartItemId: item.cartItemId, // Keep cartItemId for reference
+            name: item.product.productName,
+            price: item.product.salePrice,
+            image:
+              item.product.productThumbnail || '/images/products/placeholder.png',
+            shopName: store.store.name,
+            storeId: store.store.storeId,
+            discountPrice: item.product.discountedPrice,
+            expiration: item.product.expiryDate,
+          },
+          quantity: item.quantity,
+        }));
+      }
     });
     return map;
   }, [apiCartStores]);
@@ -496,8 +505,8 @@ export default function ShoppingCartPage() {
     );
   }
 
-  // empty state
-  if (displayCart.length === 0) {
+  // empty state - check if there are any stores with valid items
+  if (Object.keys(grouped).length === 0) {
     return (
       <div className={styles.emptyContainer}>
         <Image
