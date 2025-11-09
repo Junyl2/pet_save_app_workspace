@@ -1,15 +1,17 @@
 'use client';
-import { productContactService } from '@/app/api/services/contact-product/productContactService';
-import { ProductSummary } from '@/app/api/types/products/productSummary';
-import styles from './ContactProduct.module.css';
+
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { IoCallOutline } from 'react-icons/io5';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { CiImageOn } from 'react-icons/ci';
-import { useRouter } from 'next/navigation';
-import { ContactDrawer } from '@/app/components/ui/drawer/ContactDrawer/ContactDrawer';
 import toast, { Toaster } from 'react-hot-toast';
-import Image from 'next/image';
+import styles from './ContactProduct.module.css';
+
+import { productContactService } from '@/app/api/services/contact-product/productContactService';
+import { ProductSummary } from '@/app/api/types/products/productSummary';
+import { ContactDrawer } from '@/app/components/ui/drawer/ContactDrawer/ContactDrawer';
 import Loading from '../../../ui/Loading/Loading';
 
 interface ContactProductProps {
@@ -29,61 +31,55 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
   const [submitting, setSubmitting] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  /** Fetch product info */
   useEffect(() => {
     const fetchProduct = async () => {
-      setLoading(true);
       try {
+        setLoading(true);
         const productData = await productContactService.getProductById(
           productId
         );
+        if (!productData) {
+          toast.error('상품 정보를 불러오는데 실패했습니다.');
+          return;
+        }
         setProduct(productData);
       } catch (error) {
-        console.error('Error fetching product:', error);
+        console.error('[ContactProduct] Fetch error:', error);
         toast.error('상품 정보를 불러오는데 실패했습니다.');
       } finally {
         setLoading(false);
       }
     };
 
-    if (productId) {
-      fetchProduct();
-    }
+    if (productId) fetchProduct();
   }, [productId]);
 
-  // Cleanup preview URL on unmount
+  /** Cleanup preview URL on unmount */
   useEffect(() => {
     return () => {
-      if (filePreview) {
-        URL.revokeObjectURL(filePreview);
-      }
+      if (filePreview) URL.revokeObjectURL(filePreview);
     };
   }, [filePreview]);
 
   if (loading) return <Loading />;
-
   if (!product) return <p>상품을 찾을 수 없습니다.</p>;
 
+  /** File handling */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
     setFile(selectedFile);
-
-    if (selectedFile) {
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(selectedFile);
-      setFilePreview(previewUrl);
-    } else {
-      setFilePreview(null);
-    }
+    if (selectedFile) setFilePreview(URL.createObjectURL(selectedFile));
+    else setFilePreview(null);
   };
 
   const removeFile = () => {
-    if (filePreview) {
-      URL.revokeObjectURL(filePreview);
-    }
+    if (filePreview) URL.revokeObjectURL(filePreview);
     setFile(null);
     setFilePreview(null);
   };
 
+  /** Submit inquiry */
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
@@ -96,7 +92,7 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
         productId: product.productId,
         inquiryType,
         content,
-        file: file,
+        file,
       });
 
       if (response.error) {
@@ -104,13 +100,8 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
         return;
       }
 
-      // Show toast
       toast.success('문의가 정상적으로 접수되었습니다.');
-
-      // Redirect back after a short delay (e.g., 1.5s)
-      setTimeout(() => {
-        router.back();
-      }, 1600);
+      setTimeout(() => router.back(), 1500);
     } catch (err) {
       console.error(err);
       toast.error('문의 접수 중 오류가 발생했습니다.');
@@ -129,7 +120,7 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
 
   return (
     <div className={styles.container}>
-      {/* React Hot Toast */}
+      {/* Toast */}
       <Toaster
         position="bottom-center"
         toastOptions={{
@@ -144,35 +135,39 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
             marginBottom: '50vh',
           },
           success: {
-            style: {
-              background: '#2F6F5E',
-              color: '#fff',
-            },
-            iconTheme: {
-              primary: '#2F6F5E',
-              secondary: '#fff',
-            },
+            style: { background: '#2F6F5E', color: '#fff' },
+            iconTheme: { primary: '#2F6F5E', secondary: '#fff' },
           },
         }}
       />
 
       {/* Seller Profile */}
       <div className={styles.sellerProfile}>
-        <Image
-          src={product.store.profileUrl || '/fallback-shop.png'}
-          alt={product.store.name || '판매자'}
-          className={styles.shopImage}
-          width={50}
-          height={50}
-        />
+        <div className={styles.profileWrapper}>
+          <Image
+            src={product.store.profileUrl || '/fallback-shop.png'}
+            alt={product.store.name || '판매자'}
+            className={styles.shopImage}
+            width={50}
+            height={50}
+          />
+        </div>
+
         <div className={styles.shopInfo}>
           <h3>{product.store.name}</h3>
           <p className={styles.details}>{product.store.address}</p>
         </div>
+
         <div className={styles.contactWrapper}>
           <button
             className={styles.contactButton}
-            onClick={() => setShowDrawer(true)}
+            onClick={() => {
+              if (!product.store.storeId) {
+                toast.error('판매자 정보를 찾을 수 없습니다.');
+                return;
+              }
+              setShowDrawer(true);
+            }}
           >
             <IoCallOutline size={16} className={styles.call} />
             전화 문의
@@ -182,26 +177,26 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
 
       {/* Product Info */}
       <div className={styles.productInfoRow}>
-        <Image
-          src={product.thumbnail || '/images/products/noresult.png'}
-          alt={product.productName || '상품 이미지'}
-          className={styles.productThumbnail}
-          width={80}
-          height={80}
-        />
+        <div className={styles.imageWrapper}>
+          <Image
+            src={product.thumbnail || '/images/products/noresut.png'}
+            alt={product.productName}
+            className={styles.productThumbnail}
+            fill
+          />
+        </div>
+
         <div className={styles.productDetailsColumn}>
           <p className={styles.productName}>{product.productName}</p>
           <p className={styles.productPrice}>
-            {product.discountedPrice
-              ? `${product.discountedPrice.toLocaleString()}원`
-              : `${product.salePrice.toLocaleString()}원`}
+            {(product.discountedPrice ?? product.salePrice).toLocaleString()}원
           </p>
         </div>
       </div>
 
       {/* Inquiry Form */}
       <div className={styles.form}>
-        {/* Custom Dropdown */}
+        {/* Dropdown */}
         <div className={styles.customDropdown}>
           <div
             className={styles.dropdownHeader}
@@ -221,9 +216,9 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
 
           {dropdownOpen && (
             <div className={styles.dropdownList}>
-              {options.map((opt, i) => (
+              {options.map((opt) => (
                 <div
-                  key={i}
+                  key={opt}
                   className={styles.dropdownItem}
                   onClick={() => {
                     setInquiryType(opt);
@@ -244,6 +239,7 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
           maxLength={1000}
         />
 
+        {/* File Upload */}
         <div className={styles.fileUploadWrapper}>
           <input
             type="file"
@@ -259,7 +255,6 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
             </label>
           </div>
 
-          {/* File Preview */}
           {filePreview && (
             <div className={styles.filePreview}>
               <Image
@@ -284,9 +279,10 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
         </div>
 
         <p className={styles.note}>
-          문의하신 내용에 대한 답변은 앱의 마이페이지 1:1 문의에서 확인할 수
-          있습니다
+          문의하신 내용에 대한 답변은 마이페이지 1:1 문의에서 확인하실 수
+          있습니다.
         </p>
+
         <button
           onClick={handleSubmit}
           disabled={!inquiryType || !content || submitting}
@@ -298,7 +294,13 @@ export const ContactProduct = ({ productId }: ContactProductProps) => {
         </button>
       </div>
 
-      {showDrawer && <ContactDrawer onClose={() => setShowDrawer(false)} />}
+      {/* Drawer */}
+      {showDrawer && (
+        <ContactDrawer
+          storeId={product.store.storeId}
+          onClose={() => setShowDrawer(false)}
+        />
+      )}
     </div>
   );
 };

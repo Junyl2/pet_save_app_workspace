@@ -3,7 +3,6 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ContactInquiry } from '@/app/api/types/contact/contact';
-import { contactService } from '@/app/api/services/contact-service/contactService';
 import { MemberInquiryService } from '@/app/api/services/client/memberService/inquiry-details/memberInquiryService';
 import { MyInquiry } from '@/app/api/types/member/inquiry-details/inquiry';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
@@ -20,7 +19,7 @@ const transformMyInquiryToContactInquiry = (
   myInquiry: MyInquiry
 ): ContactInquiry => {
   return {
-    id: parseInt(myInquiry.inquiryId.split('-')[0], 16) || 0, // Convert UUID to number for compatibility
+    id: myInquiry.inquiryId, // Use inquiryId as id (string)
     inquiryId: myInquiry.inquiryId,
     date: myInquiry.createdAt,
     shopName: myInquiry.store.name,
@@ -57,9 +56,7 @@ export default function DeleteInquiryPage() {
 
         if (response.error || !response.data) {
           console.error('Failed to fetch inquiries:', response.error);
-          // Fallback to mock data if API fails
-          const mockData = await contactService.getInquiryById(1); // fallback
-          setInquiry(mockData);
+          setInquiry(null);
         } else {
           // Find inquiry with matching productId
           const matchingInquiry = response.data.data.content.find(
@@ -77,9 +74,7 @@ export default function DeleteInquiryPage() {
         }
       } catch (error) {
         console.error('Error fetching inquiry:', error);
-        // Fallback to mock data on error
-        const mockData = await contactService.getInquiryById(1);
-        setInquiry(mockData);
+        setInquiry(null);
       } finally {
         setLoading(false);
       }

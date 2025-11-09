@@ -38,12 +38,29 @@
   font-family: 'Pretendard', sans-serif;
 }
 
+.inputField[type='date'] {
+  position: relative;
+  cursor: pointer;
+  padding-right: 40px;
+}
+
+.inputField[type='date']::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 0;
+  width: 40px;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
 .calendarIcon {
   position: absolute;
   right: 12px;
   font-size: 18px;
   color: rgba(20, 20, 20, 0.8);
   pointer-events: none;
+  z-index: 1;
 }
 
 .tilde {
@@ -61,6 +78,7 @@
   display: flex;
   align-items: center;
   padding: 0 14px;
+  margin-left: 3.8rem;
 }
 
 .searchInput {

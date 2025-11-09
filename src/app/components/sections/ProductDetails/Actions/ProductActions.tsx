@@ -6,10 +6,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 interface ProductActionsProps {
-  productId: string | number; // support both string and number
+  productId: string | number;
   productName: string;
-  productPrice: number | string; // support both string/number
-  storeId?: string; // Add storeId for seller validation
+  productPrice: number | string;
+  storeId?: string;
   onAddToCart: (quantity: number, productName: string) => void;
   onPurchase: (quantity: number, productName: string) => void;
 }
@@ -20,17 +20,16 @@ export const ProductActions = ({
   productPrice,
   storeId,
   onAddToCart,
-}: /*   onPurchase, */
-ProductActionsProps) => {
+}: ProductActionsProps) => {
   const route = useRouter();
   const [showDrawer, setShowDrawer] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [drawerMode, setDrawerMode] = useState<'buy' | 'cart'>('buy');
-  /*   const [onMessageProduct, setOnMessageProduct] = useState(false); */
+
   const [activeProduct, setActiveProduct] = useState<{
-    id: string | number;
+    id: string;
     name: string;
-    price: number | string;
+    price: number;
     storeId?: string;
   } | null>(null);
 
@@ -40,15 +39,21 @@ ProductActionsProps) => {
     price: number | string,
     mode: 'buy' | 'cart'
   ) => {
-    setActiveProduct({ id, name, price, storeId });
+    //  Ensure correct types for ProductDrawer
+    const normalizedId = String(id);
+    const normalizedPrice =
+      typeof price === 'string' ? parseFloat(price) || 0 : price;
+
+    setActiveProduct({
+      id: normalizedId,
+      name,
+      price: normalizedPrice,
+      storeId,
+    });
     setQuantity(1);
     setDrawerMode(mode);
     setShowDrawer(true);
   };
-
-  /*  useEffect(() => {
-    const onMessage = route.push('/client/pages/products/contact-product');
-  }, []); */
 
   return (
     <div className={styles.actionsContainer}>

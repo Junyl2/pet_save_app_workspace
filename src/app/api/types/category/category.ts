@@ -49,3 +49,43 @@ export interface CategoryApiResponse {
   data: CategoryPageResponse;
   errorId?: string;
 }
+
+/** Request payload for creating a new category */
+export interface CategoryCreateRequest {
+  name: string;
+  englishName: string;
+  displayOrder: number;
+  visible: boolean;
+  /** Encrypted file ID (imageFileId) from the upload API */
+  imageFileId: string;
+}
+
+/** Request payload for updating a category */
+export interface CategoryUpdateRequest {
+  name: string;
+  englishName: string;
+  displayOrder: number;
+  visible: boolean;
+  /** Encrypted file IDs (imageFileIds) for updated images */
+  imageFileIds: string[];
+}
+
+/** Response for fetching category details by ID */
+export interface CategoryByIdResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: Category;
+  errorId?: string;
+}
+
+/** Generic response structure for category operations */
+export interface CategoryResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: Record<string, unknown>;
+  errorId?: string;
+}

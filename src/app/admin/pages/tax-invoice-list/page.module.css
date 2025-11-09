@@ -28,6 +28,11 @@
 .row {
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
   background-color: #ffffff;
+  transition: background-color 0.2s ease;
+}
+
+.row:hover {
+  background-color: #f8f8f8;
 }
 
 .actions {

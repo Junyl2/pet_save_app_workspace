@@ -15,7 +15,27 @@ export default function HomePage() {
 
   // Get current page and category from URL parameters
   const currentPage = parseInt(searchParams.get('page') || '0', 10);
-  const urlCategory = searchParams.get('category') || '강아지';
+  const urlCategory = searchParams.get('categoryName') || '강아지';
+  // Valid allowed values based on ProductCacheKey type
+  const allowedSortBy = [
+    'createdAt',
+    'expiryDate',
+    'salePrice',
+    'discountedPrice',
+  ] as const;
+  const allowedDirections = ['asc', 'desc'] as const;
+
+  const rawSortBy = searchParams.get('sortBy');
+  const rawDirection = searchParams.get('direction');
+
+  // Narrow to literal union safely
+  const sortBy = allowedSortBy.includes(rawSortBy as any)
+    ? (rawSortBy as (typeof allowedSortBy)[number])
+    : 'createdAt';
+
+  const direction = allowedDirections.includes(rawDirection as any)
+    ? (rawDirection as (typeof allowedDirections)[number])
+    : 'desc';
 
   const [selectedCategory, setSelectedCategory] = useState(urlCategory);
   const hasRefreshed = useRef(false);
@@ -51,15 +71,16 @@ export default function HomePage() {
   };
 
   // Handle category change by updating URL
-  const handleCategoryChange = (category: string) => {
+  const handleCategoryChange = (categoryName: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (category === '강아지') {
-      params.delete('category');
+    if (categoryName === '강아지') {
+      params.delete('categoryName');
     } else {
-      params.set('category', category);
+      params.set('categoryName', categoryName);
     }
     // Reset to page 0 when changing category
     params.delete('page');
+    // Preserve sortBy and direction when changing category
     const newUrl = params.toString() ? `?${params.toString()}` : '';
     router.push(`/client/pages/homepage${newUrl}`);
   };
@@ -83,7 +104,7 @@ export default function HomePage() {
 
       <div className={styles.mainContent}>
         <ProductGrid
-          category={selectedCategory}
+          categoryName={selectedCategory}
           searchTerm=""
           currentPage={currentPage}
           onPageChange={handlePageChange}
@@ -96,6 +117,8 @@ export default function HomePage() {
             }
           }}
           onAddToCart={() => {}}
+          sortBy={sortBy}
+          direction={direction}
         />
       </div>
 

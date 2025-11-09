@@ -58,3 +58,11 @@ export interface DeliveryInfoData {
   deliveryNotes: string | null;
   currentStatus: string;
 }
+export interface DeliveryEventsResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: DeliveryEvent[];
+  errorId?: string;
+}

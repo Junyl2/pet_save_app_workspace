@@ -93,7 +93,8 @@ export default function AdminLoginPage() {
         : [];
 
       if (!permissions.includes('ADMIN')) {
-        toast.error('관리자 권한이 없습니다.');
+        setError('관리자만 로그인이 허용됩니다');
+        toast.error('관리자만 로그인이 허용됩니다');
         setLoading(false);
         return;
       }

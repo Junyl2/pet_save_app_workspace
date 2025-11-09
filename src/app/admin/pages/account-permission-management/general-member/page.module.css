@@ -1,6 +1,5 @@
 .wrapper {
   width: 100%;
-  max-width: 1520px;
   margin: 0 auto;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 4px;
@@ -12,7 +11,7 @@
 
 .headerRow {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr 1.2fr 0.8fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   background-color: #f1f9f6;
   color: #1f4a31;
   padding: 16px 24px;
@@ -22,7 +21,7 @@
 
 .dataRow {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr 1.2fr 0.8fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   background-color: #ffffff;
   padding: 16px 24px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);

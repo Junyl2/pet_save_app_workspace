@@ -1,0 +1,111 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 94.3%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 40px;
+  border-radius: 5px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.label {
+  width: 100px;
+  font-size: 16px;
+  color: #141414;
+}
+
+.inputBox {
+  flex: 1;
+  background: #f3f4f6;
+  border-radius: 5px;
+  padding: 12px 18px;
+  font-size: 15px;
+  color: #141414;
+}
+
+.date {
+  width: 150px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  padding: 12px;
+  font-size: 15px;
+  color: #141414;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contentBox,
+.answerBox {
+  background: #f3f4f6;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.text {
+  white-space: pre-line;
+  font-size: 15px;
+  color: #141414;
+}
+
+.buttonRow {
+  display: flex;
+  justify-content: center;
+  gap: 100px;
+  margin-top: 40px;
+}
+
+.btnDelete,
+.btnEdit {
+  width: 245px;
+  height: 50px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  font-size: 16px;
+  color: #141414;
+  cursor: pointer;
+}
+
+.btnList {
+  width: 245px;
+  height: 50px;
+  background: #66bfa7;
+  border: 1px solid #fff;
+  border-radius: 5px;
+  font-size: 16px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.btnDelete:hover,
+.btnEdit:hover {
+  background: #f9f9f9;
+}
+
+.btnList:hover {
+  background: #5aa693;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 100px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+  resize: vertical;
+  background: #fff;
+}

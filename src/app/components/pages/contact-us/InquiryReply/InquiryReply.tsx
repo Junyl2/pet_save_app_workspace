@@ -42,7 +42,7 @@ export default function InquiryReply({ inquiryId }: InquiryReplyProps) {
           );
           const transformed: ContactInquiry | null = foundApi
             ? {
-                id: parseInt(foundApi.inquiryId.split('-')[0], 16) || 0,
+                id: foundApi.inquiryId,
                 inquiryId: foundApi.inquiryId,
                 date: foundApi.createdAt,
                 shopName: foundApi.store.name,

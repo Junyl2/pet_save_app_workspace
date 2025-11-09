@@ -74,7 +74,7 @@ export interface MyInquiriesParams {
   dateEnd?: string; // YYYY-MM-DD format
   page?: number;
   size?: number;
-  sortBy?: 'createdAt' | 'answeredAt';
+  sortBy?: 'createdAt' | 'updatedAt' | string;
   direction?: 'asc' | 'desc';
 }
 

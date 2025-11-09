@@ -32,6 +32,7 @@ export type SortDirection = 'asc' | 'desc';
 export interface OrderHistoryQueryParams {
   keyword?: string;
   status?: OrderStatus;
+  shippingOption?: 'DELIVERY' | 'PICKUP';
   dateStart?: string; // YYYY-MM-DD format
   dateEnd?: string; // YYYY-MM-DD format
   page?: number;

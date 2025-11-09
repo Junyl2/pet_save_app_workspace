@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import styles from './SellerForm.module.css';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -94,6 +94,10 @@ export default function SellerInformation({
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [emailValidationStatus, setEmailValidationStatus] = useState<
+    'idle' | 'checking' | 'available' | 'taken' | 'error'
+  >('idle');
+  const [emailValidationMessage, setEmailValidationMessage] = useState('');
   const [businessLicenseFileId, setBusinessLicenseFileId] = useState<
     string | null
   >(null);
@@ -160,6 +164,46 @@ export default function SellerInformation({
     }));
   }, [initial]);
 
+  // Debounced email validation
+  const validateEmailAvailability = useCallback(async () => {
+    const { email, emailDomain } = formData;
+    if (!email || !emailDomain) {
+      setEmailValidationStatus('idle');
+      setEmailValidationMessage('');
+      return;
+    }
+
+    const fullEmail = `${email}@${emailDomain}`;
+    setEmailValidationStatus('checking');
+    setEmailValidationMessage('이메일 확인 중...');
+
+    try {
+      const res = await AuthService.validateEmailAvailability(fullEmail);
+      if (res.error) {
+        setEmailValidationStatus('taken');
+        setEmailValidationMessage('이미 사용 중인 이메일입니다.');
+      } else if (res.data?.success) {
+        setEmailValidationStatus('available');
+        setEmailValidationMessage('사용 가능한 이메일입니다.');
+      } else {
+        setEmailValidationStatus('taken');
+        setEmailValidationMessage('이미 사용 중인 이메일입니다.');
+      }
+    } catch {
+      setEmailValidationStatus('error');
+      setEmailValidationMessage('이메일 확인 중 오류가 발생했습니다.');
+    }
+  }, [formData]);
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      if (formData.email && formData.emailDomain) {
+        validateEmailAvailability();
+      }
+    }, 600); // 0.6s debounce
+    return () => clearTimeout(delay);
+  }, [formData.email, formData.emailDomain, validateEmailAvailability]);
+
   // Input change handler (no-op in readOnly)
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -207,6 +251,11 @@ export default function SellerInformation({
     // Only reset business duplication state if the business number field is being changed
     if (name === 'businessNumber') {
       setIsBusinessDup(false);
+    }
+    // Reset email validation status when email or emailDomain changes
+    if (name === 'email' || name === 'emailDomain') {
+      setEmailValidationStatus('idle');
+      setEmailValidationMessage('');
     }
   };
 
@@ -552,15 +601,14 @@ export default function SellerInformation({
         ),
       representativeName: formData.representativeName,
       businessName: formData.companyName,
-      businessRegistrationCopyFileId:
-        businessLicenseEncryptedId || businessLicenseFileId || '',
+      businessRegistrationCopyFileId: businessLicenseEncryptedId || '',
       roadAddress: formData.address,
       detailedAddress: formData.detailAddress,
       zipCode: formData.postalCode,
       bankName: formData.bankName,
       accountNumber: formData.accountNumber,
       depositorName: formData.accountHolder,
-      bankbookFileId: bankbookEncryptedId || bankbookFileId || '',
+      bankbookFileId: bankbookEncryptedId || '',
       businessEmail: `${formData.email}@${formData.emailDomain}`,
       x: formData.x,
       y: formData.y,
@@ -662,6 +710,14 @@ export default function SellerInformation({
         }
       }
 
+      // Ensure we have encryptedId for both files
+      if (!businessLicenseEncryptedId) {
+        throw new Error('사업자등록증 파일을 업로드해주세요.');
+      }
+      if (!bankbookEncryptedId) {
+        throw new Error('통장 사본 파일을 업로드해주세요.');
+      }
+
       const registrationData: BusinessRegistrationRequest = {
         businessRegistrationNumber:
           BusinessRegistrationService.normalizeBusinessRegistrationNumber(
@@ -669,15 +725,14 @@ export default function SellerInformation({
           ),
         representativeName: formData.representativeName,
         businessName: formData.companyName,
-        businessRegistrationCopyFileId:
-          businessLicenseEncryptedId || businessLicenseFileId || '',
+        businessRegistrationCopyFileId: businessLicenseEncryptedId,
         roadAddress: formData.address,
         detailedAddress: formData.detailAddress,
         zipCode: formData.postalCode,
         bankName: formData.bankName,
         accountNumber: formData.accountNumber,
         depositorName: formData.accountHolder,
-        bankbookFileId: bankbookEncryptedId || bankbookFileId || '',
+        bankbookFileId: bankbookEncryptedId,
         businessEmail: `${formData.email}@${formData.emailDomain}`,
         x: formData.x,
         y: formData.y,
@@ -735,6 +790,42 @@ export default function SellerInformation({
       }
 
       console.log('Business registration successful:', response.data);
+
+      // Extract requestId from response to attach files
+      let requestId: string | null = null;
+      if (response.data?.data) {
+        const businessData = response.data
+          .data as unknown as BusinessRegistration;
+        requestId = businessData.requestId || null;
+      }
+
+      // Attach files using fileId and requestId (entityId)
+      if (requestId && businessLicenseFileId && bankbookFileId) {
+        try {
+          console.log('Attaching files to business registration:', {
+            requestId,
+            businessLicenseFileId,
+            bankbookFileId,
+          });
+
+          const attachResponse = await BusinessFileService.attachFiles(
+            requestId,
+            [businessLicenseFileId, bankbookFileId]
+          );
+
+          if (attachResponse.error) {
+            console.error('File attachment failed:', attachResponse.error);
+            // Don't throw error - files are already uploaded and registration is successful
+            // The files might already be attached or will be attached later
+          } else {
+            console.log('Files attached successfully:', attachResponse.data);
+          }
+        } catch (attachError) {
+          console.error('File attachment error:', attachError);
+          // Don't throw error - files are already uploaded and registration is successful
+        }
+      }
+
       updateUserRole('seller');
       setShowModal(true);
 
@@ -1089,6 +1180,8 @@ export default function SellerInformation({
                           emailDomain: domain,
                         }));
                         setDropdownOpen(false);
+                        setEmailValidationStatus('idle');
+                        setEmailValidationMessage('');
                       }}
                     >
                       {domain}
@@ -1098,6 +1191,20 @@ export default function SellerInformation({
               )}
             </div>
           </div>
+
+          {emailValidationMessage && (
+            <p
+              className={`${styles.validationMessage} ${
+                emailValidationStatus === 'available'
+                  ? styles.success
+                  : emailValidationStatus === 'checking'
+                  ? styles.checking
+                  : styles.error
+              }`}
+            >
+              {emailValidationMessage}
+            </p>
+          )}
 
           {errors.email && !authError && (
             <p className={styles.error}>{errors.email}</p>

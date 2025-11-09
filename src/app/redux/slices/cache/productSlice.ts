@@ -1,13 +1,19 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { Product, ProductPageInfo } from '@/app/api/types/products/products';
+import {
+  Product,
+  ProductPageInfo,
+  ProductSearchParams,
+} from '@/app/api/types/products/products';
 import { ProductService } from '@/app/api/services/client/productService/productService';
 import { SellerProductListService } from '@/app/api/services/client/productService/sellerProductListService';
 
 export interface ProductCacheKey {
-  category?: string;
+  categoryName?: string;
   searchTerm?: string;
   storeId?: string;
-  page: number;
+  page?: number;
+  sortBy?: 'createdAt' | 'expiryDate' | 'salePrice' | 'discountedPrice';
+  direction?: 'asc' | 'desc';
 }
 
 export interface CachedProductData {
@@ -43,10 +49,10 @@ const CACHE_DURATION = 10 * 1000;
 
 // Helper function to create cache key
 const createCacheKey = (params: ProductCacheKey): string => {
-  const { category, searchTerm, storeId, page } = params;
-  return `${storeId || 'general'}_${category || 'all'}_${
+  const { categoryName, searchTerm, storeId, page, sortBy, direction } = params;
+  return `${storeId || 'general'}_${categoryName || 'all'}_${
     searchTerm || ''
-  }_${page}`;
+  }_${page}_${sortBy || 'createdAt'}_${direction || 'desc'}`;
 };
 
 // Helper function to check if cache is valid
@@ -94,7 +100,7 @@ export const fetchProducts = createAsyncThunk(
         return { cacheKey, data: cachedData, fromCache: true };
       }
 
-      const { category, searchTerm, storeId, page } = params;
+      const { categoryName, searchTerm, storeId, page, sortBy, direction } = params;
       let res;
 
       if (storeId) {
@@ -102,12 +108,12 @@ export const fetchProducts = createAsyncThunk(
         const storeParams = {
           storeId,
           keyword: searchTerm?.trim() || undefined,
-          categoryName: category || undefined,
+          categoryName: categoryName || undefined,
           registrationStatus: 'ONSALE' as const,
           page,
           size: 10,
-          sortBy: 'createdAt' as const,
-          direction: 'desc' as const,
+          sortBy: sortBy || 'createdAt',
+          direction: direction || 'desc',
         };
 
         res = await SellerProductListService.getProductsByStoreId(storeParams);
@@ -115,12 +121,12 @@ export const fetchProducts = createAsyncThunk(
         // Use general product search API
         const searchParams = {
           keyword: searchTerm?.trim() || undefined,
-          categoryName: category || undefined,
+          categoryName: categoryName || undefined,
           registrationStatus: 'ONSALE' as const,
           page,
           size: 10,
-          sortBy: 'createdAt' as const,
-          direction: 'desc' as const,
+          sortBy: sortBy || 'createdAt',
+          direction: direction || 'desc',
         };
 
         res = await ProductService.searchProducts(searchParams);
@@ -172,7 +178,7 @@ export const revalidateProductsInBackground = createAsyncThunk(
       console.log('🔄 Background revalidating products...');
       const currentLocationHash = getCurrentLocationHash();
 
-      const { category, searchTerm, storeId, page } = params;
+      const { categoryName, searchTerm, storeId, page, sortBy, direction } = params;
       let res;
 
       if (storeId) {
@@ -180,12 +186,12 @@ export const revalidateProductsInBackground = createAsyncThunk(
         const storeParams = {
           storeId,
           keyword: searchTerm?.trim() || undefined,
-          categoryName: category || undefined,
+          categoryName: categoryName || undefined,
           registrationStatus: 'ONSALE' as const,
           page,
           size: 10,
-          sortBy: 'createdAt' as const,
-          direction: 'desc' as const,
+          sortBy: sortBy || 'createdAt',
+          direction: direction || 'desc',
         };
 
         res = await SellerProductListService.getProductsByStoreId(storeParams);
@@ -193,12 +199,12 @@ export const revalidateProductsInBackground = createAsyncThunk(
         // Use general product search API
         const searchParams = {
           keyword: searchTerm?.trim() || undefined,
-          categoryName: category || undefined,
+          categoryName: categoryName || undefined,
           registrationStatus: 'ONSALE' as const,
           page,
           size: 10,
-          sortBy: 'createdAt' as const,
-          direction: 'desc' as const,
+          sortBy: sortBy || 'createdAt',
+          direction: direction || 'desc',
         };
 
         res = await ProductService.searchProducts(searchParams);
@@ -255,7 +261,7 @@ export const refreshProducts = createAsyncThunk(
       console.log('🔄 Manual refresh of products...');
       const currentLocationHash = getCurrentLocationHash();
 
-      const { category, searchTerm, storeId, page } = params;
+      const { categoryName, searchTerm, storeId, page, sortBy, direction } = params;
       let res;
 
       if (storeId) {
@@ -263,12 +269,12 @@ export const refreshProducts = createAsyncThunk(
         const storeParams = {
           storeId,
           keyword: searchTerm?.trim() || undefined,
-          categoryName: category || undefined,
+          categoryName: categoryName || undefined,
           registrationStatus: 'ONSALE' as const,
           page,
           size: 10,
-          sortBy: 'createdAt' as const,
-          direction: 'desc' as const,
+          sortBy: sortBy || 'createdAt',
+          direction: direction || 'desc',
         };
 
         res = await SellerProductListService.getProductsByStoreId(storeParams);
@@ -276,12 +282,12 @@ export const refreshProducts = createAsyncThunk(
         // Use general product search API
         const searchParams = {
           keyword: searchTerm?.trim() || undefined,
-          categoryName: category || undefined,
+          categoryName: categoryName || undefined,
           registrationStatus: 'ONSALE' as const,
           page,
           size: 10,
-          sortBy: 'createdAt' as const,
-          direction: 'desc' as const,
+          sortBy: sortBy || 'createdAt',
+          direction: direction || 'desc',
         };
 
         res = await ProductService.searchProducts(searchParams);
@@ -338,16 +344,16 @@ const productSlice = createSlice({
     },
     clearCacheForCategory: (
       state,
-      action: PayloadAction<{ category?: string; storeId?: string }>
+      action: PayloadAction<{ categoryName?: string; storeId?: string }>
     ) => {
-      const { category, storeId } = action.payload;
+      const { categoryName, storeId } = action.payload;
       const keysToDelete = Object.keys(state.cache).filter((key) => {
         const keyParts = key.split('_');
         const keyStoreId = keyParts[0];
         const keyCategory = keyParts[1];
         return (
           (storeId ? keyStoreId === storeId : keyStoreId === 'general') &&
-          (category ? keyCategory === category : keyCategory === 'all')
+          (categoryName ? keyCategory === categoryName : keyCategory === 'all')
         );
       });
 

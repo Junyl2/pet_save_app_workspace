@@ -67,7 +67,7 @@ export interface ProductDetailsResponse {
   resultMsg: string;
   divisionCode: string | null;
   data: ProductDetails;
-  errorId?: string | null;
+  /*   errorId?: string | null; */
 }
 
 export interface ProductDetails extends ProductSummary {
@@ -81,19 +81,5 @@ export interface ProductDetailsResponse {
   resultMsg: string;
   divisionCode: string | null;
   data: ProductDetails;
-  errorId: string | null;
-}
-
-export interface ProductDetails extends ProductSummary {
-  images: string[];
-  expired: boolean;
-}
-
-export interface ProductDetailsResponse {
-  success: boolean;
-  status: number;
-  resultMsg: string;
-  divisionCode: string | null;
-  data: ProductDetails;
-  errorId: string | null;
+  /*  errorId: string | null; */
 }

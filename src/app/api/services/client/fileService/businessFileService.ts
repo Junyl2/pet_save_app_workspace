@@ -36,17 +36,14 @@ export class BusinessFileService {
       };
     }
 
-    // Validate file type
-    const allowedTypes = [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'application/pdf',
-    ];
-    if (!allowedTypes.includes(file.type)) {
+    // Validate file type - accept images and PDFs
+    // Server will be the final authority on accepted file types
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf';
+    if (!isImage && !isPdf) {
       return {
         data: null,
-        error: '지원되지 않는 파일 형식입니다. (JPEG, PNG, GIF, PDF만 허용)',
+        error: '지원되지 않는 파일 형식입니다. (이미지 또는 PDF만 허용)',
       };
     }
 
@@ -201,12 +198,6 @@ export class BusinessFileService {
 
       // Validate all files
       const maxSize = 10 * 1024 * 1024; // 10MB
-      const allowedTypes = [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'application/pdf',
-      ];
 
       for (const file of files) {
         if (file.size > maxSize) {
@@ -215,10 +206,12 @@ export class BusinessFileService {
             error: `파일 "${file.name}"의 크기가 10MB를 초과합니다.`,
           };
         }
-        if (!allowedTypes.includes(file.type)) {
+        const isImage = file.type.startsWith('image/');
+        const isPdf = file.type === 'application/pdf';
+        if (!isImage && !isPdf) {
           return {
             data: null,
-            error: `파일 "${file.name}"은 지원되지 않는 형식입니다. (JPEG, PNG, GIF, PDF만 허용)`,
+            error: `파일 "${file.name}"은 지원되지 않는 형식입니다. (이미지 또는 PDF만 허용)`,
           };
         }
       }

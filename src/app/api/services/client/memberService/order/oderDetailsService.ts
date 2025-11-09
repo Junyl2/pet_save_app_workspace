@@ -1,4 +1,3 @@
-// app/api/services/client/memberService/order/oderDetailsService.ts
 import { apiClient } from '../../../../apiClient';
 import {
   OrderHistoryQueryParams,
@@ -7,69 +6,86 @@ import {
   DeleteOrderHistoryResponse,
 } from '../../../../types/member/order/orderDetails';
 
-// Simple cache for order data
-let orderCache: OrderItemResponse[] | null = null;
-let cacheTimestamp = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
 export const orderDetailsService = {
-  /**
-   * Get my order history
-   * GET /api/pet-save/members/me/orders
-   */
-  getMyOrderHistory: async (
+  /** Get my order history */
+  async getMyOrderHistory(
     params?: OrderHistoryQueryParams
-  ): Promise<{ data: OrderHistoryApiResponse | null; error?: string }> => {
-    const queryParams = new URLSearchParams();
+  ): Promise<{ data: OrderHistoryApiResponse | null; error?: string }> {
+    try {
+      const queryParams = new URLSearchParams();
 
-    if (params?.keyword) queryParams.append('keyword', params.keyword);
-    if (params?.status) queryParams.append('status', params.status);
-    if (params?.dateStart) queryParams.append('dateStart', params.dateStart);
-    if (params?.dateEnd) queryParams.append('dateEnd', params.dateEnd);
-    if (params?.page !== undefined)
-      queryParams.append('page', params.page.toString());
-    if (params?.size !== undefined)
-      queryParams.append('size', params.size.toString());
-    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
-    if (params?.direction) queryParams.append('direction', params.direction);
-    if (params?.onlyReviewable !== undefined)
-      queryParams.append('onlyReviewable', String(params.onlyReviewable));
+      if (params?.keyword) queryParams.append('keyword', params.keyword);
+      if (params?.status) queryParams.append('status', params.status);
+      if (params?.dateStart) queryParams.append('dateStart', params.dateStart);
+      if (params?.dateEnd) queryParams.append('dateEnd', params.dateEnd);
+      if (params?.page !== undefined)
+        queryParams.append('page', params.page.toString());
+      if (params?.size !== undefined)
+        queryParams.append('size', params.size.toString());
+      if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+      if (params?.direction) queryParams.append('direction', params.direction);
+      if (params?.onlyReviewable !== undefined)
+        queryParams.append('onlyReviewable', String(params.onlyReviewable));
 
-    const url = `/members/me/orders${
-      queryParams.toString() ? `?${queryParams.toString()}` : ''
-    }`;
+      const url = `/members/me/orders${
+        queryParams.toString() ? `?${queryParams.toString()}` : ''
+      }`;
 
-    return await apiClient.get<OrderHistoryApiResponse>(url);
+      const response = await apiClient.get<OrderHistoryApiResponse>(url);
+      return { data: response.data };
+    } catch (error) {
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch order history',
+      };
+    }
   },
 
-  /**
-   * Get order details by order ID
-   * Filters from the order history API since individual order endpoint doesn't exist
-   */
-  getOrderDetails: async (
-    orderId: string
-  ): Promise<{ data: OrderHistoryApiResponse | null; error?: string }> => {
+  /** Get order histories by member ID (ADMIN or OWNER) */
+  async getOrderHistoriesByMemberId(
+    memberId: string,
+    params?: OrderHistoryQueryParams
+  ): Promise<{ data: OrderHistoryApiResponse | null; error?: string }> {
     try {
-      let allOrderItems: OrderItemResponse[] = [];
+      const queryParams = new URLSearchParams();
 
-      // Check cache first
-      const now = Date.now();
-      if (orderCache && now - cacheTimestamp < CACHE_DURATION) {
-        allOrderItems = orderCache;
-      } else {
-        const response = await orderDetailsService.getMyOrderHistory();
-        if (response.error) return { data: null, error: response.error };
+      if (params?.page !== undefined)
+        queryParams.append('page', params.page.toString());
+      if (params?.size !== undefined)
+        queryParams.append('size', params.size.toString());
+      if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+      if (params?.direction) queryParams.append('direction', params.direction);
 
-        if (response.data?.data?.content) {
-          allOrderItems = response.data.data.content;
-          orderCache = allOrderItems;
-          cacheTimestamp = now;
-        } else {
-          return { data: null, error: 'No order data found' };
-        }
-      }
+      const url = `/order-histories/members/${memberId}${
+        queryParams.toString() ? `?${queryParams.toString()}` : ''
+      }`;
 
-      const filteredItems = allOrderItems.filter(
+      const response = await apiClient.get<OrderHistoryApiResponse>(url);
+      return { data: response.data };
+    } catch (error) {
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch member order histories',
+      };
+    }
+  },
+
+  /** Get order details by orderId (from cache or member API) */
+  async getOrderDetails(
+    orderId: string
+  ): Promise<{ data: OrderHistoryApiResponse | null; error?: string }> {
+    try {
+      const { data, error } = await orderDetailsService.getMyOrderHistory();
+      if (error) return { data: null, error };
+
+      const allItems = data?.data?.content ?? [];
+      const filteredItems: OrderItemResponse[] = allItems.filter(
         (item) => item.orderId === orderId
       );
 
@@ -109,13 +125,30 @@ export const orderDetailsService = {
     }
   },
 
-  /**
-   * Delete order history (OWNER/ADMIN)
-   * DELETE /api/pet-save/order-histories/orders/{orderId}
-   */
-  deleteOrderHistory: async (
+  /** NEW: Get order details by orderItemId */
+  async getOrderDetailsByItemId(
+    orderItemId: string
+  ): Promise<{ data: OrderHistoryApiResponse | null; error?: string }> {
+    try {
+      const response = await apiClient.get<OrderHistoryApiResponse>(
+        `/orders/items/${orderItemId}`
+      );
+      return { data: response.data };
+    } catch (error) {
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch order details by itemId',
+      };
+    }
+  },
+
+  /** Delete order history (OWNER/ADMIN) */
+  async deleteOrderHistory(
     orderId: string
-  ): Promise<{ data: DeleteOrderHistoryResponse | null; error?: string }> => {
+  ): Promise<{ data: DeleteOrderHistoryResponse | null; error?: string }> {
     try {
       const url = `/order-histories/orders/${orderId}`;
       const response = await apiClient.delete<DeleteOrderHistoryResponse>(url);

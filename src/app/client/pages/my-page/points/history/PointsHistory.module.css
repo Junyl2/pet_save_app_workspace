@@ -24,6 +24,12 @@
   color: #666;
 }
 
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .filterValue {
   font-size: 14px;
   font-weight: 400;

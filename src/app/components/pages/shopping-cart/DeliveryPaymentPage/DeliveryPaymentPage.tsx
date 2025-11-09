@@ -34,7 +34,7 @@ export type OrderItem = {
 };
 
 const SHIPPING_FEE = 3000;
-const CONFIRM_DATE = new Date(2025, 7, 6); // August 6
+const CONFIRM_DATE = new Date(2025, 7, 6);
 
 export default function DeliveryPaymentPage() {
   const router = useRouter();
@@ -42,51 +42,45 @@ export default function DeliveryPaymentPage() {
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-
   const [deliveryOption, setDeliveryOption] = useState<
     'delivery' | 'pickup' | null
   >(null);
-
   const [requestNote, setRequestNote] = useState('');
   const [customRequest, setCustomRequest] = useState('');
   const [usePoints, setUsePoints] = useState(0);
-
   const [availablePoints, setAvailablePoints] = useState(0);
   const [balancePoints, setBalancePoints] = useState(0);
-
   const [payCategory, setPayCategory] = useState<
     'quick' | 'card' | 'bank' | null
   >('quick');
   const [quickBrand, setQuickBrand] = useState<
     'toss' | 'kakao' | 'naver' | null
   >('toss');
-
   const [agreeOrderInfo, setAgreeOrderInfo] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeFinal, setAgreeFinal] = useState(false);
+  const [defaultAddress, setDefaultAddress] = useState<string | null>(null);
 
-  // Load cart + delivery option
   useEffect(() => {
     const saved = localStorage.getItem('checkoutItems');
     if (saved) setOrderItems(JSON.parse(saved));
 
-    const storedDeliveryOption = localStorage.getItem('selectedDeliveryOption');
-    if (storedDeliveryOption) {
-      setDeliveryOption(storedDeliveryOption as 'delivery' | 'pickup');
+    const storedOption = localStorage.getItem('selectedDeliveryOption');
+    if (storedOption) {
+      setDeliveryOption(storedOption as 'delivery' | 'pickup');
       localStorage.removeItem('selectedDeliveryOption');
     }
   }, []);
 
-  // Fetch real points
   useEffect(() => {
-    const loadPoints = async () => {
+    const loadPoints = async (): Promise<void> => {
       try {
         const result = await dispatch(fetchPointsStats());
         if (fetchPointsStats.fulfilled.match(result)) {
           const data = result.payload?.data?.data?.data;
-          const totalUsablePoints = data?.totalUsablePoints ?? 0;
-          setAvailablePoints(totalUsablePoints);
-          setBalancePoints(totalUsablePoints); // same unless you track other logic
+          const usable = data?.totalUsablePoints ?? 0;
+          setAvailablePoints(usable);
+          setBalancePoints(usable);
         }
       } catch (err) {
         console.error('Failed to load points:', err);
@@ -95,7 +89,6 @@ export default function DeliveryPaymentPage() {
     loadPoints();
   }, [dispatch]);
 
-  // Derived totals
   const { itemCount, subtotal, discountAmount } = useMemo(() => {
     const count = orderItems.reduce((n, it) => n + it.quantity, 0);
     const sub = orderItems.reduce(
@@ -104,11 +97,11 @@ export default function DeliveryPaymentPage() {
       0
     );
     const discount = orderItems.reduce((acc, { product, quantity }) => {
-      const d =
+      const diff =
         product.discountPrice != null
           ? product.price - product.discountPrice
           : 0;
-      return acc + d * quantity;
+      return acc + diff * quantity;
     }, 0);
     return { itemCount: count, subtotal: sub, discountAmount: discount };
   }, [orderItems]);
@@ -117,14 +110,12 @@ export default function DeliveryPaymentPage() {
     0,
     Math.min(availablePoints, Math.floor(subtotal))
   );
-
   useEffect(() => {
     if (usePoints > maxPointUsable) setUsePoints(maxPointUsable);
   }, [maxPointUsable, usePoints]);
 
-  if (orderItems.length === 0) {
+  if (orderItems.length === 0)
     return <p className={styles.empty}>선택한 주문 상품이 없습니다.</p>;
-  }
 
   const totalDue = Math.max(0, subtotal - usePoints) + SHIPPING_FEE;
   const canPay =
@@ -143,9 +134,8 @@ export default function DeliveryPaymentPage() {
       ? '신용/체크카드'
       : '계좌이체';
 
-  const handlePay = () => {
+  const handlePay = (): void => {
     if (!canPay || !deliveryOption) return;
-
     const payload = {
       mode: String(deliveryOption),
       orderNo: String(1582),
@@ -154,11 +144,7 @@ export default function DeliveryPaymentPage() {
       paymentLabel: String(paymentLabel),
       date: CONFIRM_DATE.toISOString(),
     };
-
-    try {
-      sessionStorage.setItem('orderConfirmation', JSON.stringify(payload));
-    } catch {}
-
+    sessionStorage.setItem('orderConfirmation', JSON.stringify(payload));
     const params = new URLSearchParams({
       mode: payload.mode,
       orderNo: payload.orderNo,
@@ -167,7 +153,6 @@ export default function DeliveryPaymentPage() {
       paymentLabel: payload.paymentLabel,
       date: payload.date,
     });
-
     localStorage.removeItem('checkoutItems');
     router.push(`${PAGE_URLS.ORDER_CONFIRMATION}?${params.toString()}`);
   };
@@ -182,15 +167,14 @@ export default function DeliveryPaymentPage() {
       {isOpen && <CartItemList orderItems={orderItems} />}
 
       <div className={styles.divider}></div>
-
       <DeliveryOptions
         deliveryOption={deliveryOption}
         setDeliveryOption={setDeliveryOption}
       />
-
       <div className={styles.divider}></div>
 
-      <AddressBlock />
+      {/*  Capture default address here */}
+      <AddressBlock onAddressSelect={setDefaultAddress} />
 
       {deliveryOption === 'delivery' && (
         <>
@@ -205,7 +189,6 @@ export default function DeliveryPaymentPage() {
       )}
 
       <div className={styles.divider}></div>
-
       <PointsDiscount
         usePoints={usePoints}
         setUsePoints={setUsePoints}
@@ -215,7 +198,6 @@ export default function DeliveryPaymentPage() {
       />
 
       <div className={styles.divider}></div>
-
       <PaymentSummary
         subtotal={subtotal}
         discountAmount={discountAmount}
@@ -225,7 +207,6 @@ export default function DeliveryPaymentPage() {
       />
 
       <div className={styles.divider}></div>
-
       <PaymentMethod
         payCategory={payCategory}
         setPayCategory={setPayCategory}
@@ -234,7 +215,6 @@ export default function DeliveryPaymentPage() {
       />
 
       <div className={styles.divider}></div>
-
       <Agreements
         agreeOrderInfo={agreeOrderInfo}
         setAgreeOrderInfo={setAgreeOrderInfo}
@@ -248,14 +228,13 @@ export default function DeliveryPaymentPage() {
       <PayButton
         totalDue={totalDue}
         canPay={canPay}
-        handlePay={handlePay}
         orderItems={orderItems}
         deliveryOption={deliveryOption}
         usePoints={usePoints}
-        paymentMethod={{
-          payCategory,
-          quickBrand,
-        }}
+        paymentMethod={{ payCategory, quickBrand }}
+        deliveryAddress={defaultAddress}
+        requestNote={requestNote}
+        customRequest={customRequest}
       />
     </div>
   );

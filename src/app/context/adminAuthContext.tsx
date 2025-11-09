@@ -16,6 +16,7 @@ import {
   AUTH_ERROR_CODES,
   AuthError,
 } from '@/app/utils/token-utils';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 interface AdminAuthContextType {
   isLoggedIn: boolean;
@@ -29,6 +30,8 @@ interface AdminAuthContextType {
   logout: () => Promise<void>;
   clearError: () => void;
   checkAuthState: () => Promise<void>;
+  clearAuthState: () => void;
+  handleAuthInvalid: (error: AuthError) => void;
 }
 
 export const AdminAuthContext = createContext<AdminAuthContextType>({
@@ -39,6 +42,8 @@ export const AdminAuthContext = createContext<AdminAuthContextType>({
   logout: async () => {},
   clearError: () => {},
   checkAuthState: async () => {},
+  clearAuthState: () => {},
+  handleAuthInvalid: () => {},
 });
 
 interface AdminAuthProviderProps {
@@ -50,11 +55,14 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const cooldownRef = useRef<NodeJS.Timeout | null>(null);
+  const checkCooldownRef = useRef<NodeJS.Timeout | null>(null);
+  const lastCheckRef = useRef<number>(0);
+  const CHECK_INTERVAL = 2000;
 
-  const clearAdminAuthState = useCallback(() => {
+  /** Clear admin auth state and redirect */
+  const clearAuthState = useCallback(() => {
+    console.log('🧹 Clearing admin auth state');
     localStorage.removeItem('adminAuthToken');
-    localStorage.removeItem('adminRefreshToken');
     localStorage.removeItem('adminUserInfo');
     sessionStorage.clear();
     setIsLoggedIn(false);
@@ -62,50 +70,67 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
     router.replace('/admin/login');
   }, [router]);
 
-  const handleUnauthorized = useCallback(
-    (err: unknown) => {
-      console.error('Admin unauthorized:', err);
-      if (
-        err instanceof AuthError &&
-        err.code === AUTH_ERROR_CODES.AUTH_INVALID
-      ) {
-        clearAdminAuthState();
+  /** Handle invalid auth errors */
+  const handleAuthInvalid = useCallback(
+    (error: AuthError) => {
+      console.warn('Admin auth invalid:', error.message);
+      if (error.code === AUTH_ERROR_CODES.AUTH_INVALID) {
+        clearAuthState();
       } else {
-        clearAdminAuthState();
+        clearAuthState();
       }
     },
-    [clearAdminAuthState]
+    [clearAuthState]
   );
 
-  const checkAuthState = useCallback(async () => {
-    if (cooldownRef.current) return;
-    cooldownRef.current = setTimeout(() => {
-      cooldownRef.current = null;
-    }, 2000);
+  /**
+   * Core checkAuthState:
+   * We trust backend token rotation; we only verify if the token is missing or malformed.
+   */
+  const checkAuthStateCore = useCallback(async () => {
+    const token = localStorage.getItem('adminAuthToken');
 
-    try {
-      const token = localStorage.getItem('adminAuthToken');
-      const refreshToken = localStorage.getItem('adminRefreshToken');
-      if (!token || !refreshToken) {
-        clearAdminAuthState();
-        return;
-      }
-
-      const expired = isTokenExpired(token);
-      if (expired === true || expired === null) {
-        const res = await AuthService.refreshToken();
-        if (res.error || !res.data) {
-          clearAdminAuthState();
-          return;
-        }
-      }
-
-      setIsLoggedIn(true);
-    } catch (err) {
-      handleUnauthorized(err);
+    if (!token) {
+      console.log('No admin token found');
+      setIsLoggedIn(false);
+      return;
     }
-  }, [clearAdminAuthState, handleUnauthorized]);
 
+    const expired = isTokenExpired(token);
+
+    if (expired === null) {
+      console.warn(
+        'Malformed admin token; keeping state until backend refresh'
+      );
+      setIsLoggedIn(true);
+      return;
+    }
+
+    // If expired, backend will refresh automatically via header
+    if (expired === true) {
+      console.log('Admin token expired; backend will refresh on next request');
+      setIsLoggedIn(true);
+      return;
+    }
+
+    console.log('Admin token valid');
+    setIsLoggedIn(true);
+  }, []);
+
+  /** Debounced version to prevent spam */
+  const checkAuthState = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastCheckRef.current < CHECK_INTERVAL) {
+      console.log('Admin auth check skipped due to cooldown');
+      return;
+    }
+    lastCheckRef.current = now;
+
+    if (checkCooldownRef.current) clearTimeout(checkCooldownRef.current);
+    checkCooldownRef.current = setTimeout(checkAuthStateCore, 100);
+  }, [checkAuthStateCore]);
+
+  /** Login */
   const login = useCallback(
     async (identifier: string, password: string, loginType = 'GENERAL') => {
       setIsLoading(true);
@@ -117,6 +142,7 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
           password,
           loginType
         );
+
         if (error || !data) {
           setError(error ?? '로그인 실패');
           return { success: false, error };
@@ -127,17 +153,17 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
           : [];
 
         if (!permissions.includes('ADMIN')) {
-          toast.error('관리자 권한이 없습니다.');
-          clearAdminAuthState();
-          return { success: false, error: '관리자 권한이 없습니다.' };
+          const errorMessage = '관리자만 로그인이 허용됩니다';
+          toast.error(errorMessage);
+          setError(errorMessage);
+          clearAuthState();
+          return { success: false, error: errorMessage };
         }
 
+        // Copy existing tokens as admin tokens for separation
         const authToken = localStorage.getItem('authToken');
-        const refreshToken = localStorage.getItem('refreshToken');
         const userInfo = localStorage.getItem('userInfo');
         if (authToken) localStorage.setItem('adminAuthToken', authToken);
-        if (refreshToken)
-          localStorage.setItem('adminRefreshToken', refreshToken);
         if (userInfo) localStorage.setItem('adminUserInfo', userInfo);
 
         setIsLoggedIn(true);
@@ -151,33 +177,56 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
         setIsLoading(false);
       }
     },
-    [clearAdminAuthState]
+    [clearAuthState]
   );
 
+  /** Logout */
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
       await AuthService.logout();
       toast.success('로그아웃 되었습니다.');
-    } catch (err) {
+    } catch {
       toast.error('로그아웃 중 문제가 발생했습니다.');
     } finally {
-      clearAdminAuthState();
+      clearAuthState();
       setIsLoading(false);
     }
-  }, [clearAdminAuthState]);
+  }, [clearAuthState]);
 
+  /** Initial auth check & token update listener */
   useEffect(() => {
-    checkAuthState();
-    const onVisible = () => {
+    checkAuthStateCore();
+
+    const handleVisible = () => {
       if (!document.hidden) checkAuthState();
     };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      if (cooldownRef.current) clearTimeout(cooldownRef.current);
+
+    const handleTokenUpdate = (event: CustomEvent) => {
+      const newToken = event.detail?.newToken;
+      if (!newToken) return;
+
+      console.log('Admin context detected token update:', {
+        newToken: `${newToken.substring(0, 20)}...`,
+      });
+
+      // Sync admin token with latest access token
+      localStorage.setItem('adminAuthToken', newToken);
+      setIsLoggedIn(true);
     };
-  }, [checkAuthState]);
+
+    document.addEventListener('visibilitychange', handleVisible);
+    window.addEventListener('tokenUpdated', handleTokenUpdate as EventListener);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisible);
+      window.removeEventListener(
+        'tokenUpdated',
+        handleTokenUpdate as EventListener
+      );
+      if (checkCooldownRef.current) clearTimeout(checkCooldownRef.current);
+    };
+  }, [checkAuthState, checkAuthStateCore]);
 
   return (
     <AdminAuthContext.Provider
@@ -189,6 +238,8 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
         logout,
         clearError: () => setError(null),
         checkAuthState,
+        clearAuthState,
+        handleAuthInvalid,
       }}
     >
       {children}

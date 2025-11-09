@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Loading from '@/app/components/ui/loading-screen/Loading';
 
 export default function AdminWrapper({
@@ -11,6 +11,7 @@ export default function AdminWrapper({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [hydrated, setHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const MIN_LOADING_TIME = 2000;
@@ -23,6 +24,34 @@ export default function AdminWrapper({
 
   // Hydration
   useEffect(() => setHydrated(true), []);
+
+  // Clear client auth when accessing admin routes
+  useEffect(() => {
+    if (typeof window === 'undefined' || !hydrated) return;
+
+    // Skip if already on login page to avoid redirect loops
+    if (pathname === '/admin/login') return;
+
+    // Check if path includes /admin
+    if (pathname.startsWith('/admin')) {
+      const clientAuthToken = localStorage.getItem('authToken');
+      const adminAuthToken = localStorage.getItem('adminAuthToken');
+
+      // If client is logged in but not admin, clear client auth and redirect
+      if (clientAuthToken && !adminAuthToken) {
+        console.log('Client user accessing admin route - clearing client auth');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('rememberedUsername');
+        localStorage.removeItem('sellerId');
+        localStorage.removeItem('favorites');
+        router.replace('/admin/login');
+      }
+    }
+  }, [pathname, hydrated, router]);
 
   // Show loading once per session
   useEffect(() => {

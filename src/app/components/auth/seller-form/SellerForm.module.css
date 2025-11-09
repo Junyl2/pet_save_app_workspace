@@ -203,6 +203,18 @@
   margin-top: 0.3rem;
 }
 
+.checking {
+  color: #ffa500;
+  font-size: clamp(13px, 2.3vw, 14px);
+  margin-top: 0.3rem;
+}
+
+.validationMessage {
+  font-size: clamp(13px, 2.3vw, 14px);
+  margin-top: 0.3rem;
+  font-weight: 500;
+}
+
 /* Enabled state */
 .inlineButton.enabled {
   background: #66bfa7;

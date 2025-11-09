@@ -1,149 +1,191 @@
 'use client';
-import React, { useEffect } from 'react';
-
-import FilterBar from '../../../sections/FilterBar/FilterBar';
+import React, { useEffect, useState, useMemo } from 'react';
+import Image from 'next/image';
 import styles from './OrderHistory.module.css';
+import FilterBar from '../../../sections/FilterBar/FilterBar';
 import OrderHistoryItem from './order-history-item/OrderHistoryItem';
 import OrderHistorySkeleton from '../../../ui/SkeletonLoading/OrderHistorySkeleton';
-import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
-import { OrderItem } from '@/app/components/types/order';
+import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
+import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import {
   fetchOrderHistory,
   revalidateOrderHistoryInBackground,
   checkStaleStatus,
+  createOrderHistoryCacheKey,
 } from '@/app/redux/slices/cache/orderSlice';
+import {
+  OrderItemResponse,
+  OrderStatus,
+} from '@/app/api/types/member/order/orderDetails';
+import { OrderItem } from '@/app/components/types/order';
+
+const PAGE_SIZE = 10;
+
+const backendStatusMap: Record<string, OrderStatus | 'EXCHANGED'> = {
+  '결제 대기': 'PENDING_PAYMENT',
+  '결제 완료': 'PAID',
+  '상품 준비중': 'PREPARING',
+  '픽업 준비완료': 'READY_FOR_PICKUP',
+  배송중: 'DELIVERY_STARTED',
+  '배송 완료': 'COMPLETED',
+  '주문 취소': 'CANCELLED',
+  반품: 'RETURNED',
+  '교환 완료': 'EXCHANGED',
+};
+
+const getDateRange = (period: string) => {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const monthsAgo = (m: number) => {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() - m);
+    return d.toISOString().split('T')[0];
+  };
+  switch (period) {
+    case '1개월':
+      return { dateStart: monthsAgo(1), dateEnd: today };
+    case '3개월':
+      return { dateStart: monthsAgo(3), dateEnd: today };
+    case '6개월':
+      return { dateStart: monthsAgo(6), dateEnd: today };
+    case '1년':
+      return { dateStart: monthsAgo(12), dateEnd: today };
+    default:
+      return {};
+  }
+};
 
 export default function OrderHistory() {
   const dispatch = useAppDispatch();
-
-  // Redux state
   const { orderHistoryCache, loading, error } = useAppSelector(
     (state) => state.orders
   );
 
-  // Get cached order history data
-  const cachedData = orderHistoryCache['default']; // Default cache key for no params
-  const orders = cachedData?.data?.data?.content || [];
+  const { page, setPage } = usePageParam(1);
+  const [selectedPeriod, setSelectedPeriod] = useState('3개월');
+  const [selectedStatus, setSelectedStatus] = useState('전체보기');
 
-  // Fetch order history using Redux with smart caching
+  /** Reset page to 1 when filters change */
   useEffect(() => {
-    console.log('Dispatching fetchOrderHistory with default params');
-    dispatch(fetchOrderHistory());
-  }, [dispatch]);
+    setPage(1);
+  }, [selectedPeriod, selectedStatus, setPage]);
 
-  // Trigger background revalidation on component mount if data is stale
+  const { dateStart, dateEnd } = getDateRange(selectedPeriod);
+  const statusParam: OrderStatus | undefined =
+    selectedStatus !== '전체보기'
+      ? (backendStatusMap[selectedStatus] as OrderStatus | undefined)
+      : undefined;
+
+  const queryParams = useMemo(
+    () => ({
+      status: statusParam,
+      dateStart,
+      dateEnd,
+      onlyReviewable: false,
+      page: page - 1,
+      size: PAGE_SIZE,
+      sortBy: 'createdAt' as const,
+      direction: 'desc' as const,
+    }),
+    [statusParam, dateStart, dateEnd, page]
+  );
+
+  /** Create cache key based on current filters and page */
+  const cacheKey = useMemo(
+    () => createOrderHistoryCacheKey(queryParams),
+    [queryParams]
+  );
+
+  /** Current cached data for this page */
+  const cachedData = orderHistoryCache[cacheKey];
+  const orders = useMemo<OrderItemResponse[]>(
+    () => cachedData?.data?.data?.content || [],
+    [cachedData]
+  );
+
+  /** Fetch on mount + when filters or page changes */
+  useEffect(() => {
+    dispatch(fetchOrderHistory(queryParams));
+  }, [dispatch, queryParams]);
+
+  /** Background revalidation */
   useEffect(() => {
     if (cachedData) {
       const now = Date.now();
       const cacheAge = now - cachedData.timestamp;
-      const isDataStale = cacheAge >= 10 * 1000; // 10 seconds in milliseconds
-
-      if (isDataStale) {
-        console.log(
-          '🚀 Component mounted with stale data, triggering immediate revalidation...'
-        );
-        dispatch(revalidateOrderHistoryInBackground());
+      if (cacheAge >= 10_000) {
+        dispatch(revalidateOrderHistoryInBackground(queryParams));
       }
     }
-  }, [cachedData, dispatch]); // Include dependencies
+  }, [cachedData, dispatch, queryParams]);
 
-  // Background revalidation effect - trigger immediately if data exists and is stale
-  useEffect(() => {
-    if (cachedData) {
-      const now = Date.now();
-      const cacheAge = now - cachedData.timestamp;
-      const isDataStale = cacheAge >= 10 * 1000; // 10 seconds in milliseconds
-
-      console.log('🔍 Checking cache age:', {
-        cacheAge: Math.round(cacheAge / 1000),
-        seconds: 'seconds old',
-        isDataStale: isDataStale,
-        timestamp: new Date(cachedData.timestamp).toLocaleTimeString(),
-      });
-
-      if (isDataStale) {
-        console.log('🔄 Data is stale, triggering background revalidation...');
-        dispatch(revalidateOrderHistoryInBackground());
-      } else {
-        console.log('✅ Data is fresh, no revalidation needed');
-      }
-    }
-  }, [dispatch, cachedData]);
-
-  // Check stale status when component mounts or data changes
+  /** Check stale status on cache change */
   useEffect(() => {
     dispatch(checkStaleStatus());
   }, [dispatch, cachedData]);
 
-  // Convert API order item data to format expected by OrderHistoryItem
-  const convertToOrderItem = (orderItem: OrderItemResponse): OrderItem => {
-    return {
-      product: {
-        id: parseInt(orderItem.productId.split('-')[0], 16), // Convert UUID to number for compatibility
-        name: orderItem.productName,
-        price: orderItem.price,
-        discountPrice:
-          orderItem.appliedDiscountAmount > 0
-            ? orderItem.price - orderItem.appliedDiscountAmount
-            : undefined,
-        brand: orderItem.storeName,
-        image: orderItem.productImageUrl,
-        deliveryType:
-          orderItem.shippingOption === 'DELIVERY' ? 'delivery' : 'pickup',
-      },
-      quantity: orderItem.quantity,
-    };
-  };
+  /** Map to UI type */
+  const convertToOrderItem = (
+    orderItem: OrderItemResponse
+  ): OrderItem & { orderId: string } => ({
+    product: {
+      id: parseInt(orderItem.productId.split('-')[0], 16),
+      name: orderItem.productName,
+      price: orderItem.price,
+      discountPrice:
+        orderItem.appliedDiscountAmount > 0
+          ? orderItem.price - orderItem.appliedDiscountAmount
+          : undefined,
+      brand: orderItem.storeName,
+      image: orderItem.productImageUrl,
+      deliveryType:
+        orderItem.shippingOption === 'DELIVERY' ? 'delivery' : 'pickup',
+    },
+    quantity: orderItem.quantity,
+    orderId: orderItem.orderId,
+  });
 
-  // Convert order status to Korean display text
+  /** Backend → readable Korean status */
   const getStatusDisplayText = (status: string): string => {
-    const statusMap: Record<string, string> = {
+    const map: Record<string, string> = {
       PENDING_PAYMENT: '결제 대기',
       PAID: '결제 완료',
-      PREPARING: '배송 준비중',
+      PREPARING: '상품 준비중',
       READY_FOR_PICKUP: '픽업 준비완료',
       DELIVERY_STARTED: '배송중',
-      DELIVERED: '배송 완료',
-      PICKUP_COMPLETED: '픽업 완료',
-      COMPLETED: '주문 완료',
+      COMPLETED: '배송 완료',
       CANCELLED: '주문 취소',
       RETURNED: '반품',
-      REFUNDED: '환불 완료',
+      EXCHANGED: '교환 완료',
     };
-
-    return statusMap[status] || status;
+    return map[status] || status;
   };
 
-  // Format date to Korean format (using order number date since API doesn't provide creation date)
+  /** Extract date (yyyy.mm.dd) from orderNumber */
   const formatDate = (orderNumber: string): string => {
-    // Extract date from order number format: ORD-251014-XXXX
-    const dateMatch = orderNumber.match(/ORD-(\d{6})-/);
-    if (dateMatch) {
-      const dateStr = dateMatch[1];
-      const year = '20' + dateStr.substring(0, 2);
-      const month = dateStr.substring(2, 4);
-      const day = dateStr.substring(4, 6);
-      return `${year}.${month}.${day}`;
+    const match = orderNumber.match(/ORD-(\d{6})-/);
+    if (match) {
+      const d = match[1];
+      return `20${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4, 6)}`;
     }
-    // Fallback to current date if parsing fails
-    return new Date()
-      .toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      })
-      .replace(/\./g, '.')
-      .replace(/\s/g, '');
+    return new Date().toLocaleDateString('ko-KR').replace(/\s/g, '');
   };
 
-  // Show loading only if we don't have cached data and are loading (not background loading)
-  const shouldShowLoading = loading && !cachedData;
-  if (shouldShowLoading) {
+  /** Pagination info */
+  const totalPages = cachedData?.data?.data?.pageInfo?.totalPages ?? 0;
+
+  /** Loading state */
+  if (loading && !cachedData) {
     return (
       <div className={styles.container}>
         <div className={styles.inner}>
-          <FilterBar />
+          <FilterBar
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+          />
           <div className={styles.list}>
             <OrderHistorySkeleton count={5} />
           </div>
@@ -152,30 +194,51 @@ export default function OrderHistory() {
     );
   }
 
+  /** Error state */
   if (error) {
     return (
       <div className={styles.container}>
         <div className={styles.inner}>
-          <FilterBar />
+          <FilterBar
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+          />
           <div className={styles.error}>오류: {error}</div>
         </div>
       </div>
     );
   }
 
+  /** Main render */
   return (
     <div className={styles.container}>
       <div className={styles.inner}>
-        <FilterBar />
+        <FilterBar
+          selectedPeriod={selectedPeriod}
+          onPeriodChange={setSelectedPeriod}
+          selectedStatus={selectedStatus}
+          onStatusChange={setSelectedStatus}
+        />
 
         <div className={styles.list}>
           {orders.length === 0 ? (
-            <div className={styles.empty}>주문 내역이 없습니다.</div>
+            <div className={styles.emptyContainer}>
+              <Image
+                src="/images/products/noresult.png"
+                alt="No orders"
+                width={100}
+                height={100}
+                className={styles.emptyImage}
+              />
+              <p className={styles.emptyText}>주문 내역이 없습니다.</p>
+            </div>
           ) : (
             orders.map((orderItem) => (
               <OrderHistoryItem
                 key={orderItem.orderItemId}
-                orderId={orderItem.orderId}
+                orderItemId={orderItem.orderItemId}
                 orderNumber={orderItem.orderNumber}
                 status={getStatusDisplayText(orderItem.status)}
                 date={formatDate(orderItem.orderNumber)}
@@ -184,6 +247,19 @@ export default function OrderHistory() {
             ))
           )}
         </div>
+
+        {/* Pagination Section */}
+        {totalPages > 1 && (
+          <div className={styles.pagination}>
+            <div style={{ width: 320 }}>
+              <ClientPagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

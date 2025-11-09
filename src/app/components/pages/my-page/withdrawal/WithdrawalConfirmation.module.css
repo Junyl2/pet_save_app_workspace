@@ -252,3 +252,32 @@
     height: 60px;
   }
 }
+
+/* Custom reason text input (visible only when "기타 (직접 입력)" is selected) */
+.customReasonInput {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  margin-top: 8px;
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+.customReasonInput::placeholder {
+  color: #9ca3af;
+}
+
+.customReasonInput:focus {
+  border-color: #66bfa7;
+  box-shadow: 0 0 0 3px rgba(102, 191, 167, 0.2);
+}
+
+.formGroup + .formGroup {
+  margin-top: 12px;
+}

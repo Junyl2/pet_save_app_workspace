@@ -1,8 +1,7 @@
 .container {
-  min-height: 100vh;
+  min-height: calc(100vh - 71.59px);
   margin-top: 71.59px;
   background-color: #ffffff;
-  padding-bottom: 20px;
 }
 
 .pointsSection {
@@ -207,7 +206,7 @@
 .rewardsSection {
   background-color: white;
   margin: 0;
-  padding: 0 0 20px 0;
+  /*  padding: 0 0 20px 0; */
 }
 
 .rewardsHeader {
@@ -229,9 +228,9 @@
   color: #666;
 }
 
-.productList {
+/* .productList {
   padding: 16px 0;
-}
+} */
 
 .productItem {
   display: flex;
@@ -250,6 +249,7 @@
   height: 70px;
   border-radius: 8px;
   object-fit: cover;
+  background-color: #edeef0dc;
 }
 
 .productInfo {

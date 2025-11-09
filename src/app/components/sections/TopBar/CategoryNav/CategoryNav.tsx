@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import styles from './CategoryNav.module.css';
 import { CategoryService } from '@/app/api/services/client/categoryService/categoryService';
 import { Category } from '@/app/api/types/category/category';
@@ -27,45 +27,36 @@ export default function CategoryNav({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  // Properly typed refs array
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
-
-  // Store the callback in a ref to avoid dependency issues
   const onSelectCategoryRef = useRef(onSelectCategory);
   const currentCategoryRef = useRef(currentCategory);
-
-  // Update refs when props change
 
   useEffect(() => {
     onSelectCategoryRef.current = onSelectCategory;
     currentCategoryRef.current = currentCategory;
   }, [onSelectCategory, currentCategory]);
 
-  // Sync currentCategory prop with active state
   useEffect(() => {
     if (currentCategory && currentCategory !== active) {
       setActive(currentCategory);
     }
   }, [currentCategory, active]);
 
-  // Fetch categories from API - only run once on mount
   useEffect(() => {
     let isMounted = true;
-
     const fetchCategories = async (retryCount = 0) => {
       try {
         setLoading(true);
         setError(null);
 
-        // Check cache first
         const now = Date.now();
         if (categoriesCache && now - cacheTimestamp < CACHE_DURATION) {
           if (!isMounted) return;
           setCategories(categoriesCache);
           setLoading(false);
 
-          // Set first category as active if available and no currentCategory is set
           if (categoriesCache.length > 0 && !currentCategoryRef.current) {
             const firstCategory = categoriesCache[0].categoryName;
             setActive(firstCategory);
@@ -75,7 +66,7 @@ export default function CategoryNav({
         }
 
         const response = await CategoryService.getAllCategories({
-          size: 50, // Get more categories
+          size: 50,
           sortBy: 'displayOrder',
           direction: 'asc',
         });
@@ -83,76 +74,45 @@ export default function CategoryNav({
         if (!isMounted) return;
 
         if (response.error) {
-          // Handle 429 errors with retry
           if (response.error.includes('429') && retryCount < 2) {
             console.log(`Retrying category fetch (attempt ${retryCount + 1})`);
             setTimeout(() => {
-              if (isMounted) {
-                fetchCategories(retryCount + 1);
-              }
-            }, 1000 * (retryCount + 1)); // Exponential backoff
+              if (isMounted) fetchCategories(retryCount + 1);
+            }, 1000 * (retryCount + 1));
             return;
           }
-
           setError(response.error);
-          console.error('Failed to fetch categories:', response.error);
         } else if (response.data?.data?.content) {
-          const fetchedCategories = response.data.data.content;
-
-          // Update cache
-          categoriesCache = fetchedCategories;
+          const fetched = response.data.data.content;
+          categoriesCache = fetched;
           cacheTimestamp = now;
+          setCategories(fetched);
 
-          setCategories(fetchedCategories);
-
-          // Set first category as active if available and no currentCategory is set
-          if (fetchedCategories.length > 0 && !currentCategoryRef.current) {
-            const firstCategory = fetchedCategories[0].categoryName;
+          if (fetched.length > 0 && !currentCategoryRef.current) {
+            const firstCategory = fetched[0].categoryName;
             setActive(firstCategory);
-            onSelectCategoryRef.current(firstCategory); // Notify parent component
+            onSelectCategoryRef.current(firstCategory);
           }
         }
       } catch (err) {
         if (!isMounted) return;
-
-        // Handle 429 errors with retry
-        if (
-          err instanceof Error &&
-          err.message.includes('429') &&
-          retryCount < 2
-        ) {
-          console.log(`Retrying category fetch (attempt ${retryCount + 1})`);
-          setTimeout(() => {
-            if (isMounted) {
-              fetchCategories(retryCount + 1);
-            }
-          }, 1000 * (retryCount + 1)); // Exponential backoff
-          return;
-        }
-
-        const errorMessage =
+        const errorMsg =
           err instanceof Error ? err.message : 'Failed to fetch categories';
-        setError(errorMessage);
-        console.error('Category fetch error:', err);
+        setError(errorMsg);
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchCategories();
-
     return () => {
       isMounted = false;
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, []);
 
   const handleSelect = (cat: string, index: number) => {
     setActive(cat);
     onSelectCategory(cat);
-
-    // Scroll the clicked button into view
     const button = buttonRefs.current[index];
     if (button) {
       button.scrollIntoView({
@@ -163,37 +123,15 @@ export default function CategoryNav({
     }
   };
 
+  const handleOpenFilter = () => {
+    const currentParams = searchParams.toString();
+    router.push(`/filter${currentParams ? `?${currentParams}` : ''}`);
+  };
+
   const isSellerDetails = pathname.startsWith('/client/pages/seller-details');
 
-  // Show loading state
-  if (loading) {
-    return (
-      /*  <div className={isSellerDetails ? styles.sellerNav : styles.wrapper}>
-        <div
-          className={
-            isSellerDetails ? styles.sellerContainer : styles.container
-          }
-        >
-          <button
-            type="button"
-            className={styles.filter}
-            onClick={() => router.push('/filter')}
-          >
-            <Image
-              src="/images/icons/Filter.svg"
-              alt="Filter Icon"
-              width={24}
-              height={24}
-            />
-          </button>
-          <div className={styles.loading}>Loading categories...</div>
-        </div>
-      </div> */
-      <CategorySkeleton />
-    );
-  }
+  if (loading) return <CategorySkeleton />;
 
-  // Show error state
   if (error) {
     return (
       <div className={isSellerDetails ? styles.sellerNav : styles.wrapper}>
@@ -205,7 +143,7 @@ export default function CategoryNav({
           <button
             type="button"
             className={styles.filter}
-            onClick={() => router.push('/filter')}
+            onClick={handleOpenFilter}
           >
             <Image
               src="/images/icons/Filter.svg"
@@ -225,11 +163,10 @@ export default function CategoryNav({
       <div
         className={isSellerDetails ? styles.sellerContainer : styles.container}
       >
-        {/* Filter Icon → navigates to /filter */}
         <button
           type="button"
           className={styles.filter}
-          onClick={() => router.push('/filter')}
+          onClick={handleOpenFilter}
         >
           <Image
             src="/images/icons/Filter.svg"
@@ -239,7 +176,7 @@ export default function CategoryNav({
           />
         </button>
 
-        {/* Category buttons */}
+        {/* Category Buttons */}
         {categories.map((category, idx) => (
           <button
             key={category.categoryId}

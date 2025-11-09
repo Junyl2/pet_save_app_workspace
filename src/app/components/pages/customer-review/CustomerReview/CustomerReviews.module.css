@@ -87,6 +87,7 @@
   object-fit: cover;
   cursor: pointer;
   flex-shrink: 0;
+  background-color: #f0f0f0;
 }
 
 /* Hover effect for images */

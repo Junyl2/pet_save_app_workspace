@@ -11,6 +11,7 @@ import Loading from '@/app/components/ui/Loading/Loading';
 import { useAppSelector, useAppDispatch } from '@/app/redux/hooks';
 import { setHasLoadedOnce } from '@/app/redux/slices/auth/ui/loadingSlice';
 import { DotMenu } from '@/app/components/ui/DotMenu/DotMenu';
+import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
 
 export default function ViewReviewPage() {
   const searchParams = useSearchParams();
@@ -20,20 +21,15 @@ export default function ViewReviewPage() {
   const [review, setReview] = useState<Review | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Get hasLoadedOnce state from Redux
   const hasLoadedOnce = useAppSelector(
     (state) => state.loading.hasLoadedOnce[`view-review-${reviewId}`] || false
   );
   const [loading, setLoading] = useState<boolean>(!hasLoadedOnce);
 
-  // Fetch review data
   useEffect(() => {
     let isMounted = true;
 
-    // Only show loading if not loaded before
-    if (!hasLoadedOnce) {
-      setLoading(true);
-    }
+    if (!hasLoadedOnce) setLoading(true);
     setError(null);
 
     const fetchReview = async () => {
@@ -44,16 +40,13 @@ export default function ViewReviewPage() {
       }
 
       try {
-        // Use the getReviewById endpoint to get the specific review
         const response = await ReviewService.getReviewById(reviewId);
-
         if (!isMounted) return;
 
         if (response.error) {
           setError('리뷰를 불러올 수 없습니다.');
         } else if (response.data) {
           setReview(response.data);
-          // Mark as loaded once
           dispatch(setHasLoadedOnce(`view-review-${reviewId}`));
         } else {
           setError('리뷰 정보를 찾을 수 없습니다.');
@@ -69,7 +62,6 @@ export default function ViewReviewPage() {
     };
 
     fetchReview();
-
     return () => {
       isMounted = false;
     };
@@ -79,18 +71,16 @@ export default function ViewReviewPage() {
     router.push(`/client/pages/my-page/reviews/edit?reviewId=${reviewId}`);
   };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, index) => (
+  const renderStars = (rating: number) =>
+    Array.from({ length: 5 }, (_, i) => (
       <FaStar
-        key={index} // static 1..5
+        key={i}
         className={`${styles.star} ${
-          index < rating ? styles.starFilled : styles.starEmpty
+          i < rating ? styles.starFilled : styles.starEmpty
         }`}
       />
     ));
-  };
 
-  // Helper function to get Korean rating comment
   const getRatingComment = (rating: number): string => {
     switch (rating) {
       case 5:
@@ -143,7 +133,6 @@ export default function ViewReviewPage() {
 
         {/* Review Content */}
         <div className={styles.reviewContainer}>
-          {/* Review Header */}
           <div className={styles.reviewHeader}>
             <div className={styles.userInfo}>
               <div className={styles.profileImage}>
@@ -179,16 +168,12 @@ export default function ViewReviewPage() {
           {/* Product Name */}
           <div className={styles.productName}>{review.product.productName}</div>
 
-          {/* Review Images (stable keys) */}
-          {review.imageUrls && review.imageUrls.length > 0 && (
+          {/* Review Images with zoom modal */}
+          {review.imageUrls?.length ? (
             <div className={styles.imagesContainer}>
-              {review.imageUrls.map((imageUrl, index) => (
-                <div key={index} className={styles.reviewImage}>
-                  <img src={imageUrl} alt="Review image" />
-                </div>
-              ))}
+              <ReviewImageGallery images={review.imageUrls} />
             </div>
-          )}
+          ) : null}
 
           {/* Review Text */}
           <div className={styles.reviewText}>{review.content}</div>

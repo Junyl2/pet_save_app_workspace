@@ -32,8 +32,6 @@ export default function FindIdFormPhone() {
     if (!name) newErrors.name = '이름을 입력해 주세요.';
     if (!phone) {
       newErrors.phone = '휴대폰 번호를 입력해 주세요.';
-    } else if (!/^010-\d{4}-\d{4}$/.test(phone)) {
-      newErrors.phone = '형식에 맞지 않는 번호입니다.';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

@@ -1,10 +1,48 @@
 'use client';
-import { AdminAuthProvider } from '@/app/context/adminAuthContext';
 
-export default function AdminProviders({
-  children,
-}: {
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { AdminAuthProvider } from '@/app/context/adminAuthContext';
+import styles from './admin.module.css';
+
+interface AdminProvidersProps {
   children: React.ReactNode;
-}) {
+}
+
+export default function AdminProviders({ children }: AdminProvidersProps) {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    document.body.classList.add(styles.adminLayout);
+
+    if (!navigator.onLine) {
+      router.push('/admin/offline');
+    }
+
+    const handleOnline = () => {
+      /*    window.location.reload(); */
+      router.back();
+    };
+
+    /*  if (navigator.onLine) {
+      router.back();
+    }
+ */
+    const handleOffline = () => {
+      router.push('/admin/offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      document.body.classList.remove(styles.adminLayout);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [router]);
+
   return <AdminAuthProvider>{children}</AdminAuthProvider>;
 }

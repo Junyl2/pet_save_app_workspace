@@ -24,6 +24,7 @@ export const PAGE_URLS = {
 
   // My Page sections
   MEMBER_INFORMATION: '/client/pages/my-page/member-information', // mypage - member information page
+  BLOCK_LISTS: '/client/pages/my-page/block-list',
   MEMBER_INFO_PASSWORD: '/client/pages/my-page/member-information/password', // mypage - password change page
   MEMBER_INFO_DELIVERY_ADDRESS:
     '/client/pages/my-page/member-information/delivery-address', // mypage - delivery address page
@@ -55,8 +56,8 @@ export const PAGE_URLS = {
     '/client/pages/my-page/terms-and-conditions/marketing-consent',
 
   //Order history sub pages
-  ORDER_DETAILS: (orderId: string) =>
-    `/client/pages/my-page/order-history/${orderId}`,
+  ORDER_DETAILS: (orderItemId: string) =>
+    `/client/pages/my-page/order-history/items/${orderItemId}`,
   ORDER_CANCEL: (orderId: string) =>
     `/client/pages/my-page/order-history/${orderId}/cancel`,
   ORDER_TRACKING: (orderId: string) =>

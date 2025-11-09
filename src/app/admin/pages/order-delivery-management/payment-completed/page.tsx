@@ -1,126 +1,231 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import styles from './PaymentCompleted.module.css';
+import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
+import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
+import { orderService } from '@/app/api/services/client/memberService/order/orderService';
+import { orderStatusService } from '@/app/api/services/admin/orderStatusService/orderStatusService';
+import {
+  AdminSearchOrdersResponse,
+  AdminSearchOrdersData,
+  AdminSearchOrdersParams,
+} from '@/app/api/types/member/order/order';
+import { useOrderFilter } from '@/app/context/orderFilterContext';
 
-type Order = {
-  id: string;
-  orderedAt: string;
-  buyer: string;
-  contact: string;
-  price: number;
+interface OrderRow {
+  orderItemId: string;
+  orderId: string;
+  orderNumber: string;
+  createdAt: string;
+  customerName: string;
+  customerContact: string;
+  totalAmount: number;
   paymentMethod: string;
-};
+}
 
-const KRW = (n: number) => new Intl.NumberFormat('ko-KR').format(n) + '원';
+const KRW = (n: number): string =>
+  new Intl.NumberFormat('ko-KR').format(n) + '원';
 
-const orders: Order[] = [
-  {
-    id: '20250401-001',
-    orderedAt: '2025-04-01 11:32',
-    buyer: '홍길동',
-    contact: '010-0000-0000',
-    price: 1000,
-    paymentMethod: '무통장 입금',
-  },
-  {
-    id: '20250401-002',
-    orderedAt: '2025-04-01 11:41',
-    buyer: '김철수',
-    contact: '010-1234-5678',
-    price: 24500,
-    paymentMethod: '무통장 입금',
-  },
-  {
-    id: '20250401-003',
-    orderedAt: '2025-04-01 12:02',
-    buyer: '이영희',
-    contact: '010-1111-2222',
-    price: 8900,
-    paymentMethod: '신용카드',
-  },
-  {
-    id: '20250401-004',
-    orderedAt: '2025-04-01 12:35',
-    buyer: '박민수',
-    contact: '010-2222-3333',
-    price: 15600,
-    paymentMethod: '무통장 입금',
-  },
-  {
-    id: '20250401-005',
-    orderedAt: '2025-04-01 13:03',
-    buyer: '최지우',
-    contact: '010-3333-4444',
-    price: 5800,
-    paymentMethod: '간편결제',
-  },
-  {
-    id: '20250401-006',
-    orderedAt: '2025-04-01 13:48',
-    buyer: '정우성',
-    contact: '010-4444-5555',
-    price: 32000,
-    paymentMethod: '무통장 입금',
-  },
-  {
-    id: '20250401-007',
-    orderedAt: '2025-04-01 14:11',
-    buyer: '김하나',
-    contact: '010-5555-6666',
-    price: 6700,
-    paymentMethod: '신용카드',
-  },
-  {
-    id: '20250401-008',
-    orderedAt: '2025-04-01 14:45',
-    buyer: '이도연',
-    contact: '010-6666-7777',
-    price: 10200,
-    paymentMethod: '무통장 입금',
-  },
-];
+const PAGE_SIZE = 10;
 
-export default function PaymentCompletedPage() {
-  const handleCancel = (id: string) => console.log('취소:', id);
-  const handleStart = (id: string) => console.log('상품 준비 시작:', id);
+export default function PaymentCompletedPage(): React.ReactElement {
+  const { page, setPage } = usePageParam(1);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  const { filters, filterTrigger } = useOrderFilter();
+
+  /** Fetch all PAID orders from /v2/orders */
+  const fetchOrders = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const params: AdminSearchOrdersParams = {
+        status: ['PAID'],
+        page: page - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      };
+
+      if (filters.dateStart) {
+        params.dateStart = filters.dateStart;
+      }
+      if (filters.dateEnd) {
+        params.dateEnd = filters.dateEnd;
+      }
+      if (filters.keyword) {
+        params.keyword = filters.keyword;
+      }
+
+      const { data, error } = await orderService.searchOrdersV2(params);
+
+      if (error || !data?.success) {
+        console.error('[PaymentCompletedPage] Fetch failed:', error);
+        setOrders([]);
+        return;
+      }
+
+      const result = data as AdminSearchOrdersResponse;
+      const content: AdminSearchOrdersData[] = result.data?.content ?? [];
+
+      // Each order item = one row
+      const mapped: OrderRow[] = content.map((item) => ({
+        orderItemId: item.orderItemId,
+        orderId: item.orderId,
+        orderNumber: item.orderNumber,
+        createdAt: item.createdAt,
+        customerName: item.customer.name ?? '-',
+        customerContact: item.customer.phone ?? '-',
+        totalAmount: item.totalAmount ?? 0,
+        paymentMethod: item.paymentMethod ?? '-',
+      }));
+
+      setOrders(mapped);
+      setTotalPages(result.data?.pageInfo?.totalPages ?? 1);
+    } catch (err) {
+      console.error('[PaymentCompletedPage] Order fetch error:', err);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, filters.dateStart, filters.dateEnd, filters.keyword]);
+
+  useEffect(() => {
+    if (filterTrigger > 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [filterTrigger, page, setPage]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  /** Cancel an order item */
+  const handleCancel = async (orderItemId: string): Promise<void> => {
+    if (!orderItemId) {
+      alert('유효하지 않은 상품 ID입니다.');
+      return;
+    }
+
+    const reason = prompt('취소 사유를 입력하세요:');
+    if (!reason) return;
+    if (!confirm('정말로 이 상품을 취소하시겠습니까?')) return;
+
+    setOrders((prev) => prev.filter((o) => o.orderItemId !== orderItemId));
+
+    try {
+      const { data, error } = await orderStatusService.cancelOrderItem(
+        orderItemId,
+        reason
+      );
+
+      if (error || !data?.success) {
+        alert('상품 취소 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
+        console.error('[PaymentCompletedPage] Cancel failed:', error);
+        await fetchOrders(); // rollback
+        return;
+      }
+
+      alert('상품이 성공적으로 취소되었습니다.');
+      await fetchOrders();
+    } catch (err) {
+      console.error('[PaymentCompletedPage] Cancel error:', err);
+      alert('주문 상품 취소 중 오류가 발생했습니다.');
+      await fetchOrders();
+    }
+  };
+
+  /** Start preparing an order item */
+  const handleStart = async (orderItemId: string): Promise<void> => {
+    if (!orderItemId) {
+      alert('유효하지 않은 상품 ID입니다.');
+      return;
+    }
+
+    if (!confirm('이 상품의 준비를 시작하시겠습니까?')) return;
+
+    setOrders((prev) => prev.filter((o) => o.orderItemId !== orderItemId));
+
+    try {
+      const { data, error } = await orderStatusService.markOrderItemAsPreparing(
+        orderItemId
+      );
+
+      if (error || !data?.success) {
+        alert(
+          '준비 상태 변경 실패: ' + (data?.resultMsg || '오류가 발생했습니다.')
+        );
+        console.error('[PaymentCompletedPage] Prepare failed:', error);
+        await fetchOrders();
+        return;
+      }
+
+      alert('상품 준비 상태가 시작되었습니다.');
+      await fetchOrders();
+    } catch (err) {
+      console.error('[PaymentCompletedPage] Prepare error:', err);
+      alert('상품 준비 중 오류가 발생했습니다.');
+      await fetchOrders();
+    }
+  };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div>주문번호</div>
-        <div>주문일시</div>
-        <div>주문자</div>
-        <div>연락처</div>
-        <div>상품 가격</div>
-        <div>결제 수단</div>
-        <div />
+    <>
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <div>주문번호</div>
+          <div>주문일시</div>
+          <div>주문자</div>
+          <div>연락처</div>
+          <div>상품 가격</div>
+          <div>결제 수단</div>
+          <div />
+        </div>
+
+        {loading && <div className={styles.loading}>불러오는 중...</div>}
+
+        {!loading && orders.length === 0 && (
+          <div className={styles.empty}>결제 완료된 주문이 없습니다.</div>
+        )}
+
+        {!loading &&
+          orders.map((order) => (
+            <div key={order.orderItemId} className={styles.row}>
+              <div>{order.orderNumber}</div>
+              <div>{order.createdAt}</div>
+              <div>{order.customerName}</div>
+              <div>{order.customerContact}</div>
+              <div>{KRW(order.totalAmount)}</div>
+              <div>{order.paymentMethod}</div>
+              <div className={styles.actions}>
+                <button
+                  className={styles.cancelBtn}
+                  onClick={() => handleCancel(order.orderItemId)}
+                >
+                  취소
+                </button>
+                <button
+                  className={styles.startBtn}
+                  onClick={() => handleStart(order.orderItemId)}
+                >
+                  상품 준비 시작
+                </button>
+              </div>
+            </div>
+          ))}
       </div>
 
-      {orders.map((order) => (
-        <div key={order.id} className={styles.row}>
-          <div>{order.id}</div>
-          <div>{order.orderedAt}</div>
-          <div>{order.buyer}</div>
-          <div>{order.contact}</div>
-          <div>{KRW(order.price)}</div>
-          <div>{order.paymentMethod}</div>
-          <div className={styles.actions}>
-            <button
-              className={styles.cancelBtn}
-              onClick={() => handleCancel(order.id)}
-            >
-              취소
-            </button>
-            <button
-              className={styles.startBtn}
-              onClick={() => handleStart(order.id)}
-            >
-              상품 준비 시작
-            </button>
-          </div>
+      {totalPages > 1 && (
+        <div className={styles.paginationWrap}>
+          <OrderPagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }

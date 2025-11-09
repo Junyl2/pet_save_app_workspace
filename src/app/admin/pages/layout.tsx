@@ -34,11 +34,14 @@ function resolveActiveKey(pathname: string): string {
     return 'tax-invoice-list';
   if (pathname.includes('/admin/pages/account-permission-management'))
     return 'account-permission-management/general-member';
-  if (pathname.includes('/admin/pages/animal-categories'))
-    return 'animal-categories';
-  if (pathname.includes('/admin/pages/products')) return 'products';
-  if (pathname.includes('/admin/pages/referrals')) return 'referral-codes';
-  if (pathname.includes('/admin/pages/support')) return 'support';
+  if (pathname.includes('/admin/pages/animal-category-management'))
+    return 'animal-category-management';
+  if (pathname.includes('/admin/pages/product-management'))
+    return 'product-management';
+  if (pathname.includes('/admin/pages/referrer-code-management'))
+    return 'referrer-code-management/set-payment-policy';
+  if (pathname.includes('/admin/pages/customer-service-center'))
+    return 'customer-service-center/announcement';
 
   // Default
   return 'order-delivery-management/waiting-payment';
@@ -57,6 +60,7 @@ export default function AdminPagesLayout({ children }: LayoutProps) {
   return (
     <div
       style={{
+        position: 'relative',
         display: 'grid',
         gridTemplateColumns: '337px 1fr',
         minHeight: '100vh',

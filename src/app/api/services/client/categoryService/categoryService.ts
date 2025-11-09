@@ -1,7 +1,12 @@
 import { apiClient, ApiResponse } from '@/app/api/apiClient';
 import {
+  Category,
   CategoryApiResponse,
   CategorySearchParams,
+  CategoryCreateRequest,
+  CategoryUpdateRequest,
+  CategoryResponse,
+  CategoryByIdResponse,
 } from '@/app/api/types/category/category';
 
 /**
@@ -21,9 +26,7 @@ export class CategoryService {
     try {
       console.log('[CategoryService] Fetching categories with params:', params);
 
-      // Build query parameters
       const queryParams = new URLSearchParams();
-
       if (params?.keyword) queryParams.append('keyword', params.keyword);
       if (params?.categoryName)
         queryParams.append('categoryName', params.categoryName);
@@ -65,6 +68,107 @@ export class CategoryService {
         error:
           error instanceof Error ? error.message : 'Failed to fetch categories',
       };
+    }
+  }
+
+  /**
+   * Get category by ID
+   * GET /api/pet-save/categories/{categoryId}
+   */
+  static async getCategoryById(
+    categoryId: string
+  ): Promise<ApiResponse<{ data: Category }>> {
+    try {
+      if (!categoryId) {
+        throw new Error('Category ID is required');
+      }
+
+      const url = `${this.BASE_URL}/${categoryId}`;
+      const response = await apiClient.get<{ data: Category }>(url);
+
+      if (response.error) {
+        console.error(
+          '[CategoryService] Failed to fetch category by ID:',
+          response.error
+        );
+        return response;
+      }
+
+      console.log('[CategoryService] Category fetched successfully:', {
+        categoryId,
+        categoryName: response.data?.data?.categoryName,
+      });
+
+      return response;
+    } catch (error) {
+      console.error('[CategoryService] getCategoryById error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch category by ID',
+      };
+    }
+  }
+
+  /**
+   * Create a new category
+   * POST /api/pet-save/categories
+   */
+  static async createCategory(
+    request: CategoryCreateRequest
+  ): Promise<ApiResponse<CategoryResponse>> {
+    console.log('[CategoryService] Creating new category:', request.name);
+
+    try {
+      const response = await apiClient.raw.post<CategoryResponse>(
+        this.BASE_URL,
+        request,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      console.log(
+        '[CategoryService] Category created successfully:',
+        response.data
+      );
+      return { data: response.data, error: undefined };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Category creation failed';
+      console.error('[CategoryService] Failed to create category:', message);
+      return { data: null, error: message };
+    }
+  }
+
+  /**
+   * Update existing category information
+   * PUT /api/pet-save/categories/{categoryId}
+   * ADMIN permission required
+   */
+  static async updateCategory(
+    categoryId: string,
+    request: CategoryUpdateRequest
+  ): Promise<ApiResponse<CategoryResponse>> {
+    console.log('[CategoryService] Updating category:', categoryId);
+
+    try {
+      const response = await apiClient.raw.put<CategoryResponse>(
+        `${this.BASE_URL}/${categoryId}`,
+        request,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      console.log(
+        '[CategoryService] Category updated successfully:',
+        response.data
+      );
+      return { data: response.data, error: undefined };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Category update failed';
+      console.error('[CategoryService] Failed to update category:', message);
+      return { data: null, error: message };
     }
   }
 }
