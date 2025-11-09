@@ -182,7 +182,7 @@ export default function MembershipInformation() {
       setEmailValidationStatus('error');
       setEmailValidationMessage('이메일 확인 중 오류가 발생했습니다.');
     }
-  }, [formData.email, formData.emailDomain]);
+  }, [formData]);
 
   useEffect(() => {
     const delay = setTimeout(() => {

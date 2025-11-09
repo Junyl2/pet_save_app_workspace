@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Modal from '@/app/components/ui/modal/Modal';
 import styles from './page.module.css';
 
@@ -25,16 +25,14 @@ type OrderDetails = {
 
 const KRW = (n: number) => new Intl.NumberFormat('ko-KR').format(n) + '원';
 
-export default function TaxInvoceDetails({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function TaxInvoceDetails() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const invoiceId = params?.id as string;
   const [open, setOpen] = useState(true);
 
   const [details] = useState<OrderDetails>({
-    id: params.id || '20250401-001',
+    id: invoiceId || '20250401-001',
     orderedAt: '2025-04-01 11:32',
     buyer: '홍길동',
     contact: '010-0000-0000',

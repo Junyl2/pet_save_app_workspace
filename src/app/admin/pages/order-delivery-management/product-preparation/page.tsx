@@ -96,7 +96,6 @@ export default function ProductPreperationPage(): React.ReactElement {
     filters.dateEnd,
     filters.keyword,
     filters.shippingOption,
-    filterTrigger,
   ]);
 
   useEffect(() => {

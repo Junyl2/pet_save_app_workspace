@@ -34,82 +34,85 @@ export default function DocumentListPage(): React.ReactElement {
     Object.keys(slugToTabKey).find((slug) => pathname.includes(slug)) ||
     'payment-details';
 
-  const mockData: ReferrerData[] = [
-    {
-      id: '1',
-      storeName: 'ㅇㅇ 동물병원',
-      totalMembers: 80,
-      totalPoints: 80000,
-      status: '정상',
-    },
-    {
-      id: '2',
-      storeName: 'ㅇㅇ 동물병원',
-      totalMembers: 12,
-      totalPoints: 12000,
-      status: '정상',
-    },
-    {
-      id: '3',
-      storeName: 'ㅇㅇ 동물병원',
-      totalMembers: 80,
-      totalPoints: 80000,
-      status: '정상',
-    },
-    {
-      id: '4',
-      storeName: 'ㅇㅇ 동물병원',
-      totalMembers: 12,
-      totalPoints: 12000,
-      status: '일시정지',
-    },
-    {
-      id: '5',
-      storeName: 'ㅇㅇ 동물병원',
-      totalMembers: 80,
-      totalPoints: 80000,
-      status: '정상',
-    },
-    {
-      id: '6',
-      storeName: 'ㅇㅇ 동물병원',
-      totalMembers: 12,
-      totalPoints: 12000,
-      status: '일시정지',
-    },
-    {
-      id: '7',
-      storeName: 'ㅇㅇ 동물병원',
-      totalMembers: 80,
-      totalPoints: 80000,
-      status: '정상',
-    },
-    {
-      id: '8',
-      storeName: 'ㅇㅇ 동물병원',
-      totalMembers: 12,
-      totalPoints: 12000,
-      status: '정상',
-    },
-    {
-      id: '9',
-      storeName: 'ㅇㅇ 동물병원',
-      totalMembers: 80,
-      totalPoints: 80000,
-      status: '정상',
-    },
-    {
-      id: '10',
-      storeName: 'ㅇㅇ 동물병원',
-      totalMembers: 12,
-      totalPoints: 12000,
-      status: '일시정지',
-    },
-  ];
+  const mockData = useMemo<ReferrerData[]>(
+    () => [
+      {
+        id: '1',
+        storeName: 'ㅇㅇ 동물병원',
+        totalMembers: 80,
+        totalPoints: 80000,
+        status: '정상',
+      },
+      {
+        id: '2',
+        storeName: 'ㅇㅇ 동물병원',
+        totalMembers: 12,
+        totalPoints: 12000,
+        status: '정상',
+      },
+      {
+        id: '3',
+        storeName: 'ㅇㅇ 동물병원',
+        totalMembers: 80,
+        totalPoints: 80000,
+        status: '정상',
+      },
+      {
+        id: '4',
+        storeName: 'ㅇㅇ 동물병원',
+        totalMembers: 12,
+        totalPoints: 12000,
+        status: '일시정지',
+      },
+      {
+        id: '5',
+        storeName: 'ㅇㅇ 동물병원',
+        totalMembers: 80,
+        totalPoints: 80000,
+        status: '정상',
+      },
+      {
+        id: '6',
+        storeName: 'ㅇㅇ 동물병원',
+        totalMembers: 12,
+        totalPoints: 12000,
+        status: '일시정지',
+      },
+      {
+        id: '7',
+        storeName: 'ㅇㅇ 동물병원',
+        totalMembers: 80,
+        totalPoints: 80000,
+        status: '정상',
+      },
+      {
+        id: '8',
+        storeName: 'ㅇㅇ 동물병원',
+        totalMembers: 12,
+        totalPoints: 12000,
+        status: '정상',
+      },
+      {
+        id: '9',
+        storeName: 'ㅇㅇ 동물병원',
+        totalMembers: 80,
+        totalPoints: 80000,
+        status: '정상',
+      },
+      {
+        id: '10',
+        storeName: 'ㅇㅇ 동물병원',
+        totalMembers: 12,
+        totalPoints: 12000,
+        status: '일시정지',
+      },
+    ],
+    []
+  );
 
   const pagedData = useMemo(
     () => mockData.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [page]
+    [page, mockData]
   );
 
   const totalPages = Math.ceil(mockData.length / PAGE_SIZE);

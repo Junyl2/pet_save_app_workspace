@@ -1084,4 +1084,76 @@ export class AuthService {
       };
     }
   }
+
+  /**
+   * Refresh access token using refresh token
+   * Endpoint: POST /api/pet-save/auth/refresh
+   */
+  static async refreshToken(): Promise<ApiResponse<UnknownJson>> {
+    try {
+      if (typeof window === 'undefined') {
+        return {
+          data: null,
+          error: 'Refresh token is only available in browser environment',
+        };
+      }
+
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        console.error('No refresh token available');
+        return {
+          data: null,
+          error: 'No refresh token available',
+        };
+      }
+
+      console.log('Refreshing access token...');
+
+      const response = await apiClient.post<UnknownJson>('/auth/refresh', {
+        refreshToken,
+      });
+
+      if (response.error) {
+        console.error('Token refresh failed:', response.error);
+        return response;
+      }
+
+      // Extract new access token from response
+      const responseData: unknown = response.data;
+      if (responseData && typeof responseData === 'object') {
+        const data = responseData as Record<string, unknown>;
+        const newAccessToken =
+          (data.accessToken as string) ||
+          (data.token as string) ||
+          (data.data &&
+            typeof data.data === 'object' &&
+            (data.data as Record<string, unknown>).accessToken
+            ? ((data.data as Record<string, unknown>).accessToken as string)
+            : null);
+
+        if (newAccessToken) {
+          localStorage.setItem('authToken', newAccessToken);
+          console.log('Token refresh successful, new token stored');
+        } else {
+          console.warn(
+            'Token refresh response missing accessToken, checking localStorage'
+          );
+          // Check if token was set via response headers (handled by apiClient)
+          const storedToken = localStorage.getItem('authToken');
+          if (!storedToken) {
+            console.error('New token not found in response or localStorage');
+          }
+        }
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Token refresh service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to refresh token',
+      };
+    }
+  }
 }

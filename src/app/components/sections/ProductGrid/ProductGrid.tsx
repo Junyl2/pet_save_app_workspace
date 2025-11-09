@@ -143,7 +143,7 @@ export const ProductGrid = ({
   useEffect(() => {
     if (initialProducts || externalOnPageChange) return;
     setCurrentPage(0);
-  }, [categoryName, searchTerm, storeId, sortBy, direction]);
+  }, [categoryName, searchTerm, storeId, sortBy, direction, initialProducts, externalOnPageChange]);
 
   /** Handle location change invalidation */
   useEffect(() => {

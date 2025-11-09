@@ -109,7 +109,6 @@ export default function ReceiptCompletePage(): React.ReactElement {
     filters.dateEnd,
     filters.keyword,
     filters.shippingOption,
-    filterTrigger,
   ]);
 
   useEffect(() => {

@@ -21,11 +21,6 @@ export default function ClientPagination({
   totalPages,
   onPageChange,
 }: ClientPaginationProps) {
-  if (totalPages <= 1) return null;
-
-  const canPrev = currentPage > 1;
-  const canNext = currentPage < totalPages;
-
   const visiblePages = useMemo(() => {
     const maxVisible = 3;
     const pages: (number | 'dots')[] = [];
@@ -56,6 +51,11 @@ export default function ClientPagination({
 
     return pages;
   }, [currentPage, totalPages]);
+
+  if (totalPages <= 1) return null;
+
+  const canPrev = currentPage > 1;
+  const canNext = currentPage < totalPages;
 
   return (
     <nav className={styles.container} aria-label="페이지네이션">

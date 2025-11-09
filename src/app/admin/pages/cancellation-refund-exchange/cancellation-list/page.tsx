@@ -124,7 +124,6 @@ export default function CancellationListPage() {
     filters.dateEnd,
     filters.keyword,
     filters.shippingOption,
-    filterTrigger,
   ]);
 
   useEffect(() => {

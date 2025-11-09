@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { ContactInquiry } from '@/app/api/types/contact/contact';
 import { MyInquiry } from '@/app/api/types/member/inquiry-details/inquiry';
-import { contactService } from '@/app/api/services/contact-service/contactService';
 import { MemberInquiryService } from '@/app/api/services/client/memberService/inquiry-details/memberInquiryService';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import ContactInboxSkeleton from '../../ui/SkeletonLoading/ContactInboxSkeleton/ContactInboxSkeleton';
@@ -109,9 +108,11 @@ export default function ContactInbox({
         const response = await MemberInquiryService.getMyInquiries(params);
 
         if (response.error || !response.data) {
-          console.warn('[ContactInbox] Using fallback mock data');
-          const mockData = await contactService.getAllInquiries();
-          setInquiries(mockData);
+          console.warn(
+            '[ContactInbox] Failed to fetch inquiries:',
+            response.error
+          );
+          setInquiries([]);
           setTotalPages(1);
         } else {
           const content = response.data.data.content.map(
@@ -122,8 +123,7 @@ export default function ContactInbox({
         }
       } catch (error) {
         console.error('[ContactInbox] Error fetching inquiries:', error);
-        const mockData = await contactService.getAllInquiries();
-        setInquiries(mockData);
+        setInquiries([]);
         setTotalPages(1);
       } finally {
         setLoading(false);

@@ -122,7 +122,7 @@ export default function ReturnRequestPage() {
       } finally {
         setLoading(false);
       }
-  }, [page, filters.dateStart, filters.dateEnd, filterTrigger]);
+  }, [page, filters.dateStart, filters.dateEnd]);
 
   useEffect(() => {
     if (filterTrigger > 0 && page !== 1) {

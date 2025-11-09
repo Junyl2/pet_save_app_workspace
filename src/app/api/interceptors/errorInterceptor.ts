@@ -1,4 +1,4 @@
-import { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
+import { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import {
   AUTH_ERROR_CODES,
   AuthError,
@@ -9,6 +9,13 @@ import { isPublicEndpoint } from '../utils/endpointClassifier';
 import { getFromLocalStorage } from '../utils/storageUtils';
 import { ensureAxiosHeaders } from '../utils/headerUtils';
 import { apiLogger } from '../utils/logger';
+
+/**
+ * Extended request config with retry flag
+ */
+interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
 
 /**
  * Check if a JWT token is expired
@@ -51,7 +58,7 @@ export async function responseErrorHandler(
   error: AxiosError,
   axiosInstance: AxiosInstance
 ): Promise<AxiosResponse | never> {
-  const originalRequest = error.config;
+  const originalRequest = error.config as ExtendedAxiosRequestConfig | undefined;
 
   // Handle network errors (no response.status)
   if (!error.response) {

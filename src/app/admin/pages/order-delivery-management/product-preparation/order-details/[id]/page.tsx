@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import Modal from '@/app/components/ui/modal/Modal';
 import styles from './styles.module.css';
@@ -45,12 +45,10 @@ interface OrderDetails {
 const formatKRW = (n: number): string =>
   `${new Intl.NumberFormat('ko-KR').format(n)}원`;
 
-export default function OrderDetailsPage({
-  params,
-}: {
-  params: { id: string };
-}): React.ReactElement {
+export default function OrderDetailsPage(): React.ReactElement {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const orderId = params?.id as string;
   const [open, setOpen] = useState(true);
   const [details, setDetails] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,7 +59,7 @@ export default function OrderDetailsPage({
   /** Reset tracking number when new order opens */
   useEffect(() => {
     setTrackingNumber('');
-  }, [params.id]);
+  }, [orderId]);
 
   /** Fetch order details via /v2/orders */
   useEffect(() => {
@@ -69,7 +67,7 @@ export default function OrderDetailsPage({
       setLoading(true);
       try {
         const { data, error } = await orderService.searchOrdersV2({
-          orderNumber: params.id,
+          orderNumber: orderId,
           size: 10,
         });
 
@@ -81,7 +79,7 @@ export default function OrderDetailsPage({
 
         const result = data as AdminSearchOrdersResponse;
         const orderItem = result.data?.content?.find(
-          (i) => i.orderNumber === params.id
+          (i) => i.orderNumber === orderId
         );
         if (!orderItem) {
           setLoading(false);
@@ -125,8 +123,10 @@ export default function OrderDetailsPage({
       }
     };
 
-    void fetchOrderDetails();
-  }, [params.id]);
+    if (orderId) {
+      void fetchOrderDetails();
+    }
+  }, [orderId]);
 
   const handleClose = (): void => {
     setOpen(false);

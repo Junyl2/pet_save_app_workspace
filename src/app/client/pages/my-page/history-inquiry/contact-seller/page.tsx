@@ -192,6 +192,7 @@ export default function ContactCreatePage() {
                   key={opt.value}
                   type="button"
                   role="option"
+                  aria-selected={category === opt.value}
                   className={`${s.dropdownItem} ${
                     category === opt.value ? s.dropdownItemActive : ''
                   }`}

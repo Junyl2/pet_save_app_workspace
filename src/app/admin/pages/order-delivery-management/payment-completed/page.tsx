@@ -90,7 +90,7 @@ export default function PaymentCompletedPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, [page, filters.dateStart, filters.dateEnd, filters.keyword, filterTrigger]);
+  }, [page, filters.dateStart, filters.dateEnd, filters.keyword]);
 
   useEffect(() => {
     if (filterTrigger > 0 && page !== 1) {

@@ -64,7 +64,7 @@ export default function DocumentListPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, filters.dateStart, filters.dateEnd, filters.keyword, filterTrigger]);
+  }, [page, filters.dateStart, filters.dateEnd, filters.keyword]);
 
   useEffect(() => {
     if (filterTrigger > 0 && page !== 1) {
