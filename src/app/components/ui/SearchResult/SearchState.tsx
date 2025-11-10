@@ -3,6 +3,7 @@
 
 import Image from 'next/image';
 import styles from './SearchState.module.css';
+import { usePathname } from 'next/navigation';
 
 type SearchStateProps = {
   imageSrc: string;
@@ -17,8 +18,15 @@ export default function SearchState({
   message,
 }: /*  actionButton, */
 SearchStateProps) {
+  const pathname = usePathname();
+  const isSearchPage = pathname.includes('/products/search');
+
   return (
-    <div className={styles.emptyContainer}>
+    <div
+      className={`${styles.emptyContainer} ${
+        isSearchPage ? styles.searchPage : ''
+      }`}
+    >
       <div>
         <Image
           src={imageSrc}

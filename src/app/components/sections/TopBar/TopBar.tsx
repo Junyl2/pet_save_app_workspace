@@ -36,6 +36,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
   /** Helpers */
   const isShoplist = pathname.startsWith('/shops');
+  const isHomepage = pathname.startsWith('/client/pages/homepage');
 
   const isRecord = (v: unknown): v is Record<string, unknown> =>
     typeof v === 'object' && v !== null;

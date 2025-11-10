@@ -126,7 +126,9 @@ export const CartModal = ({
             <p>총 수량 {quantity}개</p>
             <p>
               <span className={styles.priceSpan}>총 금액</span>
-              <strong>{totalPrice.toLocaleString('ko-KR')}원</strong>
+              <span className={styles.strongPrice}>
+                {totalPrice.toLocaleString('ko-KR')}원
+              </span>
             </p>
           </div>
         </div>

@@ -148,8 +148,9 @@ export default function CategoryNav({
             <Image
               src="/images/icons/Filter.svg"
               alt="Filter Icon"
-              width={24}
-              height={24}
+              width={28}
+              height={28}
+              className={styles.filterIcon}
             />
           </button>
           <div className={styles.error}>Failed to load categories</div>

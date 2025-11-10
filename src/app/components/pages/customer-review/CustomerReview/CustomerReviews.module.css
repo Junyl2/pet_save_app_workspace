@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 16px;
   background-color: #f2f4f7;
-  min-height: calc(100vh - 71.59px);
+  min-height: calc(100vh - 64px);
 }
 
 .loading,

@@ -1,9 +1,6 @@
 .topbar {
   background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  /* margin-left: -1rem;
-  margin-right: -1rem; */
-  padding-bottom: 0.5rem;
+  height: 64px;
   position: fixed;
   top: 0;
   left: 0;
@@ -13,9 +10,7 @@
 }
 .sellerTopBar {
   background: #fff;
-  /* margin-left: -1rem;
-  margin-right: -1rem; */
-  padding-bottom: 0.5rem;
+  height: 64px;
   position: fixed;
   top: 0;
   left: 0;
@@ -25,10 +20,7 @@
 }
 .shoppingCartTopbar {
   background: #fff;
-  /*  border-bottom: 1px solid #e5e7eb; */
-  /* margin-left: -1rem;
-  margin-right: -1rem; */
-  padding-bottom: 0rem;
+  height: 64px;
   position: fixed;
   top: 0;
   left: 0;
@@ -39,17 +31,14 @@
 
 .shopTopBar {
   background: #fff;
-  border-bottom: none;
-  /*  margin-left: -1rem;
-  margin-right: -1rem; */
-  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  height: 64px;
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   box-sizing: border-box;
   z-index: 1500;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* Current Location Button */
@@ -88,7 +77,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 64px;
   padding: 1rem 1rem;
+  box-sizing: border-box;
 }
 
 .logoWrapper {
@@ -138,8 +129,17 @@
 
 .searchWrapper {
   position: relative;
-  margin-top: 0.5rem;
-  padding: 0 1rem;
+  background-color: #fff;
+  padding: 0.5rem 1rem;
+}
+.homepageBorder {
+  position: absolute;
+  width: 100%;
+  margin-left: -1rem;
+  bottom: 0px;
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.1);
+  z-index: 500;
 }
 
 .searchForm {
@@ -150,9 +150,10 @@
 .searchInput {
   width: 100%;
   padding: 0.8rem 1rem 0.8rem 2.5rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
   font-size: 0.95rem;
+  height: 35px;
   box-sizing: border-box;
 }
 .searchButton {
@@ -162,15 +163,18 @@
   transform: translateY(-50%);
   background-color: transparent !important;
   border: none;
+  display: flex;
+  align-items: center;
 }
 
 .searchIcon {
-  color: #888;
-  font-size: 1.4rem;
+  color: rgba(0, 0, 0, 0.4) !important;
+  font-size: 15px;
 }
 
 .searchInput::placeholder {
   color: rgba(0, 0, 0, 0.4);
+  font-size: 12px;
 }
 
 .searchInput:focus {
@@ -181,7 +185,7 @@
 /* Search history dropdown */
 .historyDropdown {
   position: fixed;
-  top: 100%;
+  top: 170%;
   left: 0;
   right: 0;
   background: #fff;

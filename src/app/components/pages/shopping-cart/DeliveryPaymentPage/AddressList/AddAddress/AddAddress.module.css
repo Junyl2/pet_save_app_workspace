@@ -1,8 +1,8 @@
 .container {
-  min-height: calc(100vh - 71.58px);
+  min-height: calc(100vh - 64px);
   background: #f2f4f7;
   color: #000;
-  margin-top: 71.58px;
+  margin-top: 64px;
   margin-left: -1rem;
   margin-right: -1rem;
 }

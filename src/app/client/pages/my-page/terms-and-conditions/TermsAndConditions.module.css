@@ -1,6 +1,6 @@
 .container {
   min-height: 100vh;
-  margin-top: 72px;
+  margin-top: 64px;
   background-color: #ffffff;
 }
 
@@ -49,7 +49,7 @@
   .policyItem {
     padding: 18px 16px;
   }
-  
+
   .policyTitle {
     font-size: 15px;
   }

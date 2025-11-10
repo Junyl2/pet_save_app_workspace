@@ -1,7 +1,7 @@
 .container {
   min-height: 100vh;
   background-color: #ffffff;
-  margin-top: 72px;
+  margin-top: 64px;
   padding-bottom: 40px;
 }
 
@@ -128,21 +128,21 @@
   .content {
     padding: 16px 12px;
   }
-  
+
   .title {
     font-size: 18px;
   }
-  
+
   .sectionTitle {
     font-size: 15px;
   }
-  
+
   .description,
   .sectionContent,
   .sectionContent p {
     font-size: 13px;
   }
-  
+
   .orderedList > li,
   .bulletList > li,
   .subList > li {

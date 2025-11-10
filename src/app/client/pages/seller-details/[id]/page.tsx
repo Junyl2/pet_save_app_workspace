@@ -34,8 +34,7 @@ export default function SellerDetailsPage() {
   const lastSeg = pathname?.split('/').filter(Boolean).at(-1);
   const storeId = params?.id ?? lastSeg ?? '';
 
-  // Get current page and category from URL parameters
-  const currentPage = parseInt(searchParams.get('page') || '0', 10);
+  // Get category from URL parameters
   const urlCategory = searchParams.get('categoryName') || '';
 
   const [store, setStore] = useState<StoreInfo | null>(null);
@@ -187,18 +186,6 @@ export default function SellerDetailsPage() {
     router.push(`/client/seller/pages/change-profile?storeId=${storeId}`);
   };
 
-  // Handle page change by updating URL
-  const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (page === 0) {
-      params.delete('page');
-    } else {
-      params.set('page', page.toString());
-    }
-    const newUrl = params.toString() ? `?${params.toString()}` : '';
-    router.push(`/client/pages/seller-details/${storeId}${newUrl}`);
-  };
-
   // Handle category change by updating URL
   const handleCategoryChange = (categoryName: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -309,8 +296,6 @@ export default function SellerDetailsPage() {
         <ProductGrid
           categoryName={selectedCategory}
           storeId={storeId}
-          currentPage={currentPage}
-          onPageChange={handlePageChange}
           onProductClick={(product) => {
             const productId = product.productId || product.id;
             if (productId) {
@@ -319,6 +304,7 @@ export default function SellerDetailsPage() {
               console.error('Product missing ID:', product);
             }
           }}
+          onAddToCart={() => {}}
         />
       </div>
     </React.Fragment>

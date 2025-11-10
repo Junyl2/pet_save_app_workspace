@@ -3,6 +3,7 @@
   margin-left: -1rem;
   margin-right: -1rem;
   overflow-x: hidden;
+  margin-top: -1.55rem;
 }
 .grid {
   /* display: flex;
@@ -32,6 +33,7 @@
   position: relative;
   align-items: stretch;
   min-height: 120px;
+  gap: 10px;
 }
 
 .imageWrapper {
@@ -71,11 +73,11 @@
 
 .content {
   flex: 1;
-  padding: 1rem;
+  padding: 1rem 1rem 1rem 0rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 8px;
   align-self: stretch;
 }
 
@@ -92,7 +94,7 @@
   font-size: 12px;
   font-weight: 600;
   color: #000;
-  max-width: 70%;
+  max-width: 60%;
   margin: 0;
 }
 

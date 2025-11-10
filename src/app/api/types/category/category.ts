@@ -24,6 +24,20 @@ export interface CategorySearchParams {
 }
 
 /**
+ * Admin category search parameters with visible filter
+ */
+export interface AdminCategorySearchParams {
+  keyword?: string;
+  categoryName?: string;
+  englishName?: string;
+  visible?: boolean;
+  page?: number;
+  size?: number;
+  sortBy?: 'displayOrder' | 'categoryName' | 'englishName' | 'createdAt';
+  direction?: 'asc' | 'desc';
+}
+
+/**
  * Paginated category response
  */
 export interface CategoryPageResponse {

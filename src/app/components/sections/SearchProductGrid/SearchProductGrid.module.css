@@ -2,8 +2,8 @@
   display: flex;
   align-items: flex-start;
   flex-direction: column;
-  /*   min-height: 100vh; */
-  /*  margin-top: 140.9px; */
+  min-height: 100vh;
+  margin-top: 115px;
 }
 
 .grid {
@@ -17,15 +17,18 @@
 /* Filter bar */
 .filterBar {
   position: sticky;
-  background-color: #fff;
-  top: 154px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: #f2f4f7;
+  top: 115px;
   z-index: 500;
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
   margin-bottom: 1rem;
-  padding: 1rem 0rem;
+  padding: 1rem 1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
 }
 
 .totalCount {

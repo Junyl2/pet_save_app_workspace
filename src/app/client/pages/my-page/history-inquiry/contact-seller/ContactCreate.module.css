@@ -1,8 +1,8 @@
 .pageWrap {
-  min-height: calc(100vh - 72px);
+  min-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
-  margin-top: 71.59px;
+  margin-top: 64px;
 }
 
 .topAppBar {

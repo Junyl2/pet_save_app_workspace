@@ -1,9 +1,9 @@
 .container {
   background-color: #f9fafb;
-  min-height: calc(100vh - 72px);
+  min-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
-  margin-top: 72px;
+  margin-top: 64px;
   margin-left: -1rem;
   margin-right: -1rem;
 }

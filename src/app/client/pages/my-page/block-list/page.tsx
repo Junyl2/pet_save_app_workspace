@@ -92,6 +92,8 @@ export default function BlockListPage() {
   };
 
   const handleUnblock = async (storeId: string, storeName: string) => {
+    if (!memberId) return;
+
     setIsProcessing(storeId);
     try {
       const res = await BlockService.toggleBlockStore(storeId);
@@ -107,9 +109,23 @@ export default function BlockListPage() {
 
       if (isUnblocked) {
         toast.success(`${storeName} 차단을 해제했습니다.`);
-        setBlockedStores((prev) => prev.filter((s) => s.storeId !== storeId));
+
+        // Remove from local state immediately for instant UI update
+        const updatedStores = blockedStores.filter((s) => s.storeId !== storeId);
+        setBlockedStores(updatedStores);
+
+        // If current page becomes empty and we're not on page 1, go to previous page
+        if (updatedStores.length === 0 && currentPage > 1) {
+          // Page change will trigger useEffect to refetch
+          setCurrentPage(currentPage - 1);
+        } else {
+          // Refetch current page to ensure pagination and data are in sync
+          await fetchBlockedStores(memberId, currentPage);
+        }
       } else {
         toast.success(`${storeName} 차단되었습니다.`);
+        // Refetch to update the list
+        await fetchBlockedStores(memberId, currentPage);
       }
     } catch (err) {
       console.error('[BlockListPage] unblock error:', err);
