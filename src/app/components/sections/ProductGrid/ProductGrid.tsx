@@ -69,6 +69,22 @@ export const ProductGrid = ({
     setImageErrors((prev) => ({ ...prev, [productId]: true }));
   };
 
+  const formatExpirationDate = (
+    dateString: string | null | undefined
+  ): string => {
+    if (!dateString) return '';
+
+    try {
+      const date = new Date(dateString);
+      const year = date.getFullYear().toString().slice(-2);
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${year}.${month}.${day}까지`;
+    } catch (error) {
+      return '';
+    }
+  };
+
   /** 🔍 Check if store is blocked */
   useEffect(() => {
     const checkBlockStatus = async () => {
@@ -394,6 +410,16 @@ export const ProductGrid = ({
                     return `${show.toLocaleString('ko-KR')}원`;
                   })()}
                 </p>
+                {(() => {
+                  const expirationDate =
+                    product.expiryDate ||
+                    product.expirationDate ||
+                    product.expiration;
+                  const formattedDate = formatExpirationDate(expirationDate);
+                  return formattedDate ? (
+                    <p className={styles.expiration}>{formattedDate}</p>
+                  ) : null;
+                })()}
                 <p className={styles.info}>
                   {formatAddressForDisplay(product.store?.address || '')}
                   <br />

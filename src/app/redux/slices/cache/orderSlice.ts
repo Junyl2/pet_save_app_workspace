@@ -127,12 +127,12 @@ export const fetchOrderDetailsByItemId = createAsyncThunk(
       );
       if (response.error) throw new Error(response.error);
 
-      const orderItems = response.data?.data?.content;
-      if (!orderItems?.length) throw new Error('No order data found');
+      const orderItem = response.data?.data;
+      if (!orderItem) throw new Error('No order data found');
 
-      const parentOrderId = orderItems[0].orderId;
+      const parentOrderId = orderItem.orderId;
       const data: CachedOrderData = {
-        orderItems,
+        orderItems: [orderItem],
         timestamp: Date.now(),
         lastFetched: Date.now(),
         isPartial: false,

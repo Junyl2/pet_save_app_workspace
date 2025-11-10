@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import styles from './OrderHistory.module.css';
 import FilterBar from '../../../sections/FilterBar/FilterBar';
 import OrderHistoryItem from './order-history-item/OrderHistoryItem';
@@ -61,15 +62,61 @@ export default function OrderHistory() {
   const { orderHistoryCache, loading, error } = useAppSelector(
     (state) => state.orders
   );
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const { page, setPage } = usePageParam(1);
-  const [selectedPeriod, setSelectedPeriod] = useState('3개월');
-  const [selectedStatus, setSelectedStatus] = useState('전체보기');
 
-  /** Reset page to 1 when filters change */
-  useEffect(() => {
+  // Initialize filters from URL params or use defaults
+  const [selectedPeriod, setSelectedPeriod] = useState(() => {
+    return searchParams.get('period') || '3개월';
+  });
+  const [selectedStatus, setSelectedStatus] = useState(() => {
+    return searchParams.get('status') || '전체보기';
+  });
+
+  /** Update URL params when filters change */
+  const updateUrlParams = (period: string, status: string, pageNum: number) => {
+    const params = new URLSearchParams(searchParams?.toString());
+    params.set('period', period);
+    params.set('status', status);
+    params.set('page', pageNum.toString());
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  /** Handle period change */
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
     setPage(1);
-  }, [selectedPeriod, selectedStatus, setPage]);
+    updateUrlParams(period, selectedStatus, 1);
+  };
+
+  /** Handle status change */
+  const handleStatusChange = (status: string) => {
+    setSelectedStatus(status);
+    setPage(1);
+    updateUrlParams(selectedPeriod, status, 1);
+  };
+
+  /** Update URL when page changes */
+  useEffect(() => {
+    updateUrlParams(selectedPeriod, selectedStatus, page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  /** Sync state with URL params when URL changes (e.g., when coming back from order detail) */
+  useEffect(() => {
+    const urlPeriod = searchParams.get('period');
+    const urlStatus = searchParams.get('status');
+    if (urlPeriod && urlPeriod !== selectedPeriod) {
+      setSelectedPeriod(urlPeriod);
+    }
+    if (urlStatus && urlStatus !== selectedStatus) {
+      setSelectedStatus(urlStatus);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const { dateStart, dateEnd } = getDateRange(selectedPeriod);
   const statusParam: OrderStatus | undefined =
@@ -83,7 +130,7 @@ export default function OrderHistory() {
       dateStart,
       dateEnd,
       onlyReviewable: false,
-      page: page - 1,
+      page: Math.max(0, page - 1), // Ensure page is never negative
       size: PAGE_SIZE,
       sortBy: 'createdAt' as const,
       direction: 'desc' as const,
@@ -107,7 +154,7 @@ export default function OrderHistory() {
   /** Fetch on mount + when filters or page changes */
   useEffect(() => {
     dispatch(fetchOrderHistory(queryParams));
-  }, [dispatch, queryParams]);
+  }, [dispatch, queryParams, page]);
 
   /** Background revalidation */
   useEffect(() => {
@@ -182,9 +229,9 @@ export default function OrderHistory() {
         <div className={styles.inner}>
           <FilterBar
             selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
+            onPeriodChange={handlePeriodChange}
             selectedStatus={selectedStatus}
-            onStatusChange={setSelectedStatus}
+            onStatusChange={handleStatusChange}
           />
           <div className={styles.list}>
             <OrderHistorySkeleton count={5} />
@@ -201,9 +248,9 @@ export default function OrderHistory() {
         <div className={styles.inner}>
           <FilterBar
             selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
+            onPeriodChange={handlePeriodChange}
             selectedStatus={selectedStatus}
-            onStatusChange={setSelectedStatus}
+            onStatusChange={handleStatusChange}
           />
           <div className={styles.error}>오류: {error}</div>
         </div>
@@ -217,9 +264,9 @@ export default function OrderHistory() {
       <div className={styles.inner}>
         <FilterBar
           selectedPeriod={selectedPeriod}
-          onPeriodChange={setSelectedPeriod}
+          onPeriodChange={handlePeriodChange}
           selectedStatus={selectedStatus}
-          onStatusChange={setSelectedStatus}
+          onStatusChange={handleStatusChange}
         />
 
         <div className={styles.list}>

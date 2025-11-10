@@ -64,6 +64,8 @@ export interface Delivery {
   receiverAddress: string;
   deliveryNotes: string | null;
   currentStatus: string;
+  message: string;
+  lastUpdated: string;
 }
 
 /**
@@ -95,6 +97,7 @@ export interface OrderItemResponse {
   deliveryFee: number;
   storeAddress: string;
   storePhoneNumber: string;
+  createdAt: string;
 }
 
 /**
@@ -128,6 +131,18 @@ export interface OrderHistoryApiResponse {
   resultMsg: string;
   divisionCode: string | null;
   data: OrderHistoryResponse;
+  errorId?: string;
+}
+
+/**
+ * Single order item response (GET /orders/items/{orderItemId})
+ */
+export interface SingleOrderItemApiResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string | null;
+  data: OrderItemResponse;
   errorId?: string;
 }
 

@@ -91,7 +91,7 @@
 .name {
   font-size: 12px;
   font-weight: 600;
-  color: #111827;
+  color: #000;
   max-width: 70%;
   margin: 0;
 }
@@ -145,6 +145,12 @@
   color: #ef4444;
   font-weight: 600;
   font-size: 14px;
+}
+
+.expiration {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
 }
 
 .info {

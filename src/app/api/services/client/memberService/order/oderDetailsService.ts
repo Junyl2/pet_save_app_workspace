@@ -4,6 +4,7 @@ import {
   OrderHistoryApiResponse,
   OrderItemResponse,
   DeleteOrderHistoryResponse,
+  SingleOrderItemApiResponse,
 } from '../../../../types/member/order/orderDetails';
 
 export const orderDetailsService = {
@@ -125,12 +126,12 @@ export const orderDetailsService = {
     }
   },
 
-  /** NEW: Get order details by orderItemId */
+  /** Get order details by orderItemId (single item response) */
   async getOrderDetailsByItemId(
     orderItemId: string
-  ): Promise<{ data: OrderHistoryApiResponse | null; error?: string }> {
+  ): Promise<{ data: SingleOrderItemApiResponse | null; error?: string }> {
     try {
-      const response = await apiClient.get<OrderHistoryApiResponse>(
+      const response = await apiClient.get<SingleOrderItemApiResponse>(
         `/orders/items/${orderItemId}`
       );
       return { data: response.data };
@@ -145,15 +146,33 @@ export const orderDetailsService = {
     }
   },
 
-  /** Delete order history (OWNER/ADMIN) */
+  /**
+   * Delete order history (OWNER/ADMIN)
+   * DELETE /api/pet-save/order-histories/orders/{orderId}
+   */
   async deleteOrderHistory(
     orderId: string
   ): Promise<{ data: DeleteOrderHistoryResponse | null; error?: string }> {
     try {
       const url = `/order-histories/orders/${orderId}`;
+      console.log('Delete order history URL:', url);
       const response = await apiClient.delete<DeleteOrderHistoryResponse>(url);
+
+      // If there's an error, return it
+      if (response.error) {
+        return { data: null, error: response.error };
+      }
+
+      // If response.data exists but success is false, extract the error message
+      if (response.data && !response.data.success) {
+        const errorMsg =
+          response.data.resultMsg || 'Failed to delete order history';
+        return { data: null, error: errorMsg };
+      }
+
       return { data: response.data };
     } catch (error) {
+      console.error('Delete order history error:', error);
       return {
         data: null,
         error:

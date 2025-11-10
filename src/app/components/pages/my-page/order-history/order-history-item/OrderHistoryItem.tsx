@@ -6,8 +6,6 @@ import styles from './OrderHistoryItem.module.css';
 import { FiChevronRight } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { PAGE_URLS } from '@/app/utils/page_url';
-import { useAppDispatch } from '@/app/redux/hooks';
-import { fetchOrderDetails } from '@/app/redux/slices/cache/orderSlice';
 
 interface OrderHistoryItemProps {
   orderItemId: string;
@@ -24,20 +22,13 @@ export default function OrderHistoryItem({
   date,
   item,
 }: OrderHistoryItemProps) {
-  const { product, quantity, orderId } = item;
+  const { product, quantity } = item;
   const router = useRouter();
-  const dispatch = useAppDispatch();
 
-  const handleDetailClick = async (): Promise<void> => {
-    try {
-      if (orderId) {
-        await dispatch(fetchOrderDetails(orderId)).unwrap();
-      }
-    } catch (error) {
-      console.warn('[OrderHistoryItem] preload failed:', error);
-    } finally {
-      router.push(PAGE_URLS.ORDER_DETAILS(orderItemId));
-    }
+  const handleDetailClick = (): void => {
+    // Navigate to order detail - when user goes back, router.back() will return to this page
+    // with the same URL params since they're already in the URL
+    router.push(PAGE_URLS.ORDER_DETAILS(orderItemId));
   };
 
   return (
