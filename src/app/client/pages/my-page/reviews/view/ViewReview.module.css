@@ -55,10 +55,11 @@
 
 /* Review Container */
 .reviewContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
   background-color: #ffffff;
-  /*  padding: 20px; */
-  /*  margin-bottom: 20px; */
-  padding: 1rem 1rem;
+  padding: 14px 1rem;
 }
 
 /* Review Header */
@@ -118,7 +119,7 @@
 
 .userIdAndDate {
   font-size: 12px;
-  color: #666;
+  color: rgba(0, 0, 0, 0.4);
 }
 
 .headerActions {
@@ -175,7 +176,7 @@
 
 /* Rating */
 .star {
-  font-size: 14px;
+  font-size: 20px;
 }
 
 .starFilled {
@@ -188,18 +189,21 @@
 
 /* Product Name */
 .productName {
-  font-size: 18px;
+  font-size: 12px;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 20px;
-  line-height: 1.4;
+  color: #000;
+}
+
+.imagesAndContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Review Images */
 .imagesContainer {
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
   overflow-x: auto;
   padding-bottom: 4px;
 }
@@ -220,8 +224,8 @@
 
 /* Review Text */
 .reviewText {
-  font-size: 16px;
-  color: #333;
+  font-size: 14px;
+  color: #000;
   line-height: 1.6;
   white-space: pre-wrap;
 }
@@ -248,7 +252,7 @@
   }
 
   .reviewContainer {
-    padding: 16px;
+    padding: 14px 1rem;
   }
 
   .tab {
@@ -283,6 +287,6 @@
   }
 
   .reviewText {
-    font-size: 15px;
+    font-size: 12px;
   }
 }

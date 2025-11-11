@@ -93,7 +93,11 @@ export default function ProductDetailPage() {
         averageRating={product.averageRating}
         totalReviews={product.totalReviews}
       />
-      <UsageInstructions />
+      <UsageInstructions
+        pickupLocation={product.store.address}
+        openingHourStart={product.store.openingHourStart}
+        openingHourEnd={product.store.openingHourEnd}
+      />
       <PreviewReview productId={product.productId} />
       <ProductActions
         productId={product.productId}

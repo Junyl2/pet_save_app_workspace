@@ -9,7 +9,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
+  gap: 20px;
   width: 100%;
   padding: 1rem 0rem;
 }
@@ -83,8 +83,10 @@
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-/* 카드 */
 .card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   background-color: rgba(255, 255, 255, 0.8);
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -98,6 +100,7 @@
   justify-content: center;
   align-items: center;
   height: 147px;
+  width: 100%;
   padding: 0rem;
   overflow: hidden;
   border-radius: 6px;
@@ -106,6 +109,7 @@
 .image {
   border-radius: 6px;
   object-fit: contain;
+  width: 100%;
 }
 
 .icons {
@@ -131,9 +135,6 @@
 }
 
 /* 컨텐츠 */
-.content {
-  padding-top: 0.5rem;
-}
 
 .header {
   display: flex;
@@ -150,22 +151,22 @@
 
 /* 상품 상세 */
 .detail {
-  font-size: 0.9rem;
-  color: #666;
-  margin: 0.5rem 0;
+  font-size: 12px;
+  color: #000;
+  margin: 0;
 }
 
 /* 가격 */
 .price {
-  margin: 0.5rem 0;
-  font-size: 1rem;
+  margin: 0;
+  font-size: 12px;
   font-weight: 500;
-  color: #333;
+  color: #000;
 }
 
 .original {
   text-decoration: line-through;
-  color: #999;
+  color: rgba(0, 0, 0, 0.5);
   margin-right: 0.5rem;
 }
 
@@ -174,15 +175,30 @@
   font-weight: 600;
 }
 
-/* 기타 정보 */
-.info {
-  font-size: 0.85rem;
-  color: #777;
-  line-height: 1.4;
-  margin-top: 0.5rem;
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-/* 검색 결과 없을 때 */
+.expiryDate {
+  font-size: 12px;
+  color: #000;
+  margin: 0;
+}
+
+.storeName {
+  font-size: 10px;
+  color: #000;
+  margin: 0;
+}
+
+.distance {
+  font-size: 10px;
+  color: #000;
+  margin: 0;
+}
+
 .emptyContainer {
   height: 600px;
   display: flex;

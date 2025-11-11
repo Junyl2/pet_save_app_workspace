@@ -335,8 +335,7 @@ export default function SearchProductGrid({
                     <h3 className={styles.name}>{product.name}</h3>
                   </div>
                   <p className={styles.detail}>
-                    {product.weight || product.productWeight || 'N/A'},{' '}
-                    {product.quantity || product.productQuantity || 'N/A'}
+                    {product.name || product.productName || 'N/A'}
                   </p>
                   <p className={styles.price}>
                     {(() => {
@@ -373,14 +372,17 @@ export default function SearchProductGrid({
                     })()}
                   </p>
 
-                  <p className={styles.info}>
+                  <p className={styles.expiryDate}>
                     {product.expiryDate
                       ? new Date(product.expiryDate).toLocaleDateString(
                           'ko-KR'
                         ) + '까지'
-                      : product.expiration || 'N/A'}{' '}
-                    <br />
-                    {product.store?.name || product.location || 'N/A'} <br />
+                      : product.expiration || 'N/A'}
+                  </p>
+                  <p className={styles.storeName}>
+                    {product.store?.name || product.location || 'N/A'}
+                  </p>
+                  <p className={styles.distance}>
                     {product.distance || product.storeDistance || 'N/A'}
                   </p>
                 </div>

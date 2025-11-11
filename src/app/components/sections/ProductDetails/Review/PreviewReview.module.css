@@ -1,18 +1,22 @@
 .container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 15px;
+  height: 112px;
   background-color: #ffffff;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 1rem;
+  padding: 0rem 1rem;
+  margin: 10px 0px;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  height: 14px;
 }
 .reviewTitle {
-  font-size: 0.8rem;
+  font-size: 12px;
   color: #000000;
   font-weight: 600;
 }
@@ -27,6 +31,8 @@
   font-weight: 500;
   font-size: 0.8rem;
   transition: color 0.2s ease;
+  font-size: 12px !important;
+  font-family: inherit !important;
 }
 
 .viewIcon {
@@ -37,9 +43,9 @@
   display: flex;
   gap: 1rem;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
   padding-left: 0;
   scrollbar-width: none;
+  margin: 0;
 }
 .reviewList::-webkit-scrollbar {
   display: none;
@@ -47,16 +53,16 @@
 
 .reviewItem {
   display: flex;
-  gap: 0.5rem;
-  width: 140px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 138px;
+  height: 48px;
   background-color: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
-  padding: 0.75rem;
   flex-shrink: 0;
   overflow: hidden;
-  align-items: flex-start;
-  gap: 0.8rem;
   /*   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); */
 }
 
@@ -71,8 +77,7 @@
 .reviewContent {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-width: 0;
+  width: fit-content;
 }
 
 .reviewContent strong {
@@ -84,12 +89,14 @@
 }
 
 .rating {
+  width: fit-content;
   font-size: 0.9rem;
   color: #ffb400;
   margin-bottom: 0.25rem;
 }
 
 .content {
+  width: fit-content;
   margin: 0;
   font-size: 0.8rem;
   color: #333;

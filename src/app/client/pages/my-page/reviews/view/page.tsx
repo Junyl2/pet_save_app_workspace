@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
-import { FaStar } from 'react-icons/fa';
+import Image from 'next/image';
 import styles from './ViewReview.module.css';
 import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
 import { Review } from '@/app/api/types/member/review/review';
@@ -70,16 +70,6 @@ export default function ViewReviewPage() {
   const handleEditReview = () => {
     router.push(`/client/pages/my-page/reviews/edit?reviewId=${reviewId}`);
   };
-
-  const renderStars = (rating: number) =>
-    Array.from({ length: 5 }, (_, i) => (
-      <FaStar
-        key={i}
-        className={`${styles.star} ${
-          i < rating ? styles.starFilled : styles.starEmpty
-        }`}
-      />
-    ));
 
   const getRatingComment = (rating: number): string => {
     switch (rating) {
@@ -150,7 +140,19 @@ export default function ViewReviewPage() {
                     {getRatingComment(review.rating)}
                   </span>
                   <div className={styles.starsContainer}>
-                    {renderStars(review.rating)}
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Image
+                        key={i}
+                        src={
+                          i < review.rating
+                            ? '/images/icons/filledStar.svg'
+                            : '/images/icons/blankStar.svg'
+                        }
+                        alt={i < review.rating ? 'Filled star' : 'Blank star'}
+                        width={20}
+                        height={20}
+                      />
+                    ))}
                   </div>
                 </div>
                 <div className={styles.userIdAndDate}>
@@ -170,13 +172,14 @@ export default function ViewReviewPage() {
 
           {/* Review Images with zoom modal */}
           {review.imageUrls?.length ? (
-            <div className={styles.imagesContainer}>
-              <ReviewImageGallery images={review.imageUrls} />
+            <div className={styles.imagesAndContent}>
+              <div className={styles.imagesContainer}>
+                <ReviewImageGallery images={review.imageUrls} />
+              </div>
+              {/* Review Text */}
+              <div className={styles.reviewText}>{review.content}</div>
             </div>
           ) : null}
-
-          {/* Review Text */}
-          <div className={styles.reviewText}>{review.content}</div>
         </div>
       </div>
     </div>

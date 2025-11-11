@@ -515,8 +515,8 @@ export const ProductGrid = ({
                           '/images/products/product-fallback.svg'
                     }
                     alt={product.name || product.productName || 'Product'}
-                    width={120}
-                    height={120}
+                    width={110}
+                    height={110}
                     className={styles.image}
                     unoptimized
                     onError={() => handleImageError(productIdStr)}
@@ -603,7 +603,8 @@ export const ProductGrid = ({
                   })()}
                   <p className={styles.info}>
                     {formatAddressForDisplay(product.store?.address || '')}
-                    <br />
+                  </p>
+                  <p className={styles.info}>
                     {details?.distanceKm
                       ? `${details.distanceKm.toFixed(1)}km`
                       : product.distance || '∞km'}

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
-import { FaStar, FaCamera } from 'react-icons/fa';
+import { FaImage } from 'react-icons/fa';
+import Image from 'next/image';
 import styles from './EditReview.module.css';
 import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
 import { ReviewFileService } from '@/app/api/services/client/fileService/reviewFileService';
@@ -434,23 +435,30 @@ export default function EditReviewPage() {
             구매하신 상품은 만족하시나요?
           </div>
           <div className={styles.starsContainer}>
-            {[1, 2, 3, 4, 5].map((starIndex) => (
-              <button
-                key={starIndex}
-                className={styles.starButton}
-                onClick={() => handleStarClick(starIndex)}
-                onMouseEnter={() => handleStarHover(starIndex)}
-                onMouseLeave={handleStarLeave}
-              >
-                <FaStar
-                  className={`${styles.star} ${
-                    starIndex <= (hoveredStar || rating)
-                      ? styles.starFilled
-                      : styles.starEmpty
-                  }`}
-                />
-              </button>
-            ))}
+            {[1, 2, 3, 4, 5].map((starIndex) => {
+              const isFilled = starIndex <= (hoveredStar || rating);
+              return (
+                <button
+                  key={starIndex}
+                  className={styles.starButton}
+                  onClick={() => handleStarClick(starIndex)}
+                  onMouseEnter={() => handleStarHover(starIndex)}
+                  onMouseLeave={handleStarLeave}
+                >
+                  <Image
+                    src={
+                      isFilled
+                        ? '/images/icons/filledStar.svg'
+                        : '/images/icons/blankStar.svg'
+                    }
+                    alt={isFilled ? 'Filled star' : 'Blank star'}
+                    width={43}
+                    height={43}
+                    className={styles.star}
+                  />
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className={styles.divider}></div>
@@ -530,8 +538,12 @@ export default function EditReviewPage() {
             onClick={handlePhotoUpload}
             disabled={uploading}
           >
-            <FaCamera className={styles.cameraIcon} />
-            {uploading ? '업로드 중...' : '사진 첨부하기'}
+            <div className={styles.photoButtonContent}>
+              <FaImage className={styles.imageIcon} />
+              <span className={styles.photoButtonText}>
+                {uploading ? '업로드 중...' : '사진 첨부하기'}
+              </span>
+            </div>
           </button>
           <input
             ref={fileInputRef}

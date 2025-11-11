@@ -56,6 +56,9 @@
   background-color: #fff;
   color: #333;
   font-size: 12px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -70,6 +73,9 @@
   background-color: #fff;
   color: #333;
   font-size: 0.95rem;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
   width: 28px;
@@ -98,6 +104,9 @@
   padding: 0.4rem 1rem;
   color: #666;
   font-size: 12px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', sans-serif;
 }
 
 .error {
@@ -106,6 +115,9 @@
   padding: 0.4rem 1rem;
   color: #e74c3c;
   font-size: 12px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', sans-serif;
 }
 
 @media (min-width: 1024px) {

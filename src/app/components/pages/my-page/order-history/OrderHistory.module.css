@@ -2,10 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding-top: 80px;
-  max-width: 1200px;
+  padding-top: 64px;
   margin: 0 -1rem;
-  min-height: 100vh;
+  min-height: calc(100vh - 64px);
 }
 
 .inner {

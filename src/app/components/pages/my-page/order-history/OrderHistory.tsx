@@ -1,13 +1,11 @@
 'use client';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import styles from './OrderHistory.module.css';
 import FilterBar from '../../../sections/FilterBar/FilterBar';
 import OrderHistoryItem from './order-history-item/OrderHistoryItem';
 import OrderHistorySkeleton from '../../../ui/SkeletonLoading/OrderHistorySkeleton';
-import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
-import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
 import {
   fetchOrderHistory,
@@ -66,7 +64,15 @@ export default function OrderHistory() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const { page, setPage } = usePageParam(1);
+  const [accumulatedOrders, setAccumulatedOrders] = useState<
+    OrderItemResponse[]
+  >([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observerTarget = useRef<HTMLDivElement | null>(null);
+  const cacheRef = useRef(orderHistoryCache);
+  const lastLoadParamsRef = useRef<string>('');
 
   // Initialize filters from URL params or use defaults
   const [selectedPeriod, setSelectedPeriod] = useState(() => {
@@ -77,33 +83,30 @@ export default function OrderHistory() {
   });
 
   /** Update URL params when filters change */
-  const updateUrlParams = (period: string, status: string, pageNum: number) => {
+  const updateUrlParams = (period: string, status: string) => {
     const params = new URLSearchParams(searchParams?.toString());
     params.set('period', period);
     params.set('status', status);
-    params.set('page', pageNum.toString());
     router.replace(`${pathname}?${params.toString()}`);
   };
 
   /** Handle period change */
   const handlePeriodChange = (period: string) => {
     setSelectedPeriod(period);
-    setPage(1);
-    updateUrlParams(period, selectedStatus, 1);
+    setCurrentPage(0);
+    setAccumulatedOrders([]);
+    setHasMore(true);
+    updateUrlParams(period, selectedStatus);
   };
 
   /** Handle status change */
   const handleStatusChange = (status: string) => {
     setSelectedStatus(status);
-    setPage(1);
-    updateUrlParams(selectedPeriod, status, 1);
+    setCurrentPage(0);
+    setAccumulatedOrders([]);
+    setHasMore(true);
+    updateUrlParams(selectedPeriod, status);
   };
-
-  /** Update URL when page changes */
-  useEffect(() => {
-    updateUrlParams(selectedPeriod, selectedStatus, page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
 
   /** Sync state with URL params when URL changes (e.g., when coming back from order detail) */
   useEffect(() => {
@@ -118,46 +121,148 @@ export default function OrderHistory() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  useEffect(() => {
+    cacheRef.current = orderHistoryCache;
+  }, [orderHistoryCache]);
+
   const { dateStart, dateEnd } = getDateRange(selectedPeriod);
   const statusParam: OrderStatus | undefined =
     selectedStatus !== '전체보기'
       ? (backendStatusMap[selectedStatus] as OrderStatus | undefined)
       : undefined;
 
-  const queryParams = useMemo(
-    () => ({
+  /** Load products for a specific page */
+  const loadPage = useCallback(
+    async (page: number) => {
+      if (isLoadingMore) return;
+
+      const queryParams = {
+        status: statusParam,
+        dateStart,
+        dateEnd,
+        onlyReviewable: false,
+        page,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt' as const,
+        direction: 'desc' as const,
+      };
+
+      const cacheKey = createOrderHistoryCacheKey(queryParams);
+      const cached = cacheRef.current[cacheKey];
+
+      if (cached && cached.data?.data?.content) {
+        const pageOrders = cached.data.data.content;
+        if (page === 0) {
+          setAccumulatedOrders(pageOrders);
+        } else {
+          setAccumulatedOrders((prev) => [...prev, ...pageOrders]);
+        }
+        const pageInfo = cached.data.data.pageInfo;
+        setHasMore(pageInfo?.hasNext || false);
+        return;
+      }
+
+      setIsLoadingMore(true);
+      try {
+        const result = await dispatch(fetchOrderHistory(queryParams)).unwrap();
+
+        if (result && result.data) {
+          const cachedData = result.data;
+          const orderHistoryData = cachedData.data?.data;
+          const pageOrders = orderHistoryData?.content || [];
+          const pageInfo = orderHistoryData?.pageInfo;
+
+          if (page === 0) {
+            setAccumulatedOrders(pageOrders);
+          } else {
+            setAccumulatedOrders((prev) => [...prev, ...pageOrders]);
+          }
+          setHasMore(pageInfo?.hasNext || false);
+        } else {
+          const updatedCache = cacheRef.current[cacheKey];
+          if (updatedCache && updatedCache.data?.data?.content) {
+            const orderHistoryData = updatedCache.data.data;
+            const pageOrders = orderHistoryData.content;
+            if (page === 0) {
+              setAccumulatedOrders(pageOrders);
+            } else {
+              setAccumulatedOrders((prev) => [...prev, ...pageOrders]);
+            }
+            const pageInfo = orderHistoryData.pageInfo;
+            setHasMore(pageInfo?.hasNext || false);
+          }
+        }
+      } catch (error) {
+        console.error('[OrderHistory] Failed to load page:', error);
+      } finally {
+        setIsLoadingMore(false);
+      }
+    },
+    [statusParam, dateStart, dateEnd, dispatch, isLoadingMore]
+  );
+
+  /** Load initial page when filters change */
+  useEffect(() => {
+    const paramsKey = `${statusParam || ''}_${dateStart || ''}_${
+      dateEnd || ''
+    }`;
+
+    if (lastLoadParamsRef.current === paramsKey) {
+      return;
+    }
+
+    lastLoadParamsRef.current = paramsKey;
+    setCurrentPage(0);
+    setAccumulatedOrders([]);
+    setHasMore(true);
+    loadPage(0);
+  }, [statusParam, dateStart, dateEnd, loadPage]);
+
+  /** Load more when scrolling to bottom */
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !isLoadingMore &&
+          !loading
+        ) {
+          const nextPage = currentPage + 1;
+          setCurrentPage(nextPage);
+          loadPage(nextPage);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasMore, isLoadingMore, loading, currentPage, loadPage]);
+
+  /** Background revalidation */
+  useEffect(() => {
+    const queryParams = {
       status: statusParam,
       dateStart,
       dateEnd,
       onlyReviewable: false,
-      page: Math.max(0, page - 1), // Ensure page is never negative
+      page: 0,
       size: PAGE_SIZE,
       sortBy: 'createdAt' as const,
       direction: 'desc' as const,
-    }),
-    [statusParam, dateStart, dateEnd, page]
-  );
+    };
+    const cacheKey = createOrderHistoryCacheKey(queryParams);
+    const cachedData = orderHistoryCache[cacheKey];
 
-  /** Create cache key based on current filters and page */
-  const cacheKey = useMemo(
-    () => createOrderHistoryCacheKey(queryParams),
-    [queryParams]
-  );
-
-  /** Current cached data for this page */
-  const cachedData = orderHistoryCache[cacheKey];
-  const orders = useMemo<OrderItemResponse[]>(
-    () => cachedData?.data?.data?.content || [],
-    [cachedData]
-  );
-
-  /** Fetch on mount + when filters or page changes */
-  useEffect(() => {
-    dispatch(fetchOrderHistory(queryParams));
-  }, [dispatch, queryParams, page]);
-
-  /** Background revalidation */
-  useEffect(() => {
     if (cachedData) {
       const now = Date.now();
       const cacheAge = now - cachedData.timestamp;
@@ -165,12 +270,12 @@ export default function OrderHistory() {
         dispatch(revalidateOrderHistoryInBackground(queryParams));
       }
     }
-  }, [cachedData, dispatch, queryParams]);
+  }, [orderHistoryCache, statusParam, dateStart, dateEnd, dispatch]);
 
   /** Check stale status on cache change */
   useEffect(() => {
     dispatch(checkStaleStatus());
-  }, [dispatch, cachedData]);
+  }, [dispatch, orderHistoryCache]);
 
   /** Map to UI type */
   const convertToOrderItem = (
@@ -219,11 +324,8 @@ export default function OrderHistory() {
     return new Date().toLocaleDateString('ko-KR').replace(/\s/g, '');
   };
 
-  /** Pagination info */
-  const totalPages = cachedData?.data?.data?.pageInfo?.totalPages ?? 0;
-
   /** Loading state */
-  if (loading && !cachedData) {
+  if (loading && accumulatedOrders.length === 0) {
     return (
       <div className={styles.container}>
         <div className={styles.inner}>
@@ -270,7 +372,7 @@ export default function OrderHistory() {
         />
 
         <div className={styles.list}>
-          {orders.length === 0 ? (
+          {accumulatedOrders.length === 0 && !loading && !isLoadingMore ? (
             <div className={styles.emptyContainer}>
               <Image
                 src="/images/products/noresult.png"
@@ -282,31 +384,27 @@ export default function OrderHistory() {
               <p className={styles.emptyText}>주문 내역이 없습니다.</p>
             </div>
           ) : (
-            orders.map((orderItem) => (
-              <OrderHistoryItem
-                key={orderItem.orderItemId}
-                orderItemId={orderItem.orderItemId}
-                orderNumber={orderItem.orderNumber}
-                status={getStatusDisplayText(orderItem.status)}
-                date={formatDate(orderItem.orderNumber)}
-                item={convertToOrderItem(orderItem)}
-              />
-            ))
+            <>
+              {accumulatedOrders.map((orderItem) => (
+                <OrderHistoryItem
+                  key={orderItem.orderItemId}
+                  orderItemId={orderItem.orderItemId}
+                  orderNumber={orderItem.orderNumber}
+                  status={getStatusDisplayText(orderItem.status)}
+                  date={formatDate(orderItem.orderNumber)}
+                  item={convertToOrderItem(orderItem)}
+                />
+              ))}
+              {hasMore && (
+                <div
+                  ref={observerTarget}
+                  style={{ height: '20px', width: '100%' }}
+                />
+              )}
+              {isLoadingMore && <OrderHistorySkeleton count={3} />}
+            </>
           )}
         </div>
-
-        {/* Pagination Section */}
-        {totalPages > 1 && (
-          <div className={styles.pagination}>
-            <div style={{ width: 320 }}>
-              <ClientPagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

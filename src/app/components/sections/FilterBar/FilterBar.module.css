@@ -1,16 +1,20 @@
 .container {
+  position: sticky;
+  top: 64px;
+  background-color: #fff;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: 100%; /* full width of its parent */
+  gap: 15px;
+  width: 100%;
+  padding: 20px 0px;
 }
 
 .row {
   display: flex;
-  gap: 12px;
-  width: 100%; /* stretch row */
+  gap: 8px;
+  width: 100%;
 }
 
 .row > * {
-  flex: 1; /* optional: make dropdowns expand equally */
+  flex: 1;
 }
