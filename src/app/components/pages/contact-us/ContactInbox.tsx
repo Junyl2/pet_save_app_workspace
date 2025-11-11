@@ -9,6 +9,7 @@ import { MemberInquiryService } from '@/app/api/services/client/memberService/in
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import ContactInboxSkeleton from '../../ui/SkeletonLoading/ContactInboxSkeleton/ContactInboxSkeleton';
 import { DotMenu } from '../../ui/DotMenu/DotMenu';
+import Image from 'next/image';
 import styles from './ContactInbox.module.css';
 
 type RangeLabel = '1개월' | '6개월' | '1년' | '전체보기';
@@ -28,14 +29,14 @@ const transformMyInquiryToContactInquiry = (
   id: myInquiry.inquiryId,
   inquiryId: myInquiry.inquiryId,
   date: myInquiry.createdAt,
-  shopName: myInquiry.store.name,
-  shopLocation: myInquiry.store.address,
-  shopImage: myInquiry.store.profileUrl || '/images/shops/shop1.png',
+  shopName: myInquiry.store?.name || '상점 정보 없음',
+  shopLocation: myInquiry.store?.address || '주소 정보 없음',
+  shopImage: myInquiry.store?.profileUrl || '/images/shops/shop1.png',
   category: myInquiry.category,
   message: myInquiry.content,
   responseMessage: myInquiry.answer || '',
   status: myInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
-  productId: myInquiry.product.productId,
+  productId: myInquiry.product?.productId,
 });
 
 export default function ContactInbox({
@@ -253,11 +254,16 @@ export default function ContactInbox({
       <div className={styles.container}>
         {inquiries.length === 0 && !loading && !isLoadingMore ? (
           <div className={styles.emptyInbox}>
-            {selectedRange === '전체보기' ? (
-              <p>문의 내역이 없습니다. 새로운 문의를 남겨보세요.</p>
-            ) : (
-              <p>{selectedRange} 동안 문의 내역이 없습니다.</p>
-            )}
+            <Image
+              src="/images/icons/Info circle.svg"
+              alt="Info"
+              width={80}
+              height={76}
+              className={styles.emptyIcon}
+            />
+            <p className={styles.emptyText}>
+              조회하신 기간 내 작성하신 Q&A가 없습니다.
+            </p>
           </div>
         ) : inquiries.length > 0 ? (
           inquiries.map((inq) => {

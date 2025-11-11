@@ -525,7 +525,14 @@ export default function OrderDetail() {
           >
             {hasReviewed ? '리뷰 작성 완료' : '리뷰 쓰기'}
           </button>
-          <button className={styles.actionButton}>문의하기</button>
+          <button
+            className={styles.actionButton}
+            onClick={() =>
+              router.push(`/contact-product?productId=${orderItem.productId}`)
+            }
+          >
+            문의하기
+          </button>
           <button
             className={styles.actionButton}
             onClick={() => setIsDeleteModalOpen(true)}

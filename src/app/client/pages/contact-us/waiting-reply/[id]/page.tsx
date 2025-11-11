@@ -22,14 +22,14 @@ const transformMyInquiryToContactInquiry = (
     id: myInquiry.inquiryId, // Use inquiryId as id (string)
     inquiryId: myInquiry.inquiryId,
     date: myInquiry.createdAt,
-    shopName: myInquiry.store.name,
-    shopLocation: myInquiry.store.address,
-    shopImage: myInquiry.store.profileUrl || '/images/shops/shop1.png', // fallback image
+    shopName: myInquiry.store?.name || '상점 정보 없음',
+    shopLocation: myInquiry.store?.address || '주소 정보 없음',
+    shopImage: myInquiry.store?.profileUrl || '/images/shops/shop1.png', // fallback image
     category: myInquiry.category,
     message: myInquiry.content,
     responseMessage: myInquiry.answer || '',
     status: myInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
-    productId: myInquiry.product.productId, // Store productId for routing
+    productId: myInquiry.product?.productId, // Store productId for routing
   };
 };
 
@@ -60,7 +60,7 @@ export default function DeleteInquiryPage() {
         } else {
           // Find inquiry with matching productId
           const matchingInquiry = response.data.data.content.find(
-            (inq) => inq.product.productId === productId
+            (inq) => inq.product?.productId === productId
           );
 
           if (matchingInquiry) {

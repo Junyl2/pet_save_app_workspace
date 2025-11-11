@@ -960,23 +960,23 @@ export default function MembershipInformation() {
           )}
 
           {errors.email && <p className={styles.error}>{errors.email}</p>}
-        </div>
 
-        {/* Send Verification Code */}
-        <div className={styles.authButton}>
-          <button
-            type="button"
-            onClick={handleSendCode}
-            disabled={!canSendCode || isSendingCode}
-            style={{
-              backgroundColor:
-                canSendCode && !isSendingCode ? '#66bfa7' : undefined,
-              color: canSendCode && !isSendingCode ? '#fff' : undefined,
-            }}
-            className={styles.outlineButton}
-          >
-            {isSendingCode ? '전송 중...' : '인증번호 전송'}
-          </button>
+          {/* Send Verification Code */}
+          <div className={styles.authButton}>
+            <button
+              type="button"
+              onClick={handleSendCode}
+              disabled={!canSendCode || isSendingCode}
+              style={{
+                backgroundColor:
+                  canSendCode && !isSendingCode ? '#66bfa7' : undefined,
+                color: canSendCode && !isSendingCode ? '#fff' : undefined,
+              }}
+              className={styles.outlineButton}
+            >
+              {isSendingCode ? '전송 중...' : '인증번호 전송'}
+            </button>
+          </div>
         </div>
 
         {/* Authentication Code Section */}

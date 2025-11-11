@@ -191,14 +191,24 @@
 }
 
 .emptyInbox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  color: #555;
-  font-size: 1rem;
   padding: 2rem 1rem;
-  border: 1px dashed #ccc;
-  border-radius: 8px;
-  margin-top: 1rem;
-  background-color: #f9f9f9;
+  min-height: 60vh;
+}
+
+.emptyIcon {
+  margin-bottom: 1rem;
+}
+
+.emptyText {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+  font-weight: 400;
+  margin: 0;
 }
 
 /* history inquiry */

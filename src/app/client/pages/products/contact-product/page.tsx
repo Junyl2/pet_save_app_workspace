@@ -6,13 +6,14 @@ import { useSearchParams } from 'next/navigation';
 export default function ContactProductPage() {
   const searchParams = useSearchParams();
   const productId = searchParams.get('productId');
+  const storeId = searchParams.get('storeId');
 
-  if (!productId) {
+  if (!productId && !storeId) {
     return (
       <>
         <ProductHeader />
         <div style={{ padding: '20px', textAlign: 'center' }}>
-          <p>상품 정보를 찾을 수 없습니다.</p>
+          <p>상품 또는 매장 정보를 찾을 수 없습니다.</p>
         </div>
       </>
     );
@@ -21,7 +22,7 @@ export default function ContactProductPage() {
   return (
     <>
       <ProductHeader />
-      <ContactProduct productId={productId} />
+      <ContactProduct productId={productId || undefined} storeId={storeId || undefined} />
     </>
   );
 }

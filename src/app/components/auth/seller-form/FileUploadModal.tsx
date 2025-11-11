@@ -123,7 +123,7 @@ export default function FileUploadModal({
           className={styles.chooseButton}
           onClick={() => setIsModalOpen(true)}
         >
-          Choose File
+          파일선택
         </button>
       </div>
 

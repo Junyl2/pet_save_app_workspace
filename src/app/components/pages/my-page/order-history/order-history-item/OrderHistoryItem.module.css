@@ -1,8 +1,8 @@
 .card {
   display: flex;
   flex-direction: column;
-  margin: 0 -16px; /* cancel out .app-content padding */
-  padding: 12px 16px; /* consistent inner spacing */
+  margin: 0 -16px;
+  padding: 8px 16px;
   border-bottom: 1px solid #eee;
 }
 

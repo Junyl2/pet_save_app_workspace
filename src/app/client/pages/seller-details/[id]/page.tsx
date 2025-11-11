@@ -245,7 +245,7 @@ export default function SellerDetailsPage() {
                   }
                 }}
               >
-                연락하기
+                전화 연결
               </button>
             </div>
             <div className={styles.details}>
