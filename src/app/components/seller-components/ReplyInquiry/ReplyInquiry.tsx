@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import styles from './ReplyInquiry.module.css';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import { useUser } from '@/app/context/userContext';
@@ -202,11 +201,9 @@ export default function ReplyInquiry() {
           <div className={styles.inquiryHeader}>
             <div className={styles.userInfo}>
               <div className={styles.userProfile}>
-                <Image
+                <img
                   src={inquiry.profileImageUrl || defaultProfile.image}
                   alt={inquiry.name || '사용자'}
-                  width={30}
-                  height={30}
                   className={styles.profileImage}
                 />
                 <span className={styles.userName}>{inquiry.name}</span>

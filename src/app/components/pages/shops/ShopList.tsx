@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { StoreService } from '@/app/api/services/client/storeService/storeService';
 import { NearbyStoreInfo } from '@/app/api/types/stores/nearby';
@@ -265,11 +264,9 @@ export default function ShopList() {
                     <FaPhone size={22} className={styles.phone} />
                   </button>
 
-                  <Image
+                  <img
                     src={imgSrc}
                     alt={store.businessName || '상점 이미지'}
-                    width={95}
-                    height={95}
                     className={styles.shopImage}
                     onError={() => handleImageError(store.storeId)}
                   />

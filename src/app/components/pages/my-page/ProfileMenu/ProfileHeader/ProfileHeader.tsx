@@ -71,10 +71,9 @@ const ProfileHeader = () => {
       <div className={styles.profileHeader}>
         <div className={styles.topRow}>
           <div className={styles.profileImage}>
-            <Image
+            <img
               src="/images/icons/profile-default.png"
               alt="Profile"
-              fill
               className={styles.profile}
             />
           </div>
@@ -131,13 +130,7 @@ const ProfileHeader = () => {
       {/* Top row */}
       <div className={styles.topRow}>
         <div className={styles.profileImage}>
-          <Image
-            src={profileImageUrl}
-            alt="Profile"
-            width={55}
-            height={55}
-            className={styles.profileImage}
-          />
+          <img src={profileImageUrl} alt="Profile" className={styles.profile} />
         </div>
         <div className={styles.profileInfo}>
           <div>

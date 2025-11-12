@@ -254,7 +254,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
     }
 
     if (!term) {
-      toast.error('검색어를 입력해주세요.');
+      toast.error('검색어를 입력해주세요.', { id: 'empty-search-toast' });
       return;
     }
 

@@ -36,6 +36,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .profileEditBtn {
@@ -204,6 +205,13 @@
 .input:read-only {
   color: #000;
   background-color: #fff;
+}
+
+.input[type='password'] {
+  background-image: url('/images/icons/password-placeholder.svg');
+  background-repeat: no-repeat;
+  background-position: 16px center;
+  background-size: 86px 9px;
 }
 
 .inputWithIcon {

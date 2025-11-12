@@ -272,7 +272,7 @@ export default function SearchProductGrid({
                 onClick={() => handleProductClick(product)}
               >
                 <div className={styles.imageWrapper}>
-                  <Image
+                  <img
                     src={
                       imageErrors[String(productId)]
                         ? '/images/products/product-fallback.svg'
@@ -281,14 +281,7 @@ export default function SearchProductGrid({
                           '/images/products/product-fallback.svg'
                     }
                     alt={product.name || product.productName || 'Product'}
-                    width={162}
-                    height={147}
                     className={styles.image}
-                    unoptimized={(
-                      product.image ||
-                      product.thumbnail ||
-                      ''
-                    ).includes('211.107.13.167')}
                     onError={() => handleImageError(String(productId))}
                   />
                   <div className={styles.icons}>

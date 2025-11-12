@@ -10,7 +10,6 @@ import { MemberInfo } from '@/app/api/types/member/member';
 import styles from './DeleteInquiry.module.css';
 import { DotMenu } from '@/app/components/ui/DotMenu/DotMenu';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
-import Image from 'next/image';
 import toast from 'react-hot-toast';
 import Loading from '@/app/components/ui/Loading/Loading';
 
@@ -136,15 +135,13 @@ export default function DeleteInquiryPage() {
       <div className={styles.container}>
         {/* User profile */}
         <div className={styles.userProfile}>
-          <Image
+          <img
             src={
               userProfile?.profileImageUrl ||
               '/images/icons/profile-default.png'
             }
             alt="User Profile"
             className={styles.profileImage}
-            width={40}
-            height={40}
           />
           <span className={styles.userName}>
             {userProfile?.name || userProfile?.nickname || '펫세이브'}

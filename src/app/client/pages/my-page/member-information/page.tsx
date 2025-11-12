@@ -406,19 +406,15 @@ export default function MemberInformation() {
       <div className={styles.profileSection}>
         <div className={styles.profileImageContainer}>
           {profileImage ? (
-            <Image
+            <img
               src={profileImage}
               alt="Profile"
-              width={100}
-              height={100}
               className={styles.profileImage}
             />
           ) : (
-            <Image
+            <img
               src="/images/icons/profile-default.png"
               alt="Default Profile"
-              width={100}
-              height={100}
               className={styles.profileImage}
             />
           )}
@@ -548,13 +544,7 @@ export default function MemberInformation() {
               className={styles.chevronIcon}
             />
           </div>
-          <input
-            type="password"
-            className={styles.input}
-            value="●●●●●●●●"
-            readOnly
-            placeholder="●●●●●●●●"
-          />
+          <input type="password" className={styles.input} value="" readOnly />
         </div>
 
         <div className={styles.formGroup}>

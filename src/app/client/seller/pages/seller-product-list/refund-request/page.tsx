@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import TopBar from '@/app/components/sections/TopBar/TopBar';
@@ -46,7 +45,7 @@ function hasContentArray(data: unknown): data is PaginatedReturnExchange {
   );
 }
 
-// ✅ Status translation helper
+//  Status translation helper
 function getKoreanStatus(status: string): string {
   switch (status) {
     case 'REQUESTED':
@@ -236,11 +235,9 @@ export default function RefundRequestPage() {
                 return (
                   <div key={item.returnRequestId} className={styles.card}>
                     <div className={styles.cardImageContainer}>
-                      <Image
+                      <img
                         src={thumbnail}
                         alt={product?.productName || '상품 이미지'}
-                        width={90}
-                        height={90}
                         className={styles.cardImage}
                       />
                     </div>
