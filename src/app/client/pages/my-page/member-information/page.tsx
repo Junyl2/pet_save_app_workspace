@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaChevronRight } from 'react-icons/fa';
-import { IoCalendarOutline } from 'react-icons/io5';
 import Image from 'next/image';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
@@ -221,8 +220,10 @@ export default function MemberInformation() {
   };
 
   // Handle form submission (full object)
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
     if (isSaving || !memberInfo) return;
 
     try {
@@ -472,11 +473,18 @@ export default function MemberInformation() {
             onClick={handleProfileImageClick}
             disabled={isUploadingProfile}
           >
-            <span className={styles.cameraIcon}>📷</span>
+            <Image
+              src="/images/icons/camera.svg"
+              alt="Camera"
+              width={16}
+              height={14}
+            />
             프로필 사진 변경
           </button>
         )}
       </div>
+
+      <div className={styles.divider} />
 
       {/* Member Information Form */}
       <form className={styles.form} onSubmit={handleSubmit}>
@@ -522,7 +530,13 @@ export default function MemberInformation() {
               value={formData.birthdate}
               onChange={(e) => handleInputChange('birthdate', e.target.value)}
             />
-            <IoCalendarOutline className={styles.calendarIcon} />
+            <Image
+              src="/images/icons/Calendar.svg"
+              alt="Calendar"
+              width={15}
+              height={17}
+              className={styles.calendarIcon}
+            />
           </div>
         </div>
 
@@ -563,11 +577,19 @@ export default function MemberInformation() {
             }
           />
         </div>
+      </form>
 
-        <button type="submit" className={styles.submitBtn} disabled={isSaving}>
+      {/* Fixed Bottom Submit Button Container */}
+      <div className={styles.submitButtonContainer}>
+        <button
+          type="button"
+          className={styles.submitBtn}
+          onClick={() => handleSubmit()}
+          disabled={isSaving}
+        >
           {isSaving ? '수정 중...' : '수정 완료하기'}
         </button>
-      </form>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   revalidateUserInfoInBackground,
   checkStaleStatus,
 } from '@/app/redux/slices/cache/userSlice';
+import { DiVim } from 'react-icons/di';
 
 const ProfileHeader = () => {
   const router = useRouter();
@@ -92,16 +93,31 @@ const ProfileHeader = () => {
       label: '주문 내역',
       route: PAGE_URLS.ORDER_HISTORY,
       icon: '/images/icons/mypage-note.svg',
+      border: (
+        <>
+          <div className={styles.divider} />
+        </>
+      ),
     },
     {
       label: '리뷰',
       route: PAGE_URLS.REVIEWS,
       icon: '/images/icons/mypage-take-note.svg',
+      border: (
+        <>
+          <div className={styles.divider} />
+        </>
+      ),
     },
     {
       label: '찜한 상품',
       route: PAGE_URLS.STEAMED_PRODUCTS,
       icon: '/images/icons/mypage-heart.svg',
+      border: (
+        <>
+          <div className={styles.divider} />
+        </>
+      ),
     },
     {
       label: '포인트',
@@ -118,8 +134,8 @@ const ProfileHeader = () => {
           <Image
             src={profileImageUrl}
             alt="Profile"
-            width={100}
-            height={100}
+            width={55}
+            height={55}
             className={styles.profileImage}
           />
         </div>
@@ -148,20 +164,23 @@ const ProfileHeader = () => {
       {/* Quick Actions */}
       <div className={styles.quickActions}>
         {actions.map((action) => (
-          <div
-            key={action.label}
-            className={styles.quickActionItem}
-            onClick={() => router.push(action.route)}
-          >
-            <Image
-              src={action.icon}
-              alt={action.label}
-              className={styles.actionIcon}
-              height={28}
-              width={28}
-            />
-            <span>{action.label}</span>
-          </div>
+          <>
+            <div
+              key={action.label}
+              className={styles.quickActionItem}
+              onClick={() => router.push(action.route)}
+            >
+              <Image
+                src={action.icon}
+                alt={action.label}
+                className={styles.actionIcon}
+                height={25}
+                width={25}
+              />
+              <span className={styles.actionLabel}>{action.label}</span>
+            </div>
+            <div>{action.border}</div>
+          </>
         ))}
       </div>
     </div>

@@ -2,124 +2,109 @@
   min-height: 100vh;
   background-color: #ffffff;
   margin-top: 64px;
-  padding-bottom: 40px;
 }
 
 .content {
-  padding: 20px 16px;
   max-width: 100%;
   line-height: 1.6;
 }
 
 .title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #000;
+  margin: 1rem 0 8px 0;
   text-align: left;
 }
 
 .description {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 32px;
-  padding: 16px;
-  background-color: #f8f9fa;
+  font-size: 12px;
+  color: #000;
+  padding: 0px 16px 16px 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   line-height: 1.5;
+  margin-left: -1rem;
+  margin-right: -1rem;
 }
 
 .section {
-  margin-bottom: 32px;
+  margin-bottom: 22px;
+}
+
+.separator {
+  border: none;
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 0 -1rem;
 }
 
 .sectionTitle {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #000;
+  margin: 0 0 20px 0;
   line-height: 1.4;
 }
 
 .sectionContent {
-  font-size: 14px;
-  color: #555;
+  font-size: 12px;
+  color: #000;
   line-height: 1.6;
 }
 
-.sectionContent p {
-  margin-bottom: 16px;
-  line-height: 1.6;
-}
-
-.orderedList {
-  margin: 16px 0;
-  padding-left: 0;
-  counter-reset: item;
-}
-
-.orderedList > li {
-  display: block;
-  margin-bottom: 16px;
-  padding-left: 20px;
-  position: relative;
-  line-height: 1.6;
-}
-
-.orderedList > li:before {
-  content: counter(item) ".";
-  counter-increment: item;
-  position: absolute;
-  left: 0;
-  top: 0;
-  font-weight: 600;
-  color: #333;
-}
-
-.bulletList {
-  margin: 16px 0;
-  padding-left: 0;
-}
-
-.bulletList > li {
+.listItem {
   margin-bottom: 12px;
-  padding-left: 16px;
-  position: relative;
+  padding-left: 0;
   line-height: 1.6;
-}
-
-.bulletList > li:before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  top: 0;
-  color: #666;
 }
 
 .subList {
   margin: 8px 0;
   padding-left: 20px;
+  font-size: 12px !important;
 }
 
-.subList > li {
-  margin-bottom: 8px;
-  padding-left: 16px;
-  position: relative;
-  font-size: 14px;
-  color: #666;
+.subList li {
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #000;
   line-height: 1.5;
 }
 
-.subList > li:before {
-  content: "◦";
-  position: absolute;
-  left: 0;
-  top: 0;
-  color: #999;
+.orderedList {
+  margin: 16px 0;
+  padding-left: 20px;
+}
+.listDescription {
+  font-size: 12px;
+  color: #000;
+  margin-bottom: 8px;
+  list-style: none;
+  margin-left: -1rem;
+}
+.orderedList li {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #000;
+  line-height: 1.5;
+}
+
+.bulletList {
+  margin: 16px 0;
+  padding-left: 20px;
+}
+
+.bulletList li {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #000;
+  line-height: 1.5;
 }
 
 /* Mobile responsive */
-@media (max-width: 480px) {
+/* @media (max-width: 480px) {
   .content {
     padding: 16px 12px;
   }
@@ -134,13 +119,13 @@
 
   .description,
   .sectionContent,
-  .sectionContent p {
+  .listItem {
     font-size: 13px;
   }
 
-  .orderedList > li,
-  .bulletList > li,
-  .subList > li {
+  .subList li,
+  .orderedList li {
     font-size: 13px;
   }
 }
+ */
