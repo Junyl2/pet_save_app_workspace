@@ -21,6 +21,49 @@
   border-radius: 12px 12px 0 0;
 }
 
+.icons {
+  display: flex;
+  gap: 0.5rem;
+  position: absolute;
+  bottom: 5%;
+  right: 7%;
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconBtn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 10000px;
+}
+
+.quantityBadge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #66bfa7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+}
+
+.quantityText {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
 .productImage {
   width: 147px;
   height: 97px;

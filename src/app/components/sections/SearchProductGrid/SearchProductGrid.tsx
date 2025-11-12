@@ -14,6 +14,7 @@ import {
 import { ProductService } from '@/app/api/services/client/productService/productService';
 import SearchProductSkeleton from './SearchProductSkeleton';
 import SearchState from '../../ui/SearchResult/SearchState';
+import { useProductCartQuantity } from '@/app/components/hooks/use-product-cart-quantity';
 
 export default function SearchProductGrid({
   searchTerm = '',
@@ -24,6 +25,7 @@ export default function SearchProductGrid({
 }) {
   /*  const {  toggleFavorite, isFavorited } = useFavorites(); */
   const router = useRouter();
+  const { getProductQuantity } = useProductCartQuantity();
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [selectedSort, setSelectedSort] = useState('정확도순');
@@ -289,13 +291,28 @@ export default function SearchProductGrid({
                       className={styles.iconBtn}
                       onClick={(e) => handleCartClick(e, product)}
                     >
-                      <Image
-                        src="/images/products/search-cart.svg"
-                        alt="Cart Icon"
-                        width={26}
-                        height={26}
-                        className="object-contain"
-                      />
+                      {(() => {
+                        const productId = product.productId || product.id;
+                        const quantity = getProductQuantity(productId);
+                        if (quantity > 0) {
+                          return (
+                            <div className={styles.quantityBadge}>
+                              <span className={styles.quantityText}>
+                                {quantity}
+                              </span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <Image
+                            src="/images/products/search-cart.svg"
+                            alt="Cart Icon"
+                            width={26}
+                            height={26}
+                            className="object-contain"
+                          />
+                        );
+                      })()}
                     </button>
                     {/*    <button
                       onClick={async (e) => {

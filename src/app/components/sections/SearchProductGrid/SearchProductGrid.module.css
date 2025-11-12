@@ -136,6 +136,24 @@
   border-radius: 10000px;
 }
 
+.quantityBadge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: #66bfa7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+}
+
+.quantityText {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
 /* 컨텐츠 */
 
 .header {

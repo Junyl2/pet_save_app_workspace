@@ -11,6 +11,7 @@ import { CartStore } from '@/app/api/types/cart/cart';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import Loading from '@/app/components/ui/Loading/Loading';
 import { useAuth } from '@/app/context/authContext';
+import { dispatchCartUpdate } from '@/app/components/hooks/use-cart-quantity';
 
 export default function ShoppingCartPage() {
   const router = useRouter();
@@ -283,6 +284,7 @@ export default function ShoppingCartPage() {
 
       if (response.data?.success) {
         await refreshCartData();
+        dispatchCartUpdate();
       } else {
         showToast('수량 업데이트에 실패했습니다');
       }
@@ -346,6 +348,7 @@ export default function ShoppingCartPage() {
       if (isSuccess) {
         console.log('Delete successful, refreshing cart data...');
         await refreshCartData();
+        dispatchCartUpdate();
         // Remove from selected items if it was selected
         setSelectedItems((prev) => prev.filter((id) => id !== productId));
         showToast('상품이 삭제되었습니다');
@@ -394,6 +397,7 @@ export default function ShoppingCartPage() {
 
       if (isSuccess) {
         await refreshCartData();
+        dispatchCartUpdate();
         // Remove from selected items
         setSelectedItems((prev) =>
           prev.filter((id) => !productIds.includes(id))

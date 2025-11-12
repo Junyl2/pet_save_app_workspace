@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '@/app/context/cartContext';
 import { useUser } from '@/app/context/userContext';
 import { PAGE_URLS } from '@/app/utils/page_url';
+import { dispatchCartUpdate } from '@/app/components/hooks/use-cart-quantity';
 
 interface SimpleProduct {
   id: string;
@@ -90,6 +91,7 @@ export const ProductDrawer = ({
         };
 
         addToCart(cartProduct, quantity);
+        dispatchCartUpdate();
         onAddToCart?.(quantity, product.name);
         toast.success(`${product.name} 장바구니에 담겼습니다`, {
           style: { background: '#66bfa7' },

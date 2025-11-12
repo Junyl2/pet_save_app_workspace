@@ -9,6 +9,7 @@ import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { useRouter } from 'next/navigation';
 import { cartService } from '@/app/api/services/client/cartService/cartService';
 import { useUser } from '@/app/context/userContext';
+import { dispatchCartUpdate } from '@/app/components/hooks/use-cart-quantity';
 
 interface AddToCartModalProps {
   isOpen: boolean;
@@ -85,6 +86,7 @@ export function AddToCartModal({
       if (response.data?.success) {
         // Also call the local handler for UI updates
         await onAddToCart(product, quantity, shippingOption);
+        dispatchCartUpdate();
         onClose();
         setShowToast(true);
       } else if (

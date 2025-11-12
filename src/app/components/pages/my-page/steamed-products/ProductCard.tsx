@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { FaHeart } from 'react-icons/fa';
 import styles from './ProductCard.module.css';
+import { useProductCartQuantity } from '@/app/components/hooks/use-product-cart-quantity';
 
 export interface Product {
   id: string;
@@ -26,6 +28,7 @@ export function ProductCard({
 }: ProductCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const { getProductQuantity } = useProductCartQuantity();
 
   const handleAddToCart = async () => {
     setIsLoading(true);
@@ -48,6 +51,13 @@ export function ProductCard({
     return price.toLocaleString();
   };
 
+  const handleCartIconClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAddToCart(product);
+  };
+
+  const quantity = getProductQuantity(product.id);
+
   return (
     <div className={styles.productCard}>
       <div className={styles.productImageContainer}>
@@ -56,6 +66,23 @@ export function ProductCard({
           alt={product.name}
           className={styles.productImage}
         />
+        <div className={styles.icons}>
+          <button className={styles.iconBtn} onClick={handleCartIconClick}>
+            {quantity > 0 ? (
+              <div className={styles.quantityBadge}>
+                <span className={styles.quantityText}>{quantity}</span>
+              </div>
+            ) : (
+              <Image
+                src="/images/products/search-cart.svg"
+                alt="Cart Icon"
+                width={24}
+                height={24}
+                className="object-contain"
+              />
+            )}
+          </button>
+        </div>
       </div>
       <div className={styles.productDetails}>
         <button

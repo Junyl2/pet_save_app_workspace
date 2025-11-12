@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import { cartService } from '@/app/api/services/client/cartService/cartService';
 import { useAuth } from '@/app/context/authContext';
+import { CartData } from '@/app/api/types/cart/cart';
 
 const CART_UPDATE_EVENT = 'cartUpdated';
 
-export const useCartQuantity = () => {
-  const [totalProducts, setTotalProducts] = useState<number>(0);
+export const useProductCartQuantity = () => {
+  const [cartData, setCartData] = useState<CartData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { isLoggedIn } = useAuth();
 
   useEffect(() => {
-    const fetchCartQuantity = async () => {
+    const fetchCartData = async () => {
       if (!isLoggedIn) {
-        setTotalProducts(0);
+        setCartData(null);
         setIsLoading(false);
         return;
       }
@@ -22,22 +23,22 @@ export const useCartQuantity = () => {
         const response = await cartService.getCart();
 
         if (response.data?.success && response.data.data) {
-          setTotalProducts(response.data.data.totalProducts);
+          setCartData(response.data.data);
         } else {
-          setTotalProducts(0);
+          setCartData(null);
         }
       } catch (error) {
-        console.error('Failed to fetch cart quantity:', error);
-        setTotalProducts(0);
+        console.error('Failed to fetch cart data:', error);
+        setCartData(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchCartQuantity();
+    fetchCartData();
 
     const handleCartUpdate = () => {
-      fetchCartQuantity();
+      fetchCartData();
     };
 
     window.addEventListener(CART_UPDATE_EVENT, handleCartUpdate);
@@ -47,11 +48,23 @@ export const useCartQuantity = () => {
     };
   }, [isLoggedIn]);
 
-  return { totalProducts, isLoading };
+  const getProductQuantity = (productId: string | number | undefined): number => {
+    if (!cartData || !productId) return 0;
+
+    const productIdStr = String(productId);
+
+    for (const store of cartData.stores) {
+      const cartItem = store.items.find(
+        (item) => item.product.productId === productIdStr
+      );
+      if (cartItem) {
+        return cartItem.quantity;
+      }
+    }
+
+    return 0;
+  };
+
+  return { cartData, isLoading, getProductQuantity };
 };
 
-export const dispatchCartUpdate = () => {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent(CART_UPDATE_EVENT));
-  }
-};
