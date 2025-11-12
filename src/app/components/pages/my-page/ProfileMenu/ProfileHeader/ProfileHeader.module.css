@@ -25,10 +25,11 @@
   border-radius: 50%;
   overflow: hidden;
   background-color: #f0f0f0;
+  object-fit: cover !important;
 }
 
 .profile {
-  object-fit: cover;
+  object-fit: cover !important;
 }
 
 .profileInfo {
