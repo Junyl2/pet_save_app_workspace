@@ -103,6 +103,7 @@ export default function ProductDetailPage() {
         productId={product.productId}
         productName={product.productName}
         productPrice={product.discountedPrice || product.salePrice}
+        productImage={product.thumbnail}
         storeId={product.store.storeId}
         onAddToCart={(quantity, name) => {
           console.log('Added to cart:', quantity, name);

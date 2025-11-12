@@ -13,6 +13,23 @@ import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/P
 import toast from 'react-hot-toast';
 import Loading from '@/app/components/ui/Loading/Loading';
 
+// Map API categories to Korean display names
+const mapApiCategoryToUI = (apiCategory: string): string => {
+  switch (apiCategory) {
+    case 'PRODUCT':
+      return '상품 문의';
+    case 'DELIVERY':
+      return '배송/픽업 문의';
+    case 'EXCHANGE_RETURN':
+      return '교환/환불 문의';
+    case 'PAYMENT':
+      return '결제 문의';
+    case 'OTHER':
+    default:
+      return '기타 문의';
+  }
+};
+
 // Helper function to transform API response to ContactInquiry format
 const transformMyInquiryToContactInquiry = (
   myInquiry: MyInquiry
@@ -35,18 +52,18 @@ const transformMyInquiryToContactInquiry = (
 export default function DeleteInquiryPage() {
   const router = useRouter();
   const params = useParams();
-  const productId = params.id as string; // Now expecting productId (string UUID)
+  const inquiryId = params.id as string; // Now expecting inquiryId (string UUID)
 
   const [inquiry, setInquiry] = useState<ContactInquiry | null>(null);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<MemberInfo | null>(null);
 
   useEffect(() => {
-    if (!productId) return;
+    if (!inquiryId) return;
     const fetchInquiry = async () => {
       setLoading(true);
       try {
-        // Fetch all inquiries and find the one with matching productId
+        // Fetch all inquiries and find the one with matching inquiryId
         const response = await MemberInquiryService.getMyInquiries({
           sortBy: 'createdAt',
           direction: 'desc',
@@ -57,9 +74,9 @@ export default function DeleteInquiryPage() {
           console.error('Failed to fetch inquiries:', response.error);
           setInquiry(null);
         } else {
-          // Find inquiry with matching productId
+          // Find inquiry with matching inquiryId (more reliable than productId)
           const matchingInquiry = response.data.data.content.find(
-            (inq) => inq.product?.productId === productId
+            (inq) => inq.inquiryId === inquiryId
           );
 
           if (matchingInquiry) {
@@ -67,7 +84,7 @@ export default function DeleteInquiryPage() {
               transformMyInquiryToContactInquiry(matchingInquiry);
             setInquiry(transformedInquiry);
           } else {
-            console.error('Inquiry not found for productId:', productId);
+            console.error('Inquiry not found for inquiryId:', inquiryId);
             setInquiry(null);
           }
         }
@@ -79,7 +96,7 @@ export default function DeleteInquiryPage() {
       }
     };
     fetchInquiry();
-  }, [productId]);
+  }, [inquiryId]);
 
   // Fetch user profile data
   useEffect(() => {
@@ -168,8 +185,8 @@ export default function DeleteInquiryPage() {
             <h2 className={styles.responseLabel}>답변드립니다.</h2>
             <div className={styles.messageContent}>
               <p>
-                문의 주셔서 감사합니다. [{inquiry.shopName}]에 대한 질문에 대해
-                아래와 같이 답변 드리겠습니다.
+                문의 주셔서 감사합니다. [{mapApiCategoryToUI(inquiry.category)}
+                ]에 대한 질문에 대해 아래와 같이 답변 드리겠습니다.
               </p>
 
               <p>{inquiry.responseMessage}</p>
@@ -182,8 +199,8 @@ export default function DeleteInquiryPage() {
             <h2 className={styles.responseLabel}>답변 대기 중</h2>
             <div className={styles.messageContent}>
               <p>
-                문의 주셔서 감사합니다. [{inquiry.shopName}]에 대한 질문에 대해
-                답변이 준비되는 대로 연락드리겠습니다.
+                문의 주셔서 감사합니다. [{mapApiCategoryToUI(inquiry.category)}
+                ]에 대한 질문에 대해 답변이 준비되는 대로 연락드리겠습니다.
               </p>
             </div>
           </div>

@@ -25,6 +25,13 @@
   transition: background 0.2s ease;
 }
 
+.purchaseButton:disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .addToCart {
   flex: 1;
   padding: 0.8rem 1rem;
@@ -36,6 +43,14 @@
   font-weight: bold;
   text-align: center;
   transition: background 0.2s ease;
+}
+
+.addToCart:disabled {
+  border-color: #cccccc;
+  color: #999999;
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-color: #f5f5f5;
 }
 
 .messageButton {

@@ -148,6 +148,14 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
         return;
       }
 
+      // Log the productId being sent for debugging
+      console.log(
+        '🔍 [ContactProduct] Submitting inquiry with productId:',
+        selectedProductId
+      );
+      console.log('🔍 [ContactProduct] Product data:', product);
+      console.log('🔍 [ContactProduct] Product store info:', product?.store);
+
       const response = await productContactService.submitInquiry({
         productId: selectedProductId,
         inquiryType,
@@ -156,7 +164,8 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
       });
 
       if (response.error) {
-        toast.error('문의 접수 중 오류가 발생했습니다.');
+        // Show the specific error message from the service
+        toast.error(response.error);
         return;
       }
 
@@ -205,7 +214,7 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
       {displayStore && (
         <div className={styles.sellerProfile}>
           <div className={styles.profileWrapper}>
-            <Image
+            <img
               src={displayStore.profileUrl || '/fallback-shop.png'}
               alt={displayStore.name || '판매자'}
               className={styles.shopImage}

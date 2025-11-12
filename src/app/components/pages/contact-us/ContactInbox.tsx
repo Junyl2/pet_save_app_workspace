@@ -29,8 +29,8 @@ const transformMyInquiryToContactInquiry = (
   id: myInquiry.inquiryId,
   inquiryId: myInquiry.inquiryId,
   date: myInquiry.createdAt,
-  shopName: myInquiry.store?.name || '상점 정보 없음',
-  shopLocation: myInquiry.store?.address || '주소 정보 없음',
+  shopName: myInquiry.store?.name || '일반 문의',
+  shopLocation: myInquiry.store?.address || '',
   shopImage: myInquiry.store?.profileUrl || '/images/shops/shop1.png',
   category: myInquiry.category,
   message: myInquiry.content,
@@ -280,7 +280,11 @@ export default function ContactInbox({
                   `/client/pages/my-page/history-inquiry/reply/${inq.inquiryId}`
                 );
               } else {
-                router.push(`/inquiries/waiting-reply/${inq.productId}`);
+                if (inq.inquiryId) {
+                  router.push(`/inquiries/waiting-reply/${inq.inquiryId}`);
+                } else {
+                  console.error('Inquiry ID is missing');
+                }
               }
             };
 

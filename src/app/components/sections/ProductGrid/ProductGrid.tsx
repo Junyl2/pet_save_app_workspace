@@ -20,6 +20,7 @@ import { useStoreDetails } from '../../hooks/use-store-details';
 import { useLocationState } from '../../hooks/use-location-state';
 import { BlockService } from '@/app/api/services/client/memberService/block/blockService';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
+import { useProductCartQuantity } from '@/app/components/hooks/use-product-cart-quantity';
 
 interface ProductGridProps {
   products?: Product[];
@@ -50,6 +51,7 @@ export const ProductGrid = ({
   const { isLocationAvailable } = useLocationState();
   const { storeDetails, fetchStoreDetails, getStoreDetails, isLoading } =
     useStoreDetails();
+  const { getProductQuantity } = useProductCartQuantity();
 
   const { cache, loading, backgroundLoading, isStale } = useAppSelector(
     (state) => state.products
@@ -537,12 +539,26 @@ export const ProductGrid = ({
                           setCartOpen(true);
                         }}
                       >
-                        <Image
-                          src="/images/icons/Cart.png"
-                          alt="Cart Icon"
-                          width={24}
-                          height={22}
-                        />
+                        {(() => {
+                          const quantity = getProductQuantity(productIdStr);
+                          if (quantity > 0) {
+                            return (
+                              <div className={styles.quantityBadge}>
+                                <span className={styles.quantityText}>
+                                  {quantity}
+                                </span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <Image
+                              src="/images/icons/Cart.png"
+                              alt="Cart Icon"
+                              width={24}
+                              height={22}
+                            />
+                          );
+                        })()}
                       </button>
                       <button
                         className={styles.iconBtn}

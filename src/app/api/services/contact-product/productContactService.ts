@@ -45,15 +45,31 @@ export const productContactService = {
       // Map inquiry type to API category
       const category = inquiryTypeMapping[inquiry.inquiryType] || 'OTHER';
 
+      // Validate productId - it should always be provided in ContactProduct
+      if (!inquiry.productId || inquiry.productId.trim() === '') {
+        console.error('ProductId is required but was not provided');
+        return {
+          error: '상품 정보가 필요합니다.',
+          data: null,
+        };
+      }
+
       // Create inquiry first (without file IDs)
-      const inquiryRequest = {
-        productId: inquiry.productId,
+      const trimmedProductId = inquiry.productId.trim();
+      const inquiryRequest: CreateInquiryRequest = {
+        productId: trimmedProductId,
         category,
         content: inquiry.content,
         imageFileIds: [], // Don't include file IDs during creation
       };
 
-      console.log('Creating inquiry with request:', inquiryRequest);
+      console.log('🔍 [productContactService] Creating inquiry with request:', {
+        productId: trimmedProductId,
+        category,
+        contentLength: inquiry.content.length,
+        hasFile: !!inquiry.file,
+      });
+      console.log('🔍 [productContactService] Full request object:', JSON.stringify(inquiryRequest, null, 2));
 
       const response = await MemberInquiryService.createInquiry(inquiryRequest);
 
