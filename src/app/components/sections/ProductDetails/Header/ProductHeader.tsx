@@ -50,11 +50,10 @@ export const ProductHeader = () => {
       router.back(); // Use router.back() to preserve filter params
     } else if (isOrderTracking) {
       router.back(); // Use router.back() for OrderTracking
-    } else if (isOrderConfirmation) {
     } else if (isOrderHistory) {
       router.push('/client/pages/my-page');
     } else if (isOrderConfirmation) {
-      router.push('/client/pages/homepage');
+      router.push('/shopping-cart');
     } else if (isSellerBusinessInformation) {
       router.push('/client/seller/pages/my-page');
     } else if (isChangeSellerProfile) {
