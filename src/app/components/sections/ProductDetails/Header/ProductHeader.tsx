@@ -53,7 +53,7 @@ export const ProductHeader = () => {
     } else if (isOrderHistory) {
       router.push('/client/pages/my-page');
     } else if (isOrderConfirmation) {
-      router.push('/shopping-cart');
+      router.push('/client/pages/homepage');
     } else if (isSellerBusinessInformation) {
       router.push('/client/seller/pages/my-page');
     } else if (isChangeSellerProfile) {
