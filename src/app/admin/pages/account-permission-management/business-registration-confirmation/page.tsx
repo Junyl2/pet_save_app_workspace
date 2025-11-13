@@ -73,24 +73,84 @@ export default function BusinessRegistrationConfirmationPage() {
       const response =
         await BusinessRegistrationService.getAllBusinessRegistrations(params);
 
-      const data = (response?.data as any)?.data;
-      const content = data?.content ?? [];
-      setTotalPages(data?.totalPages ?? 1);
+      if (response.error) {
+        console.error('Error fetching business registrations:', response.error);
+        setMembers([]);
+        return;
+      }
 
-      const mapped: Member[] = content.map((item: any) => ({
-        id: item.requestId,
-        name: item.applicantName ?? '-',
-        nickname: item.applicantNickname ?? '-',
-        contact: item.applicantPhoneNumber ?? '-',
-        email: item.applicantEmail ?? '-',
-        status:
-          item.status === 'APPROVED'
-            ? '승인 완료'
-            : item.status === 'REJECTED'
-            ? '반려'
-            : '승인 대기',
-      }));
+      // Debug: Log the full response to understand structure
+      console.log('🔍 Full API Response:', JSON.stringify(response, null, 2));
 
+      // API response structure from GET /business-registrations:
+      // { success: true, status: 200, resultMsg: "...", data: { content: [], pageInfo: {} } }
+      // apiClient.get returns { data: <API response>, error?: string }
+      // So response.data is the full API response object
+      const apiResponse = response?.data as any;
+      console.log('🔍 API Response object:', apiResponse);
+
+      // Extract the nested data object which contains content and pageInfo
+      // Try both possible structures: response.data.data or response.data
+      let data = apiResponse?.data;
+
+      // If data is not nested, check if apiResponse itself has content
+      if (!data && apiResponse?.content) {
+        data = apiResponse;
+      }
+
+      if (!data) {
+        console.error(
+          '❌ Invalid response structure. apiResponse:',
+          apiResponse
+        );
+        setMembers([]);
+        return;
+      }
+
+      console.log('🔍 Extracted data object:', data);
+      console.log('🔍 Content array:', data.content);
+      console.log('🔍 First item sample:', data.content?.[0]);
+
+      const content = Array.isArray(data.content) ? data.content : [];
+      const pageInfo = data.pageInfo || {};
+
+      console.log('🔍 Content length:', content.length);
+      console.log('🔍 PageInfo:', pageInfo);
+
+      setTotalPages(pageInfo.totalPages ?? 1);
+
+      const mapped: Member[] = content.map((item: any, index: number) => {
+        // Debug each item
+        console.log(`🔍 Mapping item ${index}:`, {
+          requestId: item.requestId,
+          applicantName: item.applicantName,
+          businessEmail: item.businessEmail,
+          applicantNickname: item.applicantNickname,
+          applicantPhoneNumber: item.applicantPhoneNumber,
+          status: item.status,
+        });
+
+        // Map fields from API response to Member interface
+        // Using exact field names from the API response
+        const member: Member = {
+          id: item.requestId || '-',
+          name: item.applicantName || '-',
+          nickname: item.applicantNickname || '-',
+          contact: item.applicantPhoneNumber || '-',
+          email: item.businessEmail || '-',
+          status:
+            item.status === 'APPROVED'
+              ? '승인 완료'
+              : item.status === 'REJECTED'
+              ? '반려'
+              : '승인 대기',
+        };
+
+        console.log(`✅ Mapped member ${index}:`, member);
+        return member;
+      });
+
+      console.log('✅ Final mapped members:', mapped);
       setMembers(mapped);
     } catch (error) {
       console.error('❌ Failed to fetch business registrations:', error);

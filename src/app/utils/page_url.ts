@@ -79,6 +79,7 @@ export const PAGE_URLS = {
   SELLER_MYPAGE: '/client/seller/pages/my-page',
   SELLER_REGISTRATION: '/client/seller/pages/registration',
   BUSINESS_INFORMATION: '/client/seller/pages/my-page/business-information',
+  BUSINESS_OPTIONS: '/client/seller/pages/my-page/business-information/business-options',
   SELLER_STORE_INFO: '/client/seller/pages/change-profile',
   REGISTER_PRODUCT: '/client/seller/pages/register-product',
   MY_REFFERAL_CODE: '/client/pages/my-page/referral-code',

@@ -536,6 +536,57 @@
   align-items: center;
 }
 
+.readonlyFileDisplay {
+  width: 100%;
+}
+
+.filePreview {
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  overflow: hidden;
+  background-color: #f9f9f9;
+}
+
+.fileImage {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  display: block;
+}
+
+.fileIframe {
+  width: 100%;
+  height: 500px;
+  border: none;
+  display: block;
+}
+
+.fileLink {
+  display: block;
+  padding: 12px 20px;
+  text-align: center;
+  background-color: #f0f0f0;
+  color: #333;
+  text-decoration: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.fileLink:hover {
+  background-color: #e0e0e0;
+}
+
+.fileDownloadBox {
+  width: 100%;
+  padding: 20px;
+  text-align: center;
+  background-color: #f9f9f9;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+}
+
 .readonlyFooter {
   background-color: #e8f5e8;
   border: 1px solid #66c0a4;

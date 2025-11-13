@@ -40,11 +40,15 @@ type SellerInformationProps = {
     // optional display labels when readOnly
     businessLicenseLabel?: string;
     bankbookLabel?: string;
+    // optional file URLs for display in readOnly mode
+    businessLicenseUrl?: string;
+    bankbookUrl?: string;
   };
   readOnly?: boolean;
   banner?: string; // top banner + read-only footer message
   status?: string; // if you need it for analytics/logic
   onDone?: () => void;
+  disableEmailValidation?: boolean; // disable email validation (e.g., in register-status)
 };
 
 export default function SellerInformation({
@@ -53,6 +57,7 @@ export default function SellerInformation({
   banner,
   status,
   onDone,
+  disableEmailValidation = false,
 }: SellerInformationProps) {
   const router = useRouter();
   const { updateUserRole, user } = useUser();
@@ -196,13 +201,23 @@ export default function SellerInformation({
   }, [formData]);
 
   useEffect(() => {
+    // Skip email validation if disabled or in readOnly mode
+    if (disableEmailValidation || readOnly) {
+      return;
+    }
     const delay = setTimeout(() => {
       if (formData.email && formData.emailDomain) {
         validateEmailAvailability();
       }
     }, 600); // 0.6s debounce
     return () => clearTimeout(delay);
-  }, [formData.email, formData.emailDomain, validateEmailAvailability]);
+  }, [
+    formData.email,
+    formData.emailDomain,
+    validateEmailAvailability,
+    disableEmailValidation,
+    readOnly,
+  ]);
 
   // Input change handler (no-op in readOnly)
   const handleChange = (
@@ -957,9 +972,61 @@ export default function SellerInformation({
         <div className={styles.formGroup}>
           <label className={styles.label}>사업자등록증 사본 (필수)</label>
           {readOnly ? (
-            <div className={styles.readonlyFileBox}>
-              {displayNames.businessLicense || '파일 없음'}
-            </div>
+            initial?.businessLicenseUrl ? (
+              <div className={styles.readonlyFileDisplay}>
+                <div className={styles.filePreview}>
+                  <img
+                    src={initial.businessLicenseUrl}
+                    alt="Business License"
+                    className={styles.fileImage}
+                    onError={(e) => {
+                      // If image fails to load, try as PDF or show download link
+                      const img = e.currentTarget;
+                      const parent = img.parentElement;
+                      if (parent) {
+                        // Try to load as PDF if image fails
+                        const url = initial.businessLicenseUrl || '';
+                        if (url.includes('business-registrations/files')) {
+                          // Show download link for PDF files
+                          parent.innerHTML = `
+                            <div class="${styles.fileDownloadBox}">
+                              <a href="${url}" target="_blank" rel="noopener noreferrer" class="${
+                            styles.fileLink
+                          }">
+                                ${
+                                  displayNames.businessLicense ||
+                                  '사업자등록증 다운로드'
+                                }
+                              </a>
+                            </div>
+                          `;
+                        } else {
+                          // Fallback to text
+                          parent.innerHTML = `<div class="${
+                            styles.readonlyFileBox
+                          }">${
+                            displayNames.businessLicense || '파일 없음'
+                          }</div>`;
+                        }
+                      }
+                    }}
+                  />
+                  <a
+                    href={initial.businessLicenseUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.fileLink}
+                  >
+                    {displayNames.businessLicense || '사업자등록증 보기'} (새
+                    창에서 열기)
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.readonlyFileBox}>
+                {displayNames.businessLicense || '파일 없음'}
+              </div>
+            )
           ) : (
             <FileUploadModal
               file={formData.businessLicenseFile}
@@ -1119,9 +1186,33 @@ export default function SellerInformation({
 
           {/* Bankbook File */}
           {readOnly ? (
-            <div className={styles.readonlyFileBox}>
-              {displayNames.bankbook || '파일 없음'}
-            </div>
+            initial?.bankbookUrl ? (
+              <div className={styles.readonlyFileDisplay}>
+                <a
+                  href={initial.bankbookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.fileLink}
+                  style={{
+                    display: 'block',
+                    padding: '12px 20px',
+                    textAlign: 'center',
+                    backgroundColor: '#f0f0f0',
+                    color: '#333',
+                    textDecoration: 'none',
+                    border: '1px solid rgba(0, 0, 0, 0.2)',
+                    borderRadius: '5px',
+                    fontSize: '14px',
+                  }}
+                >
+                  {displayNames.bankbook || '통장사본 보기'} (새 창에서 열기)
+                </a>
+              </div>
+            ) : (
+              <div className={styles.readonlyFileBox}>
+                {displayNames.bankbook || '파일 없음'}
+              </div>
+            )
           ) : (
             <FileUploadModal
               file={formData.bankbookFile}
@@ -1269,28 +1360,35 @@ export default function SellerInformation({
 
         {/* Submit or read-only footer */}
         {!readOnly ? (
-          <button
-            type="submit"
-            className={`${styles.bottomButton} ${
-              canSubmit ? styles.enabled : styles.disabled
-            }`}
-            disabled={
-              !canSubmit ||
-              user?.businessApprovalStatus === 'PENDING' /* ||
-              user?.businessApprovalStatus === 'REJECTED' */ ||
-              false
-            }
-          >
-            {isSubmitting
-              ? '등록 제출 중...'
-              : user?.businessApprovalStatus === 'PENDING'
-              ? '승인 대기 중'
-              : user?.businessApprovalStatus === null
-              ? 'Join membership'
-              : /*  : user?.businessApprovalStatus === 'REJECTED'
-              ? '승인 거부됨' */
-                '회원가입'}
-          </button>
+          user?.businessApprovalStatus === 'REJECTED' ? (
+            <button
+              type="button"
+              className={styles.bottomButton + ' ' + styles.enabled}
+              onClick={() => router.push('/client/seller/pages/registration')}
+            >
+              다시 등록하기
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className={`${styles.bottomButton} ${
+                canSubmit ? styles.enabled : styles.disabled
+              }`}
+              disabled={
+                !canSubmit ||
+                user?.businessApprovalStatus === 'PENDING' ||
+                false
+              }
+            >
+              {isSubmitting
+                ? '등록 제출 중...'
+                : user?.businessApprovalStatus === 'PENDING'
+                ? '승인 대기 중'
+                : user?.businessApprovalStatus === null
+                ? 'Join membership'
+                : '회원가입'}
+            </button>
+          )
         ) : (
           <div className={styles.readonlyFooter}>{banner || '읽기 전용'}</div>
         )}

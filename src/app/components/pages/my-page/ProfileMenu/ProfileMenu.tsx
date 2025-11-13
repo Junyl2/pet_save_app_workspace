@@ -20,9 +20,16 @@ const ProfileMenu = (): React.ReactElement => {
   // Redux state
   const { userInfo } = useAppSelector((state) => state.user);
   const role = userInfo?.role || user?.role;
-  const businessApproved =
+  const businessApprovalStatus =
     userInfo?.businessApprovalStatus || user?.businessApprovalStatus;
   const storeId = userInfo?.storeId || user?.storeId;
+
+  // Check if user has registered a business (has any approval status: PENDING, APPROVED, or REJECTED)
+  // Show "사업장 정보" for PENDING, APPROVED, or REJECTED status
+  const hasBusinessRegistration =
+    businessApprovalStatus === 'PENDING' ||
+    businessApprovalStatus === 'APPROVED' ||
+    businessApprovalStatus === 'REJECTED';
 
   useEffect(() => {
     dispatch(fetchUserInfo());
@@ -42,23 +49,18 @@ const ProfileMenu = (): React.ReactElement => {
           />
 
           {/* Business Registration / Info */}
-          {role === 'seller' || businessApproved ? (
-            <ProfileItem
-              label="사업자 정보 보기"
-              route={PAGE_URLS.BUSINESS_INFORMATION}
-            />
-          ) : (
+          {!hasBusinessRegistration && (
             <ProfileItem
               label="사업자등록"
               route={PAGE_URLS.SELLER_REGISTRATION}
             />
           )}
 
-          {/* Store Info (for sellers with a storeId) */}
-          {role === 'seller' && !!storeId && (
+          {/* Store Info (show if user has registered a business, regardless of approval status) */}
+          {hasBusinessRegistration && (
             <ProfileItem
               label="사업장 정보"
-              route={`${PAGE_URLS.SELLER_STORE_INFO}?storeId=${storeId}`}
+              route={PAGE_URLS.BUSINESS_OPTIONS}
             />
           )}
 

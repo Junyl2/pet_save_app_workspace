@@ -50,8 +50,6 @@ export default function OrderConfirmation({
         <p className={styles.confirmationSub}>
           무통장입금 결제를 선택하셨습니다. 아래 계좌로 입금하시면 주문이
           확정됩니다.
-          <br />
-          <strong>국민은행 123-456-7890 (예금주: 일시적인 )</strong>
         </p>
       ) : (
         <p className={styles.confirmationSub}>

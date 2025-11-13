@@ -11,6 +11,7 @@ import {
   DirectOrderRequest,
 } from '@/app/api/types/member/order/order';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
+import { StoreService } from '@/app/api/services/client/storeService/storeService';
 
 interface PayButtonProps {
   totalDue: number;
@@ -170,6 +171,45 @@ export default function PayButton({
 
       // Manual bank transfer: go directly to confirmation
       if (method === 'BANK') {
+        // Try to get storeId from orderItems to fetch bank account info
+        const firstProduct = orderItems[0]?.product as
+          | { storeId?: string }
+          | undefined;
+        const storeId = firstProduct?.storeId;
+
+        let bankAccountInfo: {
+          bankName?: string;
+          accountNumber?: string;
+          depositorName?: string;
+        } = {};
+
+        // Fetch store bank account info if storeId is available
+        if (storeId) {
+          try {
+            console.log(
+              '🔄 Fetching store bank account info for storeId:',
+              storeId
+            );
+            const storeResponse = await StoreService.getStoreSummary(storeId);
+
+            if (storeResponse.data?.data) {
+              const storeData = storeResponse.data.data;
+              bankAccountInfo = {
+                bankName: storeData.bankName,
+                accountNumber: storeData.accountNumber,
+                depositorName: storeData.depositorName,
+              };
+              console.log(
+                '✅ Store bank account info fetched:',
+                bankAccountInfo
+              );
+            }
+          } catch (error) {
+            console.error('❌ Error fetching store bank account info:', error);
+            // Continue without bank info - OrderConfirmationClient will try to fetch it
+          }
+        }
+
         sessionStorage.setItem(
           'orderConfirmation',
           JSON.stringify({
@@ -179,6 +219,7 @@ export default function PayButton({
             amount: totalDue,
             paymentLabel: '무통장입금',
             date: new Date().toISOString(),
+            ...bankAccountInfo,
           })
         );
         router.push(PAGE_URLS.ORDER_CONFIRMATION);

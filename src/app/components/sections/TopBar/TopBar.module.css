@@ -132,10 +132,6 @@
   background-color: #fff;
   padding: 0.5rem 1rem;
 }
-
-.shopSearchWrapper {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
 .homepageBorder {
   position: absolute;
   width: 100%;
@@ -189,7 +185,7 @@
 /* Search history dropdown */
 .historyDropdown {
   position: fixed;
-  top: 196%;
+  top: 200%;
   left: 0;
   right: 0;
   background: #fff;
@@ -206,14 +202,14 @@
 @media (max-width: 1024px) {
   .historyDropdown {
     position: absolute;
-    top: 115%;
+    top: 120%;
     left: 0;
     right: 0;
   }
 }
 .shopHistoryDropdown {
   position: absolute;
-  top: 115%;
+  top: 110%;
   left: 0;
   right: 0;
   background: #fff;
