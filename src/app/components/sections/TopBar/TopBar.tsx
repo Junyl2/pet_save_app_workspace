@@ -536,7 +536,11 @@ export default function TopBar({ onSearch }: TopBarProps) {
         pathname !==
           '/client/seller/pages/seller-product-list/refund-request' &&
         pathname !== '/client/seller/pages/seller-product-list' && (
-          <div className={styles.searchWrapper}>
+          <div
+            className={`${styles.searchWrapper} ${
+              isShoplist ? styles.shopSearchWrapper : ''
+            }`}
+          >
             <form onSubmit={handleSubmit} className={styles.searchForm}>
               <button
                 type="submit"
