@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { FaChevronDown } from 'react-icons/fa';
 import styles from './SellerInquiryDetails.module.css';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
@@ -332,14 +331,7 @@ export default function SellerInquiryDetails() {
 
               <div className={styles.itemRow}>
                 <div className={styles.thumbWrap}>
-                  <Image
-                    src={q.productImage}
-                    alt=""
-                    width={60}
-                    height={60}
-                    className={styles.thumb}
-                    unoptimized
-                  />
+                  <img src={q.productImage} alt="" className={styles.thumb} />
                 </div>
                 <div className={styles.meta}>
                   <div className={styles.title}>{q.productName}</div>

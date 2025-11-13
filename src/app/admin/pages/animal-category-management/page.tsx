@@ -29,7 +29,7 @@ export default function AnimalCategoryPage() {
     const fetchCategories = async () => {
       setLoading(true);
       try {
-        const response = await CategoryService.getAllCategories({
+        const response = await CategoryService.getAllCategoriesWithDetails({
           page: page - 1,
           size: PAGE_SIZE,
           keyword: keyword.trim() || undefined,

@@ -6,88 +6,139 @@ import DateRange from '@/app/components/ui/DateRange/DateRange';
 import styles from './OrderDetail.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { ExchangeReturnModal } from '../exchange-return-modal/ExchangeReturnModal';
-import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
-import { fetchOrderDetails } from '@/app/redux/slices/cache/orderSlice';
+import CancelOrderModal from './cancel-order-modal/CancelOrderModal';
+import { DeleteModal } from '@/app/components/ui/modal/DeleteModal/DeleteModal';
 import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
 import { orderService } from '@/app/api/services/client/memberService/order/orderService';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
+import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
+import Loading from '@/app/components/ui/Loading/Loading';
+import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
 
 /**
  * Displays detailed order information for a single orderItemId.
- * Fetches the parent orderId via /orders/items/{orderItemId}.
+ * Uses GET /orders/items/{orderItemId} endpoint directly.
  */
 export default function OrderDetail() {
   const params = useParams();
   const orderItemId = params?.orderItemId as string;
   const router = useRouter();
-  const dispatch = useAppDispatch();
 
-  const { orderDetailsCache, loading, error } = useAppSelector(
-    (state) => state.orders
-  );
-
-  const [resolvedOrderId, setResolvedOrderId] = useState<string | null>(null);
+  const [orderItem, setOrderItem] = useState<OrderItemResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string } | null>(null);
   const [isExchangeRefundOpen, setIsExchangeRefundOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [selectedReason, setSelectedReason] = useState('');
-  const [customReason, setCustomReason] = useState('');
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [checkingReview, setCheckingReview] = useState(false);
 
   /**
-   * Step 1 — Resolve parent orderId using backend endpoint /orders/items/{orderItemId}.
-   * Then fetch full order details and cache them.
+   * Store order history URL when component mounts (for navigation after delete)
+   * The URL should already be stored by OrderHistoryItem when navigating from order history
+   * This effect ensures we have a fallback if needed
+   */
+  useEffect(() => {
+    // Check if we already have a stored URL (set by OrderHistoryItem)
+    const storedUrl = sessionStorage.getItem('orderHistoryReturnUrl');
+
+    if (storedUrl) {
+      // We already have a stored URL, keep it (don't overwrite)
+      return;
+    }
+
+    // Fallback: Try to get from referrer if available
+    const referrer = document.referrer;
+    if (
+      referrer &&
+      referrer.includes('/order-history') &&
+      !referrer.includes('/items/')
+    ) {
+      // Extract just the pathname and search params from referrer
+      try {
+        const referrerUrl = new URL(referrer);
+        const orderHistoryUrl = `${referrerUrl.pathname}${referrerUrl.search}`;
+        sessionStorage.setItem('orderHistoryReturnUrl', orderHistoryUrl);
+      } catch {
+        // If URL parsing fails, use the full referrer
+        sessionStorage.setItem('orderHistoryReturnUrl', referrer);
+      }
+    } else {
+      // No stored URL and no valid referrer, use base URL as fallback
+      sessionStorage.setItem('orderHistoryReturnUrl', PAGE_URLS.ORDER_HISTORY);
+    }
+  }, []);
+
+  /**
+   * Fetch order details by orderItemId using GET /orders/items/{orderItemId}
    */
   useEffect(() => {
     if (!orderItemId) return;
 
     (async () => {
       try {
-        const { data, error } =
+        setLoading(true);
+        setError(null);
+        const { data, error: fetchError } =
           await orderDetailsService.getOrderDetailsByItemId(orderItemId);
-        if (error || !data?.data?.content?.length) {
+
+        if (fetchError || !data?.data) {
+          setError(fetchError || 'Order information not found.');
           setToast({ message: 'Order information not found.' });
           return;
         }
 
-        const parentOrderId = data.data.content[0].orderId;
-        setResolvedOrderId(parentOrderId);
-        dispatch(fetchOrderDetails(parentOrderId));
-      } catch {
-        setToast({ message: 'Error fetching order details.' });
+        setOrderItem(data.data);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Error fetching order details.';
+        setError(errorMessage);
+        setToast({ message: errorMessage });
+      } finally {
+        setLoading(false);
       }
     })();
-  }, [orderItemId, dispatch]);
+  }, [orderItemId]);
 
   /**
-   * Step 2 — Access cached order details from Redux once fetched.
+   * Check if user has already reviewed this product
    */
-  const cachedData = resolvedOrderId
-    ? orderDetailsCache[resolvedOrderId]
-    : undefined;
-  const orderItems = cachedData?.orderItems ?? [];
+  useEffect(() => {
+    if (!orderItem?.productId) return;
+
+    (async () => {
+      try {
+        setCheckingReview(true);
+        const response = await ReviewService.getMyReviews({
+          page: 0,
+          size: 100, // Get enough reviews to check
+        });
+
+        if (response.data?.content) {
+          const hasReview = response.data.content.some(
+            (review) => review.product.productId === orderItem.productId
+          );
+          setHasReviewed(hasReview);
+        }
+      } catch (err) {
+        // Silently fail - if we can't check, allow the button to be enabled
+        console.error('Error checking review status:', err);
+      } finally {
+        setCheckingReview(false);
+      }
+    })();
+  }, [orderItem?.productId]);
 
   // --- Loading / Error states ---
-  if (loading && !cachedData)
-    return (
-      <div className={styles.container}>
-        <p>Loading order details...</p>
-      </div>
-    );
+  if (loading) return <Loading />;
 
-  if (error)
+  if (error || !orderItem)
     return (
       <div className={styles.container}>
-        <p>Error: {error}</p>
-      </div>
-    );
-
-  if (orderItems.length === 0)
-    return (
-      <div className={styles.container}>
-        <p>No order information found.</p>
+        <p>Error: {error || 'No order information found.'}</p>
       </div>
     );
 
@@ -140,47 +191,141 @@ export default function OrderDetail() {
   };
 
   // --- Derived order info ---
-  const mainOrderItem = orderItems[0];
-  const orderNumber = mainOrderItem.orderNumber;
+  const orderNumber = orderItem.orderNumber;
   const date = formatDate(orderNumber);
-  const subtotal = orderItems.reduce((s, i) => s + i.subtotal, 0);
-  const totalDiscount = orderItems.reduce(
-    (s, i) => s + i.appliedDiscountAmount,
-    0
-  );
-  const deliveryFee = mainOrderItem.deliveryFee ?? 0;
+  const subtotal = orderItem.subtotal;
+  const totalDiscount = orderItem.appliedDiscountAmount;
+  const deliveryFee = orderItem.deliveryFee ?? 0;
   const total =
     subtotal +
-    (mainOrderItem.shippingOption === 'DELIVERY' ? deliveryFee : 0) -
+    (orderItem.shippingOption === 'DELIVERY' ? deliveryFee : 0) -
     totalDiscount;
-  const paymentMethod = mainOrderItem.paymentMethod;
-  const status = mainOrderItem.status;
+  const paymentMethod = orderItem.paymentMethod;
+  const status = orderItem.status;
+  const recipientName = orderItem.customer.name;
+  const shippingOption = orderItem.shippingOption;
+  const deliveryAddress = {
+    address:
+      shippingOption === 'DELIVERY'
+        ? orderItem.customer.address
+        : orderItem.delivery?.receiverAddress ||
+          orderItem.storeAddress ||
+          '배송지 정보 없음',
+  };
 
   /**
    * Navigate to order tracking page.
    */
   const handleTrackDelivery = (): void => {
-    if (resolvedOrderId) router.push(PAGE_URLS.ORDER_TRACKING(resolvedOrderId));
+    if (orderItem.orderId) {
+      router.push(
+        `${PAGE_URLS.ORDER_TRACKING(
+          orderItem.orderId
+        )}?orderItemId=${encodeURIComponent(orderItem.orderItemId)}`
+      );
+    }
+  };
+
+  /**
+   * Open exchange/refund modal.
+   */
+  const handleOpenExchangeRefundModal = (): void => {
+    setIsExchangeRefundOpen(true);
+  };
+
+  /**
+   * Close exchange/refund modal.
+   */
+  const handleCloseExchangeRefundModal = (): void => {
+    setIsExchangeRefundOpen(false);
+  };
+
+  /**
+   * Navigate to write review page.
+   */
+  const handleWriteReview = (): void => {
+    router.push(
+      `/client/pages/my-page/reviews/write?productId=${orderItem.productId}`
+    );
   };
 
   /**
    * Delete order history.
+   * DELETE /api/pet-save/order-histories/orders/{orderId}
    */
   const handleConfirmDelete = async (): Promise<void> => {
-    if (!resolvedOrderId) return;
+    if (!orderItem?.orderId) {
+      setToast({ message: '주문 ID를 찾을 수 없습니다.' });
+      return;
+    }
+
     try {
       setIsDeleting(true);
+      console.log('Deleting order history with orderId:', orderItem.orderId);
+
       const response = await orderDetailsService.deleteOrderHistory(
-        resolvedOrderId
+        orderItem.orderId
       );
-      if (response.error) {
-        setToast({ message: `Delete failed: ${response.error}` });
-      } else {
-        setToast({ message: 'Order history deleted.' });
-        setTimeout(() => router.push(PAGE_URLS.MYPAGE), 1200);
+
+      console.log('Delete response:', response);
+
+      // 204 No Content is a successful response
+      if (response.status === 204) {
+        // Show success toast message for 204
+        setToast({ message: '주문 내역이 삭제되었습니다.' });
+
+        // Navigate back to order history page with query parameters preserved and force refresh
+        setTimeout(() => {
+          // Get the stored order history URL from sessionStorage
+          // This was stored when the user first navigated from order history to order detail
+          const storedOrderHistoryUrl = sessionStorage.getItem(
+            'orderHistoryReturnUrl'
+          );
+
+          if (storedOrderHistoryUrl) {
+            // Use the stored URL which includes query parameters
+            window.location.href = storedOrderHistoryUrl;
+          } else {
+            // Fallback: navigate to base order history URL
+            window.location.href = PAGE_URLS.ORDER_HISTORY;
+          }
+        }, 1200);
+        return;
       }
-    } catch {
-      setToast({ message: 'Error deleting order history.' });
+
+      // Check if there's an error in the response
+      if (response.error) {
+        // Extract the actual error message from the API response
+        const errorMessage = response.error.includes(':')
+          ? response.error.split(':').slice(1).join(':').trim()
+          : response.error;
+        setToast({
+          message: errorMessage || '주문 내역 삭제에 실패했습니다.',
+        });
+        return;
+      }
+
+      // Check if the response data indicates success
+      if (response.data) {
+        if (response.data.success) {
+          setToast({ message: '주문 내역이 삭제되었습니다.' });
+          setTimeout(() => router.push(PAGE_URLS.MYPAGE), 1200);
+        } else {
+          // API returned success: false with an error message
+          const errorMsg =
+            response.data.resultMsg || '주문 내역 삭제에 실패했습니다.';
+          setToast({ message: errorMsg });
+        }
+      } else {
+        setToast({ message: '주문 내역 삭제에 실패했습니다.' });
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : '주문 내역 삭제 중 오류가 발생했습니다.';
+      setToast({ message: errorMessage });
     } finally {
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
@@ -190,36 +335,120 @@ export default function OrderDetail() {
   /**
    * Submit order cancellation request.
    */
-  const handleSubmitCancel = async (): Promise<void> => {
-    if (!resolvedOrderId) return;
-    if (!selectedReason && !customReason) {
-      setToast({
-        message: 'Please select or enter a reason for cancellation.',
-      });
-      return;
-    }
+  const handleConfirmCancel = async (reason: string): Promise<void> => {
+    if (!orderItem.orderId) return;
     try {
       setIsCancelling(true);
-      const reason = customReason || selectedReason;
       const res = await orderService.cancelOrderByCustomer(
-        resolvedOrderId,
+        orderItem.orderId,
         reason
       );
       if (res.error) {
-        setToast({ message: `Cancellation failed: ${res.error}` });
+        // Extract the actual error message from the API response
+        const errorMessage = res.error.includes(':')
+          ? res.error.split(':').slice(1).join(':').trim()
+          : res.error;
+        setToast({ message: errorMessage || '주문 취소에 실패했습니다.' });
+        throw new Error(res.error);
       } else {
-        setToast({ message: 'Order has been cancelled.' });
-        await dispatch(fetchOrderDetails(resolvedOrderId));
-        setIsCancelModalOpen(false);
+        setToast({ message: '주문이 취소되었습니다.' });
+        // Refetch order details after cancellation
+        const { data } = await orderDetailsService.getOrderDetailsByItemId(
+          orderItemId
+        );
+        if (data?.data) {
+          setOrderItem(data.data);
+        }
       }
-    } catch {
-      setToast({ message: 'Error while cancelling order.' });
+    } catch (error) {
+      // Error message already shown in toast above
+      throw error;
     } finally {
       setIsCancelling(false);
     }
   };
 
-  const allCompleted = orderItems.every((i) => i.status === 'COMPLETED');
+  /**
+   * Render conditional action buttons based on order status.
+   */
+  const renderActions = (orderStatus: string): React.ReactNode => {
+    // Normalize status for comparison (trim whitespace and convert to uppercase)
+    const normalizedStatus = orderStatus?.trim().toUpperCase();
+
+    switch (normalizedStatus) {
+      case 'PAID':
+        return (
+          <button
+            className={styles.secondaryButton}
+            onClick={() => setIsCancelModalOpen(true)}
+          >
+            주문 취소
+          </button>
+        );
+
+      case 'DELIVERED':
+      case 'COMPLETED':
+        return (
+          <>
+            <button
+              className={styles.secondaryButton}
+              onClick={handleOpenExchangeRefundModal}
+            >
+              교환, 반품 신청
+            </button>
+            <button
+              onClick={handleTrackDelivery}
+              className={styles.secondaryButton}
+            >
+              배송 조회
+            </button>
+          </>
+        );
+
+      case 'PICKUP_COMPLETED':
+        return (
+          <>
+            <button
+              className={styles.secondaryButton}
+              onClick={handleOpenExchangeRefundModal}
+            >
+              교환, 반품 신청
+            </button>
+            <button
+              onClick={handleTrackDelivery}
+              className={styles.secondaryButton}
+            >
+              배송 조회
+            </button>
+          </>
+        );
+
+      case 'DELIVERY_STARTED':
+        return (
+          <button
+            onClick={handleTrackDelivery}
+            className={styles.secondaryButton}
+          >
+            배송 조회
+          </button>
+        );
+
+      case 'PREPARING':
+        return (
+          <button
+            onClick={handleTrackDelivery}
+            className={styles.secondaryButton}
+          >
+            배송 조회
+          </button>
+        );
+
+      case 'CANCELLED':
+      case 'REFUNDED':
+      default:
+        return null;
+    }
+  };
 
   // --- UI Rendering ---
   return (
@@ -248,7 +477,7 @@ export default function OrderDetail() {
                 </span>
               </div>
             )}
-            {mainOrderItem.shippingOption === 'DELIVERY' && (
+            {shippingOption === 'DELIVERY' && (
               <div className={styles.priceItem}>
                 <span className={styles.priceLabel}>배송비</span>
                 <span className={styles.priceValue}>
@@ -270,51 +499,100 @@ export default function OrderDetail() {
         </div>
       </div>
 
+      {/* Delivery Info */}
+      <div className={styles.deliverySection}>
+        <div className={styles.itemsHeader}>
+          <h3 className={styles.sectionTitle}>
+            {shippingOption === 'DELIVERY' ? '배송지' : '픽업 장소'}
+          </h3>
+        </div>
+
+        <div className={styles.recipientInfo}>
+          <p className={styles.recipientName}>{recipientName}</p>
+          <p className={styles.pickupMethod}>
+            {shippingOption === 'DELIVERY' ? '배송' : '직접 픽업'}
+          </p>
+        </div>
+
+        <div className={styles.pickupAddress}>
+          <p>
+            {shippingOption === 'DELIVERY' ? '' : '(픽업 장소) '}
+            {deliveryAddress.address}
+          </p>
+        </div>
+
+        <hr className={styles.divider} />
+
+        <div className={styles.pickupNote}>
+          <p>
+            {shippingOption === 'DELIVERY'
+              ? '배송이 시작되면 알림을 드립니다.'
+              : '결제일로부터 5일 안에 방문하여 픽업해주세요.'}
+          </p>
+        </div>
+      </div>
+
       {/* Ordered Items */}
       <div className={styles.itemsSection}>
-        <h3 className={`${styles.sectionTitle} ${getStatusClass(status)}`}>
-          {getStatusText(status)}
-        </h3>
-        {orderItems.map((item) => (
-          <div key={item.orderItemId} className={styles.orderItem}>
-            <div className={styles.itemContent}>
-              <img
-                src={item.productImageUrl}
-                alt={item.productName}
-                className={styles.itemImage}
-              />
-              <div className={styles.itemDetails}>
-                <h4 className={styles.itemName}>{item.productName}</h4>
-                <p className={styles.storeName}>{item.storeName}</p>
-                <div className={styles.itemPricing}>
-                  {item.appliedDiscountAmount > 0 && (
-                    <span className={styles.originalPrice}>
-                      {formatPrice(item.price)}원
-                    </span>
-                  )}
-                  <span className={styles.itemPrice}>
-                    {formatPrice(item.totalAmount)}원
+        <div className={styles.itemsHeader}>
+          <h3 className={`${styles.sectionTitle} ${getStatusClass(status)}`}>
+            {getStatusText(status)}
+          </h3>
+        </div>
+
+        <div key={orderItem.orderItemId} className={styles.orderItem}>
+          <div className={styles.itemContent}>
+            <img
+              src={orderItem.productImageUrl}
+              alt={orderItem.productName}
+              className={styles.itemImage}
+            />
+            <div className={styles.itemDetails}>
+              <h4 className={styles.itemName}>{orderItem.productName}</h4>
+              <p className={styles.storeName}>{orderItem.storeName}</p>
+              <div className={styles.itemPricing}>
+                {orderItem.appliedDiscountAmount > 0 && (
+                  <span className={styles.originalPrice}>
+                    {formatPrice(orderItem.price)}원
                   </span>
-                  <span className={styles.itemQuantity}>{item.quantity}개</span>
-                </div>
+                )}
+                <span className={styles.itemPrice}>
+                  {formatPrice(orderItem.totalAmount)}원
+                </span>
+                <span className={styles.itemQuantity}>
+                  {orderItem.quantity}개
+                </span>
               </div>
             </div>
           </div>
-        ))}
+        </div>
+
+        {/* Conditional Actions */}
+        <div className={styles.primaryActions}>{renderActions(status)}</div>
       </div>
 
-      {/* Bottom Actions */}
+      {/* Extra Actions */}
       <div className={styles.actionsSection}>
         <div className={styles.additionalActions}>
-          {allCompleted && (
-            <button
-              className={styles.actionButton}
-              onClick={() => router.push(PAGE_URLS.REVIEWS)}
-            >
-              리뷰 쓰기
-            </button>
-          )}
-          <button className={styles.actionButton}>문의하기</button>
+          <button
+            className={styles.actionButton}
+            onClick={handleWriteReview}
+            disabled={hasReviewed || checkingReview}
+            style={{
+              opacity: hasReviewed || checkingReview ? 0.6 : 1,
+              cursor: hasReviewed || checkingReview ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {hasReviewed ? '리뷰 작성 완료' : '리뷰 쓰기'}
+          </button>
+          <button
+            className={styles.actionButton}
+            onClick={() =>
+              router.push(`/contact-product?productId=${orderItem.productId}`)
+            }
+          >
+            문의하기
+          </button>
           <button
             className={styles.actionButton}
             onClick={() => setIsDeleteModalOpen(true)}
@@ -333,23 +611,54 @@ export default function OrderDetail() {
       {/* Exchange / Return Modal */}
       <ExchangeReturnModal
         open={isExchangeRefundOpen}
-        onClose={() => setIsExchangeRefundOpen(false)}
-        orderId={resolvedOrderId ?? ''}
+        onClose={handleCloseExchangeRefundModal}
+        orderId={orderItem.orderId}
         product={{
-          id: Number(mainOrderItem.productId),
-          orderItemId: mainOrderItem.orderItemId,
-          name: mainOrderItem.productName,
-          price: mainOrderItem.price,
+          id: Number(orderItem.productId),
+          orderItemId: orderItem.orderItemId,
+          name: orderItem.productName,
+          price: orderItem.price,
           discountPrice:
-            mainOrderItem.appliedDiscountAmount > 0
-              ? mainOrderItem.price - mainOrderItem.appliedDiscountAmount
+            orderItem.appliedDiscountAmount > 0
+              ? orderItem.price - orderItem.appliedDiscountAmount
               : undefined,
-          brand: mainOrderItem.storeName,
-          image: mainOrderItem.productImageUrl,
+          brand: orderItem.storeName,
+          image: orderItem.productImageUrl,
           deliveryType:
-            mainOrderItem.shippingOption === 'DELIVERY' ? 'delivery' : 'pickup',
+            orderItem.shippingOption === 'DELIVERY' ? 'delivery' : 'pickup',
         }}
-        onSelect={(choice) => console.log('User selected:', choice)}
+        onSelect={(choice) => {
+          console.log('User selected:', choice);
+          if (choice === 'exchange') {
+            router.push(
+              `${PAGE_URLS.ORDER_EXCHANGE(
+                orderItem.orderId
+              )}?orderItemId=${encodeURIComponent(orderItem.orderItemId)}`
+            );
+          } else {
+            router.push(
+              `${PAGE_URLS.ORDER_RETURN(
+                orderItem.orderId
+              )}?orderItemId=${encodeURIComponent(orderItem.orderItemId)}`
+            );
+          }
+        }}
+      />
+
+      {/* Cancel Order Modal */}
+      <CancelOrderModal
+        show={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        onConfirm={handleConfirmCancel}
+        isSubmitting={isCancelling}
+      />
+
+      {/* Delete Order History Modal */}
+      <DeleteModal
+        open={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        modalTitle="주문 내역을 삭제하시겠습니까?"
+        onDelete={handleConfirmDelete}
       />
     </div>
   );

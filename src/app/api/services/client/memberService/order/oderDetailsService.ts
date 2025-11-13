@@ -4,6 +4,7 @@ import {
   OrderHistoryApiResponse,
   OrderItemResponse,
   DeleteOrderHistoryResponse,
+  SingleOrderItemApiResponse,
 } from '../../../../types/member/order/orderDetails';
 
 export const orderDetailsService = {
@@ -125,12 +126,12 @@ export const orderDetailsService = {
     }
   },
 
-  /** NEW: Get order details by orderItemId */
+  /** Get order details by orderItemId (single item response) */
   async getOrderDetailsByItemId(
     orderItemId: string
-  ): Promise<{ data: OrderHistoryApiResponse | null; error?: string }> {
+  ): Promise<{ data: SingleOrderItemApiResponse | null; error?: string }> {
     try {
-      const response = await apiClient.get<OrderHistoryApiResponse>(
+      const response = await apiClient.get<SingleOrderItemApiResponse>(
         `/orders/items/${orderItemId}`
       );
       return { data: response.data };
@@ -145,15 +146,44 @@ export const orderDetailsService = {
     }
   },
 
-  /** Delete order history (OWNER/ADMIN) */
+  /**
+   * Delete order history (OWNER/ADMIN)
+   * DELETE /api/pet-save/order-histories/orders/{orderId}
+   */
   async deleteOrderHistory(
     orderId: string
-  ): Promise<{ data: DeleteOrderHistoryResponse | null; error?: string }> {
+  ): Promise<{ data: DeleteOrderHistoryResponse | null; error?: string; status?: number }> {
     try {
       const url = `/order-histories/orders/${orderId}`;
-      const response = await apiClient.delete<DeleteOrderHistoryResponse>(url);
-      return { data: response.data };
+      console.log('Delete order history URL:', url);
+
+      // Use raw axios instance to get status code
+      const response = await apiClient.raw.delete<DeleteOrderHistoryResponse>(url);
+
+      // 204 No Content is a successful response
+      if (response.status === 204) {
+        return { data: null, status: 204 };
+      }
+
+      // If there's an error in the response data, return it
+      if (response.data && typeof response.data === 'object' && 'success' in response.data && !response.data.success) {
+        const errorMsg =
+          (response.data as { resultMsg?: string }).resultMsg || 'Failed to delete order history';
+        return { data: null, error: errorMsg, status: response.status };
+      }
+
+      return { data: response.data || null, status: response.status };
     } catch (error) {
+      console.error('Delete order history error:', error);
+
+      // Check if it's an axios error with response
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number } };
+        if (axiosError.response?.status === 204) {
+          return { data: null, status: 204 };
+        }
+      }
+
       return {
         data: null,
         error:

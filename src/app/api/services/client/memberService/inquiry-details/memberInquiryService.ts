@@ -7,7 +7,7 @@ import {
 } from '../../../../types/member/inquiry-details/inquiry';
 
 export interface CreateInquiryRequest {
-  productId: string;
+  productId?: string;
   category: 'EXCHANGE_RETURN' | 'PRODUCT' | 'DELIVERY' | 'PAYMENT' | 'OTHER';
   content: string;
   imageFileIds?: string[];
@@ -136,14 +136,49 @@ export class MemberInquiryService {
         request
       );
 
+      // Validate: productId is required when category is 'PRODUCT'
+      if (request.category === 'PRODUCT') {
+        if (!request.productId || request.productId.trim() === '') {
+          const errorMessage =
+            '상품 문의는 상품 상세 페이지에서 문의를 남겨주세요.';
+          console.error(
+            '[MemberInquiryService] Validation error:',
+            errorMessage
+          );
+          return {
+            data: null,
+            error: errorMessage,
+          };
+        }
+      }
+
+      // Build request body - always include productId if provided to ensure store is linked
+      const requestBody: {
+        productId?: string;
+        category: string;
+        content: string;
+        imageFileIds: string[];
+      } = {
+        category: request.category,
+        content: request.content,
+        imageFileIds: request.imageFileIds || [],
+      };
+
+      // Always include productId if provided (even if optional) to ensure backend links store
+      // According to API: productId is optional, but required when category is 'PRODUCT'
+      // However, we always include it when available to ensure store information is populated
+      if (request.productId && request.productId.trim() !== '') {
+        requestBody.productId = request.productId.trim();
+      }
+
+      console.log(
+        '[MemberInquiryService] Final request body being sent:',
+        JSON.stringify(requestBody, null, 2)
+      );
+
       const response = await apiClient.post<CreateInquiryResponse>(
         '/inquiries',
-        {
-          productId: request.productId,
-          category: request.category,
-          content: request.content,
-          imageFileIds: request.imageFileIds || [],
-        }
+        requestBody
       );
 
       if (response.error) {

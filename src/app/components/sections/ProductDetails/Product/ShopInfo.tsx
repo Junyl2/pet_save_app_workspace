@@ -45,8 +45,8 @@ export const ShopInfo = ({
         <Image
           src={shopImage || defaultProfile.image}
           alt={shopName || '판매처'}
-          width={50}
-          height={50}
+          width={35}
+          height={35}
           style={{ borderRadius: '50%', objectFit: 'cover' }}
         />
         <div className={styles.shopInfo}>

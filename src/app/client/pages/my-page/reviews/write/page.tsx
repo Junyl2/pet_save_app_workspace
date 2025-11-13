@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
-import { FaStar, FaCamera } from 'react-icons/fa';
+import { FaCamera } from 'react-icons/fa';
 import styles from './WriteReview.module.css';
 import { ProductService } from '@/app/api/services/client/productService/productService';
 import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
@@ -210,9 +210,8 @@ export default function WriteReviewPage() {
               <Image
                 src={product.images[0]}
                 alt={product.productName}
-                width={60}
-                height={60}
-                className={styles.productImage}
+                width={90}
+                height={90}
                 priority
               />
             ) : (
@@ -256,12 +255,18 @@ export default function WriteReviewPage() {
                 onMouseEnter={() => handleStarHover(i)}
                 onMouseLeave={handleStarLeave}
               >
-                <FaStar
-                  className={`${styles.star} ${
+                <Image
+                  src={
                     i <= (hoveredStar || rating)
-                      ? styles.starFilled
-                      : styles.starEmpty
-                  }`}
+                      ? '/images/icons/filledStar.svg'
+                      : '/images/icons/blankStar.svg'
+                  }
+                  alt={
+                    i <= (hoveredStar || rating) ? 'Filled star' : 'Blank star'
+                  }
+                  width={43}
+                  height={43}
+                  className={styles.star}
                 />
               </button>
             ))}
@@ -314,9 +319,10 @@ export default function WriteReviewPage() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Submit */}
-        <div className={styles.line}></div>
+      {/* Submit Button - Fixed at Bottom */}
+      <div className={styles.submitButtonContainer}>
         <button
           className={`${styles.submitButton} ${
             isFormValid ? styles.submitButtonActive : ''

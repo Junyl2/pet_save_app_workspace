@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { ContactInquiry } from '@/app/api/types/contact/contact';
@@ -8,8 +8,8 @@ import { MyInquiry } from '@/app/api/types/member/inquiry-details/inquiry';
 import { MemberInquiryService } from '@/app/api/services/client/memberService/inquiry-details/memberInquiryService';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import ContactInboxSkeleton from '../../ui/SkeletonLoading/ContactInboxSkeleton/ContactInboxSkeleton';
-import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
 import { DotMenu } from '../../ui/DotMenu/DotMenu';
+import Image from 'next/image';
 import styles from './ContactInbox.module.css';
 
 type RangeLabel = '1개월' | '6개월' | '1년' | '전체보기';
@@ -29,14 +29,14 @@ const transformMyInquiryToContactInquiry = (
   id: myInquiry.inquiryId,
   inquiryId: myInquiry.inquiryId,
   date: myInquiry.createdAt,
-  shopName: myInquiry.store.name,
-  shopLocation: myInquiry.store.address,
-  shopImage: myInquiry.store.profileUrl || '/images/shops/shop1.png',
+  shopName: myInquiry.store?.name || '일반 문의',
+  shopLocation: myInquiry.store?.address || '',
+  shopImage: myInquiry.store?.profileUrl || '/images/shops/shop1.png',
   category: myInquiry.category,
   message: myInquiry.content,
   responseMessage: myInquiry.answer || '',
   status: myInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
-  productId: myInquiry.product.productId,
+  productId: myInquiry.product?.productId,
 });
 
 export default function ContactInbox({
@@ -47,16 +47,18 @@ export default function ContactInbox({
   const router = useRouter();
   const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState<RangeLabel>(initialRange);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<
     'EXCHANGE_RETURN' | 'PRODUCT' | 'DELIVERY' | 'PAYMENT' | 'OTHER' | undefined
   >(undefined);
   const [selectedStatus, setSelectedStatus] = useState<
     'WAITING' | 'ANSWERED' | undefined
   >(undefined);
+  const observerTarget = useRef<HTMLDivElement | null>(null);
 
   const rangeOptions: RangeLabel[] = ['1개월', '6개월', '1년', '전체보기'];
 
@@ -89,7 +91,12 @@ export default function ContactInbox({
   /** Fetch inquiries with date + pagination */
   const fetchInquiries = useCallback(
     async (range: RangeLabel, page: number) => {
-      setLoading(true);
+      if (page === 0) {
+        setLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
       try {
         const { dateStart, dateEnd } = getDateRangeParams(range);
         const params = {
@@ -97,7 +104,7 @@ export default function ContactInbox({
           status: selectedStatus || undefined,
           dateStart,
           dateEnd,
-          page: page - 1,
+          page: page,
           size: PAGE_SIZE,
           sortBy: 'createdAt',
           direction: 'desc' as const,
@@ -112,34 +119,85 @@ export default function ContactInbox({
             '[ContactInbox] Failed to fetch inquiries:',
             response.error
           );
-          setInquiries([]);
-          setTotalPages(1);
+          if (page === 0) {
+            setInquiries([]);
+          }
+          setHasMore(false);
         } else {
           const content = response.data.data.content.map(
             transformMyInquiryToContactInquiry
           );
-          setInquiries(content);
-          setTotalPages(response.data.data.pageInfo?.totalPages ?? 1);
+          const pageInfo = response.data.data.pageInfo;
+
+          if (page === 0) {
+            setInquiries(content);
+          } else {
+            setInquiries((prev) => [...prev, ...content]);
+          }
+          setHasMore(pageInfo?.hasNext || false);
         }
       } catch (error) {
         console.error('[ContactInbox] Error fetching inquiries:', error);
-        setInquiries([]);
-        setTotalPages(1);
+        if (page === 0) {
+          setInquiries([]);
+        }
+        setHasMore(false);
       } finally {
         setLoading(false);
+        setIsLoadingMore(false);
       }
     },
     [getDateRangeParams, selectedCategory, selectedStatus]
   );
 
-  /** Re-fetch when date range or page changes */
+  /** Reset and fetch initial page when filters change */
   useEffect(() => {
-    fetchInquiries(selectedRange, currentPage);
-  }, [selectedRange, currentPage, fetchInquiries]);
+    setCurrentPage(0);
+    setInquiries([]);
+    setHasMore(true);
+    fetchInquiries(selectedRange, 0);
+  }, [selectedRange, selectedCategory, selectedStatus, fetchInquiries]);
+
+  /** Load more when scrolling to bottom */
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !isLoadingMore &&
+          !loading
+        ) {
+          const nextPage = currentPage + 1;
+          setCurrentPage(nextPage);
+          fetchInquiries(selectedRange, nextPage);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [
+    hasMore,
+    isLoadingMore,
+    loading,
+    currentPage,
+    selectedRange,
+    fetchInquiries,
+  ]);
 
   const handleSelectRange = (option: RangeLabel) => {
     setSelectedRange(option);
-    setCurrentPage(1);
+    setCurrentPage(0);
     setDropdownOpen(false);
   };
 
@@ -194,15 +252,20 @@ export default function ContactInbox({
 
       {/* Inquiry List */}
       <div className={styles.container}>
-        {inquiries.length === 0 ? (
+        {inquiries.length === 0 && !loading && !isLoadingMore ? (
           <div className={styles.emptyInbox}>
-            {selectedRange === '전체보기' ? (
-              <p>문의 내역이 없습니다. 새로운 문의를 남겨보세요.</p>
-            ) : (
-              <p>{selectedRange} 동안 문의 내역이 없습니다.</p>
-            )}
+            <Image
+              src="/images/icons/Info circle.svg"
+              alt="Info"
+              width={80}
+              height={76}
+              className={styles.emptyIcon}
+            />
+            <p className={styles.emptyText}>
+              조회하신 기간 내 작성하신 Q&A가 없습니다.
+            </p>
           </div>
-        ) : (
+        ) : inquiries.length > 0 ? (
           inquiries.map((inq) => {
             const isCompleted = inq.status === '답변 완료';
             const formattedDate = new Intl.DateTimeFormat('ko-KR', {
@@ -217,7 +280,11 @@ export default function ContactInbox({
                   `/client/pages/my-page/history-inquiry/reply/${inq.inquiryId}`
                 );
               } else {
-                router.push(`/inquiries/waiting-reply/${inq.productId}`);
+                if (inq.inquiryId) {
+                  router.push(`/inquiries/waiting-reply/${inq.inquiryId}`);
+                } else {
+                  console.error('Inquiry ID is missing');
+                }
               }
             };
 
@@ -256,32 +323,34 @@ export default function ContactInbox({
                   </div>
                 )}
 
-                <p className={styles.status}>
-                  <span
-                    className={isCompleted ? styles.completed : styles.pending}
-                  >
-                    {inq.status}
-                  </span>{' '}
-                  <span className={styles.date}>{formattedDate}</span>
-                </p>
+                <div className={styles.statusContainer}>
+                  <p className={styles.status}>
+                    <span
+                      className={
+                        isCompleted ? styles.completed : styles.pending
+                      }
+                    >
+                      {inq.status}
+                    </span>{' '}
+                    <span className={styles.date}>{formattedDate}</span>
+                  </p>
+                </div>
 
-                <p className={styles.shopInfo}>{inq.shopName}</p>
-                <p>{inq.category}</p>
-                <p className={styles.message}>{inq.message}</p>
+                <div className={styles.contentContainer}>
+                  <p className={styles.shopInfo}>{inq.shopName}</p>
+                  <p className={styles.category}>{inq.category}</p>
+                  <p className={styles.message}>{inq.message}</p>
+                </div>
               </div>
             );
           })
+        ) : null}
+
+        {hasMore && (
+          <div ref={observerTarget} style={{ height: '20px', width: '100%' }} />
         )}
 
-        {totalPages > 1 && (
-          <div className={styles.pagination}>
-            <ClientPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </div>
-        )}
+        {isLoadingMore && <ContactInboxSkeleton />}
       </div>
     </>
   );

@@ -1,16 +1,17 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { IoChevronDownOutline } from 'react-icons/io5';
 import styles from './ProductManagement.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { ProductService } from '@/app/api/services/client/productService/productService';
+import { ProductManagementService } from '@/app/api/services/admin/productManagement/productManagementService';
 import {
   ProductSearchResponse,
   Product,
 } from '@/app/api/types/products/products';
+import EditProductModal from './EditProductModal';
 
 interface ProductRow {
   productId: string;
@@ -25,7 +26,6 @@ interface ProductRow {
 const PAGE_SIZE = 5;
 
 export default function ProductManagementPage() {
-  const router = useRouter();
   const { page, setPage } = usePageParam(1);
 
   const [products, setProducts] = useState<ProductRow[]>([]);
@@ -34,6 +34,16 @@ export default function ProductManagementPage() {
   const [open, setOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null
+  );
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const handleImageError = (productId: string) => {
+    setImageErrors((prev) => ({ ...prev, [productId]: true }));
+  };
 
   const handleSelect = (value: string) => {
     setSelectedOption(value);
@@ -42,19 +52,39 @@ export default function ProductManagementPage() {
   };
 
   const openEdit = (product: ProductRow) => {
-    const query = new URLSearchParams({
-      image: product.thumbnail ?? '',
-      type: product.storeName,
-      situation: product.registrationStatus,
-    }).toString();
+    setSelectedProductId(product.productId);
+    setEditModalOpen(true);
+  };
 
-    router.push(
-      `/admin/pages/animal-category-management/edit-category/${product.productId}?${query}`
-    );
+  const handleDelete = async (productId: string, productName: string) => {
+    if (!confirm(`"${productName}" 상품을 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    setDeleting(productId);
+    try {
+      const { error } = await ProductManagementService.deleteProduct(productId);
+      if (error) {
+        alert(`상품 삭제 실패: ${error}`);
+      } else {
+        alert('상품이 성공적으로 삭제되었습니다.');
+        fetchProducts();
+      }
+    } catch (err) {
+      console.error('[ProductManagementPage] Delete error:', err);
+      alert('상품 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleEditSuccess = () => {
+    fetchProducts();
   };
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
+    setImageErrors({});
     try {
       let statusFilter: 'ONSALE' | 'SOLD_OUT' | undefined;
       if (selectedOption === '판매중') statusFilter = 'ONSALE';
@@ -183,16 +213,17 @@ export default function ProductManagementPage() {
           products.map((product) => (
             <div key={product.productId} className={styles.dataRow}>
               <div className={`${styles.col} ${styles.image}`}>
-                {product.thumbnail ? (
-                  <Image
-                    src={product.thumbnail}
-                    fill
-                    alt={product.productName}
-                    className={styles.thumb}
-                  />
-                ) : (
-                  <div className={styles.placeholder}></div>
-                )}
+                <Image
+                  src={
+                    imageErrors[product.productId] || !product.thumbnail
+                      ? '/images/products/product-fallback.svg'
+                      : product.thumbnail
+                  }
+                  fill
+                  alt={product.productName}
+                  className={styles.thumb}
+                  onError={() => handleImageError(product.productId)}
+                />
               </div>
               <div className={styles.col}>{product.storeName}</div>
               <div className={styles.col}>{product.productName}</div>
@@ -207,7 +238,15 @@ export default function ProductManagementPage() {
                 {product.registrationStatus}
               </div>
               <div className={styles.actions}>
-                <button className={styles.hideBtn}>삭제</button>
+                <button
+                  className={styles.hideBtn}
+                  onClick={() =>
+                    handleDelete(product.productId, product.productName)
+                  }
+                  disabled={deleting === product.productId}
+                >
+                  {deleting === product.productId ? '삭제 중...' : '삭제'}
+                </button>
                 <button
                   className={styles.editBtn}
                   tabIndex={0}
@@ -235,6 +274,18 @@ export default function ProductManagementPage() {
           </div>
         )}
       </div>
+
+      {selectedProductId && (
+        <EditProductModal
+          open={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setSelectedProductId(null);
+          }}
+          productId={selectedProductId}
+          onSuccess={handleEditSuccess}
+        />
+      )}
     </>
   );
 }

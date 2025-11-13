@@ -93,12 +93,17 @@ export default function ProductDetailPage() {
         averageRating={product.averageRating}
         totalReviews={product.totalReviews}
       />
-      <UsageInstructions />
+      <UsageInstructions
+        pickupLocation={product.store.address}
+        openingHourStart={product.store.openingHourStart}
+        openingHourEnd={product.store.openingHourEnd}
+      />
       <PreviewReview productId={product.productId} />
       <ProductActions
         productId={product.productId}
         productName={product.productName}
         productPrice={product.discountedPrice || product.salePrice}
+        productImage={product.thumbnail}
         storeId={product.store.storeId}
         onAddToCart={(quantity, name) => {
           console.log('Added to cart:', quantity, name);

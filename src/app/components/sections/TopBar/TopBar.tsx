@@ -20,6 +20,7 @@ type TopBarProps = {
 
 export default function TopBar({ onSearch }: TopBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useUser();
   const isLoggedIn = !!user;
 
@@ -36,6 +37,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
 
   /** Helpers */
   const isShoplist = pathname.startsWith('/shops');
+  const isHomepage = pathname.startsWith('/client/pages/homepage');
 
   const isRecord = (v: unknown): v is Record<string, unknown> =>
     typeof v === 'object' && v !== null;
@@ -179,6 +181,62 @@ export default function TopBar({ onSearch }: TopBarProps) {
     }
   }, [isShoplist, showHistory]);
 
+  // Listen for search history deletion events from WrongTermSearchHistory
+  useEffect(() => {
+    const handleSearchHistoryDeleted = (e: CustomEvent) => {
+      const keyword = e.detail?.keyword;
+      if (keyword) {
+        // Refresh history to reflect deletion
+        const loadSearchHistory = async () => {
+          try {
+            if (pathname === '/shops' || !isLoggedIn) {
+              return;
+            }
+            const refreshResponse = await SearchHistoryService.getRecentSearches();
+            if (!refreshResponse.error) {
+              const raw = refreshResponse.data?.data || refreshResponse.data || [];
+              setHistory(normalizeHistory(raw));
+            }
+          } catch (error) {
+            console.error('Error refreshing search history:', error);
+          }
+        };
+        loadSearchHistory();
+      }
+    };
+
+    const handleSearchHistoryCleared = () => {
+      // Refresh history to reflect clearing
+      const loadSearchHistory = async () => {
+        try {
+          if (pathname === '/shops' || !isLoggedIn) {
+            setHistory([]);
+            return;
+          }
+          const refreshResponse = await SearchHistoryService.getRecentSearches();
+          if (!refreshResponse.error) {
+            const raw = refreshResponse.data?.data || refreshResponse.data || [];
+            setHistory(normalizeHistory(raw));
+          } else {
+            setHistory([]);
+          }
+        } catch (error) {
+          console.error('Error refreshing search history:', error);
+          setHistory([]);
+        }
+      };
+      loadSearchHistory();
+    };
+
+    window.addEventListener('searchHistoryDeleted', handleSearchHistoryDeleted as EventListener);
+    window.addEventListener('searchHistoryCleared', handleSearchHistoryCleared);
+
+    return () => {
+      window.removeEventListener('searchHistoryDeleted', handleSearchHistoryDeleted as EventListener);
+      window.removeEventListener('searchHistoryCleared', handleSearchHistoryCleared);
+    };
+  }, [isLoggedIn, pathname, normalizeHistory]);
+
   useEffect(() => {
     loadSelectedLocation();
   }, [loadSelectedLocation]);
@@ -253,7 +311,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
     }
 
     if (!term) {
-      toast.error('검색어를 입력해주세요.');
+      toast.error('검색어를 입력해주세요.', { id: 'empty-search-toast' });
       return;
     }
 
@@ -344,6 +402,25 @@ export default function TopBar({ onSearch }: TopBarProps) {
     e.preventDefault();
     e.stopPropagation();
 
+    // Also delete from WrongTermSearchHistory
+    const wrongTermStorageKey = 'wrongTermSearchHistory';
+    const wrongTermStored = localStorage.getItem(wrongTermStorageKey);
+    if (wrongTermStored) {
+      try {
+        const parsed = JSON.parse(wrongTermStored);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(
+            (item: any) => item.keyword !== keyword
+          );
+          localStorage.setItem(wrongTermStorageKey, JSON.stringify(filtered));
+          // Dispatch event to notify WrongTermSearchHistory component
+          window.dispatchEvent(new Event('wrongTermHistoryUpdated'));
+        }
+      } catch (error) {
+        console.error('Failed to update wrongTermSearchHistory:', error);
+      }
+    }
+
     try {
       const response = await SearchHistoryService.deleteKeyword(keyword);
       if (response.error) {
@@ -363,6 +440,12 @@ export default function TopBar({ onSearch }: TopBarProps) {
   };
 
   const handleClearAll = async () => {
+    // Also clear WrongTermSearchHistory
+    const wrongTermStorageKey = 'wrongTermSearchHistory';
+    localStorage.removeItem(wrongTermStorageKey);
+    // Dispatch event to notify WrongTermSearchHistory component
+    window.dispatchEvent(new Event('wrongTermHistoryUpdated'));
+
     try {
       const response = await SearchHistoryService.clearSearchHistory();
       if (response.error) {
@@ -379,7 +462,18 @@ export default function TopBar({ onSearch }: TopBarProps) {
   };
 
   const handleFocus = () => setShowHistory(true);
-  const handleBlur = () => setTimeout(() => setShowHistory(false), 200);
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Check if the new focus target is within the dropdown
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (
+      dropdownRef.current &&
+      relatedTarget &&
+      dropdownRef.current.contains(relatedTarget)
+    ) {
+      return; // Don't close if clicking inside dropdown
+    }
+    setTimeout(() => setShowHistory(false), 200);
+  };
 
   return (
     <header
@@ -470,12 +564,20 @@ export default function TopBar({ onSearch }: TopBarProps) {
             </form>
 
             {showHistory && (
-              <div aria-hidden="true" className={styles.historyDropdown}>
+              <div
+                ref={dropdownRef}
+                aria-hidden="true"
+                className={styles.historyDropdown}
+              >
                 <div className={styles.historyHeader}>
                   <span className={styles.historyTitle}>최근 검색어</span>
                   <button
                     type="button"
                     className={styles.clearAllBtn}
+                    onMouseDown={(e) => {
+                      e.preventDefault(); // Prevent input blur
+                      e.stopPropagation();
+                    }}
                     onClick={() => {
                       if (isShoplist) {
                         localStorage.removeItem('shopSearchKeywords');
@@ -518,6 +620,10 @@ export default function TopBar({ onSearch }: TopBarProps) {
                               <button
                                 type="button"
                                 className={styles.historyDelete}
+                                onMouseDown={(e) => {
+                                  e.preventDefault(); // Prevent input blur
+                                  e.stopPropagation();
+                                }}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (isShoplist) {

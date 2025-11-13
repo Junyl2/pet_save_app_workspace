@@ -55,7 +55,7 @@ export function ProductSelectionStep({
           mainContent={
             <div className={styles.productInfo}>
               <img
-                src={product.image || '/placeholder.svg'}
+                src={product.image || '/images/products/product-fallback.svg'}
                 alt={product.name}
                 className={styles.productImage}
               />

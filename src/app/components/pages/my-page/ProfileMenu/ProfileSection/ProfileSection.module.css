@@ -1,5 +1,5 @@
 .profileSection {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   background-color: #fff;
   margin-left: -1rem;
   margin-right: -1rem;
@@ -7,13 +7,15 @@
 }
 
 .sectionTitle {
-  font-size: 0.975rem;
+  font-size: 15px;
   color: #000;
-  margin-bottom: 0.5rem;
+  margin-bottom: 13px;
   margin-top: 0;
+  font-weight: 600;
 }
 
 .sectionItems {
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }

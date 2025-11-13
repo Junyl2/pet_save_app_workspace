@@ -110,9 +110,9 @@ export default function FilterNav() {
             >
               {item.label}
               {openId === item.id ? (
-                <FaChevronUp className={styles.icon} />
+                <FaChevronUp height={6} width={14} className={styles.icon} />
               ) : (
-                <FaChevronDown className={styles.icon} />
+                <FaChevronDown height={6} width={14} className={styles.icon} />
               )}
             </button>
 

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
@@ -10,16 +9,20 @@ import {
   MemberSummary,
 } from '@/app/api/services/client/memberService/memberService';
 import { useOrderFilter } from '@/app/context/orderFilterContext';
+import MemberDetailModal from './regular-member/[id]/MemberDetailModal';
 
 const PAGE_SIZE = 10;
 
 export default function GeneralMemberPage() {
-  const router = useRouter();
   const { page, setPage } = usePageParam(1);
 
   const [members, setMembers] = useState<MemberSummary[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [selectedMember, setSelectedMember] = useState<MemberSummary | null>(
+    null
+  );
+  const [modalOpen, setModalOpen] = useState(false);
 
   const { filters, filterTrigger } = useOrderFilter();
 
@@ -82,11 +85,71 @@ export default function GeneralMemberPage() {
     }
   }, [filterTrigger, page, setPage]);
 
-  /** Open member detail page */
-  const openMemberDetail = (member: MemberSummary) => {
-    router.push(
-      `/admin/pages/account-permission-management/general-member/regular-member/${member.memberId}`
-    );
+  /** Open modal */
+  const handleOpenModal = (member: MemberSummary): void => {
+    setSelectedMember(member);
+    setModalOpen(true);
+  };
+
+  /** Close modal */
+  const handleCloseModal = (): void => {
+    setModalOpen(false);
+    setSelectedMember(null);
+  };
+
+  /** Refresh members list after update/delete */
+  const handleUpdate = (): void => {
+    // Trigger refetch by updating filterTrigger or just refetch
+    const fetchMembers = async () => {
+      setLoading(true);
+      try {
+        const params: {
+          page: number;
+          size: number;
+          sortBy: string;
+          direction: 'desc';
+          keyword?: string;
+          dateStart?: string;
+          dateEnd?: string;
+        } = {
+          page: page - 1,
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        };
+
+        if (filters.dateStart?.trim()) {
+          const dateStart = filters.dateStart.trim();
+          params.dateStart = dateStart.includes('T') ? dateStart.split('T')[0] : dateStart;
+        }
+        if (filters.dateEnd?.trim()) {
+          const dateEnd = filters.dateEnd.trim();
+          params.dateEnd = dateEnd.includes('T') ? dateEnd.split('T')[0] : dateEnd;
+        }
+        if (filters.keyword?.trim()) {
+          params.keyword = filters.keyword.trim();
+        }
+
+        const response = await MemberService.getMembersList(params);
+
+        if (response.error || !response.data?.success) {
+          console.error('Failed to fetch members:', response.error);
+          setMembers([]);
+          return;
+        }
+
+        const data = response.data.data;
+        setMembers(data.content ?? []);
+        setTotalPages(data.pageInfo?.totalPages ?? 1);
+      } catch (error) {
+        console.error('Error loading members:', error);
+        setMembers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchMembers();
   };
 
   return (
@@ -113,9 +176,9 @@ export default function GeneralMemberPage() {
               className={styles.dataRow}
               role="button"
               tabIndex={0}
-              onClick={() => openMemberDetail(member)}
+              onClick={() => handleOpenModal(member)}
               onKeyDown={(e) =>
-                (e.key === 'Enter' || e.key === ' ') && openMemberDetail(member)
+                (e.key === 'Enter' || e.key === ' ') && handleOpenModal(member)
               }
               aria-label={`${member.name} 상세 보기`}
             >
@@ -141,6 +204,14 @@ export default function GeneralMemberPage() {
           </div>
         </div>
       )}
+
+      {/* Detail Modal */}
+      <MemberDetailModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        memberId={selectedMember?.memberId ?? null}
+        onUpdate={handleUpdate}
+      />
     </>
   );
 }

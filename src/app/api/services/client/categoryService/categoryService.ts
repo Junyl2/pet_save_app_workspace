@@ -3,6 +3,7 @@ import {
   Category,
   CategoryApiResponse,
   CategorySearchParams,
+  AdminCategorySearchParams,
   CategoryCreateRequest,
   CategoryUpdateRequest,
   CategoryResponse,
@@ -67,6 +68,72 @@ export class CategoryService {
         data: null,
         error:
           error instanceof Error ? error.message : 'Failed to fetch categories',
+      };
+    }
+  }
+
+  /**
+   * Get all categories with details (ADMIN)
+   * GET /api/pet-save/categories/details
+   * ADMIN permission required
+   */
+  static async getAllCategoriesWithDetails(
+    params?: AdminCategorySearchParams
+  ): Promise<ApiResponse<CategoryApiResponse>> {
+    try {
+      console.log(
+        '[CategoryService] Fetching categories with details (ADMIN) with params:',
+        params
+      );
+
+      const queryParams = new URLSearchParams();
+      if (params?.keyword) queryParams.append('keyword', params.keyword);
+      if (params?.categoryName)
+        queryParams.append('categoryName', params.categoryName);
+      if (params?.englishName)
+        queryParams.append('englishName', params.englishName);
+      if (params?.visible !== undefined)
+        queryParams.append('visible', params.visible.toString());
+      if (params?.page !== undefined)
+        queryParams.append('page', params.page.toString());
+      if (params?.size !== undefined)
+        queryParams.append('size', params.size.toString());
+      if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+      if (params?.direction) queryParams.append('direction', params.direction);
+
+      const url = `${this.BASE_URL}/details${
+        queryParams.toString() ? `?${queryParams.toString()}` : ''
+      }`;
+
+      const response = await apiClient.get<CategoryApiResponse>(url);
+
+      if (response.error) {
+        console.error(
+          '[CategoryService] Failed to fetch categories with details:',
+          response.error
+        );
+        return response;
+      }
+
+      console.log(
+        '[CategoryService] Categories with details fetched successfully:',
+        {
+          totalCategories: response.data?.data?.totalElements || 0,
+          currentPage: response.data?.data?.number || 0,
+          totalPages: response.data?.data?.totalPages || 0,
+          categoriesFound: response.data?.data?.content?.length || 0,
+        }
+      );
+
+      return response;
+    } catch (error) {
+      console.error('[CategoryService] Category details service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch categories with details',
       };
     }
   }

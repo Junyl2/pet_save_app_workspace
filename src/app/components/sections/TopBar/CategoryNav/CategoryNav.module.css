@@ -1,17 +1,19 @@
 .wrapper {
+  position: relative;
   width: 100%;
   overflow-x: auto;
   -ms-overflow-style: none;
   scrollbar-width: none;
   position: fixed;
-  top: 138px;
+  top: 114.6px;
   left: 0;
   width: 100%;
   z-index: 500;
   background-color: #fff;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-top: 1.5px solid rgba(0, 0, 0, 0.1);
 }
+
 .sellerNav {
   width: 100%;
   overflow-x: auto;
@@ -47,12 +49,16 @@
 
 .item {
   flex: 0 0 auto;
-  padding: 0.4rem 1rem;
-  border: 1px solid #79e0c4;
+  padding: 0px 15px;
+  height: 28px;
+  border: 1px solid #66bfa7;
   border-radius: 5px;
   background-color: #fff;
   color: #333;
   font-size: 12px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -61,13 +67,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #79e0c4;
+  padding: 0px 14px !important;
+  border: 1px solid #66bfa7;
   border-radius: 5px;
   background-color: #fff;
   color: #333;
   font-size: 0.95rem;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
+  width: 28px;
+  height: 28px;
+}
+.filterIcon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 /* .item:hover {
@@ -87,6 +104,9 @@
   padding: 0.4rem 1rem;
   color: #666;
   font-size: 12px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', sans-serif;
 }
 
 .error {
@@ -95,6 +115,9 @@
   padding: 0.4rem 1rem;
   color: #e74c3c;
   font-size: 12px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', sans-serif;
 }
 
 @media (min-width: 1024px) {

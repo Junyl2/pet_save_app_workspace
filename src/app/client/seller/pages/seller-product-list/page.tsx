@@ -3,7 +3,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
 import { FaChevronDown, FaTimes } from 'react-icons/fa';
 import styles from './styles.module.css';
 import TopBar from '@/app/components/sections/TopBar/TopBar';
@@ -390,10 +389,9 @@ export default function SellerProductListPage() {
               return (
                 <article key={p.productId} className={styles.card}>
                   <div className={styles.thumbWrap}>
-                    <Image
+                    <img
                       src={getDefaultImage(p)}
                       alt={p.productName}
-                      fill
                       className={styles.thumb}
                     />
                   </div>

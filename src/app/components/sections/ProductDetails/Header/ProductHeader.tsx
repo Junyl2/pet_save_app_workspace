@@ -21,6 +21,9 @@ export const ProductHeader = () => {
     '/client/seller/pages/change-profile'
   );
   const isShoplist = pathname.startsWith('/shops');
+  const isOrderHistoryItem = pathname.startsWith(
+    '/client/pages/my-page/order-history/items'
+  );
   const isOrderHistory = pathname.startsWith(
     '/client/pages/my-page/order-history'
   );
@@ -30,6 +33,12 @@ export const ProductHeader = () => {
     (pathname.includes('/tracking/return') ||
       pathname.includes('/tracking/exchange'));
 
+  // Check if we're on OrderTracking page (but not return/exchange flow)
+  const isOrderTracking =
+    pathname.includes('/client/pages/my-page/order-history/') &&
+    pathname.includes('/tracking') &&
+    !isReturnExchangeFlow;
+
   const handleBack = () => {
     if (isInquiryPage) {
       router.push('/client/pages/inquiries'); // go to inbox
@@ -37,6 +46,11 @@ export const ProductHeader = () => {
       router.push('/client/pages/homepage');
     } else if (isShoplist) {
       router.push('/shops');
+    } else if (isOrderHistoryItem) {
+      router.back(); // Use router.back() to preserve filter params
+    } else if (isOrderTracking) {
+      router.back(); // Use router.back() for OrderTracking
+    } else if (isOrderConfirmation) {
     } else if (isOrderHistory) {
       router.push('/client/pages/my-page');
     } else if (isOrderConfirmation) {

@@ -525,61 +525,63 @@ export default function AddressList() {
               </div>
             ) : (
               <>
-                <label className={styles.radioWrapper}>
-                  <input
-                    type="radio"
-                    name="address"
-                    checked={selectedId === api.deliveryAddressId}
-                    onChange={() => setSelectedId(api.deliveryAddressId)}
-                  />
-                  <span className={styles.customRadio}></span>
-                </label>
-                <div className={styles.cardContent}>
-                  <h3
-                    className={`${styles.label} ${
-                      selectedId === api.deliveryAddressId
-                        ? styles.labelSelected
-                        : ''
-                    }`}
-                  >
-                    {/* Address Title shown here */}
-                    {api.addressTitle || '배송지'}
-                    {defaultId === api.deliveryAddressId && (
-                      <span className={styles.defaultBadge}>기본</span>
+                <div className={styles.addressItem}>
+                  <label className={styles.radioWrapper}>
+                    <input
+                      type="radio"
+                      name="address"
+                      checked={selectedId === api.deliveryAddressId}
+                      onChange={() => setSelectedId(api.deliveryAddressId)}
+                    />
+                    <span className={styles.customRadio}></span>
+                  </label>
+                  <div className={styles.cardContent}>
+                    <h3
+                      className={`${styles.label} ${
+                        selectedId === api.deliveryAddressId
+                          ? styles.labelSelected
+                          : ''
+                      }`}
+                    >
+                      {/* Address Title shown here */}
+                      {api.addressTitle || '배송지'}
+                      {defaultId === api.deliveryAddressId && (
+                        <span className={styles.defaultBadge}>기본</span>
+                      )}
+                    </h3>
+
+                    {/* Receiver name shown here */}
+                    <p className={styles.name}>
+                      {api.receiverName || '수령인 미지정'}
+                    </p>
+
+                    {/* Phone number shown here */}
+                    {api.receiverPhone && (
+                      <p className={styles.phone}>{api.receiverPhone}</p>
                     )}
-                  </h3>
 
-                  {/* Receiver name shown here */}
-                  <p className={styles.name}>
-                    {api.receiverName || '수령인 미지정'}
-                  </p>
-
-                  {/* Phone number shown here */}
-                  {api.receiverPhone && (
-                    <p className={styles.phone}>{api.receiverPhone}</p>
-                  )}
-
-                  <p className={styles.postal}>({postal})</p>
-                  <p className={styles.address}>{fullAddress}</p>
-                  <div className={styles.editBtnContainer}>
-                    <button
-                      className={styles.editBtn}
-                      onClick={() => handleEditAddress(api.deliveryAddressId)}
-                    >
-                      수정하기
-                    </button>
-                    <button
-                      className={styles.deleteBtn}
-                      onClick={() => handleDeleteAddress(api.deliveryAddressId)}
-                      disabled={isDeletingId === api.deliveryAddressId}
-                      aria-label="배송지 삭제"
-                      title="삭제"
-                    >
-                      {isDeletingId === api.deliveryAddressId
-                        ? '삭제 중…'
-                        : '삭제'}
-                    </button>
+                    <p className={styles.postal}>({postal})</p>
+                    <p className={styles.address}>{fullAddress}</p>
                   </div>
+                </div>
+                <div className={styles.editBtnContainer}>
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => handleEditAddress(api.deliveryAddressId)}
+                  >
+                    수정하기
+                  </button>
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={() => handleDeleteAddress(api.deliveryAddressId)}
+                    disabled={isDeletingId === api.deliveryAddressId}
+                    aria-label="배송지 삭제"
+                    title="삭제"
+                  >
+                    {isDeletingId === api.deliveryAddressId
+                      ? '삭제 중…'
+                      : '삭제'}
+                  </button>
                 </div>
               </>
             )}

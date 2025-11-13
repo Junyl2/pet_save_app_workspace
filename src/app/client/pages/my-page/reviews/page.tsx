@@ -5,7 +5,6 @@ export const fetchCache = 'force-no-store';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
-import { FaStar } from 'react-icons/fa';
 import ReviewSkeleton from '@/app/components/ui/SkeletonLoading/ReviewSkeleton/ReviewSkeleton';
 import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
@@ -22,26 +21,9 @@ import { MyReviewsParams } from '@/app/api/types/member/review/review';
 import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
 import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
 import styles from './Reviews.module.css';
-import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
+import Image from 'next/image';
 
 const PAGE_SIZE = 10;
-
-const getRatingComment = (rating: number): string => {
-  switch (rating) {
-    case 5:
-      return '매우 만족';
-    case 4:
-      return '만족해요';
-    case 3:
-      return '보통이에요';
-    case 2:
-      return '불만족';
-    case 1:
-      return '매우 불만족';
-    default:
-      return '보통';
-  }
-};
 
 export default function ReviewsPage() {
   const router = useRouter();
@@ -166,16 +148,6 @@ export default function ReviewsPage() {
     router.push(`/client/pages/my-page/reviews/view?reviewId=${reviewId}`);
   };
 
-  const renderStars = (rating: number) =>
-    Array.from({ length: 5 }, (_, i) => (
-      <FaStar
-        key={i}
-        className={`${styles.star} ${
-          i < rating ? styles.starFilled : styles.starEmpty
-        }`}
-      />
-    ));
-
   const shouldShowSkeleton =
     (activeTab === 'my-reviews' && (loading || !hasLoadedOnce)) ||
     (activeTab === 'write' &&
@@ -236,9 +208,13 @@ export default function ReviewsPage() {
                         className={styles.productItem}
                       >
                         <div className={styles.productImage}>
-                          <img
+                          <Image
                             src={product.productImageUrl}
                             alt={product.productName}
+                            width={70}
+                            height={70}
+                            className={styles.thumb}
+                            unoptimized
                           />
                         </div>
                         <div className={styles.productInfo}>
@@ -265,65 +241,57 @@ export default function ReviewsPage() {
               </div>
             ) : (
               /** My Reviews Tab */
-              <div className={styles.myReviewsSection}>
+              <div className={styles.writeReviewSection}>
+                <div className={styles.sectionTitle}>
+                  내가 쓴 리뷰 {writtenReviews.length}개
+                </div>
+
                 {error ? (
                   <div className={styles.emptyState}>에러: {error}</div>
                 ) : writtenReviews.length > 0 ? (
                   <>
-                    <div className={styles.detailedReviewContainer}>
+                    <div className={styles.productList}>
                       {writtenReviews.map((review) => (
                         <div
                           key={`review-${review.reviewId}`}
-                          className={styles.detailedReview}
+                          className={styles.productItem}
                         >
-                          <div className={styles.reviewHeader}>
-                            <div className={styles.userInfo}>
-                              <div className={styles.profileImage}>
-                                <img
-                                  src={
-                                    review.reviewer.profileImageUrl ||
-                                    '/images/icons/profile-default.png'
-                                  }
-                                  alt="Profile"
-                                />
-                              </div>
-                              <div className={styles.userDetails}>
-                                <div className={styles.usernameAndRating}>
-                                  <span className={styles.username}>
-                                    {getRatingComment(review.rating)}
-                                  </span>
-                                  <div className={styles.starsContainer}>
-                                    {renderStars(review.rating)}
-                                  </div>
-                                </div>
-                                <div className={styles.userIdAndDate}>
-                                  {review.reviewer.name} |{' '}
-                                  {new Date(
-                                    review.createdAt
-                                  ).toLocaleDateString('ko-KR')}
-                                </div>
-                              </div>
+                          <div className={styles.productImage}>
+                            <Image
+                              src={
+                                review.product?.productThumbnail ||
+                                review.imageUrls?.[0] ||
+                                '/images/icons/product-default.png'
+                              }
+                              alt={review.productName}
+                              width={70}
+                              height={70}
+                              className={styles.thumb}
+                              unoptimized
+                            />
+                          </div>
+                          <div className={styles.productInfo}>
+                            <div className={styles.productName}>
+                              {review.productName}
                             </div>
-
-                            <button
-                              className={styles.editButton}
-                              onClick={() => handleViewReview(review.reviewId)}
-                            >
-                              리뷰보기
-                            </button>
+                            <div className={styles.productPrice}>
+                              {(
+                                review.product?.discountedPrice ||
+                                review.product?.salePrice ||
+                                0
+                              ).toLocaleString('ko-KR')}
+                              원
+                            </div>
+                            <div className={styles.productStore}>
+                              {review.storeName || '-'}
+                            </div>
                           </div>
-
-                          <div className={styles.reviewProductName}>
-                            {review.productName}
-                          </div>
-
-                          {review.imageUrls?.length > 0 && (
-                            <ReviewImageGallery images={review.imageUrls} />
-                          )}
-
-                          <div className={styles.reviewTextContent}>
-                            {review.content}
-                          </div>
+                          <button
+                            className={styles.reviewButton}
+                            onClick={() => handleViewReview(review.reviewId)}
+                          >
+                            리뷰보기
+                          </button>
                         </div>
                       ))}
                     </div>

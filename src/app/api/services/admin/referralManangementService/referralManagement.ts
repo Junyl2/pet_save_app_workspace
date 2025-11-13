@@ -71,3 +71,66 @@ export interface ReferralStoreStatus {
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * Parameters for searching store point payment statuses (admin)
+ */
+export interface StorePointPaymentSearchParams {
+  keyword?: string;
+  storeId?: string;
+  isPaused?: boolean;
+  dateStart?: string;
+  dateEnd?: string;
+  page?: number;
+  size?: number;
+  sortBy?:
+    | 'createdAt'
+    | 'updatedAt'
+    | 'businessName'
+    | 'totalSubscribers'
+    | 'totalAwardedPoints';
+  direction?: 'asc' | 'desc';
+}
+
+/**
+ * Individual store point payment status record
+ */
+export interface StorePointPaymentStatus {
+  storeId: string;
+  businessName: string;
+  businessAddress: string;
+  ownerName: string;
+  ownerEmail: string;
+  isReferralAllowed: boolean;
+  totalSubscribers: number;
+  totalPointPayments: number;
+  pausedAt: string | null;
+  pausedBy: string | null;
+  pauseReason: string | null;
+  reactivatedAt: string | null;
+  reactivatedBy: string | null;
+}
+
+/**
+ * Search result for store point payment statuses
+ */
+export interface StorePointPaymentSearchResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode?: string | null;
+  data: {
+    content: StorePointPaymentStatus[];
+    pageInfo: {
+      totalElements: number;
+      totalPages: number;
+      currentPage: number;
+      pageSize: number;
+      first: boolean;
+      last: boolean;
+      hasNext: boolean;
+      hasPrevious: boolean;
+    };
+  };
+  errorId?: string | null;
+}

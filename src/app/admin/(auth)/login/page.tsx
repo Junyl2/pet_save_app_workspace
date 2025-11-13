@@ -46,11 +46,21 @@ export default function AdminLoginPage() {
 
   const prettyError = (raw?: string): string => {
     if (!raw) return '로그인에 실패했습니다. 잠시 후 다시 시도해주세요.';
-    const msg = raw.toLowerCase();
+
+    // Remove status code prefix (e.g., "404: Not Found" -> "Not Found")
+    let cleanedMessage = raw;
+    const statusCodeMatch = cleanedMessage.match(/^\d{3}:\s*/);
+    if (statusCodeMatch) {
+      cleanedMessage = cleanedMessage.replace(statusCodeMatch[0], '').trim();
+    }
+
+    const msg = cleanedMessage.toLowerCase();
     if (
       msg.includes('401') ||
       msg.includes('unauthorized') ||
-      msg.includes('invalid')
+      msg.includes('invalid') ||
+      msg.includes('not found') ||
+      msg.includes('404')
     )
       return '아이디 또는 비밀번호가 올바르지 않습니다.';
     if (msg.includes('429') || msg.includes('too many'))
@@ -61,7 +71,7 @@ export default function AdminLoginPage() {
       msg.includes('failed to')
     )
       return '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
-    return raw;
+    return cleanedMessage;
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {

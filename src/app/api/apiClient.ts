@@ -220,6 +220,39 @@ const isPublicEndpoint = (
 };
 
 /**
+ * Request deduplication cache
+ * Prevents multiple identical requests from being sent simultaneously
+ */
+interface PendingRequest {
+  promise: Promise<AxiosResponse>;
+  timestamp: number;
+}
+
+const pendingRequests = new Map<string, PendingRequest>();
+const REQUEST_DEDUP_WINDOW = 1000; // 1 second window for deduplication
+
+/**
+ * Generate a unique key for request deduplication
+ */
+const getRequestKey = (method: string, url: string, data?: unknown): string => {
+  const methodUpper = method.toUpperCase();
+  const dataStr = data ? JSON.stringify(data) : '';
+  return `${methodUpper}:${url}:${dataStr}`;
+};
+
+/**
+ * Clean up stale pending requests
+ */
+const cleanupStaleRequests = (): void => {
+  const now = Date.now();
+  for (const [key, request] of pendingRequests.entries()) {
+    if (now - request.timestamp > REQUEST_DEDUP_WINDOW * 2) {
+      pendingRequests.delete(key);
+    }
+  }
+};
+
+/**
  * Production-ready Axios instance with interceptors
  */
 const axiosInstance: AxiosInstance = axios.create({
@@ -418,9 +451,26 @@ axiosInstance.interceptors.response.use(
       // If we're still getting 401/403, the session is invalid
       console.log(' Authentication failed - redirecting to login');
 
-      // Redirect to login page directly
+      // Only redirect if not already on login page, signup page, or public browsing pages
       if (typeof window !== 'undefined') {
-        window.location.href = '/client/login';
+        const currentPath = window.location.pathname;
+        const isOnAuthPage =
+          currentPath.includes('/login') ||
+          currentPath.includes('/signup') ||
+          currentPath.includes('/join') ||
+          currentPath.includes('/find-id') ||
+          currentPath.includes('/reset-password');
+        const isOnPublicBrowsingPage =
+          currentPath === '/' ||
+          currentPath.startsWith('/client/pages/homepage') ||
+          currentPath.startsWith('/products') ||
+          currentPath === '/client/pages/homepage';
+
+        // Don't redirect if already on auth pages or public browsing pages
+        // Only redirect when user is actively trying to access protected resources
+        if (!isOnAuthPage && !isOnPublicBrowsingPage) {
+          window.location.href = '/client/login';
+        }
       }
 
       const authError = new AuthError(
@@ -441,10 +491,56 @@ axiosInstance.interceptors.response.use(
  */
 export const apiClient = {
   get: async <T>(url: string): Promise<ApiResponse<T>> => {
+    // Clean up stale requests periodically
+    cleanupStaleRequests();
+
+    // Generate request key for deduplication
+    const requestKey = getRequestKey('GET', url);
+
+    // Check if there's a pending identical request
+    const pendingRequest = pendingRequests.get(requestKey);
+    if (pendingRequest) {
+      const age = Date.now() - pendingRequest.timestamp;
+      if (age < REQUEST_DEDUP_WINDOW) {
+        console.log(`🔄 Request deduplicated: GET ${url}`);
+        try {
+          // Wait for the existing request and return its result
+          const response = await pendingRequest.promise;
+          return {
+            data: response.data as T,
+            error: undefined,
+          };
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : 'An unknown error occurred';
+          return { data: null, error: message };
+        }
+      } else {
+        // Request is stale, remove it
+        pendingRequests.delete(requestKey);
+      }
+    }
+
+    // Create new request
     try {
-      const response = await axiosInstance.get<T>(url);
+      const requestPromise = axiosInstance.get<T>(url);
+      pendingRequests.set(requestKey, {
+        promise: requestPromise as Promise<AxiosResponse>,
+        timestamp: Date.now(),
+      });
+
+      const response = await requestPromise;
+
+      // Clean up after request completes
+      pendingRequests.delete(requestKey);
+
       return { data: response.data, error: undefined };
     } catch (error: unknown) {
+      // Clean up on error
+      pendingRequests.delete(requestKey);
+
       const message =
         error instanceof Error ? error.message : 'An unknown error occurred';
       return { data: null, error: message };

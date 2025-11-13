@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadTossPayments } from '@tosspayments/payment-sdk';
 import styles from '../DeliveryPayment.module.css';
@@ -10,6 +10,7 @@ import {
   CheckoutRequest,
   DirectOrderRequest,
 } from '@/app/api/types/member/order/order';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 
 interface PayButtonProps {
   totalDue: number;
@@ -54,9 +55,38 @@ export default function PayButton({
 }: PayButtonProps) {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{
+    message: string;
+    isVisible: boolean;
+  }>({
+    message: '',
+    isVisible: false,
+  });
+  const hasShownToastRef = useRef(false);
+
+  const showToast = (message: string) => {
+    setToastMessage({ message, isVisible: true });
+    hasShownToastRef.current = true;
+  };
+
+  const hideToast = () => {
+    setToastMessage((prev) => ({ ...prev, isVisible: false }));
+    hasShownToastRef.current = false;
+  };
 
   const onPayClick = async (): Promise<void> => {
     if (!canPay || !deliveryOption) return;
+
+    const shippingOption =
+      deliveryOption === 'delivery' ? 'DELIVERY' : 'PICKUP';
+
+    // Validate delivery address when shipping option is DELIVERY
+    if (shippingOption === 'DELIVERY' && !deliveryAddress?.trim()) {
+      showToast('배송 선택 시 배송 주소는 필수입니다.');
+      return;
+    }
+
+    hasShownToastRef.current = false;
     setIsProcessing(true);
 
     try {
@@ -70,9 +100,6 @@ export default function PayButton({
           : paymentMethod.payCategory === 'card'
           ? 'CARD'
           : 'EASY_PAY';
-
-      const shippingOption =
-        deliveryOption === 'delivery' ? 'DELIVERY' : 'PICKUP';
 
       let orderResponse: Awaited<
         ReturnType<
@@ -131,7 +158,9 @@ export default function PayButton({
       }
 
       if (!orderResponse.data?.success) {
-        throw new Error(orderResponse.data?.resultMsg || '주문 생성 실패');
+        const errorMessage = orderResponse.data?.resultMsg || '주문 생성 실패';
+        showToast(errorMessage);
+        throw new Error(errorMessage);
       }
 
       const orderData = orderResponse.data?.data as
@@ -179,6 +208,10 @@ export default function PayButton({
       const message = (err as Error)?.message ?? '';
       if (!message.includes('취소') && !message.includes('canceled')) {
         console.error('결제 요청 실패:', err);
+        // Show toast for API errors if not already shown
+        if (!hasShownToastRef.current) {
+          showToast(message || '결제 요청 중 오류가 발생했습니다.');
+        }
       }
     } finally {
       setIsProcessing(false);
@@ -186,16 +219,25 @@ export default function PayButton({
   };
 
   return (
-    <button
-      className={`${styles.payButton} ${
-        !canPay ? styles.payButtonDisabled : ''
-      }`}
-      disabled={!canPay || isProcessing}
-      onClick={onPayClick}
-    >
-      {isProcessing
-        ? '결제 처리 중...'
-        : `총 ${totalDue.toLocaleString()}원 결제하기`}
-    </button>
+    <>
+      <button
+        className={`${styles.payButton} ${
+          !canPay ? styles.payButtonDisabled : ''
+        }`}
+        disabled={!canPay || isProcessing}
+        onClick={onPayClick}
+      >
+        {isProcessing
+          ? '결제 처리 중...'
+          : `총 ${totalDue.toLocaleString()}원 결제하기`}
+      </button>
+      {toastMessage.isVisible && (
+        <ToastMessage
+          message={toastMessage.message}
+          onClose={hideToast}
+          duration={3000}
+        />
+      )}
+    </>
   );
 }

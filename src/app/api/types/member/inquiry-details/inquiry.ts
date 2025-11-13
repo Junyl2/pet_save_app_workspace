@@ -18,11 +18,12 @@ export interface MyInquiry {
     averageRating: number;
     openingHourStart: string | null;
     openingHourEnd: string | null;
-  };
+  } | null;
   inquirer: {
     memberId: string;
     name: string;
     profileImageUrl: string | null;
+    phoneNumber?: string | null;
   };
   product: {
     productId: string;
@@ -34,8 +35,8 @@ export interface MyInquiry {
     salePrice: number;
     discountedPrice: number;
     expiryDate: string;
-  };
-  productName: string;
+  } | null;
+  productName: string | null;
   category: 'EXCHANGE_RETURN' | 'PRODUCT' | 'DELIVERY' | 'PAYMENT' | 'OTHER';
   status: 'WAITING' | 'ANSWERED';
   content: string;

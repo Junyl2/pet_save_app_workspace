@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
-import { FaStar, FaCamera } from 'react-icons/fa';
-import styles from './EditReview.module.css';
+import { FaCamera } from 'react-icons/fa';
+import Image from 'next/image';
+import styles from '../write/WriteReview.module.css';
 import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
 import { ReviewFileService } from '@/app/api/services/client/fileService/reviewFileService';
 import { Review } from '@/app/api/types/member/review/review';
@@ -12,13 +13,7 @@ import Loading from '@/app/components/ui/Loading/Loading';
 import { useAppSelector, useAppDispatch } from '@/app/redux/hooks';
 import { setHasLoadedOnce } from '@/app/redux/slices/auth/ui/loadingSlice';
 
-type NewImage = {
-  id: string;
-  file: File;
-  url: string;
-  uploadStatus: 'pending' | 'uploading' | 'uploaded' | 'error';
-  fileId?: string;
-};
+type NewImage = { id: string; file: File; url: string };
 
 export default function EditReviewPage() {
   const searchParams = useSearchParams();
@@ -30,31 +25,26 @@ export default function EditReviewPage() {
   const [review, setReview] = useState<Review | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Get hasLoadedOnce state from Redux
   const hasLoadedOnce = useAppSelector(
     (state) => state.loading.hasLoadedOnce[`edit-review-${reviewId}`] || false
   );
   const [loading, setLoading] = useState<boolean>(!hasLoadedOnce);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [uploadingFiles, setUploadingFiles] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
-  // Form state
   const [rating, setRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState<string>('');
   const [attachedImages, setAttachedImages] = useState<NewImage[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [uploadedFileIds, setUploadedFileIds] = useState<string[]>([]);
-  const [uploading, setUploading] = useState<boolean>(false);
   const [hoveredStar, setHoveredStar] = useState<number>(0);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
 
-  // Fetch review data
   useEffect(() => {
     let isMounted = true;
 
-    // Only show loading if not loaded before
-    if (!hasLoadedOnce) {
-      setLoading(true);
-    }
+    if (!hasLoadedOnce) setLoading(true);
     setError(null);
 
     const fetchReview = async () => {
@@ -77,7 +67,12 @@ export default function EditReviewPage() {
           setRating(reviewData.rating);
           setReviewText(reviewData.content || '');
           setExistingImages(reviewData.imageUrls || []);
-          // Mark as loaded once
+          setUploadedFileIds(
+            reviewData.imageUrls?.map((url) => {
+              const urlParts = url.split('/');
+              return urlParts[urlParts.length - 1];
+            }) || []
+          );
           dispatch(setHasLoadedOnce(`edit-review-${reviewId}`));
         } else {
           setError('리뷰 정보를 찾을 수 없습니다.');
@@ -99,49 +94,25 @@ export default function EditReviewPage() {
     };
   }, [reviewId, hasLoadedOnce, dispatch]);
 
-  const handleStarClick = (starIndex: number) => setRating(starIndex);
-  const handleStarHover = (starIndex: number) => setHoveredStar(starIndex);
+  const handleStarClick = (i: number) => setRating(i);
+  const handleStarHover = (i: number) => setHoveredStar(i);
   const handleStarLeave = () => setHoveredStar(0);
 
   const handlePhotoUpload = () => fileInputRef.current?.click();
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const files = event.target.files;
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
     if (!files || !reviewId) return;
 
-    // Clear existing images when new ones are selected
-    if (existingImages.length > 0) {
-      // Delete existing images from server
-      for (const imageUrl of existingImages) {
-        const urlParts = imageUrl.split('/');
-        const encryptedId = urlParts[urlParts.length - 1];
-
-        if (encryptedId) {
-          try {
-            await ReviewFileService.deleteFile(encryptedId);
-            console.log('Existing image deleted from server:', encryptedId);
-          } catch (err) {
-            console.error('Error deleting existing image:', err);
-          }
-        }
-      }
-
-      // Clear existing images from state
-      setExistingImages([]);
-    }
-
-    const additions: NewImage[] = Array.from(files).map((f) => ({
+    const additions = Array.from(files).map((f) => ({
       id: crypto.randomUUID(),
       file: f,
       url: URL.createObjectURL(f),
-      uploadStatus: 'uploading' as const, // Set to uploading immediately
     }));
     setAttachedImages((prev) => [...prev, ...additions]);
 
-    // Upload files immediately
-    setUploading(true);
+    setUploadingFiles(true);
+    setUploadProgress('이미지 업로드 중...');
 
     try {
       const filesArray = Array.from(files);
@@ -153,154 +124,65 @@ export default function EditReviewPage() {
         }
       );
 
-      if (uploadResponse.error) {
-        console.error('Failed to upload images:', uploadResponse.error);
-        setError('이미지 업로드에 실패했습니다.');
-
-        // Mark images as error
-        setAttachedImages((prev) =>
-          prev.map((img) => {
-            if (additions.some((add) => add.id === img.id)) {
-              return { ...img, uploadStatus: 'error' as const };
-            }
-            return img;
-          })
-        );
-
-        // Remove error images after a delay
-        setTimeout(() => {
-          setAttachedImages((prev) =>
-            prev.filter((img) => !additions.some((add) => add.id === img.id))
-          );
-        }, 3000);
-      } else if (uploadResponse.data) {
-        const newEncryptedIds = uploadResponse.data.data.map(
-          (file) => file.encryptedId
-        );
-        setUploadedFileIds((prev) => [...prev, ...newEncryptedIds]);
-
-        // Mark images as uploaded and store encrypted IDs
-        setAttachedImages((prev) =>
-          prev.map((img) => {
-            const additionIndex = additions.findIndex(
-              (add) => add.id === img.id
-            );
-            if (additionIndex !== -1) {
-              return {
-                ...img,
-                uploadStatus: 'uploaded' as const,
-                fileId: newEncryptedIds[additionIndex],
-              };
-            }
-            return img;
-          })
-        );
-
-        console.log('Files uploaded successfully:', newEncryptedIds);
+      if (uploadResponse.error || !uploadResponse.data?.data) {
+        throw new Error(uploadResponse.error || '파일 업로드에 실패했습니다.');
       }
+
+      const newFileIds = uploadResponse.data.data
+        .filter((f) => f.encryptedId)
+        .map((f) => f.encryptedId);
+
+      setUploadedFileIds((prev) => [...prev, ...newFileIds]);
+      setUploadProgress('');
     } catch (err) {
       console.error('Upload error:', err);
       setError('이미지 업로드 중 오류가 발생했습니다.');
-
-      // Mark images as error
       setAttachedImages((prev) =>
-        prev.map((img) => {
-          if (additions.some((add) => add.id === img.id)) {
-            return { ...img, uploadStatus: 'error' as const };
-          }
-          return img;
-        })
+        prev.filter((img) => !additions.some((add) => add.id === img.id))
       );
-
-      // Remove error images after a delay
-      setTimeout(() => {
-        setAttachedImages((prev) =>
-          prev.filter((img) => !additions.some((add) => add.id === img.id))
-        );
-      }, 3000);
     } finally {
-      setUploading(false);
+      setUploadingFiles(false);
+      setUploadProgress('');
     }
   };
 
-  const removeNewImage = async (id: string) => {
+  const removeImage = (id: string) => {
     const img = attachedImages.find((x) => x.id === id);
     if (!img) return;
 
-    // If the image was uploaded and has an encryptedId, delete it from server
-    if (img.uploadStatus === 'uploaded' && img.fileId) {
-      try {
-        const deleteResponse = await ReviewFileService.deleteFile(img.fileId);
-        if (deleteResponse.error) {
-          console.warn(
-            'Failed to delete file from server:',
-            deleteResponse.error
-          );
-        } else {
-          console.log('File deleted from server successfully');
-        }
-      } catch (err) {
-        console.error('Error deleting file:', err);
-      }
-    }
-
-    // Remove from local state
     setAttachedImages((prev) => {
-      const img = prev.find((x) => x.id === id);
-      if (img) URL.revokeObjectURL(img.url);
+      const found = prev.find((x) => x.id === id);
+      if (found) URL.revokeObjectURL(found.url);
       return prev.filter((x) => x.id !== id);
     });
 
-    // Remove from uploadedFileIds if it was uploaded
-    if (img.uploadStatus === 'uploaded' && img.fileId) {
+    const urlParts = img.url.split('/');
+    const encryptedId = urlParts[urlParts.length - 1];
+    if (encryptedId && uploadedFileIds.includes(encryptedId)) {
       setUploadedFileIds((prev) =>
-        prev.filter((fileId) => fileId !== img.fileId)
+        prev.filter((fileId) => fileId !== encryptedId)
       );
     }
   };
 
   const removeExistingImage = async (imageUrl: string) => {
-    // Extract encryptedId from the URL
-    // URL format: /api/pet-save/files/{encryptedId}
     const urlParts = imageUrl.split('/');
     const encryptedId = urlParts[urlParts.length - 1];
 
-    console.log('Attempting to delete existing image:', {
-      imageUrl,
-      extractedEncryptedId: encryptedId,
-      urlParts,
-    });
-
     if (encryptedId) {
       try {
-        const deleteResponse = await ReviewFileService.deleteFile(encryptedId);
-        console.log('Delete response:', deleteResponse);
-
-        if (deleteResponse.error) {
-          console.warn(
-            'Failed to delete existing file from server:',
-            deleteResponse.error
-          );
-          console.warn('Full delete response:', deleteResponse);
-        } else {
-          console.log('Existing file deleted from server successfully');
-        }
+        await ReviewFileService.deleteFile(encryptedId);
       } catch (err) {
         console.error('Error deleting existing file:', err);
-        console.error('Error details:', {
-          message: err instanceof Error ? err.message : 'Unknown error',
-          stack: err instanceof Error ? err.stack : undefined,
-        });
       }
-    } else {
-      console.warn('Could not extract encryptedId from URL:', imageUrl);
     }
 
-    // Remove from local state regardless of server deletion result
     setExistingImages((prev) => prev.filter((x) => x !== imageUrl));
+    setUploadedFileIds((prev) =>
+      prev.filter((fileId) => fileId !== encryptedId)
+    );
   };
 
-  // revoke URLs on unmount
   useEffect(() => {
     return () => {
       attachedImages.forEach((x) => URL.revokeObjectURL(x.url));
@@ -308,124 +190,115 @@ export default function EditReviewPage() {
   }, [attachedImages]);
 
   const handleSubmit = async () => {
-    if (rating <= 0 || !reviewText.trim() || !reviewId) {
+    if (
+      rating <= 0 ||
+      !reviewText.trim() ||
+      !reviewId ||
+      submitting ||
+      uploadingFiles
+    )
       return;
-    }
 
     setSubmitting(true);
 
     try {
-      // Prepare review data
       if (!review) {
         setError('리뷰 정보를 찾을 수 없습니다.');
         setSubmitting(false);
         return;
       }
 
-      const reviewData: {
-        rating: number;
-        content: string;
-        imageFileIds: string[];
-      } = {
+      const reviewData = {
         rating: rating,
         content: reviewText.trim(),
-        imageFileIds: uploadedFileIds, // Always include, even if empty array
+        imageFileIds: uploadedFileIds,
       };
 
-      console.log('Sending review update data:', reviewData);
-      console.log('Review ID:', reviewId);
-      console.log('Uploaded file IDs:', uploadedFileIds);
-
-      // Update the review
       const updateResponse = await ReviewService.updateReview(
         reviewId,
         reviewData
       );
 
       if (updateResponse.error) {
-        console.error('Review update error:', updateResponse.error);
-        setError(`리뷰 수정에 실패했습니다: ${updateResponse.error}`);
-        setSubmitting(false);
-        return;
+        alert('리뷰 수정에 실패했습니다. 다시 시도해주세요.');
+      } else {
+        setShowSuccessMessage(true);
+        setTimeout(() => {
+          setShowSuccessMessage(false);
+          router.push(
+            `/client/pages/my-page/reviews/view?reviewId=${reviewId}`
+          );
+        }, 3000);
       }
-
-      setShowSuccessMessage(true);
-      setTimeout(() => {
-        setShowSuccessMessage(false);
-        router.push(`/client/pages/my-page/reviews/view?reviewId=${reviewId}`);
-      }, 2000);
     } catch (err) {
       console.error('Failed to update review:', err);
-      setError('리뷰 수정 중 오류가 발생했습니다.');
+      alert('리뷰 수정 중 오류가 발생했습니다.');
+    } finally {
       setSubmitting(false);
     }
   };
 
-  // Check if all images are uploaded (no uploading or error status)
-  const allImagesUploaded = attachedImages.every(
-    (img) => img.uploadStatus === 'uploaded'
-  );
-  const hasUploadingImages = attachedImages.some(
-    (img) => img.uploadStatus === 'uploading'
-  );
   const isFormValid =
     rating > 0 &&
     reviewText.trim().length > 0 &&
-    allImagesUploaded &&
-    !hasUploadingImages;
+    !submitting &&
+    !uploadingFiles;
 
-  if (loading) return <Loading />;
+  if (loading || error || !review) return <Loading />;
 
-  if (error || !review) {
-    return (
-      <div className={styles.container}>
-        <ProductHeader />
-        <div className={styles.content}>
-          <p className={styles.error}>
-            {error || '리뷰를 불러올 수 없습니다.'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // At this point, review is guaranteed to be non-null due to the check above
-  const reviewData = review!;
+  const allImages = [
+    ...existingImages.map((url) => ({ type: 'existing' as const, url })),
+    ...attachedImages.map((img) => ({
+      type: 'new' as const,
+      url: img.url,
+      id: img.id,
+    })),
+  ];
 
   return (
     <div className={styles.container}>
       <ProductHeader />
-
       <div className={styles.content}>
         {/* Product Info */}
         <div className={styles.productSection}>
           <div className={styles.productImage}>
-            <img
-              src={reviewData.product.productThumbnail}
-              alt={reviewData.product.productName}
-            />
+            {review.product.productThumbnail ? (
+              <Image
+                src={review.product.productThumbnail}
+                alt={review.product.productName}
+                width={90}
+                height={90}
+                priority
+              />
+            ) : (
+              <span className={styles.altText}>
+                {review.product.productName}
+              </span>
+            )}
           </div>
+
           <div className={styles.productInfo}>
             <div className={styles.productName}>
-              {reviewData.product.productName}
+              {review.product.productName}
             </div>
             <div className={styles.productStore}>
-              {reviewData.product.productNumber}
+              {review.product.productNumber || '상점 정보 없음'}
             </div>
             <div className={styles.purchaseDate}>
-              {new Date(reviewData.createdAt)
-                .toLocaleDateString('ko-KR', {
-                  year: '2-digit',
-                  month: '2-digit',
-                  day: '2-digit',
-                })
-                .replace(/\./g, '.')
-                .replace(/\s/g, '')}{' '}
+              {review.createdAt
+                ? new Date(review.createdAt)
+                    .toLocaleDateString('ko-KR', {
+                      year: '2-digit',
+                      month: '2-digit',
+                      day: '2-digit',
+                    })
+                    .replace(/\./g, '.')
+                    .replace(/\s/g, '')
+                : '날짜 정보 없음'}{' '}
               주문
             </div>
           </div>
         </div>
-
         <div className={styles.divider}></div>
 
         {/* Rating Section */}
@@ -434,28 +307,35 @@ export default function EditReviewPage() {
             구매하신 상품은 만족하시나요?
           </div>
           <div className={styles.starsContainer}>
-            {[1, 2, 3, 4, 5].map((starIndex) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <button
-                key={starIndex}
+                key={i}
                 className={styles.starButton}
-                onClick={() => handleStarClick(starIndex)}
-                onMouseEnter={() => handleStarHover(starIndex)}
+                onClick={() => handleStarClick(i)}
+                onMouseEnter={() => handleStarHover(i)}
                 onMouseLeave={handleStarLeave}
               >
-                <FaStar
-                  className={`${styles.star} ${
-                    starIndex <= (hoveredStar || rating)
-                      ? styles.starFilled
-                      : styles.starEmpty
-                  }`}
+                <Image
+                  src={
+                    i <= (hoveredStar || rating)
+                      ? '/images/icons/filledStar.svg'
+                      : '/images/icons/blankStar.svg'
+                  }
+                  alt={
+                    i <= (hoveredStar || rating) ? 'Filled star' : 'Blank star'
+                  }
+                  width={43}
+                  height={43}
+                  className={styles.star}
                 />
               </button>
             ))}
           </div>
         </div>
+
         <div className={styles.divider}></div>
 
-        {/* Review Text Section */}
+        {/* Review Text */}
         <div className={styles.reviewSection}>
           <div className={styles.reviewTitle}>자세한 리뷰를 작성해주세요</div>
           <textarea
@@ -468,70 +348,11 @@ export default function EditReviewPage() {
           <div className={styles.charCount}>{reviewText.length}/500</div>
         </div>
 
-        {/* Photo Upload Section */}
+        {/* Photo Upload */}
         <div className={styles.photoSection}>
-          {/* Existing Images */}
-          {existingImages.length > 0 && (
-            <div className={styles.existingImagesContainer}>
-              <div className={styles.imageGrid}>
-                {existingImages.map((image) => (
-                  <div key={image} className={styles.imagePreview}>
-                    <img src={image} alt="Existing" />
-                    <button
-                      className={styles.removeImageButton}
-                      onClick={() => removeExistingImage(image)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* New Images */}
-          {attachedImages.length > 0 && (
-            <div className={styles.newImagesContainer}>
-              <div className={styles.imageGrid}>
-                {attachedImages.map((img) => (
-                  <div key={img.id} className={styles.imagePreview}>
-                    <img src={img.url} alt="New Preview" />
-                    {img.uploadStatus === 'uploading' && (
-                      <div className={styles.uploadOverlay}>
-                        <div className={styles.uploadSpinner}></div>
-                        <span>업로드 중...</span>
-                      </div>
-                    )}
-                    {img.uploadStatus === 'error' && (
-                      <div className={styles.errorOverlay}>
-                        <span>업로드 실패</span>
-                      </div>
-                    )}
-                    {img.uploadStatus === 'uploaded' && (
-                      <div className={styles.successOverlay}>
-                        <span>✓</span>
-                      </div>
-                    )}
-                    <button
-                      className={styles.removeImageButton}
-                      onClick={() => removeNewImage(img.id)}
-                      disabled={img.uploadStatus === 'uploading'}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <button
-            className={styles.photoButton}
-            onClick={handlePhotoUpload}
-            disabled={uploading}
-          >
+          <button className={styles.photoButton} onClick={handlePhotoUpload}>
             <FaCamera className={styles.cameraIcon} />
-            {uploading ? '업로드 중...' : '사진 첨부하기'}
+            사진 첨부하기
           </button>
           <input
             ref={fileInputRef}
@@ -541,23 +362,49 @@ export default function EditReviewPage() {
             onChange={handleFileChange}
             className={styles.hiddenInput}
           />
+
+          {allImages.length > 0 && (
+            <div className={styles.imagePreviewContainer}>
+              {allImages.map((img) => (
+                <div
+                  key={img.type === 'existing' ? img.url : img.id}
+                  className={styles.imagePreview}
+                >
+                  <img src={img.url} alt="Preview" />
+                  <button
+                    className={styles.removeImageButton}
+                    onClick={() =>
+                      img.type === 'existing'
+                        ? removeExistingImage(img.url)
+                        : removeImage(img.id)
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Submit Button */}
-        <div className={styles.line}></div>
-
+      {/* Submit Button - Fixed at Bottom */}
+      <div className={styles.submitButtonContainer}>
         <button
           className={`${styles.submitButton} ${
-            isFormValid && !submitting ? styles.submitButtonActive : ''
+            isFormValid ? styles.submitButtonActive : ''
           }`}
           onClick={handleSubmit}
-          disabled={!isFormValid || submitting}
+          disabled={!isFormValid}
         >
-          {submitting ? '수정 중...' : '수정하기'}
+          {uploadingFiles
+            ? uploadProgress
+            : submitting
+            ? '수정 중...'
+            : '수정하기'}
         </button>
       </div>
 
-      {/* Success Message */}
       {showSuccessMessage && (
         <div className={styles.successMessage}>리뷰가 수정되었습니다.</div>
       )}

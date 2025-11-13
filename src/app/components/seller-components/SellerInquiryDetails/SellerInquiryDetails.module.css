@@ -1,15 +1,14 @@
 .page {
   background: #fff;
-  min-height: calc(100vh - 72px) !important;
-  margin-top: 71.59px;
+  min-height: calc(100vh - 64px) !important;
+  margin-top: 64px;
   padding-bottom: 5rem;
 }
 
 .tabs {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
+  justify-content: space-around;
   height: 48px;
   background: #fff;
 }
@@ -74,6 +73,7 @@
 
 .chev {
   transition: transform 0.2s ease;
+  color: rgba(0, 0, 0, 0.4) !important;
 }
 .rotate {
   transform: rotate(180deg);
@@ -181,6 +181,7 @@
   height: 60px;
   object-fit: cover;
   border-radius: 5px;
+  display: block;
 }
 
 .meta {

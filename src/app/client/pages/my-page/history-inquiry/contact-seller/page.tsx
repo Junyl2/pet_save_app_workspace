@@ -76,10 +76,10 @@ export default function ContactCreatePage() {
 
   const onSubmit = async () => {
     if (!canSubmit || submitting) return;
-    if (!productId) {
-      toast.error(
-        '상품 ID가 없습니다. 상품 상세 페이지에서 문의를 남겨주세요.'
-      );
+
+    // Validate: productId is required when category is 'PRODUCT'
+    if (category === 'PRODUCT' && (!productId || productId.trim() === '')) {
+      toast.error('상품 문의는 상품 ID가 필수입니다. 상품 상세 페이지에서 문의를 남겨주세요.');
       return;
     }
 
@@ -96,8 +96,13 @@ export default function ContactCreatePage() {
       }
 
       // 2️⃣ Create inquiry
-      const response = await MemberInquiryService.createInquiry({
-        productId,
+      // productId is optional for non-PRODUCT categories, but always include if available
+      const inquiryRequest: {
+        productId?: string;
+        category: 'EXCHANGE_RETURN' | 'PRODUCT' | 'DELIVERY' | 'PAYMENT' | 'OTHER';
+        content: string;
+        imageFileIds: string[];
+      } = {
         category: category as
           | 'EXCHANGE_RETURN'
           | 'PRODUCT'
@@ -106,10 +111,18 @@ export default function ContactCreatePage() {
           | 'OTHER',
         content: message,
         imageFileIds: fileIds,
-      });
+      };
+
+      // Only include productId if it's provided (required for PRODUCT category, optional for others)
+      if (productId && productId.trim() !== '') {
+        inquiryRequest.productId = productId.trim();
+      }
+
+      const response = await MemberInquiryService.createInquiry(inquiryRequest);
 
       if (response.error) {
-        toast.error('문의 접수 중 오류가 발생했습니다.');
+        // Show the specific error message from the service
+        toast.error(response.error);
         return;
       }
 

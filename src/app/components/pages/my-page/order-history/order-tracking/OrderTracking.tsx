@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import DateRange from '@/app/components/ui/DateRange/DateRange';
 import ProductSection from '@/app/components/sections/ProductSection/ProductSection';
 import Steps from '@/app/components/ui/steps/Steps';
@@ -14,18 +14,13 @@ import {
   DeliveryInfoData,
   DeliveryEvent,
 } from '@/app/api/types/member/order/deliveryTracking';
-import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
-import { fetchOrderDetails } from '@/app/redux/slices/cache/orderSlice';
 import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
 
 export default function OrderTracking() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const orderId = params?.orderId as string;
-  const dispatch = useAppDispatch();
-
-  const { orderDetailsCache, loading: orderLoading } = useAppSelector(
-    (state) => state.orders
-  );
+  const orderItemId = searchParams?.get('orderItemId') as string | null;
 
   const [trackingData, setTrackingData] = useState<DeliveryTrackingData | null>(
     null
@@ -34,11 +29,9 @@ export default function OrderTracking() {
     null
   );
   const [trackingEvents, setTrackingEvents] = useState<DeliveryEvent[]>([]);
-  const [orderItems, setOrderItems] = useState<OrderItemResponse[]>([]);
+  const [orderItem, setOrderItem] = useState<OrderItemResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const cachedOrderData = orderDetailsCache[orderId];
 
   const fetchTrackingData = useCallback(async () => {
     if (!orderId) return;
@@ -47,28 +40,35 @@ export default function OrderTracking() {
       setLoading(true);
       setError(null);
 
-      let items: OrderItemResponse[] = cachedOrderData?.orderItems || [];
+      let item: OrderItemResponse | null = null;
 
-      // Fallback: fetch order details if cache empty
-      if (items.length === 0) {
+      // If orderItemId is provided, fetch only that specific item
+      if (orderItemId) {
+        const itemResponse = await orderDetailsService.getOrderDetailsByItemId(
+          orderItemId
+        );
+        if (itemResponse.error || !itemResponse.data?.data) {
+          throw new Error('주문 상품 정보를 찾을 수 없습니다.');
+        }
+        item = itemResponse.data.data;
+      } else {
+        // Fallback: use orderId to get first item (for backward compatibility)
         const orderResponse = await orderDetailsService.getOrderDetails(
           orderId
         );
         const content = orderResponse.data?.data?.content;
         if (!content || content.length === 0)
           throw new Error('주문 정보를 찾을 수 없습니다.');
-        items = content;
+        item = content[0];
       }
 
-      setOrderItems(items);
+      if (!item) throw new Error('주문 상품 정보를 찾을 수 없습니다.');
 
-      // Use first item to derive delivery info
-      const firstItem = items[0];
-      if (!firstItem) throw new Error('주문 상품 정보를 찾을 수 없습니다.');
+      setOrderItem(item);
 
       // Delivery info
       const deliveryInfoRes = await deliveryTrackingService.getDeliveryInfo(
-        firstItem.orderItemId
+        item.orderItemId
       );
       const deliveryData = deliveryInfoRes?.data?.data;
       if (!deliveryData) throw new Error('배송 정보를 찾을 수 없습니다.');
@@ -105,17 +105,13 @@ export default function OrderTracking() {
     } finally {
       setLoading(false);
     }
-  }, [orderId, cachedOrderData]);
-
-  useEffect(() => {
-    if (orderId) dispatch(fetchOrderDetails(orderId));
-  }, [orderId, dispatch]);
+  }, [orderId, orderItemId]);
 
   useEffect(() => {
     if (orderId) fetchTrackingData();
   }, [orderId, fetchTrackingData]);
 
-  if ((loading || orderLoading) && !cachedOrderData)
+  if (loading)
     return <OrderTrackingSkeleton />;
 
   if (error)
@@ -132,7 +128,7 @@ export default function OrderTracking() {
       </div>
     );
 
-  if (orderItems.length === 0)
+  if (!orderItem)
     return (
       <div className={styles.container}>
         <p>주문 내역을 찾을 수 없습니다.</p>
@@ -203,11 +199,11 @@ export default function OrderTracking() {
       {/* Header */}
       <div className={styles.header}>
         <DateRange
-          start={formatDate(orderItems[0].orderNumber)}
-          end={formatDate(orderItems[0].orderNumber)}
+          start={formatDate(orderItem.orderNumber)}
+          end={formatDate(orderItem.orderNumber)}
         />
         <p className={styles.orderNumber}>
-          주문번호 {orderItems[0].orderNumber}
+          주문번호 {orderItem.orderNumber}
         </p>
       </div>
 
@@ -233,34 +229,32 @@ export default function OrderTracking() {
       </div>
 
       {/* Products */}
-      {orderItems.map((item) => (
-        <ProductSection
-          key={item.orderItemId}
-          mainContent={
-            <div className={styles.productContent}>
-              <img
-                src={item.productImageUrl}
-                alt={item.productName}
-                className={styles.productImage}
-              />
-              <div className={styles.productDetails}>
-                <h3 className={styles.productName}>{item.productName}</h3>
-                <p className={styles.productBrand}>{item.storeName}</p>
-                <div className={styles.productPricing}>
-                  {item.appliedDiscountAmount > 0 && (
-                    <span className={styles.originalPrice}>
-                      {formatPrice(item.price)}원
-                    </span>
-                  )}
-                  <span className={styles.currentPrice}>
-                    {formatPrice(item.totalAmount)}원
+      <ProductSection
+        key={orderItem.orderItemId}
+        mainContent={
+          <div className={styles.productContent}>
+            <img
+              src={orderItem.productImageUrl}
+              alt={orderItem.productName}
+              className={styles.productImage}
+            />
+            <div className={styles.productDetails}>
+              <h3 className={styles.productName}>{orderItem.productName}</h3>
+              <p className={styles.productBrand}>{orderItem.storeName}</p>
+              <div className={styles.productPricing}>
+                {orderItem.appliedDiscountAmount > 0 && (
+                  <span className={styles.originalPrice}>
+                    {formatPrice(orderItem.price)}원
                   </span>
-                </div>
+                )}
+                <span className={styles.currentPrice}>
+                  {formatPrice(orderItem.totalAmount)}원
+                </span>
               </div>
             </div>
-          }
-        />
-      ))}
+          </div>
+        }
+      />
 
       {/* Delivery Information */}
       <div className={styles.infoContainer}>

@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import styles from './LogoutModal.module.css';
 import { logoutUser } from '@/app/redux/slices/auth/authSLice';
 import { AppDispatch } from '@/app/redux/store';
+import Image from 'next/image';
 
 interface LogoutModalProps {
   isOpen: boolean;
@@ -72,16 +73,12 @@ export default function LogoutModal({
         {/* Lock Icon */}
         <div className={styles.iconContainer}>
           <div className={styles.lockIcon}>
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M6 10V8C6 5.79086 7.79086 4 10 4H14C16.2091 4 18 5.79086 18 8V10M5 12C5 10.8954 5.89543 10 7 10H17C18.1046 10 19 10.8954 19 12V19C19 20.1046 18.1046 21 17 21H7C5.89543 21 5 20.1046 5 19V12Z"
-                stroke="#7DB59A"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle cx="12" cy="15" r="1" fill="#7DB59A" />
-            </svg>
+            <Image
+              src="/images/icons/logout.svg"
+              alt="lock"
+              width={55}
+              height={61}
+            />
           </div>
         </div>
 

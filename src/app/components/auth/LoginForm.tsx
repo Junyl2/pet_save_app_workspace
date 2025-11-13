@@ -112,7 +112,13 @@ export default function LoginForm() {
       );
 
       if (response.error) {
-        setError(response.error);
+        // Remove status code prefix (e.g., "404: Not Found" -> "Not Found")
+        let errorMessage = response.error;
+        const statusCodeMatch = errorMessage.match(/^\d{3}:\s*/);
+        if (statusCodeMatch) {
+          errorMessage = errorMessage.replace(statusCodeMatch[0], '').trim();
+        }
+        setError(errorMessage);
         setLoading(false);
         return;
       }
@@ -242,7 +248,10 @@ export default function LoginForm() {
                     setRemember(checked);
                     try {
                       if (checked && username.trim()) {
-                        localStorage.setItem('rememberedUsername', username.trim());
+                        localStorage.setItem(
+                          'rememberedUsername',
+                          username.trim()
+                        );
                       } else if (!checked) {
                         localStorage.removeItem('rememberedUsername');
                       }

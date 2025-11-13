@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { IoStarSharp } from 'react-icons/io5';
 import { FiMoreHorizontal } from 'react-icons/fi';
@@ -10,7 +10,6 @@ import {
   ReviewSearchParams,
 } from '@/app/api/types/member/review/review';
 import ReportModal from '@/app/components/ui/modal/ReportModal/ReportModal';
-import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
 import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
 import styles from './CustomerReviews.module.css';
 
@@ -46,17 +45,27 @@ export const CustomerReviews = ({ productId }: CustomerReviewsProps) => {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [reportReviewId, setReportReviewId] = useState<string | null>(null);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1); // 1-based
-  const [totalPages, setTotalPages] = useState(1);
+  // Infinite scroll state
+  const [currentPage, setCurrentPage] = useState(0); // 0-based for API
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observerTarget = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const fetchReviews = async () => {
-      setLoading(true);
+  const loadPage = useCallback(
+    async (page: number) => {
+      if (isLoadingMore && page > 0) return;
+
+      const isInitialLoad = page === 0;
+      if (isInitialLoad) {
+        setLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
       setError(null);
+
       try {
         const searchParams: ReviewSearchParams = {
-          page: currentPage - 1, // zero-based for API
+          page: page, // zero-based for API
           size: PAGE_SIZE,
           sortBy: 'createdAt',
           direction: 'desc',
@@ -75,8 +84,13 @@ export const CustomerReviews = ({ productId }: CustomerReviewsProps) => {
             (r) => r.product?.productId === productId
           );
 
-          setReviews(filteredReviews);
-          setTotalPages(data?.pageInfo?.totalPages ?? 1);
+          if (page === 0) {
+            setReviews(filteredReviews);
+          } else {
+            setReviews((prev) => [...prev, ...filteredReviews]);
+          }
+
+          setHasMore(data?.pageInfo?.hasNext ?? false);
         }
       } catch (err: unknown) {
         setError(
@@ -84,14 +98,54 @@ export const CustomerReviews = ({ productId }: CustomerReviewsProps) => {
         );
       } finally {
         setLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [productId, isLoadingMore]
+  );
+
+  // Load initial page
+  useEffect(() => {
+    setCurrentPage(0);
+    setReviews([]);
+    setHasMore(true);
+    void loadPage(0);
+  }, [productId, loadPage]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !isLoadingMore &&
+          !loading
+        ) {
+          const nextPage = currentPage + 1;
+          setCurrentPage(nextPage);
+          void loadPage(nextPage);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
       }
     };
-    void fetchReviews();
-  }, [productId, currentPage]);
+  }, [hasMore, isLoadingMore, loading, currentPage, loadPage]);
 
-  if (loading) return <p className={styles.loading}>리뷰를 불러오는 중...</p>;
+  if (loading && reviews.length === 0)
+    return <p className={styles.loading}>리뷰를 불러오는 중...</p>;
   if (error) return <p className={styles.noReviews}>에러: {error}</p>;
-  if (reviews.length === 0)
+  if (reviews.length === 0 && !loading)
     return <p className={styles.noReviews}>등록된 리뷰가 없습니다.</p>;
 
   return (
@@ -181,15 +235,16 @@ export const CustomerReviews = ({ productId }: CustomerReviewsProps) => {
         ))}
       </div>
 
-      {/*  Render Pagination */}
-      {totalPages > 1 && (
-        <div style={{ marginTop: '2rem' }}>
-          <ClientPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        </div>
+      {/* Infinite scroll sentinel */}
+      {hasMore && (
+        <div ref={observerTarget} style={{ height: '20px', width: '100%' }} />
+      )}
+
+      {/* Loading indicator for loading more */}
+      {isLoadingMore && (
+        <p className={styles.loading} style={{ marginTop: '1rem' }}>
+          리뷰를 불러오는 중...
+        </p>
       )}
     </>
   );

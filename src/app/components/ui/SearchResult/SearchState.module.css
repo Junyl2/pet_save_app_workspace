@@ -2,11 +2,20 @@
   display: flex;
   align-items: flex-start;
   flex-direction: column;
-  /*   min-height: 100vh; */
+}
+
+.searchPage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #777;
+  margin-top: 8.5rem;
 }
 
 .emptyContainer {
-  height: 500px;
+  height: 400px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -16,7 +25,55 @@
   color: #777;
 }
 
+/* Wrong term: centered by default when no children */
+.emptyContainer.wrongTerm {
+  min-height: 500px;
+  height: auto;
+  justify-content: center;
+  padding: 0;
+}
+
+/* On search page, wrong term should use viewport height for better centering */
+.emptyContainer.searchPage.wrongTerm {
+  min-height: calc(90vh - 12.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Wrong term: move content to top when children (search history) exists */
+.emptyContainer.wrongTerm.hasChildren {
+  justify-content: flex-start;
+  min-height: 400px;
+  padding-top: 3rem;
+}
+
+/* On search page with children, also move content to top */
+.emptyContainer.searchPage.wrongTerm.hasChildren {
+  justify-content: flex-start;
+  min-height: auto;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .emptyText {
   margin-top: 1rem;
-  font-size: 1rem;
+  font-size: 15px;
+  font-weight: normal;
+}
+
+.children {
+  width: 100%;
+  margin-top: 0;
+}
+
+/* Add gap before search history when it appears in wrong term */
+.emptyContainer.wrongTerm.hasChildren .children {
+  margin-top: 5rem;
 }

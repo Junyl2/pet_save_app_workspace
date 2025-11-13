@@ -9,6 +9,8 @@ import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { useRouter } from 'next/navigation';
 import { cartService } from '@/app/api/services/client/cartService/cartService';
 import { useUser } from '@/app/context/userContext';
+import { dispatchCartUpdate } from '@/app/components/hooks/use-cart-quantity';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 interface AddToCartModalProps {
   isOpen: boolean;
@@ -85,6 +87,7 @@ export function AddToCartModal({
       if (response.data?.success) {
         // Also call the local handler for UI updates
         await onAddToCart(product, quantity, shippingOption);
+        dispatchCartUpdate();
         onClose();
         setShowToast(true);
       } else if (
@@ -116,12 +119,52 @@ export function AddToCartModal({
   };
 
   const handlePurchase = async () => {
+    if (!product) return;
+
     setIsLoading(true);
     try {
-      await onPurchase(product, quantity, shippingOption);
+      // Normalize product price
+      const normalizedPrice = product.salePrice;
+      const normalizedId = String(product.id);
+
+      // Use quantity and shipping option from modal state
+      const selectedQuantity = quantity;
+      const selectedDeliveryOption = shippingOption; // 'delivery' or 'pickup'
+
+      // Use actual product image if available, otherwise use a fallback
+      const productImageUrl = product.image || '/placeholder.png';
+
+      // Create order data (same structure as handlePurchase in ProductActions)
+      const orderData = [
+        {
+          product: {
+            id: normalizedId,
+            name: product.name,
+            price: normalizedPrice,
+            discountPrice: product.originalPrice || null,
+            brand: 'Pet Save',
+            image: productImageUrl,
+          },
+          quantity: selectedQuantity,
+          isDirectPurchase: true,
+          productId: normalizedId,
+        },
+      ];
+
+      // Save to localStorage (same as ProductActions handlePurchase)
+      localStorage.setItem('checkoutItems', JSON.stringify(orderData));
+      localStorage.setItem('selectedDeliveryOption', selectedDeliveryOption);
+      localStorage.setItem('isDirectPurchase', 'true');
+
+      // Call onPurchase callback
+      await onPurchase(product, selectedQuantity, selectedDeliveryOption);
+
+      // Navigate to delivery payment page
+      router.push(PAGE_URLS.DELIVERY_PAYMENT);
+
       onClose();
     } catch (error) {
-      console.error('Failed to purchase:', error);
+      console.error('Failed to process purchase:', error);
     } finally {
       setIsLoading(false);
     }

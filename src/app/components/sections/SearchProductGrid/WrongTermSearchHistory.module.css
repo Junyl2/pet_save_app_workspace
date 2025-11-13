@@ -1,0 +1,114 @@
+.container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  background: #ffffff;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 16px 10px 16px;
+  background: #ffffff;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 400;
+  color: #000000;
+}
+
+.deleteAllBtn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  padding: 0;
+}
+
+.deleteAllBtn:hover {
+  opacity: 0.7;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.item {
+  width: 100%;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.itemContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  min-height: 35px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.itemContent:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.clockIcon {
+  flex-shrink: 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
+}
+
+.keyword {
+  font-size: 15px;
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 400;
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.date {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 400;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.deleteBtn:hover {
+  opacity: 0.7;
+}

@@ -1,7 +1,7 @@
 .profileHeader {
   display: flex;
   flex-direction: column;
-  padding: 1rem 1rem 1.8rem 1rem;
+  padding: 12px 15px;
   border-bottom: 1px solid #eee;
   background-color: #fff;
   border-radius: 10px;
@@ -20,15 +20,19 @@
 
 .profileImage {
   position: relative;
-  height: 50px;
-  width: 50px;
+  height: 55px;
+  width: 55px;
   border-radius: 50%;
   overflow: hidden;
   background-color: #f0f0f0;
+  object-fit: cover !important;
 }
 
 .profile {
-  object-fit: cover;
+  object-fit: cover !important;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .profileInfo {
@@ -38,7 +42,8 @@
 
 .username {
   font-weight: normal;
-  font-size: 1.1rem;
+  font-size: 18px;
+  margin-left: 6px;
 }
 
 .roleBadge {
@@ -85,7 +90,9 @@
   color: rgba(0, 0, 0, 0.6);
   background: none;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 4px 8px;
+  width: 72px;
+  height: 22px;
+  font-size: 11px;
   border-radius: 3px;
   cursor: pointer;
 }
@@ -93,8 +100,10 @@
 /* Quick Actions grid */
 .quickActions {
   display: flex;
-  justify-content: space-around;
-  margin-top: 1rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  gap: 0;
 }
 
 .quickActionItem {
@@ -102,13 +111,33 @@
   flex-direction: column;
   align-items: center;
   cursor: pointer;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.divider {
+  height: 35px;
+  width: 1px;
+  background-color: rgba(0, 0, 0, 0.2);
+  margin: 0 25px;
 }
 
 .actionIcon {
   /* width: 30px;
   height: 30px; */
-  margin-bottom: 0.5rem;
   object-fit: contain;
+}
+.actionLabel {
+  font-size: 13px;
+}
+@media (min-width: 468px) and (max-width: 1024px) {
+  .quickActions {
+    justify-content: space-around;
+    margin-right: -82px;
+  }
+  .divider {
+    margin: 0;
+  }
 }
 
 /* Loading skeleton */

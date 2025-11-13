@@ -30,34 +30,35 @@
 }
 
 .lockIcon {
-  width: 80px;
-  height: 80px;
+  width: 55px;
+  height: 51px;
   background-color: #f0f9f4;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  object-fit: cover !important;
 }
 
 .title {
   font-size: 20px;
   font-weight: 600;
   color: #333;
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   line-height: 1.3;
 }
 
 .message {
   font-size: 16px;
   color: #666;
-  margin: 0 0 32px 0;
+  margin: 0 0 29px 0;
   line-height: 1.4;
 }
 
 .buttonContainer {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .confirmButton {
@@ -66,7 +67,7 @@
   background-color: #66bfa7;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 5px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -74,20 +75,20 @@
 }
 
 .confirmButton:hover {
-  background-color: #6ba085;
+  background-color: #55bfa7;
 }
 
 .confirmButton:active {
-  background-color: #65a085;
+  background-color: #55bfa7;
 }
 
 .cancelButton {
   width: 100%;
-  padding: 16px;
+  padding: 15px;
   background-color: transparent;
   color: #666;
   border: 1px solid #e9ecef;
-  border-radius: 8px;
+  border-radius: 5px;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;

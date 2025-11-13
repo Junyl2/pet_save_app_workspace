@@ -4,6 +4,8 @@ import {
   ReferralSearchParams,
   ReferralSearchResponse,
   ReferralResponse,
+  StorePointPaymentSearchParams,
+  StorePointPaymentSearchResponse,
 } from './referralManagement';
 
 /**
@@ -86,5 +88,53 @@ export class ReferralManagementService {
 
     const url = `${this.BASE_URL}/store/${storeId}?${query.toString()}`;
     return apiClient.get<ReferralSearchResponse>(url);
+  }
+
+  /**
+   * Search store point payment statuses (admin)
+   * GET /api/pet-save/referrals/point-payments/stores
+   */
+  static async searchStorePointPayments(
+    params?: StorePointPaymentSearchParams
+  ): Promise<ApiResponse<StorePointPaymentSearchResponse>> {
+    const query = new URLSearchParams();
+
+    if (params?.keyword) query.append('keyword', params.keyword);
+    if (params?.storeId) query.append('storeId', params.storeId);
+    if (params?.isPaused !== undefined)
+      query.append('isPaused', String(params.isPaused));
+    if (params?.dateStart) query.append('dateStart', params.dateStart);
+    if (params?.dateEnd) query.append('dateEnd', params.dateEnd);
+
+    query.append('page', String(params?.page ?? 0));
+    query.append('size', String(params?.size ?? 10));
+    query.append('sortBy', params?.sortBy ?? 'createdAt');
+    query.append('direction', params?.direction ?? 'desc');
+
+    const url = `${this.BASE_URL}/point-payments/stores?${query.toString()}`;
+    return apiClient.get<StorePointPaymentSearchResponse>(url);
+  }
+
+  /**
+   * Pause store point payments
+   * POST /api/pet-save/referrals/point-payments/stores/{storeId}/pause
+   */
+  static async pauseStorePointPayments(
+    storeId: string,
+    request: ReferralPauseRequest
+  ): Promise<ApiResponse<ReferralResponse>> {
+    const url = `${this.BASE_URL}/point-payments/stores/${storeId}/pause`;
+    return apiClient.post<ReferralResponse>(url, request);
+  }
+
+  /**
+   * Reactivate store point payments
+   * POST /api/pet-save/referrals/point-payments/stores/{storeId}/reactivate
+   */
+  static async reactivateStorePointPayments(
+    storeId: string
+  ): Promise<ApiResponse<ReferralResponse>> {
+    const url = `${this.BASE_URL}/point-payments/stores/${storeId}/reactivate`;
+    return apiClient.post<ReferralResponse>(url);
   }
 }
