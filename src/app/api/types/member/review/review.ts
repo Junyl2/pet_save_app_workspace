@@ -38,6 +38,8 @@ export interface Review {
   };
   rating: number;
   content: string;
+  storeId: string;
+  storeName: string;
   productName: string;
   imageUrls: string[];
   createdAt: string;

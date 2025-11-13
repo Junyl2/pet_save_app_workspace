@@ -417,14 +417,14 @@ export default function OrderDetail() {
                 </span>
               </div>
             )}
-            <div className={styles.priceItem}>
-              <span className={styles.priceLabel}>
-                {shippingOption === 'DELIVERY' ? '배송비' : '픽업비'}
-              </span>
-              <span className={styles.priceValue}>
-                {formatPrice(deliveryFee)}원
-              </span>
-            </div>
+            {shippingOption === 'DELIVERY' && (
+              <div className={styles.priceItem}>
+                <span className={styles.priceLabel}>배송비</span>
+                <span className={styles.priceValue}>
+                  {formatPrice(deliveryFee)}원
+                </span>
+              </div>
+            )}
             <div className={`${styles.priceItem} ${styles.paymentMethod}`}>
               <span className={styles.priceLabel}>
                 {paymentMethod} / 일시불

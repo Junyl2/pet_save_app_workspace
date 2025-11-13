@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { StoreService } from '@/app/api/services/client/storeService/storeService';
 import { NearbyStoreInfo } from '@/app/api/types/stores/nearby';
@@ -21,6 +21,8 @@ type NearbyStoreWithOptional = NearbyStoreInfo &
     businessProfileImage: string;
   }>;
 
+const PAGE_SIZE = 20;
+
 export default function ShopList() {
   const [stores, setStores] = useState<NearbyStoreInfo[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -37,6 +39,13 @@ export default function ShopList() {
   const [imageErrorByStore, setImageErrorByStore] = useState<
     Record<string, boolean>
   >({});
+
+  // Infinite scroll state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentKeyword, setCurrentKeyword] = useState<string>('');
+  const observerTarget = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
   // Load location data & refetch automatically when locationChanged
@@ -63,46 +72,84 @@ export default function ShopList() {
     };
   }, []);
 
-  // Automatically fetch nearby stores when location updates
-  useEffect(() => {
-    if (latitude == null || longitude == null) return;
+  // Load page function for infinite scroll
+  const loadPage = useCallback(
+    async (
+      page: number,
+      keyword: string,
+      lat: number,
+      long: number,
+      isInitialLoad: boolean = false
+    ) => {
+      if (isLoadingMore && page > 0) return;
 
-    const fetchNearbyStores = async () => {
-      setAddressSearchLoading(true);
+      if (isInitialLoad) {
+        setAddressSearchLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
       setAddressSearchError(null);
 
       try {
         const response = await StoreService.searchNearbyStores({
-          keyword: '',
-          lat: latitude,
-          long: longitude,
+          keyword,
+          lat,
+          long,
           radius: 10,
-          page: 0,
-          size: 20,
+          page,
+          size: PAGE_SIZE,
         });
 
         if (response.error) {
           setAddressSearchError(response.error);
-          setStores([]);
+          if (isInitialLoad) {
+            setStores([]);
+          }
+          setHasMore(false);
         } else if (response.data?.data?.content?.length) {
-          setStores(response.data.data.content);
-          setHasSearched(true);
-          setAddressSearchError(null);
+          const newStores = response.data.data.content;
+          if (page === 0) {
+            setStores(newStores);
+          } else {
+            setStores((prev) => [...prev, ...newStores]);
+          }
+          setHasMore(response.data.data.pageInfo?.hasNext ?? false);
+          if (isInitialLoad) {
+            setHasSearched(true);
+            setAddressSearchError(null);
+          }
         } else {
-          setStores([]);
-          setHasSearched(true);
-          setAddressSearchError('현재 위치 주변 상점이 없습니다.');
+          if (isInitialLoad) {
+            setStores([]);
+            setHasSearched(true);
+            setAddressSearchError('현재 위치 주변 상점이 없습니다.');
+          }
+          setHasMore(false);
         }
       } catch (error) {
         console.error('Error fetching nearby stores:', error);
-        setAddressSearchError('현재 위치 주변 상점을 불러오지 못했습니다.');
+        if (isInitialLoad) {
+          setAddressSearchError('현재 위치 주변 상점을 불러오지 못했습니다.');
+        }
+        setHasMore(false);
       } finally {
         setAddressSearchLoading(false);
+        setIsLoadingMore(false);
       }
-    };
+    },
+    [isLoadingMore]
+  );
 
-    fetchNearbyStores();
-  }, [latitude, longitude]);
+  // Automatically fetch nearby stores when location updates
+  useEffect(() => {
+    if (latitude == null || longitude == null) return;
+
+    setCurrentPage(0);
+    setStores([]);
+    setHasMore(true);
+    setCurrentKeyword('');
+    void loadPage(0, '', latitude, longitude, true);
+  }, [latitude, longitude]); // Don't include loadPage to avoid re-fetching
 
   const getFallbackPhone = (store: NearbyStoreWithOptional) =>
     store.businessPhone ||
@@ -134,10 +181,12 @@ export default function ShopList() {
       return;
     }
 
-    setAddressSearchLoading(true);
     setAddressSearchError(null);
     setStores([]);
     setHasSearched(true);
+    setCurrentPage(0);
+    setHasMore(true);
+    setCurrentKeyword(keyword);
 
     try {
       const savedLat = localStorage.getItem('selectedLocationLat');
@@ -150,28 +199,9 @@ export default function ShopList() {
         return;
       }
 
-      const response = await StoreService.searchNearbyStores({
-        keyword,
-        lat,
-        long,
-        radius: 10,
-        page: 0,
-        size: 20,
-      });
-
-      if (response.error) {
-        setAddressSearchError(response.error);
-      } else if (response.data?.data?.content?.length) {
-        setStores(response.data.data.content);
-        setAddressSearchError(null);
-      } else {
-        setStores([]);
-        setAddressSearchError(null);
-      }
+      void loadPage(0, keyword, lat, long, true);
     } catch (error) {
       setAddressSearchError('주소 검색 중 오류가 발생했습니다.');
-    } finally {
-      setAddressSearchLoading(false);
     }
   };
 
@@ -190,6 +220,62 @@ export default function ShopList() {
         store.roadAddress?.toLowerCase().includes(term)
     );
   }, [stores, searchTerm]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (
+      !hasMore ||
+      isLoadingMore ||
+      addressSearchLoading ||
+      latitude == null ||
+      longitude == null
+    ) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !isLoadingMore &&
+          !addressSearchLoading
+        ) {
+          const nextPage = currentPage + 1;
+          setCurrentPage(nextPage);
+          const savedLat = localStorage.getItem('selectedLocationLat');
+          const savedLong = localStorage.getItem('selectedLocationLong');
+          const lat = savedLat ? parseFloat(savedLat) : latitude;
+          const long = savedLong ? parseFloat(savedLong) : longitude;
+
+          if (lat != null && long != null) {
+            void loadPage(nextPage, currentKeyword, lat, long, false);
+          }
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [
+    hasMore,
+    isLoadingMore,
+    addressSearchLoading,
+    currentPage,
+    currentKeyword,
+    latitude,
+    longitude,
+    loadPage,
+  ]);
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
@@ -213,23 +299,6 @@ export default function ShopList() {
   return (
     <>
       <TopBar onSearch={handleSearch} />
-
-      {(locationError || addressSearchError) && (
-        <div
-          style={{
-            padding: '15px',
-            backgroundColor: '#f8d7da',
-            border: '1px solid #f5c6cb',
-            borderRadius: '8px',
-            margin: '10px',
-            textAlign: 'center',
-          }}
-        >
-          <p style={{ margin: 0, color: '#721c24', fontSize: '14px' }}>
-            {locationError || addressSearchError}
-          </p>
-        </div>
-      )}
 
       {isLoading && (
         <div style={{ padding: '20px', textAlign: 'center' }}>
@@ -281,6 +350,21 @@ export default function ShopList() {
                 </div>
               );
             })}
+
+            {/* Infinite scroll sentinel */}
+            {hasMore && (
+              <div
+                ref={observerTarget}
+                style={{ height: '20px', width: '100%' }}
+              />
+            )}
+
+            {/* Loading indicator for loading more */}
+            {isLoadingMore && (
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                <NearbySkeleton count={2} />
+              </div>
+            )}
           </div>
         ) : addressSearchLoading ? null : hasSearched ? (
           <SearchState

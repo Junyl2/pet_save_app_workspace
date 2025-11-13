@@ -451,9 +451,26 @@ axiosInstance.interceptors.response.use(
       // If we're still getting 401/403, the session is invalid
       console.log(' Authentication failed - redirecting to login');
 
-      // Redirect to login page directly
+      // Only redirect if not already on login page, signup page, or public browsing pages
       if (typeof window !== 'undefined') {
-        window.location.href = '/client/login';
+        const currentPath = window.location.pathname;
+        const isOnAuthPage =
+          currentPath.includes('/login') ||
+          currentPath.includes('/signup') ||
+          currentPath.includes('/join') ||
+          currentPath.includes('/find-id') ||
+          currentPath.includes('/reset-password');
+        const isOnPublicBrowsingPage =
+          currentPath === '/' ||
+          currentPath.startsWith('/client/pages/homepage') ||
+          currentPath.startsWith('/products') ||
+          currentPath === '/client/pages/homepage';
+
+        // Don't redirect if already on auth pages or public browsing pages
+        // Only redirect when user is actively trying to access protected resources
+        if (!isOnAuthPage && !isOnPublicBrowsingPage) {
+          window.location.href = '/client/login';
+        }
       }
 
       const authError = new AuthError(

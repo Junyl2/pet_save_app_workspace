@@ -1,4 +1,9 @@
-import { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import {
+  AxiosError,
+  AxiosInstance,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import {
   AUTH_ERROR_CODES,
   AuthError,
@@ -58,7 +63,9 @@ export async function responseErrorHandler(
   error: AxiosError,
   axiosInstance: AxiosInstance
 ): Promise<AxiosResponse | never> {
-  const originalRequest = error.config as ExtendedAxiosRequestConfig | undefined;
+  const originalRequest = error.config as
+    | ExtendedAxiosRequestConfig
+    | undefined;
 
   // Handle network errors (no response.status)
   if (!error.response) {
@@ -74,14 +81,10 @@ export async function responseErrorHandler(
 
   // Handle 401/403 authentication errors
   if (error.response.status === 401 || error.response.status === 403) {
-    const isPublic = isPublicEndpoint(
-      error.config?.url,
-      error.config?.method
-    );
+    const isPublic = isPublicEndpoint(error.config?.url, error.config?.method);
     const isRefreshEndpoint =
       error.config?.url?.includes('/auth/refresh') ?? false;
-    const isLoginEndpoint =
-      error.config?.url?.includes('/auth/login') ?? false;
+    const isLoginEndpoint = error.config?.url?.includes('/auth/login') ?? false;
 
     apiLogger.logAuthError({
       status: error.response.status,
@@ -205,10 +208,7 @@ export async function responseErrorHandler(
             'Network error during token refresh - keeping auth state',
             undefined
           );
-          AuthTestLogger.logNetworkErrorScenario(
-            refreshError,
-            'token refresh'
-          );
+          AuthTestLogger.logNetworkErrorScenario(refreshError, 'token refresh');
           // Return original error for network issues
           return Promise.reject(error);
         } else if (refreshError instanceof AuthError) {
@@ -232,9 +232,26 @@ export async function responseErrorHandler(
         'No refresh token available or already retried - redirecting to login'
       );
 
-      // Redirect to login page directly
+      // Only redirect if not already on login page, signup page, or public browsing pages
       if (typeof window !== 'undefined') {
-        window.location.href = '/client/login';
+        const currentPath = window.location.pathname;
+        const isOnAuthPage =
+          currentPath.includes('/login') ||
+          currentPath.includes('/signup') ||
+          currentPath.includes('/join') ||
+          currentPath.includes('/find-id') ||
+          currentPath.includes('/reset-password');
+        const isOnPublicBrowsingPage =
+          currentPath === '/' ||
+          currentPath.startsWith('/client/pages/homepage') ||
+          currentPath.startsWith('/products') ||
+          currentPath === '/client/pages/homepage';
+
+        // Don't redirect if already on auth pages or public browsing pages
+        // Only redirect when user is actively trying to access protected resources
+        if (!isOnAuthPage && !isOnPublicBrowsingPage) {
+          window.location.href = '/client/login';
+        }
       }
 
       const authError = new AuthError(

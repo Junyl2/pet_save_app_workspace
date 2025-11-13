@@ -244,20 +244,7 @@ export default function EditReviewPage() {
     !submitting &&
     !uploadingFiles;
 
-  if (loading) return <Loading />;
-
-  if (error || !review) {
-    return (
-      <div className={styles.container}>
-        <ProductHeader />
-        <div className={styles.content}>
-          <p className={styles.error}>
-            {error || '리뷰를 불러올 수 없습니다.'}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (loading || error || !review) return <Loading />;
 
   const allImages = [
     ...existingImages.map((url) => ({ type: 'existing' as const, url })),

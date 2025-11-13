@@ -88,20 +88,7 @@ export default function ViewReviewPage() {
     }
   };
 
-  if (loading) return <Loading />;
-
-  if (error || !review) {
-    return (
-      <div className={styles.container}>
-        <ProductHeader />
-        <div className={styles.content}>
-          <p className={styles.error}>
-            {error || '리뷰를 불러올 수 없습니다.'}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (loading || error || !review) return <Loading />;
 
   return (
     <div className={styles.container}>

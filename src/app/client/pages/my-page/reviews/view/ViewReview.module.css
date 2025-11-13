@@ -1,5 +1,5 @@
 .container {
-  min-height: calc(100vh - 142px);
+  min-height: calc(100vh - 64px);
   background-color: #f2f4f7;
   margin-top: 64px;
   margin-left: -1rem;
@@ -13,11 +13,10 @@
 /* Tab Navigation */
 .tabContainer {
   position: sticky;
-  top: 60px;
+  top: 64px;
   display: flex;
   border-bottom: 1px solid #e5e5e5;
   background-color: #fff;
-  padding-top: 10px;
   z-index: 500;
 }
 
@@ -26,12 +25,13 @@
   padding: 16px 0;
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
-  color: #666;
+  color: #000;
   cursor: pointer;
   position: relative;
   transition: color 0.2s ease;
+  font-family: 'Pretendard' !important;
 }
 
 .tab:hover {
@@ -43,7 +43,7 @@
   font-weight: 600;
 }
 
-.activeTab::after {
+/* .activeTab::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -52,6 +52,7 @@
   height: 2px;
   background-color: #8bc4a8;
 }
+ */
 
 /* Review Container */
 .reviewContainer {
@@ -67,7 +68,6 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
   position: relative;
 }
 

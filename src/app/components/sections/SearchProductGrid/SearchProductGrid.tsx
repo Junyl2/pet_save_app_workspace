@@ -15,6 +15,7 @@ import { ProductService } from '@/app/api/services/client/productService/product
 import SearchProductSkeleton from './SearchProductSkeleton';
 import SearchState from '../../ui/SearchResult/SearchState';
 import { useProductCartQuantity } from '@/app/components/hooks/use-product-cart-quantity';
+import WrongTermSearchHistory from './WrongTermSearchHistory';
 
 export default function SearchProductGrid({
   searchTerm = '',
@@ -39,6 +40,9 @@ export default function SearchProductGrid({
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [catalogReady, setCatalogReady] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [isRepeatWrongTerm, setIsRepeatWrongTerm] = useState(false);
+
+  const WRONG_TERM_STORAGE_KEY = 'wrongTermSearchHistory';
 
   const handleImageError = (productId: string) => {
     setImageErrors((prev) => ({ ...prev, [productId]: true }));
@@ -186,6 +190,82 @@ export default function SearchProductGrid({
     );
   }, [allProducts, catalogReady, normalizedTerm]);
 
+  // Track wrong search terms
+  useEffect(() => {
+    if (!searchTerm.trim() || loading || !catalogReady) {
+      setIsRepeatWrongTerm(false);
+      return;
+    }
+
+    const isWrongTerm =
+      catalogReady &&
+      allProducts.length > 0 &&
+      !matchesAnyCatalog &&
+      filteredProducts.length === 0;
+
+    if (isWrongTerm) {
+      const stored = localStorage.getItem(WRONG_TERM_STORAGE_KEY);
+      let history: Array<{ keyword: string; searchedAt: string }> = [];
+
+      if (stored) {
+        try {
+          history = JSON.parse(stored);
+        } catch {
+          history = [];
+        }
+      }
+
+      // Check if there's any history (before adding current term)
+      // Show history if there's any existing history, regardless of current term
+      const hasHistory = history.length > 0;
+      setIsRepeatWrongTerm(hasHistory);
+
+      // Add or update the search term in history
+      const trimmedTerm = searchTerm.trim();
+      const existingIndex = history.findIndex(
+        (item) => item.keyword.toLowerCase() === trimmedTerm.toLowerCase()
+      );
+
+      const newItem = {
+        keyword: trimmedTerm,
+        searchedAt: new Date().toISOString(),
+      };
+
+      if (existingIndex >= 0) {
+        // Update existing entry
+        history[existingIndex] = newItem;
+      } else {
+        // Add new entry
+        history.push(newItem);
+      }
+
+      // Keep only last 10 items
+      const sortedHistory = history
+        .sort(
+          (a, b) =>
+            new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime()
+        )
+        .slice(0, 10);
+
+      localStorage.setItem(
+        WRONG_TERM_STORAGE_KEY,
+        JSON.stringify(sortedHistory)
+      );
+
+      // Dispatch custom event to notify WrongTermSearchHistory component
+      window.dispatchEvent(new Event('wrongTermHistoryUpdated'));
+    } else {
+      setIsRepeatWrongTerm(false);
+    }
+  }, [
+    searchTerm,
+    loading,
+    catalogReady,
+    allProducts,
+    matchesAnyCatalog,
+    filteredProducts.length,
+  ]);
+
   // ---- render ----
   if (loading) return <SearchProductSkeleton count={6} />;
 
@@ -218,12 +298,11 @@ export default function SearchProductGrid({
             : '/images/products/noresult.png'
         }
         altText="검색된 상품 없음"
-        message={
-          isWrongTerm
-            ? '검색어가 올바르지 않습니다.'
-            : '검색된 상품이 없습니다.'
-        }
-      />
+        message="검색된 상품이 없습니다."
+        isSearchWrongTerm={isWrongTerm}
+      >
+        {isWrongTerm && isRepeatWrongTerm && <WrongTermSearchHistory />}
+      </SearchState>
     );
   }
 

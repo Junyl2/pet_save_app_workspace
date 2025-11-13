@@ -185,7 +185,7 @@
 /* Search history dropdown */
 .historyDropdown {
   position: fixed;
-  top: 170%;
+  top: 200%;
   left: 0;
   right: 0;
   background: #fff;
@@ -202,7 +202,7 @@
 @media (max-width: 1024px) {
   .historyDropdown {
     position: absolute;
-    top: 110%;
+    top: 120%;
     left: 0;
     right: 0;
   }

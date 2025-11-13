@@ -283,8 +283,7 @@ export default function ReviewsPage() {
                               원
                             </div>
                             <div className={styles.productStore}>
-                              {(review.product as { storeName?: string })
-                                ?.storeName || '-'}
+                              {review.storeName || '-'}
                             </div>
                           </div>
                           <button

@@ -9,6 +9,8 @@ type SearchStateProps = {
   imageSrc: string;
   altText: string;
   message: string;
+  children?: React.ReactNode;
+  isSearchWrongTerm?: boolean;
   /*  actionButton?: React.ReactNode;  */
 };
 
@@ -16,6 +18,8 @@ export default function SearchState({
   imageSrc,
   altText,
   message,
+  children,
+  isSearchWrongTerm = false,
 }: /*  actionButton, */
 SearchStateProps) {
   const pathname = usePathname();
@@ -25,9 +29,11 @@ SearchStateProps) {
     <div
       className={`${styles.emptyContainer} ${
         isSearchPage ? styles.searchPage : ''
+      } ${isSearchWrongTerm ? styles.wrongTerm : ''} ${
+        isSearchWrongTerm && children ? styles.hasChildren : ''
       }`}
     >
-      <div>
+      <div className={styles.content}>
         <Image
           src={imageSrc}
           alt={altText}
@@ -38,6 +44,7 @@ SearchStateProps) {
         <p className={styles.emptyText}>{message}</p>
         {/*      {actionButton && <div className={styles.action}>{actionButton}</div>} */}
       </div>
+      {children && <div className={styles.children}>{children}</div>}
     </div>
   );
 }

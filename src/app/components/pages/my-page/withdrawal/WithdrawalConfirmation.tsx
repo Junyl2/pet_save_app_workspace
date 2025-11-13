@@ -84,8 +84,8 @@ const WithdrawalConfirmation = () => {
               <img
                 src="/images/icons/trash.svg"
                 alt="Trash"
-                width={60}
-                height={60}
+                width={49}
+                height={57}
               />
             </div>
             <h1 className={styles.title}>정말 탈퇴하시겠어요?</h1>
@@ -108,13 +108,14 @@ const WithdrawalConfirmation = () => {
                     className={`${styles.dropdownArrow} ${
                       isDropdownOpen ? styles.dropdownArrowOpen : ''
                     }`}
-                    width="12"
-                    height="12"
-                    viewBox="0 0 12 12"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
                   >
                     <path
-                      d="M3 4.5L6 7.5L9 4.5"
-                      stroke="#9CA3AF"
+                      d="M7 10L12 15L17 10"
+                      stroke="rgba(0, 0, 0, 0.6)"
                       strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -126,7 +127,9 @@ const WithdrawalConfirmation = () => {
                     {dropdownOptions.map((option) => (
                       <div
                         key={option}
-                        className={styles.dropdownOption}
+                        className={`${styles.dropdownOption} ${
+                          reason === option ? styles.dropdownOptionSelected : ''
+                        }`}
                         onClick={() => handleOptionSelect(option)}
                       >
                         {option}
@@ -140,7 +143,6 @@ const WithdrawalConfirmation = () => {
             {/* Custom input field (visible only for "기타") */}
             {isCustomReason && (
               <div className={styles.formGroup}>
-                <label className={styles.label}>직접 입력</label>
                 <input
                   type="text"
                   className={styles.customReasonInput}
@@ -151,8 +153,6 @@ const WithdrawalConfirmation = () => {
               </div>
             )}
           </div>
-
-          <hr className={styles.separator} />
 
           {/* Password input */}
           <div className={styles.passwordSection}>
@@ -167,11 +167,11 @@ const WithdrawalConfirmation = () => {
             </div>
           </div>
 
-          <hr className={styles.separator} />
-
           {/* Info */}
           <div className={styles.infoSection}>
-            <h3 className={styles.infoTitle}>탈퇴 전 유의사항</h3>
+            <div className={styles.infoTitleWrapper}>
+              <h3 className={styles.infoTitle}>탈퇴 전 유의사항</h3>
+            </div>
             <ul className={styles.infoList}>
               <li>탈퇴 후 7일간 재가입이 불가능합니다.</li>
               <li>
@@ -180,9 +180,6 @@ const WithdrawalConfirmation = () => {
               </li>
             </ul>
           </div>
-
-          {/* Spacer */}
-          <div className={styles.spacer}></div>
 
           {/* Submit button */}
           <div className={styles.buttonContainer}>
