@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import styles from './page.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { usePathname, useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { IoChevronDownOutline } from 'react-icons/io5';
+import { ReferralManagementService } from '@/app/api/services/admin/referralManangementService/referralManagementService';
+import type { StorePointPaymentStatus } from '@/app/api/services/admin/referralManangementService/referralManagement';
 
 const slugToTabKey = {
   'set-payment-policy': '지급 정책 설정',
@@ -14,11 +16,12 @@ const slugToTabKey = {
 };
 
 interface ReferrerData {
-  id: string;
-  storeName: string;
-  totalMembers: number;
-  totalPoints: number;
+  storeId: string;
+  businessName: string;
+  totalSubscribers: number;
+  totalPointPayments: number;
   status: '정상' | '일시정지';
+  isPaused: boolean;
 }
 
 const PAGE_SIZE = 10;
@@ -26,6 +29,10 @@ const PAGE_SIZE = 10;
 export default function DocumentListPage(): React.ReactElement {
   const [selectedOption, setSelectedOption] = useState('전체');
   const [open, setOpen] = useState(false);
+  const [keyword, setKeyword] = useState('');
+  const [data, setData] = useState<ReferrerData[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
   const { page, setPage } = usePageParam(1);
   const router = useRouter();
   const pathname = usePathname();
@@ -34,97 +41,194 @@ export default function DocumentListPage(): React.ReactElement {
     Object.keys(slugToTabKey).find((slug) => pathname.includes(slug)) ||
     'payment-details';
 
-  const mockData = useMemo<ReferrerData[]>(
-    () => [
-      {
-        id: '1',
-        storeName: 'ㅇㅇ 동물병원',
-        totalMembers: 80,
-        totalPoints: 80000,
-        status: '정상',
-      },
-      {
-        id: '2',
-        storeName: 'ㅇㅇ 동물병원',
-        totalMembers: 12,
-        totalPoints: 12000,
-        status: '정상',
-      },
-      {
-        id: '3',
-        storeName: 'ㅇㅇ 동물병원',
-        totalMembers: 80,
-        totalPoints: 80000,
-        status: '정상',
-      },
-      {
-        id: '4',
-        storeName: 'ㅇㅇ 동물병원',
-        totalMembers: 12,
-        totalPoints: 12000,
-        status: '일시정지',
-      },
-      {
-        id: '5',
-        storeName: 'ㅇㅇ 동물병원',
-        totalMembers: 80,
-        totalPoints: 80000,
-        status: '정상',
-      },
-      {
-        id: '6',
-        storeName: 'ㅇㅇ 동물병원',
-        totalMembers: 12,
-        totalPoints: 12000,
-        status: '일시정지',
-      },
-      {
-        id: '7',
-        storeName: 'ㅇㅇ 동물병원',
-        totalMembers: 80,
-        totalPoints: 80000,
-        status: '정상',
-      },
-      {
-        id: '8',
-        storeName: 'ㅇㅇ 동물병원',
-        totalMembers: 12,
-        totalPoints: 12000,
-        status: '정상',
-      },
-      {
-        id: '9',
-        storeName: 'ㅇㅇ 동물병원',
-        totalMembers: 80,
-        totalPoints: 80000,
-        status: '정상',
-      },
-      {
-        id: '10',
-        storeName: 'ㅇㅇ 동물병원',
-        totalMembers: 12,
-        totalPoints: 12000,
-        status: '일시정지',
-      },
-    ],
-    []
+  /** Calculate isPaused from pausedAt and reactivatedAt fields in response */
+  const getIsPaused = useCallback((item: StorePointPaymentStatus): boolean => {
+    // If pausedAt is not null and reactivatedAt is null, it's paused
+    return item.pausedAt !== null && item.reactivatedAt === null;
+  }, []);
+
+  /** Determine status based on pause state */
+  const getStatus = useCallback(
+    (item: StorePointPaymentStatus): '정상' | '일시정지' => {
+      const isPaused = getIsPaused(item);
+      return isPaused ? '일시정지' : '정상';
+    },
+    [getIsPaused]
   );
 
-  const pagedData = useMemo(
-    () => mockData.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [page, mockData]
+  /** Fetch store point payments */
+  const fetchData = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const params: {
+        keyword?: string;
+        isPaused?: boolean;
+        page: number;
+        size: number;
+        sortBy:
+          | 'createdAt'
+          | 'updatedAt'
+          | 'businessName'
+          | 'totalSubscribers'
+          | 'totalAwardedPoints';
+        direction: 'asc' | 'desc';
+      } = {
+        page: page - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        direction: 'desc',
+      };
+
+      if (keyword.trim()) {
+        params.keyword = keyword.trim();
+      }
+
+      // Filter by pause status
+      if (selectedOption === '일시정지') {
+        params.isPaused = true;
+      } else if (selectedOption === '정상') {
+        params.isPaused = false;
+      }
+
+      const { data: response, error } =
+        await ReferralManagementService.searchStorePointPayments(params);
+
+      if (error || !response?.data) {
+        console.error('[PaymentDetailsPage] Fetch failed:', error);
+        setData([]);
+        setTotalPages(1);
+        return;
+      }
+
+      const mapped: ReferrerData[] = response.data.content.map((item) => {
+        const isPaused = getIsPaused(item);
+        return {
+          storeId: item.storeId,
+          businessName: item.businessName,
+          totalSubscribers: item.totalSubscribers,
+          totalPointPayments: item.totalPointPayments,
+          status: getStatus(item),
+          isPaused,
+        };
+      });
+
+      setData(mapped);
+      setTotalPages(response.data.pageInfo.totalPages || 1);
+    } catch (err) {
+      console.error('[PaymentDetailsPage] Fetch error:', err);
+      setData([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, keyword, selectedOption, getStatus, getIsPaused]);
+
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
+
+  /** Handle pause action */
+  const handlePause = useCallback(
+    async (
+      storeId: string,
+      e?: React.MouseEvent<HTMLButtonElement>
+    ): Promise<void> => {
+      e?.preventDefault();
+      e?.stopPropagation();
+
+      const reason = prompt('일시정지 사유를 입력하세요:');
+      if (!reason || !reason.trim()) {
+        return;
+      }
+
+      try {
+        const { data, error } =
+          await ReferralManagementService.pauseStorePointPayments(storeId, {
+            reason: reason.trim(),
+          });
+
+        if (error || !data?.success) {
+          console.error('[PaymentDetailsPage] Pause failed:', error);
+          alert('일시정지에 실패했습니다.');
+          return;
+        }
+
+        alert('일시정지되었습니다.');
+        // Wait a moment for backend to process, then refetch
+        setTimeout(() => {
+          void fetchData();
+        }, 500);
+      } catch (err) {
+        console.error('[PaymentDetailsPage] Pause error:', err);
+        alert('일시정지에 실패했습니다.');
+      }
+    },
+    [fetchData]
   );
 
-  const totalPages = Math.ceil(mockData.length / PAGE_SIZE);
+  /** Handle reactivate action */
+  const handleReactivate = useCallback(
+    async (
+      storeId: string,
+      e?: React.MouseEvent<HTMLButtonElement>
+    ): Promise<void> => {
+      e?.preventDefault();
+      e?.stopPropagation();
+
+      if (!confirm('지급을 재개하시겠습니까?')) {
+        return;
+      }
+
+      try {
+        const { data, error } =
+          await ReferralManagementService.reactivateStorePointPayments(storeId);
+
+        if (error || !data?.success) {
+          console.error('[PaymentDetailsPage] Reactivate failed:', error);
+          alert('재개에 실패했습니다.');
+          return;
+        }
+
+        alert('재개되었습니다.');
+        // Wait a moment for backend to process, then refetch
+        setTimeout(() => {
+          void fetchData();
+        }, 500);
+      } catch (err) {
+        console.error('[PaymentDetailsPage] Reactivate error:', err);
+        alert('재개에 실패했습니다.');
+      }
+    },
+    [fetchData]
+  );
+
+  /** Handle search */
+  const handleSearch = useCallback(() => {
+    setPage(1);
+    void fetchData();
+  }, [setPage, fetchData]);
 
   /** Toggle dropdown visibility */
   const toggleDropdown = useCallback(() => setOpen((prev) => !prev), []);
 
   /** Select filter option */
-  const handleSelectOption = useCallback((option: string): void => {
-    setSelectedOption(option);
-    setOpen(false);
-  }, []);
+  const handleSelectOption = useCallback(
+    (option: string): void => {
+      setSelectedOption(option);
+      setOpen(false);
+      setPage(1);
+    },
+    [setPage]
+  );
+
+  if (loading) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h1 className={styles.title}>추천인 코드 관리</h1>
+        <div>로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -163,7 +267,7 @@ export default function DocumentListPage(): React.ReactElement {
           </div>
           {open && (
             <div className={styles.dropdownList}>
-              {['전체', '판매중', '품절'].map((option) => (
+              {['전체', '정상', '일시정지'].map((option) => (
                 <div
                   key={option}
                   className={styles.dropdownItem}
@@ -184,8 +288,19 @@ export default function DocumentListPage(): React.ReactElement {
             type="text"
             className={styles.searchInput}
             placeholder="검색어를 입력하세요"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
           />
-          <button type="button" className={styles.searchBtn}>
+          <button
+            type="button"
+            className={styles.searchBtn}
+            onClick={handleSearch}
+          >
             검색
           </button>
         </div>
@@ -201,18 +316,48 @@ export default function DocumentListPage(): React.ReactElement {
           <div />
         </div>
 
-        {pagedData.map((item) => (
-          <div key={item.id} className={styles.row}>
-            <div>{item.storeName}</div>
-            <div>{item.totalMembers}명</div>
-            <div>{item.totalPoints.toLocaleString('ko-KR')}P</div>
-            <div>{item.status}</div>
-            <div className={styles.actions}>
-              <button className={styles.pauseBtn}>지급 일시중지</button>
-              <button className={styles.resumeBtn}>지급재개</button>
-            </div>
+        {data.length === 0 ? (
+          <div
+            style={{
+              padding: '2rem',
+              textAlign: 'center',
+              color: 'rgba(0, 0, 0, 0.5)',
+            }}
+          >
+            데이터가 없습니다.
           </div>
-        ))}
+        ) : (
+          data.map((item) => (
+            <div key={item.storeId} className={styles.row}>
+              <div>{item.businessName}</div>
+              <div>{item.totalSubscribers}명</div>
+              <div>{item.totalPointPayments.toLocaleString('ko-KR')}P</div>
+              <div
+                style={{
+                  color: item.status === '정상' ? '#009329' : '#EA080C',
+                }}
+              >
+                {item.status}
+              </div>
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={styles.pauseBtn}
+                  onClick={(e) => handlePause(item.storeId, e)}
+                >
+                  지급 일시중지
+                </button>
+                <button
+                  type="button"
+                  className={styles.resumeBtn}
+                  onClick={(e) => handleReactivate(item.storeId, e)}
+                >
+                  지급재개
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Pagination */}

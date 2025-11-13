@@ -37,6 +37,42 @@ export default function OrderDetail() {
   const [checkingReview, setCheckingReview] = useState(false);
 
   /**
+   * Store order history URL when component mounts (for navigation after delete)
+   * The URL should already be stored by OrderHistoryItem when navigating from order history
+   * This effect ensures we have a fallback if needed
+   */
+  useEffect(() => {
+    // Check if we already have a stored URL (set by OrderHistoryItem)
+    const storedUrl = sessionStorage.getItem('orderHistoryReturnUrl');
+
+    if (storedUrl) {
+      // We already have a stored URL, keep it (don't overwrite)
+      return;
+    }
+
+    // Fallback: Try to get from referrer if available
+    const referrer = document.referrer;
+    if (
+      referrer &&
+      referrer.includes('/order-history') &&
+      !referrer.includes('/items/')
+    ) {
+      // Extract just the pathname and search params from referrer
+      try {
+        const referrerUrl = new URL(referrer);
+        const orderHistoryUrl = `${referrerUrl.pathname}${referrerUrl.search}`;
+        sessionStorage.setItem('orderHistoryReturnUrl', orderHistoryUrl);
+      } catch {
+        // If URL parsing fails, use the full referrer
+        sessionStorage.setItem('orderHistoryReturnUrl', referrer);
+      }
+    } else {
+      // No stored URL and no valid referrer, use base URL as fallback
+      sessionStorage.setItem('orderHistoryReturnUrl', PAGE_URLS.ORDER_HISTORY);
+    }
+  }, []);
+
+  /**
    * Fetch order details by orderItemId using GET /orders/items/{orderItemId}
    */
   useEffect(() => {
@@ -232,6 +268,30 @@ export default function OrderDetail() {
       );
 
       console.log('Delete response:', response);
+
+      // 204 No Content is a successful response
+      if (response.status === 204) {
+        // Show success toast message for 204
+        setToast({ message: '주문 내역이 삭제되었습니다.' });
+
+        // Navigate back to order history page with query parameters preserved and force refresh
+        setTimeout(() => {
+          // Get the stored order history URL from sessionStorage
+          // This was stored when the user first navigated from order history to order detail
+          const storedOrderHistoryUrl = sessionStorage.getItem(
+            'orderHistoryReturnUrl'
+          );
+
+          if (storedOrderHistoryUrl) {
+            // Use the stored URL which includes query parameters
+            window.location.href = storedOrderHistoryUrl;
+          } else {
+            // Fallback: navigate to base order history URL
+            window.location.href = PAGE_URLS.ORDER_HISTORY;
+          }
+        }, 1200);
+        return;
+      }
 
       // Check if there's an error in the response
       if (response.error) {

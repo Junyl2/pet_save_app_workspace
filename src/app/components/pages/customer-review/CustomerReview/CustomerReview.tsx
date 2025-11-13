@@ -101,7 +101,7 @@ export const CustomerReviews = ({ productId }: CustomerReviewsProps) => {
         setIsLoadingMore(false);
       }
     },
-    [productId]
+    [productId, isLoadingMore]
   );
 
   // Load initial page

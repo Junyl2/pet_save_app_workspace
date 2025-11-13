@@ -149,7 +149,7 @@ export default function ShopList() {
     setHasMore(true);
     setCurrentKeyword('');
     void loadPage(0, '', latitude, longitude, true);
-  }, [latitude, longitude]); // Don't include loadPage to avoid re-fetching
+  }, [latitude, longitude, loadPage]);
 
   const getFallbackPhone = (store: NearbyStoreWithOptional) =>
     store.businessPhone ||

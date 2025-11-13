@@ -152,27 +152,38 @@ export const orderDetailsService = {
    */
   async deleteOrderHistory(
     orderId: string
-  ): Promise<{ data: DeleteOrderHistoryResponse | null; error?: string }> {
+  ): Promise<{ data: DeleteOrderHistoryResponse | null; error?: string; status?: number }> {
     try {
       const url = `/order-histories/orders/${orderId}`;
       console.log('Delete order history URL:', url);
-      const response = await apiClient.delete<DeleteOrderHistoryResponse>(url);
 
-      // If there's an error, return it
-      if (response.error) {
-        return { data: null, error: response.error };
+      // Use raw axios instance to get status code
+      const response = await apiClient.raw.delete<DeleteOrderHistoryResponse>(url);
+
+      // 204 No Content is a successful response
+      if (response.status === 204) {
+        return { data: null, status: 204 };
       }
 
-      // If response.data exists but success is false, extract the error message
-      if (response.data && !response.data.success) {
+      // If there's an error in the response data, return it
+      if (response.data && typeof response.data === 'object' && 'success' in response.data && !response.data.success) {
         const errorMsg =
-          response.data.resultMsg || 'Failed to delete order history';
-        return { data: null, error: errorMsg };
+          (response.data as { resultMsg?: string }).resultMsg || 'Failed to delete order history';
+        return { data: null, error: errorMsg, status: response.status };
       }
 
-      return { data: response.data };
+      return { data: response.data || null, status: response.status };
     } catch (error) {
       console.error('Delete order history error:', error);
+
+      // Check if it's an axios error with response
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number } };
+        if (axiosError.response?.status === 204) {
+          return { data: null, status: 204 };
+        }
+      }
+
       return {
         data: null,
         error:
