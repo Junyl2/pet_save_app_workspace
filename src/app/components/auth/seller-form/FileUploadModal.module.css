@@ -5,9 +5,10 @@
   background-color: #fff;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 5px;
-  padding: 0rem 1rem;
-  min-height: 3rem;
+  padding: 0 20px;
+  height: 45px;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .fileName {
@@ -15,22 +16,30 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #333;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 16px;
+  line-height: 16px;
 }
 
 .chooseButton {
   position: absolute;
-  right: 0.5rem;
+  right: 11px;
   top: 50%;
   transform: translateY(-50%);
   background-color: #66bfa7;
   color: #fff;
   border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 0.25rem;
+  height: 23px;
+  padding: 5px;
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 13px;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 49px;
+  white-space: nowrap;
 }
 
 /* Modal overlay */

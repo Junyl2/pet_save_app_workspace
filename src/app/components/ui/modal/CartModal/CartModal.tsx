@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '@/app/context/cartContext';
 import { cartService } from '@/app/api/services/client/cartService/cartService';
 import { useUser } from '@/app/context/userContext';
+import { dispatchCartUpdate } from '@/app/components/hooks/use-cart-quantity';
 
 interface CartModalProps {
   open: boolean;
@@ -65,6 +66,8 @@ export const CartModal = ({
           price: productPrice,
         } as AddToCartProduct;
         addToCart(tempProduct, quantity);
+
+        dispatchCartUpdate();
 
         toast.success(`${productName} 장바구니에 담겼습니다`, {
           style: { background: '#66bfa7' },
@@ -126,7 +129,9 @@ export const CartModal = ({
             <p>총 수량 {quantity}개</p>
             <p>
               <span className={styles.priceSpan}>총 금액</span>
-              <strong>{totalPrice.toLocaleString('ko-KR')}원</strong>
+              <span className={styles.strongPrice}>
+                {totalPrice.toLocaleString('ko-KR')}원
+              </span>
             </p>
           </div>
         </div>

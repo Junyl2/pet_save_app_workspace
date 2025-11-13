@@ -3,7 +3,6 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ContactInquiry } from '@/app/api/types/contact/contact';
-import { contactService } from '@/app/api/services/contact-service/contactService';
 import { MemberInquiryService } from '@/app/api/services/client/memberService/inquiry-details/memberInquiryService';
 import { MyInquiry } from '@/app/api/types/member/inquiry-details/inquiry';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
@@ -11,44 +10,60 @@ import { MemberInfo } from '@/app/api/types/member/member';
 import styles from './DeleteInquiry.module.css';
 import { DotMenu } from '@/app/components/ui/DotMenu/DotMenu';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
-import Image from 'next/image';
 import toast from 'react-hot-toast';
 import Loading from '@/app/components/ui/Loading/Loading';
+
+// Map API categories to Korean display names
+const mapApiCategoryToUI = (apiCategory: string): string => {
+  switch (apiCategory) {
+    case 'PRODUCT':
+      return '상품 문의';
+    case 'DELIVERY':
+      return '배송/픽업 문의';
+    case 'EXCHANGE_RETURN':
+      return '교환/환불 문의';
+    case 'PAYMENT':
+      return '결제 문의';
+    case 'OTHER':
+    default:
+      return '기타 문의';
+  }
+};
 
 // Helper function to transform API response to ContactInquiry format
 const transformMyInquiryToContactInquiry = (
   myInquiry: MyInquiry
 ): ContactInquiry => {
   return {
-    id: parseInt(myInquiry.inquiryId.split('-')[0], 16) || 0, // Convert UUID to number for compatibility
+    id: myInquiry.inquiryId, // Use inquiryId as id (string)
     inquiryId: myInquiry.inquiryId,
     date: myInquiry.createdAt,
-    shopName: myInquiry.store.name,
-    shopLocation: myInquiry.store.address,
-    shopImage: myInquiry.store.profileUrl || '/images/shops/shop1.png', // fallback image
+    shopName: myInquiry.store?.name || '상점 정보 없음',
+    shopLocation: myInquiry.store?.address || '주소 정보 없음',
+    shopImage: myInquiry.store?.profileUrl || '/images/shops/shop1.png', // fallback image
     category: myInquiry.category,
     message: myInquiry.content,
     responseMessage: myInquiry.answer || '',
     status: myInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
-    productId: myInquiry.product.productId, // Store productId for routing
+    productId: myInquiry.product?.productId, // Store productId for routing
   };
 };
 
 export default function DeleteInquiryPage() {
   const router = useRouter();
   const params = useParams();
-  const productId = params.id as string; // Now expecting productId (string UUID)
+  const inquiryId = params.id as string; // Now expecting inquiryId (string UUID)
 
   const [inquiry, setInquiry] = useState<ContactInquiry | null>(null);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<MemberInfo | null>(null);
 
   useEffect(() => {
-    if (!productId) return;
+    if (!inquiryId) return;
     const fetchInquiry = async () => {
       setLoading(true);
       try {
-        // Fetch all inquiries and find the one with matching productId
+        // Fetch all inquiries and find the one with matching inquiryId
         const response = await MemberInquiryService.getMyInquiries({
           sortBy: 'createdAt',
           direction: 'desc',
@@ -57,13 +72,11 @@ export default function DeleteInquiryPage() {
 
         if (response.error || !response.data) {
           console.error('Failed to fetch inquiries:', response.error);
-          // Fallback to mock data if API fails
-          const mockData = await contactService.getInquiryById(1); // fallback
-          setInquiry(mockData);
+          setInquiry(null);
         } else {
-          // Find inquiry with matching productId
+          // Find inquiry with matching inquiryId (more reliable than productId)
           const matchingInquiry = response.data.data.content.find(
-            (inq) => inq.product.productId === productId
+            (inq) => inq.inquiryId === inquiryId
           );
 
           if (matchingInquiry) {
@@ -71,21 +84,19 @@ export default function DeleteInquiryPage() {
               transformMyInquiryToContactInquiry(matchingInquiry);
             setInquiry(transformedInquiry);
           } else {
-            console.error('Inquiry not found for productId:', productId);
+            console.error('Inquiry not found for inquiryId:', inquiryId);
             setInquiry(null);
           }
         }
       } catch (error) {
         console.error('Error fetching inquiry:', error);
-        // Fallback to mock data on error
-        const mockData = await contactService.getInquiryById(1);
-        setInquiry(mockData);
+        setInquiry(null);
       } finally {
         setLoading(false);
       }
     };
     fetchInquiry();
-  }, [productId]);
+  }, [inquiryId]);
 
   // Fetch user profile data
   useEffect(() => {
@@ -141,15 +152,13 @@ export default function DeleteInquiryPage() {
       <div className={styles.container}>
         {/* User profile */}
         <div className={styles.userProfile}>
-          <Image
+          <img
             src={
               userProfile?.profileImageUrl ||
               '/images/icons/profile-default.png'
             }
             alt="User Profile"
             className={styles.profileImage}
-            width={40}
-            height={40}
           />
           <span className={styles.userName}>
             {userProfile?.name || userProfile?.nickname || '펫세이브'}
@@ -176,8 +185,8 @@ export default function DeleteInquiryPage() {
             <h2 className={styles.responseLabel}>답변드립니다.</h2>
             <div className={styles.messageContent}>
               <p>
-                문의 주셔서 감사합니다. [{inquiry.shopName}]에 대한 질문에 대해
-                아래와 같이 답변 드리겠습니다.
+                문의 주셔서 감사합니다. [{mapApiCategoryToUI(inquiry.category)}
+                ]에 대한 질문에 대해 아래와 같이 답변 드리겠습니다.
               </p>
 
               <p>{inquiry.responseMessage}</p>
@@ -190,8 +199,8 @@ export default function DeleteInquiryPage() {
             <h2 className={styles.responseLabel}>답변 대기 중</h2>
             <div className={styles.messageContent}>
               <p>
-                문의 주셔서 감사합니다. [{inquiry.shopName}]에 대한 질문에 대해
-                답변이 준비되는 대로 연락드리겠습니다.
+                문의 주셔서 감사합니다. [{mapApiCategoryToUI(inquiry.category)}
+                ]에 대한 질문에 대해 답변이 준비되는 대로 연락드리겠습니다.
               </p>
             </div>
           </div>

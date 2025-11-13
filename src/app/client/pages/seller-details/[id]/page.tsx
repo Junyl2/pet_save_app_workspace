@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   useRouter,
   useParams,
@@ -34,9 +34,8 @@ export default function SellerDetailsPage() {
   const lastSeg = pathname?.split('/').filter(Boolean).at(-1);
   const storeId = params?.id ?? lastSeg ?? '';
 
-  // Get current page and category from URL parameters
-  const currentPage = parseInt(searchParams.get('page') || '0', 10);
-  const urlCategory = searchParams.get('category') || '';
+  // Get category from URL parameters
+  const urlCategory = searchParams.get('categoryName') || '';
 
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>(urlCategory);
@@ -139,12 +138,12 @@ export default function SellerDetailsPage() {
 
   if (error) {
     return (
-      <>
+      <React.Fragment>
         <ProductHeader />
         <div className={styles.container}>
           <p style={{ padding: 16, color: 'crimson' }}>{error}</p>
         </div>
-      </>
+      </React.Fragment>
     );
   }
 
@@ -187,25 +186,13 @@ export default function SellerDetailsPage() {
     router.push(`/client/seller/pages/change-profile?storeId=${storeId}`);
   };
 
-  // Handle page change by updating URL
-  const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (page === 0) {
-      params.delete('page');
-    } else {
-      params.set('page', page.toString());
-    }
-    const newUrl = params.toString() ? `?${params.toString()}` : '';
-    router.push(`/client/pages/seller-details/${storeId}${newUrl}`);
-  };
-
   // Handle category change by updating URL
-  const handleCategoryChange = (category: string) => {
+  const handleCategoryChange = (categoryName: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (category === '') {
-      params.delete('category');
+    if (categoryName === '') {
+      params.delete('categoryName');
     } else {
-      params.set('category', category);
+      params.set('categoryName', categoryName);
     }
     // Reset to page 0 when changing category
     params.delete('page');
@@ -214,7 +201,7 @@ export default function SellerDetailsPage() {
   };
 
   return (
-    <>
+    <React.Fragment>
       <ProductHeader />
       <div className={styles.container}>
         <div className={styles.profileDetails}>
@@ -258,7 +245,7 @@ export default function SellerDetailsPage() {
                   }
                 }}
               >
-                연락하기
+                전화 연결
               </button>
             </div>
             <div className={styles.details}>
@@ -307,10 +294,8 @@ export default function SellerDetailsPage() {
         </div>
 
         <ProductGrid
-          category={selectedCategory}
+          categoryName={selectedCategory}
           storeId={storeId}
-          currentPage={currentPage}
-          onPageChange={handlePageChange}
           onProductClick={(product) => {
             const productId = product.productId || product.id;
             if (productId) {
@@ -319,8 +304,9 @@ export default function SellerDetailsPage() {
               console.error('Product missing ID:', product);
             }
           }}
+          onAddToCart={() => {}}
         />
       </div>
-    </>
+    </React.Fragment>
   );
 }

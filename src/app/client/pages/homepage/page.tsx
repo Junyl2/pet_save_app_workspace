@@ -13,11 +13,32 @@ export default function HomePage() {
   const searchParams = useSearchParams();
   const { user, refreshUserData } = useUser(); // get user from context
 
-  // Get current page and category from URL parameters
-  const currentPage = parseInt(searchParams.get('page') || '0', 10);
-  const urlCategory = searchParams.get('category') || '강아지';
+  // Get category from URL parameters (no default - will use first category from API)
+  const urlCategory = searchParams.get('categoryName');
+  // Valid allowed values based on ProductCacheKey type
+  const allowedSortBy = [
+    'createdAt',
+    'expiryDate',
+    'salePrice',
+    'discountedPrice',
+  ] as const;
+  const allowedDirections = ['asc', 'desc'] as const;
 
-  const [selectedCategory, setSelectedCategory] = useState(urlCategory);
+  const rawSortBy = searchParams.get('sortBy');
+  const rawDirection = searchParams.get('direction');
+
+  // Narrow to literal union safely
+  const sortBy = allowedSortBy.includes(rawSortBy as any)
+    ? (rawSortBy as (typeof allowedSortBy)[number])
+    : 'createdAt';
+
+  const direction = allowedDirections.includes(rawDirection as any)
+    ? (rawDirection as (typeof allowedDirections)[number])
+    : 'desc';
+
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
+    urlCategory || undefined
+  );
   const hasRefreshed = useRef(false);
 
   const isApprovedSeller = user?.role === 'seller' && !!user?.storeId;
@@ -25,7 +46,7 @@ export default function HomePage() {
   // Sync URL category with state
   useEffect(() => {
     if (urlCategory !== selectedCategory) {
-      setSelectedCategory(urlCategory);
+      setSelectedCategory(urlCategory || undefined);
     }
   }, [urlCategory, selectedCategory]);
 
@@ -38,28 +59,13 @@ export default function HomePage() {
     refreshUserData();
   }, [refreshUserData]); // Include refreshUserData but guard prevents infinite loop
 
-  // Handle page change by updating URL
-  const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (page === 0) {
-      params.delete('page');
-    } else {
-      params.set('page', page.toString());
-    }
-    const newUrl = params.toString() ? `?${params.toString()}` : '';
-    router.push(`/client/pages/homepage${newUrl}`);
-  };
-
   // Handle category change by updating URL
-  const handleCategoryChange = (category: string) => {
+  const handleCategoryChange = (categoryName: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (category === '강아지') {
-      params.delete('category');
-    } else {
-      params.set('category', category);
-    }
+    params.set('categoryName', categoryName);
     // Reset to page 0 when changing category
     params.delete('page');
+    // Preserve sortBy and direction when changing category
     const newUrl = params.toString() ? `?${params.toString()}` : '';
     router.push(`/client/pages/homepage${newUrl}`);
   };
@@ -70,33 +76,33 @@ export default function HomePage() {
   console.log('  - Role:', user?.role);
   console.log('  - Business Status:', user?.businessApprovalStatus);
   console.log('  - Is Approved Seller:', isApprovedSeller);
-  console.log('  - Current Page from URL:', currentPage);
 
   return (
     <div className={styles.homeContainer}>
       <TopBar />
-
       <CategoryNav
         onSelectCategory={handleCategoryChange}
         currentCategory={selectedCategory}
       />
 
       <div className={styles.mainContent}>
-        <ProductGrid
-          category={selectedCategory}
-          searchTerm=""
-          currentPage={currentPage}
-          onPageChange={handlePageChange}
-          onProductClick={(product) => {
-            const productId = product.productId || product.id;
-            if (productId) {
-              router.push(`/client/pages/products/${productId}`);
-            } else {
-              console.error('Product missing ID:', product);
-            }
-          }}
-          onAddToCart={() => {}}
-        />
+        {selectedCategory && (
+          <ProductGrid
+            categoryName={selectedCategory}
+            searchTerm=""
+            onProductClick={(product) => {
+              const productId = product.productId || product.id;
+              if (productId) {
+                router.push(`/client/pages/products/${productId}`);
+              } else {
+                console.error('Product missing ID:', product);
+              }
+            }}
+            onAddToCart={() => {}}
+            sortBy={sortBy}
+            direction={direction}
+          />
+        )}
       </div>
 
       {/* Seller Panel */}

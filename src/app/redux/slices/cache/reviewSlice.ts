@@ -216,12 +216,12 @@ export const revalidateReviewsInBackground = createAsyncThunk(
       };
 
       console.log(
-        '✅ Background revalidation completed, new reviews:',
+        ' Background revalidation completed, new reviews:',
         reviews.length
       );
       return { cacheKey, data, fromCache: false };
     } catch (error) {
-      console.error('❌ Background revalidation failed:', error);
+      console.error(' Background revalidation failed:', error);
       return rejectWithValue(
         error instanceof Error
           ? error.message

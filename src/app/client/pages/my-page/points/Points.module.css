@@ -1,8 +1,7 @@
 .container {
-  min-height: 100vh;
-  margin-top: 71.59px;
+  min-height: calc(100vh - 64px);
+  margin-top: 64px;
   background-color: #ffffff;
-  padding-bottom: 20px;
 }
 
 .pointsSection {
@@ -207,7 +206,7 @@
 .rewardsSection {
   background-color: white;
   margin: 0;
-  padding: 0 0 20px 0;
+  /*  padding: 0 0 20px 0; */
 }
 
 .rewardsHeader {
@@ -229,9 +228,9 @@
   color: #666;
 }
 
-.productList {
+/* .productList {
   padding: 16px 0;
-}
+} */
 
 .productItem {
   display: flex;
@@ -246,10 +245,11 @@
 }
 
 .productImage {
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   border-radius: 8px;
   object-fit: cover;
+  background-color: #edeef0dc;
 }
 
 .productInfo {
@@ -277,19 +277,21 @@
 }
 
 .reviewButton {
-  background-color: #7db59a;
-  color: white;
-  border: none;
+  background-color: #fff;
+  color: #000;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 6px;
   padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 12px;
+  width: 90px;
+  height: 28px;
+  font-weight: normal;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .reviewButton:hover {
-  background-color: #6ba085;
+  background-color: #f0f0f0;
 }
 
 /* Mobile responsive */

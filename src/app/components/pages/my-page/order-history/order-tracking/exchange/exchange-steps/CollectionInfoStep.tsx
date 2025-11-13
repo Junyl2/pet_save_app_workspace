@@ -1,15 +1,49 @@
-"use client";
-import { Product } from "@/app/components/types/order";
-import styles from "../ExchangePage.module.css";
+// File: app/components/order/CollectionInfoStep.tsx
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { Product } from '@/app/components/types/order';
+import styles from '../ExchangePage.module.css';
+import { DeliveryAddressService } from '@/app/api/services/client/memberService/member-information/deliveryAddressService';
+import type { DeliveryAddress } from '@/app/api/types/member/member-information/member-information';
 
 interface CollectionInfoStepProps {
   product: Product;
 }
 
 export function CollectionInfoStep({ product }: CollectionInfoStepProps) {
+  const [address, setAddress] = useState<DeliveryAddress | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchAddresses = async () => {
+      try {
+        const res = await DeliveryAddressService.getDeliveryAddresses();
+        const list = Array.isArray(res?.data?.data)
+          ? (res.data.data as DeliveryAddress[])
+          : [];
+
+        const defaultAddr = list.find((a) => a.default) ?? list[0] ?? null;
+
+        if (mounted) setAddress(defaultAddr);
+      } catch {
+        // silently fail and keep address as null (will fall back to hardcoded UI)
+      }
+    };
+
+    if (product.deliveryType !== 'pickup') {
+      fetchAddresses();
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [product.deliveryType]);
+
   return (
     <>
-      {product.deliveryType === "pickup" ? (
+      {product.deliveryType === 'pickup' ? (
         // Direct Exchange UI
         <div className={styles.sectionContainer}>
           <h3 className={styles.sectionTitle}>직접교환</h3>
@@ -30,7 +64,7 @@ export function CollectionInfoStep({ product }: CollectionInfoStepProps) {
           </div>
         </div>
       ) : (
-        // Courier Exchange UI
+        // Courier Exchange UI (content replaced by user's delivery address when available)
         <div className={styles.sectionContainer}>
           <h3 className={styles.sectionTitle}>수거지 정보</h3>
 
@@ -39,10 +73,20 @@ export function CollectionInfoStep({ product }: CollectionInfoStepProps) {
           </p>
 
           <div className={styles.addressCard}>
-            <div className={styles.recipientName}>팻세이브</div>
-            <div className={styles.phoneNumber}>010-1234-5678</div>
+            <div className={styles.recipientName}>
+              {address?.receiverName ?? '팻세이브'}
+            </div>
+
+            <div className={styles.phoneNumber}>
+              {address?.receiverPhone ?? '010-1234-5678'}
+            </div>
+
             <div className={styles.address}>
-              서울특별시 신림동 ○○ 아파트 101동 101호
+              {address
+                ? `${address.zipCode ? `${address.zipCode} ` : ''}${
+                    address.roadAddress ?? ''
+                  } ${address.detailedAddress ?? ''}`.trim()
+                : '서울특별시 신림동 ○○ 아파트 101동 101호'}
             </div>
           </div>
         </div>

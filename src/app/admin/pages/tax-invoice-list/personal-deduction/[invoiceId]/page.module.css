@@ -1,0 +1,126 @@
+.headerWrap {
+  height: 120px;
+  position: relative;
+}
+
+.headerInner {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  top: 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.headerTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 38px;
+  color: #141414;
+}
+
+.orderId {
+  font-size: 16px;
+  line-height: 24px;
+  color: rgba(20, 20, 20, 0.8);
+}
+
+.orderedAt {
+  font-size: 16px;
+  line-height: 24px;
+  color: #141414;
+}
+
+.section {
+  position: relative;
+}
+
+.sectionDivider {
+  height: 1px;
+  background: #bababa;
+  margin-left: -1.2rem;
+  margin-right: -1.2rem;
+}
+
+.sectionInner {
+  position: relative;
+  padding: 24px 40px;
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 29px;
+  color: #141414;
+  margin-bottom: 16px;
+}
+
+.paymentRow,
+.infoRow {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.infoLabel {
+  font-size: 16px;
+  color: rgba(20, 20, 20, 0.8);
+}
+
+.infoValue {
+  font-size: 16px;
+  color: #141414;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.receiptType {
+  font-size: 16px;
+  font-weight: 700;
+  color: #141414;
+  margin-bottom: 12px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 0;
+}
+
+.btn {
+  height: 50px;
+  width: 100%;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  background: #ffffff;
+  color: #141414;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btnPrimary {
+  height: 50px;
+  width: 100%;
+  border-radius: 5px;
+  border: none;
+  background: #2b6442;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btnPrimary:hover {
+  background: #245537;
+}

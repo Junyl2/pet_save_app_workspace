@@ -1,9 +1,10 @@
-"use client";
-import { useState } from "react";
-import { Product } from "@/app/components/types/order";
-import ProductSection from "@/app/components/sections/ProductSection/ProductSection";
+/* this is the correct product selection */
+'use client';
+import { useState } from 'react';
+import { Product } from '@/app/components/types/order';
+import ProductSection from '@/app/components/sections/ProductSection/ProductSection';
 
-import styles from "./ProductSelectionPage.module.css";
+import styles from './ProductSelectionPage.module.css';
 
 interface ProductSelectionPageProps {
   products: Product[];
@@ -84,7 +85,7 @@ export function ProductSelectionPage({
               mainContent={
                 <div className={styles.productInfo}>
                   <img
-                    src={product.image || "/placeholder.svg"}
+                    src={product.image || '/placeholder.svg'}
                     alt={product.name}
                     className={styles.productImage}
                   />

@@ -1,0 +1,267 @@
+.mainContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #fff;
+  width: 100%;
+}
+.loginPage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 69px;
+  height: 100vh;
+  background: #ffffff;
+  width: 351px;
+}
+.topBar {
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #ffffff;
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1025px) {
+  .topBar {
+    width: 468px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding-left: 0rem;
+    padding-right: 0rem;
+  }
+}
+
+.backLink {
+  position: absolute;
+  background-color: transparent;
+  border: none;
+  left: 0rem;
+  display: flex;
+  align-items: center;
+  font-size: clamp(1.2rem, 2.8vw, 1.4rem) !important;
+  font-weight: 100;
+  color: rgba(0, 0, 0, 0.4);
+  text-decoration: none;
+  cursor: pointer;
+}
+.arrowLeft {
+  font-size: clamp(1.2rem, 2.8vw, 1.4rem) !important;
+  color: rgba(0, 0, 0, 0.4);
+  font-weight: 100;
+}
+.home {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+/* .imageWrapper {
+}
+ */
+.objectContain {
+  object-fit: contain;
+  cursor: pointer;
+}
+
+.loginFormContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.9rem;
+  padding-bottom: 1.9rem;
+}
+
+.loginForm {
+  width: 100%;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  text-align: start;
+  justify-content: space-between;
+}
+
+.inputLabel {
+  margin-bottom: 4px;
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+}
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.inputField {
+  padding: 1rem;
+  margin-bottom: 16px;
+  border: 1px solid #bcbcbc;
+  border-radius: 4px;
+  font-size: clamp(1rem, 2.8vw, 1.1rem);
+  color: #333;
+  width: 100%;
+}
+.inputField::placeholder {
+  font-size: clamp(13px, 2.5vw, 14px);
+  color: rgba(0, 0, 0, 0.4);
+}
+.inputField:focus {
+  border-color: #66bfa7;
+  outline: 1px solid #66bfa7;
+}
+
+.rememberLogin {
+  margin-bottom: 16px;
+  font-size: clamp(13px, 2.5vw, 14px);
+  align-self: flex-end;
+  color: rgba(0, 0, 0, 0.5);
+}
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  font-size: clamp(13px, 2.5vw, 14px);
+}
+.checkbox {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #bcbcbc;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  background-color: transparent;
+}
+
+.checkbox:checked {
+  border-color: #66bfa7;
+  background-color: #66bfa7;
+}
+
+.checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.loginButton {
+  padding: 1rem 0;
+  background-color: #66bfa7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 1.5rem;
+}
+
+.loginButton:hover {
+  background-color: #51b59a;
+}
+
+.loginLinks {
+  display: flex;
+  justify-content: center;
+  gap: 1.8rem;
+  font-size: clamp(13px, 2.5vw, 14px);
+  text-align: center;
+}
+
+.linkItem {
+  position: relative;
+}
+
+.divider {
+  color: #bcbcbc;
+}
+
+.linkItem a {
+  color: rgba(0, 0, 0, 0.4);
+  text-decoration: none;
+  position: relative;
+  padding-bottom: 8px;
+}
+
+.linkItem a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 1px;
+  background-color: #51b59a;
+  transition: width 0.3s ease;
+}
+
+.linkItem a:hover::after {
+  width: 100%;
+}
+
+.logoWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 45px;
+  margin-top: -1.5rem;
+}
+
+.logo {
+  object-fit: contain;
+  border-radius: 1000px;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+.passwordWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.eyeButton {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bcbcbc;
+  margin-bottom: 12px;
+}
+.eyeButton:hover {
+  color: #66bfa7;
+}
+
+.error {
+  color: #e74c3c;
+  font-size: 14px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  border-radius: 4px;
+  text-align: center;
+}

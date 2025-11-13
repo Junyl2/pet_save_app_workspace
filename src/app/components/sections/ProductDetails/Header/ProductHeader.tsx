@@ -21,6 +21,23 @@ export const ProductHeader = () => {
     '/client/seller/pages/change-profile'
   );
   const isShoplist = pathname.startsWith('/shops');
+  const isOrderHistoryItem = pathname.startsWith(
+    '/client/pages/my-page/order-history/items'
+  );
+  const isOrderHistory = pathname.startsWith(
+    '/client/pages/my-page/order-history'
+  );
+
+  const isReturnExchangeFlow =
+    pathname.includes('/client/pages/my-page/order-history/') &&
+    (pathname.includes('/tracking/return') ||
+      pathname.includes('/tracking/exchange'));
+
+  // Check if we're on OrderTracking page (but not return/exchange flow)
+  const isOrderTracking =
+    pathname.includes('/client/pages/my-page/order-history/') &&
+    pathname.includes('/tracking') &&
+    !isReturnExchangeFlow;
 
   const handleBack = () => {
     if (isInquiryPage) {
@@ -29,12 +46,21 @@ export const ProductHeader = () => {
       router.push('/client/pages/homepage');
     } else if (isShoplist) {
       router.push('/shops');
+    } else if (isOrderHistoryItem) {
+      router.back(); // Use router.back() to preserve filter params
+    } else if (isOrderTracking) {
+      router.back(); // Use router.back() for OrderTracking
     } else if (isOrderConfirmation) {
-      router.push('/shopping-cart');
+    } else if (isOrderHistory) {
+      router.push('/client/pages/my-page');
+    } else if (isOrderConfirmation) {
+      router.push('/client/pages/homepage');
     } else if (isSellerBusinessInformation) {
       router.push('/client/seller/pages/my-page');
     } else if (isChangeSellerProfile) {
       window.history.back(); // Use browser back for proper navigation
+    } else if (isReturnExchangeFlow) {
+      window.history.back();
     } else {
       window.history.back(); // default behavior
     }

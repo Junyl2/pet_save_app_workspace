@@ -1,0 +1,211 @@
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal {
+  width: 900px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  font-family: 'Pretendard', sans-serif;
+  color: #141414;
+  padding: 40px 0 80px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
+  max-height: 95vh;
+  overflow-y: auto;
+}
+
+.panel {
+  width: 100%;
+  max-width: 900px;
+  color: #141414;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Avatar (Ellipse 160x160 at top-right) */
+.avatar {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: #d9d9d9;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumb {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Frame 619: stack of rows with zero spacing (itemSpacing: 0) */
+.stack {
+  display: grid;
+  grid-auto-rows: min-content;
+  row-gap: 0;
+  width: 100%;
+}
+
+/* Shared frame look per row (Rectangle 100 borders, white bg) */
+.row100,
+.row160 {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+  padding: 10px 20px;
+  width: 100%;
+}
+
+/* exact heights from figma */
+.row100 {
+  height: 100px;
+  display: grid;
+  grid-template-columns: 278px 1fr;
+  align-items: center;
+}
+.row100:first-child {
+  border-radius: 10px 10px 0px 0px;
+}
+.row160 {
+  height: 200px;
+  display: grid;
+  grid-template-columns: 278px 1fr;
+  align-items: center;
+  border-radius: 0px 0px 10px 10px;
+}
+
+/* Left inner boxes (Group 397/635 rectangles) */
+.left80,
+.left140 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+}
+.left80 {
+  height: 80px;
+}
+.left140 {
+  height: 140px;
+}
+
+.leftLabel {
+  font-size: 16px;
+  color: rgba(20, 20, 20, 0.8);
+}
+
+/* Right "input-like" boxes */
+.right350 input,
+.right500 input {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 50px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  margin-left: 30px;
+  max-width: 350px;
+  width: 100%;
+}
+
+.right500 {
+  max-width: 500px;
+}
+
+/* Address right side stack (two rows) */
+.rightStack {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Text value */
+.value {
+  font-size: 16px;
+  color: #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bottom actions (Group 319 width 710 with two 350 buttons) */
+.actions {
+  width: 100%;
+  max-width: 710px;
+  margin: 24px auto 0 auto;
+
+  display: grid;
+  grid-template-columns: 350px 350px;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.btnOutline,
+.btnPrimary {
+  height: 50px;
+  border-radius: 5px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Group 295 – 삭제 (white, 0.4 border) */
+.btnOutline {
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  background: #fff;
+  color: #141414;
+}
+
+/* Group 294 – 수정 (filled #2b6442) */
+.btnPrimary {
+  border: none;
+  background: #2b6442;
+  color: #fff;
+}
+.btnPrimary:hover {
+  background: #245537;
+}
+
+.loading {
+  padding: 2rem;
+  text-align: center;
+  font-size: 16px;
+  color: rgba(20, 20, 20, 0.6);
+}
+
+/* Responsiveness */
+@media (max-width: 980px) {
+  .avatar {
+    position: static;
+    margin: 0 0 20px auto;
+  }
+  .stack {
+    margin-top: 0;
+  }
+  .row100,
+  .row160 {
+    grid-template-columns: 200px 1fr;
+  }
+  .actions {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+}
+

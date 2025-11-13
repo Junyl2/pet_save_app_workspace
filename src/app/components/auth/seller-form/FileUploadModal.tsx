@@ -59,6 +59,8 @@ export default function FileUploadModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setTempFile(e.target.files[0]); // update only temporary state
+      setUploadError(null); // clear any previous errors
+      setUploadSuccess(null); // clear any previous success messages
     }
   };
 
@@ -104,6 +106,8 @@ export default function FileUploadModal({
 
   const closeModal = () => {
     setTempFile(file); // reset temporary file when closing without confirm
+    setUploadError(null); // clear errors when closing
+    setUploadSuccess(null); // clear success messages when closing
     setIsModalOpen(false);
   };
 
@@ -119,7 +123,7 @@ export default function FileUploadModal({
           className={styles.chooseButton}
           onClick={() => setIsModalOpen(true)}
         >
-          Choose File
+          파일선택
         </button>
       </div>
 

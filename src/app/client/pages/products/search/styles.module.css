@@ -2,14 +2,15 @@
   height: 100%;
   width: 100%;
 }
-.divider {
+/* .divider {
   position: sticky;
-  top: 138px;
+  top: 120px;
   background-color: #f2f4f7;
-  height: 16px;
+  height: 1px;
   margin-left: -1rem;
   margin-right: -1rem;
   box-sizing: border-box;
   margin-top: 140px;
   z-index: 500;
 }
+ */

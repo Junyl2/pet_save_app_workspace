@@ -76,10 +76,9 @@
 }
  */
 .icon {
-  font-size: clamp(1.2rem, 2.8vw, 1.4rem);
   font-weight: 100 !important;
   cursor: pointer;
-  color: rgba(0, 0, 0, 0.4);
+  color: rgba(0, 0, 0, 0.4) !important;
 }
 
 .dropdown {

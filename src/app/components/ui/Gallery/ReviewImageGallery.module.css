@@ -1,0 +1,34 @@
+.wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.thumb {
+  border-radius: 8px;
+  background-color: #f0f0f0;
+  cursor: pointer;
+  object-fit: cover;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.thumb:hover {
+  transform: scale(1.05);
+}
+
+@media (min-width: 1024px) {
+  .gallery {
+    max-width: 468px;
+    width: 100%;
+    align-self: center;
+  }
+}

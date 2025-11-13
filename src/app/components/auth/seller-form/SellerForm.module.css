@@ -1,9 +1,9 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 30px;
   padding-bottom: 1.5rem;
-  margin-top: 71.59px;
+  margin-top: 64px;
   background-color: #f2f4f7;
   margin-inline: -1rem;
   padding-inline: 1rem;
@@ -49,24 +49,28 @@
 .formGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 5px;
 }
 
 .label {
-  font-size: clamp(0.9rem, 2.5vw, 1rem);
-  color: #333;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.8);
+  line-height: 13px;
 }
 
 /* Inputs */
 .input {
   width: 100%;
-  padding: 1rem !important;
+  height: 45px;
+  padding: 0 20px !important;
   border: 1px solid rgba(0, 0, 0, 0.2) !important;
   border-radius: 5px;
-  font-size: clamp(1rem, 2.8vw, 1.1rem);
+  font-size: 16px;
   color: #333;
   box-sizing: border-box;
   background-color: #fff;
+  display: flex;
+  align-items: center;
 }
 
 .input:focus,
@@ -77,8 +81,9 @@
 
 .input::placeholder,
 .authInput::placeholder {
-  font-size: clamp(13px, 2.3vw, 14px);
+  font-size: 16px;
   color: rgba(0, 0, 0, 0.4);
+  line-height: 16px;
 }
 
 /* Inline grouping ( phone + button, email + domain) */
@@ -92,7 +97,7 @@
 .emailInputWrapper {
   position: relative;
   display: flex;
-  gap: 1.5rem;
+  gap: 10px;
   align-items: center;
   width: 100%;
 }
@@ -120,27 +125,39 @@
 .outlineButton {
   background: #d9d9d9;
   color: #ffffff;
-  font-size: clamp(0.75rem, 1.25vw, 0.875rem);
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
+  font-size: 13px;
+  height: 23px;
+  padding: 5px;
+  border: none;
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
 }
 
 .emailButton {
   position: absolute;
-  right: 1rem;
-  background: #d9d9d9;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 23px;
+  background: #66bfa7;
   color: #ffffff;
-  font-size: clamp(0.75rem, 1.25vw, 0.875rem);
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
+  font-size: 13px;
+  padding: 5px;
+  border: none;
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 49px;
 }
 
 /* .outlineButton:hover,
@@ -152,15 +169,18 @@
 /* Bottom submit button */
 .bottomButton {
   width: 100%;
-  padding: 1rem;
-  font-size: clamp(1rem, 1.75vw, 1.125rem);
-  border-radius: 16px;
+  height: 45px;
+  padding: 0;
+  font-size: 18px;
+  border-radius: 5px;
   border: none;
   cursor: not-allowed;
-  background: #d1d5db;
-  color: #9ca3af;
+  background: #d9d9d9;
+  color: #ffffff;
   transition: background 0.2s;
-  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .disabled {
@@ -182,25 +202,41 @@
 .inlineButton {
   background: #d9d9d9;
   color: #ffffff;
-  font-size: clamp(0.75rem, 1.25vw, 0.875rem);
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
+  font-size: 13px;
+  height: 23px;
+  padding: 5px;
+  border: none;
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .error {
   color: red;
-  font-size: clamp(13px, 2.3vw, 14px);
+  font-size: 13px;
   margin-top: 0.3rem;
 }
 
 .success {
   color: #66bfa7;
-  font-size: clamp(13px, 2.3vw, 14px);
+  font-size: 13px;
   margin-top: 0.3rem;
+}
+
+.checking {
+  color: #ffa500;
+  font-size: 13px;
+  margin-top: 0.3rem;
+}
+
+.validationMessage {
+  font-size: 13px;
+  margin-top: 0.3rem;
+  font-weight: 500;
 }
 
 /* Enabled state */
@@ -241,12 +277,15 @@
 
 .authInput {
   width: 100%;
-  padding: 1rem;
-  border: 1px solid #bcbcbc;
+  height: 45px;
+  padding: 0 20px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 5px;
-  font-size: clamp(1rem, 2.8vw, 1.1rem);
+  font-size: 16px;
   color: #333;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
 }
 
 .authFooter {
@@ -254,19 +293,19 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 4rem;
+  gap: 1rem;
   right: 1rem;
 }
 
 .timer {
   color: #ff6b6b;
-  font-size: clamp(13px, 2.3vw, 14px);
+  font-size: 13px;
   font-weight: normal;
 }
 .authFooter .inlineButton {
   position: static;
   transform: none;
-  padding: 6px 10px;
+  padding: 5px;
 }
 
 /* modal section */
@@ -322,13 +361,17 @@
 .inlineButton {
   background: #d9d9d9;
   color: #ffffff;
-  font-size: clamp(0.75rem, 1.25vw, 0.875rem);
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
+  font-size: 13px;
+  height: 23px;
+  padding: 5px;
+  border: none;
   border-radius: 5px;
   cursor: not-allowed;
   transition: background 0.2s, border-color 0.2s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Enabled state (applies to all button types) */
@@ -372,13 +415,15 @@
 }
 
 .atSymbol {
-  font-size: 1rem;
-  color: #333;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.4);
+  line-height: 16px;
 }
 
-.input {
+.emailWrapper .input {
   flex: 1;
-  padding: 0.5rem;
+  height: 45px;
+  padding: 0 20px;
 }
 
 .customSelectWrapper {
@@ -387,14 +432,18 @@
 }
 
 .customSelect {
-  padding: 1rem !important;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  height: 45px;
+  padding: 0 20px !important;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
   background-color: #fff;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
 }
 
 .chevronIcon {
@@ -476,13 +525,13 @@
 
 /* Read-only styles */
 .readonlyFileBox {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 5px;
-  padding: 12px 16px;
-  color: #495057;
-  font-size: 14px;
-  min-height: 45px;
+  padding: 0 20px;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 16px;
+  height: 45px;
   display: flex;
   align-items: center;
 }

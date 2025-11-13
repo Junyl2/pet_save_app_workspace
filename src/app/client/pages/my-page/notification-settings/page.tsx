@@ -225,10 +225,12 @@ export default function NotificationSettingsPage() {
       <div className={styles.content}>
         {/* Benefit and Event Notifications Section */}
         <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>혜택 및 이벤트 알림</h2>
-          <p className={styles.sectionDescription}>
-            할인, 쿠폰 등의 이벤트 정보를 가장 먼저 알려드려요
-          </p>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>혜택 및 이벤트 알림</h2>
+            <p className={styles.sectionDescription}>
+              할인, 쿠폰 등의 이벤트 정보를 가장 먼저 알려드려요
+            </p>
+          </div>
 
           <div className={styles.settingsList}>
             {benefitSettings.map((setting) => (
@@ -248,12 +250,16 @@ export default function NotificationSettingsPage() {
           </div>
         </div>
 
+        <div className={styles.divider}></div>
+
         {/* Activity Notifications Section */}
         <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>활동 알림</h2>
-          <p className={styles.sectionDescription}>
-            내 활동에 대한 알림을 보내드려요
-          </p>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>활동 알림</h2>
+            <p className={styles.sectionDescription}>
+              내 활동에 대한 알림을 보내드려요
+            </p>
+          </div>
 
           <div className={styles.settingsList}>
             {activitySettings.map((setting) => (

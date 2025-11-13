@@ -420,10 +420,12 @@ export default function RegisterProductForm() {
         );
 
         // Step 2: Attach the uploaded file to the product
-        console.log('Attaching file to product using encryptedIds...');
+        console.log('Attaching file to product using fileIds...');
         const attachResponse = await FileProductService.attachFiles(
-          createdProduct.id,
-          { fileIds: imageFileIds } // imageFileIds now contains encryptedIds
+          createdProduct.productId,
+          {
+            fileIds: uploadedFiles.map((f) => f.fileId).filter(Boolean),
+          }
         );
 
         if (attachResponse.error) {
@@ -450,7 +452,7 @@ export default function RegisterProductForm() {
       // Step 3: Verify files are attached to the product
       console.log('Verifying files attached to product...');
       const entityFilesResponse = await FileProductService.getEntityFiles(
-        createdProduct.id
+        createdProduct.productId
       );
       if (entityFilesResponse.data) {
         console.log('Product files:', entityFilesResponse.data);
@@ -465,7 +467,7 @@ export default function RegisterProductForm() {
       if (status === '품절') {
         console.log('Updating product status to SOLDOUT...');
         const statusResponse = await ProductService.markSoldOut(
-          createdProduct.id
+          createdProduct.productId
         );
 
         if (statusResponse.error) {
@@ -483,7 +485,7 @@ export default function RegisterProductForm() {
       // Navigate after a short delay to allow toast to be visible
       setTimeout(() => {
         router.push('/client/seller/pages/seller-product-list');
-      }, 2000);
+      }, 1500);
     } catch (error) {
       console.error('Product registration failed:', error);
       setError(

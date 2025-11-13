@@ -7,7 +7,7 @@ import {
 } from '../../../../types/member/inquiry-details/inquiry';
 
 export interface CreateInquiryRequest {
-  productId: string;
+  productId?: string;
   category: 'EXCHANGE_RETURN' | 'PRODUCT' | 'DELIVERY' | 'PAYMENT' | 'OTHER';
   content: string;
   imageFileIds?: string[];
@@ -38,65 +38,54 @@ export class MemberInquiryService {
     params?: MyInquiriesParams
   ): Promise<ApiResponse<MyInquiriesResponse>> {
     try {
-      console.log(
-        '[MemberInquiryService] Getting my inquiries with params:',
-        params
-      );
-
-      // Build query parameters
       const queryParams = new URLSearchParams();
 
-      if (params?.category) queryParams.append('category', params.category);
-      if (params?.status) queryParams.append('status', params.status);
-      if (params?.dateStart) queryParams.append('dateStart', params.dateStart);
-      if (params?.dateEnd) queryParams.append('dateEnd', params.dateEnd);
-      if (params?.page !== undefined)
-        queryParams.append('page', params.page.toString());
-      if (params?.size !== undefined)
-        queryParams.append('size', params.size.toString());
-      if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
-      if (params?.direction) queryParams.append('direction', params.direction);
+      if (params) {
+        if (params.category) queryParams.append('category', params.category);
+        if (params.status) queryParams.append('status', params.status);
+
+        // Ensure strict YYYY-MM-DD format
+        if (params.dateStart) {
+          const start = params.dateStart.split('T')[0];
+          queryParams.append('dateStart', start);
+        }
+        if (params.dateEnd) {
+          const end = params.dateEnd.split('T')[0];
+          queryParams.append('dateEnd', end);
+        }
+
+        // pagination and sorting
+        queryParams.append('page', String(params.page ?? 0));
+        queryParams.append('size', String(params.size ?? 10));
+        queryParams.append('sortBy', params.sortBy ?? 'createdAt');
+        queryParams.append('direction', params.direction ?? 'desc');
+      }
 
       const queryString = queryParams.toString();
       const url = `/members/me/inquiries${
         queryString ? `?${queryString}` : ''
       }`;
 
-      console.log('🌐 API Request URL:', url);
-      console.log(
-        '📋 Query parameters:',
-        Object.fromEntries(queryParams.entries())
-      );
+      console.log('📡 [MemberInquiryService] Final Request URL:', url);
 
       const response = await apiClient.get<MyInquiriesResponse>(url);
 
       if (response.error) {
-        console.error(
-          '[MemberInquiryService] Failed to get my inquiries:',
-          response.error
-        );
+        console.error('[MemberInquiryService] API error:', response.error);
       } else {
-        console.log(
-          '[MemberInquiryService] My inquiries retrieved successfully:',
-          {
-            totalElements: response.data?.data?.pageInfo?.totalElements || 0,
-            currentPage: response.data?.data?.pageInfo?.currentPage || 0,
-            totalPages: response.data?.data?.pageInfo?.totalPages || 0,
-            inquiriesCount: response.data?.data?.content?.length || 0,
-          }
-        );
+        console.log('[MemberInquiryService] Response summary:', {
+          totalElements: response.data?.data?.pageInfo?.totalElements,
+          inquiriesCount: response.data?.data?.content?.length,
+        });
       }
 
       return response;
     } catch (error) {
-      console.error(
-        '[MemberInquiryService] Error getting my inquiries:',
-        error
-      );
+      console.error('[MemberInquiryService] Error getting inquiries:', error);
       return {
         data: null,
         error:
-          error instanceof Error ? error.message : 'Failed to get my inquiries',
+          error instanceof Error ? error.message : 'Failed to get inquiries',
       };
     }
   }
@@ -147,14 +136,49 @@ export class MemberInquiryService {
         request
       );
 
+      // Validate: productId is required when category is 'PRODUCT'
+      if (request.category === 'PRODUCT') {
+        if (!request.productId || request.productId.trim() === '') {
+          const errorMessage =
+            '상품 문의는 상품 상세 페이지에서 문의를 남겨주세요.';
+          console.error(
+            '[MemberInquiryService] Validation error:',
+            errorMessage
+          );
+          return {
+            data: null,
+            error: errorMessage,
+          };
+        }
+      }
+
+      // Build request body - always include productId if provided to ensure store is linked
+      const requestBody: {
+        productId?: string;
+        category: string;
+        content: string;
+        imageFileIds: string[];
+      } = {
+        category: request.category,
+        content: request.content,
+        imageFileIds: request.imageFileIds || [],
+      };
+
+      // Always include productId if provided (even if optional) to ensure backend links store
+      // According to API: productId is optional, but required when category is 'PRODUCT'
+      // However, we always include it when available to ensure store information is populated
+      if (request.productId && request.productId.trim() !== '') {
+        requestBody.productId = request.productId.trim();
+      }
+
+      console.log(
+        '[MemberInquiryService] Final request body being sent:',
+        JSON.stringify(requestBody, null, 2)
+      );
+
       const response = await apiClient.post<CreateInquiryResponse>(
         '/inquiries',
-        {
-          productId: request.productId,
-          category: request.category,
-          content: request.content,
-          imageFileIds: request.imageFileIds || [],
-        }
+        requestBody
       );
 
       if (response.error) {

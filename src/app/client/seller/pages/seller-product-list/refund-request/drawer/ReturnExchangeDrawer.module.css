@@ -1,0 +1,203 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 9999 !important;
+}
+
+/* Drawer (mobile default) */
+.drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 12px 12px 0 0;
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideUp 0.25s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, 100%);
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.closeButton:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #000;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.orderInfo {
+  display: flex;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.label {
+  font-weight: 500;
+  color: #000;
+}
+
+.value {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.productInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statusRow {
+  display: flex;
+  gap: 8px;
+}
+
+.productName {
+  font-size: 13px;
+  font-weight: 500;
+  color: #000;
+  margin-top: 4px;
+}
+
+.text {
+  font-size: 12px;
+  color: #000;
+}
+
+.method {
+  font-size: 12px;
+  color: #2c3dff;
+}
+
+.reasonSection {
+  margin-top: 12px;
+}
+
+.reasonBox {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  padding: 8px;
+  font-size: 12px;
+  color: #000;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.approveBtn {
+  flex: 1;
+  background: #e7f6f1;
+  color: #2f7d71;
+  border: none;
+  border-radius: 5px;
+  font-size: 13px;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.rejectBtn {
+  flex: 1;
+  background: #fdece9;
+  color: #c64a36;
+  border: none;
+  border-radius: 5px;
+  font-size: 13px;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.approveBtn:hover {
+  background: #d8f2e9;
+}
+
+.rejectBtn:hover {
+  background: #fbd7d0;
+}
+
+/* Type Tags */
+.typeRed {
+  background: #ffe4e6;
+  color: #c70036;
+}
+
+.typeViolet {
+  background: #e0e7ff;
+  color: #432dd7;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+/* Status Tags */
+.statusGray {
+  background: #d9d9d9;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.statusGreen {
+  background: #e7f6f1;
+  color: #2f7d71;
+}
+
+.statusRed {
+  background: #fdece9;
+  color: #c64a36;
+}
+
+/* Center overlay and drawer within 468 px viewport on desktop */
+@media (min-width: 1024px) {
+  .overlay {
+    width: 468px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  .drawer {
+    width: 100%;
+    max-width: 428px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}

@@ -11,7 +11,7 @@ export interface MemberInfo {
   role?: 'client' | 'seller';
   location?: string;
   deliveryAddress?: string;
-  birthDate?: string;
+  birthdate?: string;
   profileFileId?: string;
   profileImageUrl?: string;
   loginType?: string;

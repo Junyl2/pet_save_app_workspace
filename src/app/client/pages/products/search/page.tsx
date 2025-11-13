@@ -18,7 +18,6 @@ export default function SearchPage() {
   return (
     <main className={styles.container}>
       <TopBar onSearch={handleSearch} />
-      <div className={styles.divider}></div>
       <SearchProductGrid searchTerm={query} />
     </main>
   );

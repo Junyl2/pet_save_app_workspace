@@ -58,6 +58,20 @@ export const logoutUser = createAsyncThunk(
       localStorage.removeItem('rememberedUsername');
       localStorage.removeItem('sellerId');
       localStorage.removeItem('favorites');
+      localStorage.removeItem('checkoutItems');
+
+      // Remove all seller profile keys (seller:profile:*)
+      if (typeof window !== 'undefined') {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('seller:profile:')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+      }
+
       sessionStorage.clear();
 
       console.log('All cached data cleared successfully');
@@ -82,6 +96,20 @@ export const logoutUser = createAsyncThunk(
       localStorage.removeItem('rememberedUsername');
       localStorage.removeItem('sellerId');
       localStorage.removeItem('favorites');
+      localStorage.removeItem('checkoutItems');
+
+      // Remove all seller profile keys (seller:profile:*)
+      if (typeof window !== 'undefined') {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('seller:profile:')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+      }
+
       sessionStorage.clear();
 
       return { success: true, message: 'Logout completed locally' };

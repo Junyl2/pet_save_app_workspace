@@ -42,7 +42,7 @@ type UserInfo = {
 
 type LoginApiData = {
   accessToken: string;
-  refreshToken?: string;
+  // refreshToken?: string; // may be present from backend, but we don't store/use it here
   identifier: string;
   uuidMember?: string;
   email?: string;
@@ -51,6 +51,15 @@ type LoginApiData = {
   phoneNumber?: string;
   loginType?: string;
 };
+
+export interface EmailValidationResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode?: string | null;
+  data?: unknown;
+  errorId?: string | null;
+}
 
 type LoginApiEnvelope = { success?: boolean; data: LoginApiData };
 type LoginAlt1 = { accessToken: string; refreshToken?: string; user: UserInfo };
@@ -121,6 +130,54 @@ export class AuthService {
   }
 
   /**
+   * Check email availability
+   * Endpoint: GET /api/pet-save/auth/emails/validate
+   */
+  static async validateEmailAvailability(
+    email: string
+  ): Promise<ApiResponse<EmailValidationResponse>> {
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+
+      console.log('Validating email availability:', normalizedEmail);
+
+      const response = await apiClient.get<EmailValidationResponse>(
+        `/auth/emails/validate?email=${encodeURIComponent(normalizedEmail)}`
+      );
+
+      if (response.error) {
+        console.error('Email validation failed:', response.error);
+        return response;
+      }
+
+      console.log('Email validation successful:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Email validation service error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to validate email availability',
+      };
+    }
+  }
+
+  /**
+   * Returns true if the email is available for use
+   */
+  static async isEmailAvailable(email: string): Promise<boolean> {
+    try {
+      const response = await this.validateEmailAvailability(email);
+      return !response.error && response.data?.success === true;
+    } catch (error) {
+      console.error('Error checking email availability:', error);
+      return false;
+    }
+  }
+
+  /**
    * Login user with identifier and password
    * Endpoint: POST /api/pet-save/auth/login
    */
@@ -149,18 +206,16 @@ export class AuthService {
       // Store auth tokens if login successful
       if (response.data && typeof window !== 'undefined') {
         let accessToken: string | undefined;
-        let refreshToken: string | undefined;
         let user: UserInfo | undefined;
 
         const responseData: unknown = response.data;
 
         if (isLoginApiEnvelope(responseData)) {
-          // Structure: { success: true, data: { accessToken, refreshToken, identifier, ... } }
+          // Structure: { success: true, data: { accessToken, identifier, ... } }
           const userData = responseData.data;
           console.log('User data from API:', userData);
 
           accessToken = userData.accessToken;
-          refreshToken = userData.refreshToken;
           user = {
             id: userData.uuidMember || userData.identifier,
             identifier: userData.identifier,
@@ -172,10 +227,10 @@ export class AuthService {
           };
           console.log('Created user object:', user);
         } else if (isLoginAlt1(responseData)) {
-          ({ accessToken, refreshToken, user } = responseData);
+          accessToken = responseData.accessToken;
+          user = responseData.user;
         } else if (isLoginAlt2(responseData)) {
           accessToken = responseData.token;
-          refreshToken = responseData.refreshToken;
           user = responseData.user;
         } else {
           console.error(
@@ -190,12 +245,10 @@ export class AuthService {
 
         if (accessToken && user && user.identifier) {
           localStorage.setItem('authToken', accessToken);
-          if (refreshToken) {
-            localStorage.setItem('refreshToken', refreshToken);
-          }
           localStorage.setItem('userInfo', JSON.stringify(user));
-          console.log('Login successful, tokens stored:', {
+          console.log('Login successful, access token stored:', {
             user: user.identifier,
+            note: 'Backend may also provide tokens in response headers',
           });
         } else {
           console.error('Login response missing required data:', {
@@ -270,7 +323,6 @@ export class AuthService {
       }
 
       console.log('Logout successful:', response.data);
-
       this.clearLocalStorage();
 
       return response;
@@ -285,21 +337,46 @@ export class AuthService {
   }
 
   /**
-   * Clear all stored authentication data
+   * Clear all stored authentication and user-related data
    */
   private static clearLocalStorage(): void {
     if (typeof window !== 'undefined') {
+      //  Remove auth & user data
       localStorage.removeItem('authToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('userInfo');
-      localStorage.removeItem('user'); // UserContext data
-      localStorage.removeItem('userName'); // AuthContext data
+      localStorage.removeItem('user');
+      localStorage.removeItem('userName');
       localStorage.removeItem('rememberedUsername');
       localStorage.removeItem('sellerId');
 
+      // Remove cart & location data
+      localStorage.removeItem('cart');
+      localStorage.removeItem('checkoutItems');
+      localStorage.removeItem('selectedLocation');
+      localStorage.removeItem('selectedLocationLat');
+      localStorage.removeItem('selectedLocationLong');
+
+      // Remove all seller profile keys (seller:profile:*)
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('seller:profile:')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+
       sessionStorage.clear();
 
-      console.log('All authentication data cleared from storage');
+      //  Remove Axios Authorization header
+      try {
+        delete apiClient.raw.defaults.headers.common['Authorization'];
+      } catch {
+        apiClient.raw.defaults.headers.common['Authorization'] = '';
+      }
+
+      console.log('🔒 Cleared auth, cart, and location data successfully');
     }
   }
 
@@ -658,7 +735,7 @@ export class AuthService {
     verificationId?: string
   ): Promise<ApiResponse<FindIdByEmailPayload>> {
     try {
-      console.log('🔍 Finding ID by email - Request:', {
+      console.log('Finding ID by email - Request:', {
         name,
         email,
         verificationId,
@@ -676,7 +753,7 @@ export class AuthService {
       );
 
       if (response.error) {
-        console.error('❌ Find ID by email failed:', {
+        console.error('Find ID by email failed:', {
           error: response.error,
           name,
           email,
@@ -686,7 +763,7 @@ export class AuthService {
         return response;
       }
 
-      console.log('✅ Find ID by email successful:', {
+      console.log('Find ID by email successful:', {
         responseData: response.data,
         name,
         email,
@@ -699,7 +776,7 @@ export class AuthService {
       const responseData: unknown = response.data;
       if (typeof responseData === 'object' && responseData !== null) {
         const maybe = responseData as Record<string, unknown>;
-        console.log('📧 Email sending details:', {
+        console.log('Email sending details:', {
           success: maybe.success,
           message: (maybe.message ?? (maybe.resultMsg as unknown)) as unknown,
           data: maybe.data,
@@ -708,7 +785,7 @@ export class AuthService {
 
       return response;
     } catch (error) {
-      console.error('💥 Find ID by email service error:', {
+      console.error('Find ID by email service error:', {
         error: error instanceof Error ? error.message : error,
         name,
         email,
@@ -1020,97 +1097,73 @@ export class AuthService {
   }
 
   /**
-   * Refresh authentication tokens
+   * Refresh access token using refresh token
    * Endpoint: POST /api/pet-save/auth/refresh
    */
-  static async refreshToken(): Promise<ApiResponse<LoginResponse>> {
+  static async refreshToken(): Promise<ApiResponse<UnknownJson>> {
     try {
-      console.log('Refreshing authentication token...');
-
-      const response = await apiClient.post<UnknownJson>('/auth/refresh');
-
-      if (response.error) {
-        console.error('Token refresh failed:', response.error);
+      if (typeof window === 'undefined') {
         return {
           data: null,
-          error: response.error,
+          error: 'Refresh token is only available in browser environment',
         };
       }
 
-      // Store new auth tokens if refresh successful
-      if (response.data && typeof window !== 'undefined') {
-        let accessToken: string | undefined;
-        let refreshToken: string | undefined;
-        let user: UserInfo | undefined;
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        console.error('No refresh token available');
+        return {
+          data: null,
+          error: 'No refresh token available',
+        };
+      }
 
-        const responseData: unknown = response.data;
+      console.log('Refreshing access token...');
 
-        if (isLoginApiEnvelope(responseData)) {
-          // Structure: { success: true, data: { accessToken, refreshToken, identifier, ... } }
-          const userData = responseData.data;
-          console.log('Refreshed user data from API:', userData);
+      const response = await apiClient.post<UnknownJson>('/auth/refresh', {
+        refreshToken,
+      });
 
-          accessToken = userData.accessToken;
-          refreshToken = userData.refreshToken;
-          user = {
-            id: userData.uuidMember || userData.identifier,
-            identifier: userData.identifier,
-            email: userData.email || '',
-            name: userData.name || userData.identifier,
-            nickname: userData.nickname || userData.identifier,
-            phoneNumber: userData.phoneNumber || '',
-            loginType: userData.loginType || 'GENERAL',
-          };
-          console.log('Created refreshed user object:', user);
-        } else if (isLoginAlt1(responseData)) {
-          ({ accessToken, refreshToken, user } = responseData);
-        } else if (isLoginAlt2(responseData)) {
-          accessToken = responseData.token;
-          refreshToken = responseData.refreshToken;
-          user = responseData.user;
+      if (response.error) {
+        console.error('Token refresh failed:', response.error);
+        return response;
+      }
+
+      // Extract new access token from response
+      const responseData: unknown = response.data;
+      if (responseData && typeof responseData === 'object') {
+        const data = responseData as Record<string, unknown>;
+        const newAccessToken =
+          (data.accessToken as string) ||
+          (data.token as string) ||
+          (data.data &&
+          typeof data.data === 'object' &&
+          (data.data as Record<string, unknown>).accessToken
+            ? ((data.data as Record<string, unknown>).accessToken as string)
+            : null);
+
+        if (newAccessToken) {
+          localStorage.setItem('authToken', newAccessToken);
+          console.log('Token refresh successful, new token stored');
         } else {
-          console.error(
-            'Token refresh response has unexpected structure:',
-            responseData
+          console.warn(
+            'Token refresh response missing accessToken, checking localStorage'
           );
-          return {
-            data: null,
-            error: 'Token refresh response has unexpected structure',
-          };
-        }
-
-        if (accessToken && user && user.identifier) {
-          localStorage.setItem('authToken', accessToken);
-          if (refreshToken) {
-            localStorage.setItem('refreshToken', refreshToken);
+          // Check if token was set via response headers (handled by apiClient)
+          const storedToken = localStorage.getItem('authToken');
+          if (!storedToken) {
+            console.error('New token not found in response or localStorage');
           }
-          localStorage.setItem('userInfo', JSON.stringify(user));
-          console.log('Token refresh successful, new tokens stored:', {
-            user: user.identifier,
-          });
-        } else {
-          console.error('Token refresh response missing required data:', {
-            accessToken,
-            user,
-          });
-          return {
-            data: null,
-            error:
-              'Token refresh response is missing required data (accessToken or user)',
-          };
         }
       }
 
-      // Cast back to the expected ApiResponse<LoginResponse> shape
-      return {
-        data: response.data as LoginResponse,
-        error: response.error,
-      };
+      return response;
     } catch (error) {
       console.error('Token refresh service error:', error);
       return {
         data: null,
-        error: error instanceof Error ? error.message : 'Token refresh failed',
+        error:
+          error instanceof Error ? error.message : 'Failed to refresh token',
       };
     }
   }

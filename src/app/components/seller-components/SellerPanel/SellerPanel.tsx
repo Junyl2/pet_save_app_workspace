@@ -41,7 +41,7 @@ export default function SellerPanel({ show = true }: SellerPanelProps) {
 
         <button
           className={styles.plusButton}
-          onClick={() => router.push('/seller/add-product')}
+          onClick={() => router.push(PAGE_URLS.REGISTER_PRODUCT)}
         >
           ＋
         </button>

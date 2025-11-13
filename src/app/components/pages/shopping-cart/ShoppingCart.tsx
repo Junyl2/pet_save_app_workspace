@@ -11,6 +11,7 @@ import { CartStore } from '@/app/api/types/cart/cart';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import Loading from '@/app/components/ui/Loading/Loading';
 import { useAuth } from '@/app/context/authContext';
+import { dispatchCartUpdate } from '@/app/components/hooks/use-cart-quantity';
 
 export default function ShoppingCartPage() {
   const router = useRouter();
@@ -241,25 +242,30 @@ export default function ShoppingCartPage() {
   };
 
   // group by shop - use only API store data
+  // Include all items (both expired and non-expired) but show expired items with visual hints
   const grouped = useMemo(() => {
     const map: Record<string, CartItem[]> = {};
     apiCartStores.forEach((store) => {
-      const storeName = store.store.name;
-      map[storeName] = store.items.map((item) => ({
-        product: {
-          id: item.product.productId, // Use productId as string for API operations
-          cartItemId: item.cartItemId, // Keep cartItemId for reference
-          name: item.product.productName,
-          price: item.product.salePrice,
-          image:
-            item.product.productThumbnail || '/images/products/placeholder.png',
-          shopName: store.store.name,
-          storeId: store.store.storeId,
-          discountPrice: item.product.discountedPrice,
-          expiration: item.product.expiryDate,
-        },
-        quantity: item.quantity,
-      }));
+      // Include all items (expired and non-expired)
+      if (store.items.length > 0) {
+        const storeName = store.store.name;
+        map[storeName] = store.items.map((item) => ({
+          product: {
+            id: item.product.productId, // Use productId as string for API operations
+            cartItemId: item.cartItemId, // Keep cartItemId for reference
+            name: item.product.productName,
+            price: item.product.salePrice,
+            image:
+              item.product.productThumbnail ||
+              '/images/products/placeholder.png',
+            shopName: store.store.name,
+            storeId: store.store.storeId,
+            discountPrice: item.product.discountedPrice,
+            expiration: item.product.expiryDate,
+          },
+          quantity: item.quantity,
+        }));
+      }
     });
     return map;
   }, [apiCartStores]);
@@ -278,6 +284,7 @@ export default function ShoppingCartPage() {
 
       if (response.data?.success) {
         await refreshCartData();
+        dispatchCartUpdate();
       } else {
         showToast('수량 업데이트에 실패했습니다');
       }
@@ -341,6 +348,7 @@ export default function ShoppingCartPage() {
       if (isSuccess) {
         console.log('Delete successful, refreshing cart data...');
         await refreshCartData();
+        dispatchCartUpdate();
         // Remove from selected items if it was selected
         setSelectedItems((prev) => prev.filter((id) => id !== productId));
         showToast('상품이 삭제되었습니다');
@@ -389,6 +397,7 @@ export default function ShoppingCartPage() {
 
       if (isSuccess) {
         await refreshCartData();
+        dispatchCartUpdate();
         // Remove from selected items
         setSelectedItems((prev) =>
           prev.filter((id) => !productIds.includes(id))
@@ -496,8 +505,8 @@ export default function ShoppingCartPage() {
     );
   }
 
-  // empty state
-  if (displayCart.length === 0) {
+  // empty state - check if there are any stores with valid items
+  if (Object.keys(grouped).length === 0) {
     return (
       <div className={styles.emptyContainer}>
         <Image
@@ -616,8 +625,8 @@ export default function ShoppingCartPage() {
                       onChange={() =>
                         product.id !== undefined && toggleSelectItem(product.id)
                       }
-                      className={styles.checkbox}
                       disabled={isProductExpired(product.expiration)}
+                      className={styles.checkbox}
                     />
                   </div>
                   <div className={styles.left}>
@@ -627,8 +636,8 @@ export default function ShoppingCartPage() {
                           product.image ?? '/images/products/placeholder.png'
                         }
                         alt={product.name || 'Product Image'}
-                        width={80}
-                        height={80}
+                        width={70}
+                        height={70}
                         style={{
                           width: '100%',
                           height: '100%',
@@ -670,50 +679,59 @@ export default function ShoppingCartPage() {
                       ) : (
                         <span>{basePrice.toLocaleString()}원</span>
                       )}
-                      <div className={styles.quantityControls}>
-                        <button
-                          onClick={() => {
-                            if (product.cartItemId) {
-                              if (quantity > 1) {
-                                // Decrease quantity
-                                handleQuantityUpdate(
-                                  product.cartItemId,
-                                  quantity - 1
-                                );
-                              } else if (quantity === 1) {
-                                // Remove item when quantity is 1
-                                if (product.id !== undefined) {
-                                  setDeleteTarget({
-                                    cartItemIds: [product.cartItemId],
-                                    productIds: [product.id],
-                                    type: 'single',
-                                    reason: 'quantity_decrease',
-                                  });
-                                }
-                              }
-                            }
-                          }}
-                          disabled={isUpdating}
-                        >
-                          <FiMinus size={18} color="rgba(0,0,0,0.4)" />
-                        </button>
-                        <span style={{ color: 'rgba(0,0,0,0.8)' }}>
-                          {quantity}
-                        </span>
-                        <button
-                          onClick={() => {
-                            if (product.cartItemId) {
+                    </div>
+
+                    <div
+                      className={`${styles.quantityControls} ${
+                        isProductExpired(product.expiration)
+                          ? styles.quantityControlsDisabled
+                          : ''
+                      }`}
+                    >
+                      <button
+                        onClick={() => {
+                          if (product.cartItemId) {
+                            if (quantity > 1) {
+                              // Decrease quantity
                               handleQuantityUpdate(
                                 product.cartItemId,
-                                quantity + 1
+                                quantity - 1
                               );
+                            } else if (quantity === 1) {
+                              // Remove item when quantity is 1
+                              if (product.id !== undefined) {
+                                setDeleteTarget({
+                                  cartItemIds: [product.cartItemId],
+                                  productIds: [product.id],
+                                  type: 'single',
+                                  reason: 'quantity_decrease',
+                                });
+                              }
                             }
-                          }}
-                          disabled={isUpdating}
-                        >
-                          <FiPlus size={18} color="rgba(0,0,0,0.4)" />
-                        </button>
-                      </div>
+                          }
+                        }}
+                        disabled={
+                          isUpdating || isProductExpired(product.expiration)
+                        }
+                      >
+                        <FiMinus size={18} color="rgba(0,0,0,0.5)" />
+                      </button>
+                      <span>{quantity}</span>
+                      <button
+                        onClick={() => {
+                          if (product.cartItemId) {
+                            handleQuantityUpdate(
+                              product.cartItemId,
+                              quantity + 1
+                            );
+                          }
+                        }}
+                        disabled={
+                          isUpdating || isProductExpired(product.expiration)
+                        }
+                      >
+                        <FiPlus size={18} color="rgba(0,0,0,0.5)" />
+                      </button>
                     </div>
                   </div>
                   <div className={styles.deleteButton}>

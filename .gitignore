@@ -40,8 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# auto-git-pull backups
-pet_save_web_*
+# Local environment variables
+.env.local
 
-# claude code
-.claude/
+# Cursor IDE settings
+.cursor
+.cursor-rules

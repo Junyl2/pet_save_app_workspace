@@ -41,6 +41,10 @@ export default function MembershipInformation() {
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [emailValidationStatus, setEmailValidationStatus] = useState<
+    'idle' | 'checking' | 'available' | 'taken' | 'error'
+  >('idle');
+  const [emailValidationMessage, setEmailValidationMessage] = useState('');
 
   // Email verification states
   const [showAuthCode, setShowAuthCode] = useState(false);
@@ -148,6 +152,46 @@ export default function MembershipInformation() {
     }, 500);
     return () => clearTimeout(timeoutId);
   }, [formData.username, validateUsername]);
+
+  // Debounced email validation
+  const validateEmailAvailability = useCallback(async () => {
+    const { email, emailDomain } = formData;
+    if (!email || !emailDomain) {
+      setEmailValidationStatus('idle');
+      setEmailValidationMessage('');
+      return;
+    }
+
+    const fullEmail = `${email}@${emailDomain}`;
+    setEmailValidationStatus('checking');
+    setEmailValidationMessage('이메일 확인 중...');
+
+    try {
+      const res = await AuthService.validateEmailAvailability(fullEmail);
+      if (res.error) {
+        setEmailValidationStatus('taken');
+        setEmailValidationMessage('이미 사용 중인 이메일입니다.');
+      } else if (res.data?.success) {
+        setEmailValidationStatus('available');
+        setEmailValidationMessage('사용 가능한 이메일입니다.');
+      } else {
+        setEmailValidationStatus('taken');
+        setEmailValidationMessage('이미 사용 중인 이메일입니다.');
+      }
+    } catch {
+      setEmailValidationStatus('error');
+      setEmailValidationMessage('이메일 확인 중 오류가 발생했습니다.');
+    }
+  }, [formData]);
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      if (formData.email && formData.emailDomain) {
+        validateEmailAvailability();
+      }
+    }, 600); // 0.6s debounce
+    return () => clearTimeout(delay);
+  }, [formData.email, formData.emailDomain, validateEmailAvailability]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -875,6 +919,7 @@ export default function MembershipInformation() {
         </div>
 
         {/* Email */}
+        {/* Email */}
         <div className={styles.formGroup}>
           <label className={styles.label}>이메일 (필수)</label>
           <div className={styles.inlineGroup}>
@@ -898,24 +943,40 @@ export default function MembershipInformation() {
               <option value="daum.net">daum.net</option>
             </select>
           </div>
-          {errors.email && <p className={styles.error}>{errors.email}</p>}
-        </div>
 
-        {/* Send Verification Code */}
-        <div className={styles.authButton}>
-          <button
-            type="button"
-            onClick={handleSendCode}
-            disabled={!canSendCode || isSendingCode}
-            style={{
-              backgroundColor:
-                canSendCode && !isSendingCode ? '#66bfa7' : undefined,
-              color: canSendCode && !isSendingCode ? '#fff' : undefined,
-            }}
-            className={styles.outlineButton}
-          >
-            {isSendingCode ? '전송 중...' : '인증번호 전송'}
-          </button>
+          {/* Real-time validation message should be here, outside the select */}
+          {emailValidationMessage && (
+            <p
+              className={`${styles.validationMessage} ${
+                emailValidationStatus === 'available'
+                  ? styles.success
+                  : emailValidationStatus === 'checking'
+                  ? styles.checking
+                  : styles.error
+              }`}
+            >
+              {emailValidationMessage}
+            </p>
+          )}
+
+          {errors.email && <p className={styles.error}>{errors.email}</p>}
+
+          {/* Send Verification Code */}
+          <div className={styles.authButton}>
+            <button
+              type="button"
+              onClick={handleSendCode}
+              disabled={!canSendCode || isSendingCode}
+              style={{
+                backgroundColor:
+                  canSendCode && !isSendingCode ? '#66bfa7' : undefined,
+                color: canSendCode && !isSendingCode ? '#fff' : undefined,
+              }}
+              className={styles.outlineButton}
+            >
+              {isSendingCode ? '전송 중...' : '인증번호 전송'}
+            </button>
+          </div>
         </div>
 
         {/* Authentication Code Section */}

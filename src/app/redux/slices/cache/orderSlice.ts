@@ -6,22 +6,24 @@ import {
 } from '@/app/api/types/member/order/orderDetails';
 import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
 
+/** Cached single order details */
 export interface CachedOrderData {
   orderItems: OrderItemResponse[];
   timestamp: number;
   lastFetched: number;
+  isPartial?: boolean; // Used for shallow entries from list view
 }
 
+/** Cached paginated order history */
 export interface CachedOrderHistoryData {
   data: OrderHistoryApiResponse;
   timestamp: number;
   lastFetched: number;
 }
 
+/** Redux state shape */
 interface OrderState {
-  // Cache for individual order details by orderId
   orderDetailsCache: Record<string, CachedOrderData>;
-  // Cache for order history by query params
   orderHistoryCache: Record<string, CachedOrderHistoryData>;
   loading: boolean;
   backgroundLoading: boolean;
@@ -42,15 +44,14 @@ const initialState: OrderState = {
   isStale: false,
 };
 
-// Cache duration: 10 seconds (configurable) - much faster for better UX
+/** Cache duration (ms) */
 const CACHE_DURATION = 10 * 1000;
 
-// Helper function to create cache key for order history
-const createOrderHistoryCacheKey = (
+/** Create a unique cache key per query */
+export const createOrderHistoryCacheKey = (
   params?: OrderHistoryQueryParams
 ): string => {
   if (!params) return 'default';
-
   const {
     keyword,
     status,
@@ -61,61 +62,94 @@ const createOrderHistoryCacheKey = (
     sortBy = 'createdAt',
     direction = 'desc',
   } = params;
-
   return `${keyword || ''}_${status || ''}_${dateStart || ''}_${
     dateEnd || ''
   }_${page}_${size}_${sortBy}_${direction}`;
 };
 
-// Helper function to check if cache is valid
-const isCacheValid = (timestamp: number): boolean => {
-  return Date.now() - timestamp < CACHE_DURATION;
-};
+/** Cache helpers */
+const isCacheValid = (timestamp: number): boolean =>
+  Date.now() - timestamp < CACHE_DURATION;
+const isCacheStale = (timestamp: number): boolean =>
+  Date.now() - timestamp >= CACHE_DURATION;
 
-// Helper function to check if cache is stale
-const isCacheStale = (timestamp: number): boolean => {
-  return Date.now() - timestamp >= CACHE_DURATION;
-};
-
-// Async thunk for fetching order details
+/** Fetch full order details */
 export const fetchOrderDetails = createAsyncThunk(
   'orders/fetchOrderDetails',
   async (orderId: string, { getState, rejectWithValue }) => {
     try {
       const state = getState() as { orders: OrderState };
-      const cachedData = state.orders.orderDetailsCache[orderId];
+      const cached = state.orders.orderDetailsCache[orderId];
 
-      // Return cached data if it exists and is valid
-      if (cachedData && isCacheValid(cachedData.timestamp)) {
-        return { orderId, data: cachedData, fromCache: true };
+      // Use cached data only if valid & not partial
+      if (cached && isCacheValid(cached.timestamp) && !cached.isPartial) {
+        return { orderId, data: cached, fromCache: true };
       }
 
       const response = await orderDetailsService.getOrderDetails(orderId);
+      if (response.error) throw new Error(response.error);
 
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      if (!response.data?.data?.content) {
-        throw new Error('No order data found');
-      }
+      const orderItems = response.data?.data?.content;
+      if (!orderItems) throw new Error('No order data found');
 
       const data: CachedOrderData = {
-        orderItems: response.data.data.content,
+        orderItems,
         timestamp: Date.now(),
         lastFetched: Date.now(),
+        isPartial: false,
       };
 
       return { orderId, data, fromCache: false };
-    } catch (error) {
+    } catch (err) {
       return rejectWithValue(
-        error instanceof Error ? error.message : 'Failed to fetch order details'
+        err instanceof Error ? err.message : 'Failed to fetch order details'
       );
     }
   }
 );
 
-// Async thunk for fetching order history
+/** Fetch order details by orderItemId */
+export const fetchOrderDetailsByItemId = createAsyncThunk(
+  'orders/fetchOrderDetailsByItemId',
+  async (orderItemId: string, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { orders: OrderState };
+      const existing = Object.values(state.orders.orderDetailsCache).find(
+        (entry) => entry.orderItems.some((i) => i.orderItemId === orderItemId)
+      );
+      if (existing && isCacheValid(existing.timestamp) && !existing.isPartial) {
+        const parentOrderId = existing.orderItems[0].orderId;
+        return { orderId: parentOrderId, data: existing, fromCache: true };
+      }
+
+      const response = await orderDetailsService.getOrderDetailsByItemId(
+        orderItemId
+      );
+      if (response.error) throw new Error(response.error);
+
+      const orderItem = response.data?.data;
+      if (!orderItem) throw new Error('No order data found');
+
+      const parentOrderId = orderItem.orderId;
+      const data: CachedOrderData = {
+        orderItems: [orderItem],
+        timestamp: Date.now(),
+        lastFetched: Date.now(),
+        isPartial: false,
+      };
+
+      return { orderId: parentOrderId, data, fromCache: false };
+    } catch (err) {
+      return rejectWithValue(
+        err instanceof Error
+          ? err.message
+          : 'Failed to fetch order details by item ID'
+      );
+    }
+  }
+);
+
+/** Fetch order history list */
 export const fetchOrderHistory = createAsyncThunk(
   'orders/fetchOrderHistory',
   async (
@@ -125,22 +159,15 @@ export const fetchOrderHistory = createAsyncThunk(
     try {
       const state = getState() as { orders: OrderState };
       const cacheKey = createOrderHistoryCacheKey(params);
-      const cachedData = state.orders.orderHistoryCache[cacheKey];
+      const cached = state.orders.orderHistoryCache[cacheKey];
 
-      // Return cached data if it exists and is valid
-      if (cachedData && isCacheValid(cachedData.timestamp)) {
-        return { cacheKey, data: cachedData, fromCache: true };
+      if (cached && isCacheValid(cached.timestamp)) {
+        return { cacheKey, data: cached, fromCache: true };
       }
 
       const response = await orderDetailsService.getMyOrderHistory(params);
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      if (!response.data) {
-        throw new Error('No order history data found');
-      }
+      if (response.error) throw new Error(response.error);
+      if (!response.data) throw new Error('No order history data found');
 
       const data: CachedOrderHistoryData = {
         data: response.data,
@@ -149,29 +176,22 @@ export const fetchOrderHistory = createAsyncThunk(
       };
 
       return { cacheKey, data, fromCache: false };
-    } catch (error) {
+    } catch (err) {
       return rejectWithValue(
-        error instanceof Error ? error.message : 'Failed to fetch order history'
+        err instanceof Error ? err.message : 'Failed to fetch order history'
       );
     }
   }
 );
 
-// Background revalidation thunk for order history
+/** Background revalidation */
 export const revalidateOrderHistoryInBackground = createAsyncThunk(
   'orders/revalidateOrderHistoryInBackground',
   async (params: OrderHistoryQueryParams | undefined, { rejectWithValue }) => {
     try {
-      console.log('🔄 Background revalidating order history...');
       const response = await orderDetailsService.getMyOrderHistory(params);
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      if (!response.data) {
-        throw new Error('No order history data found');
-      }
+      if (response.error) throw new Error(response.error);
+      if (!response.data) throw new Error('No order history data found');
 
       const cacheKey = createOrderHistoryCacheKey(params);
       const data: CachedOrderHistoryData = {
@@ -180,37 +200,23 @@ export const revalidateOrderHistoryInBackground = createAsyncThunk(
         lastFetched: Date.now(),
       };
 
-      console.log(
-        '✅ Background revalidation completed, new data:',
-        response.data
-      );
       return { cacheKey, data, fromCache: false };
-    } catch (error) {
-      console.error('❌ Background revalidation failed:', error);
+    } catch (err) {
       return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : 'Background revalidation failed'
+        err instanceof Error ? err.message : 'Background revalidation failed'
       );
     }
   }
 );
 
-// Manual refresh thunk for order history
+/** Manual refresh */
 export const refreshOrderHistory = createAsyncThunk(
   'orders/refreshOrderHistory',
   async (params: OrderHistoryQueryParams | undefined, { rejectWithValue }) => {
     try {
-      console.log('🔄 Manual refresh of order history...');
       const response = await orderDetailsService.getMyOrderHistory(params);
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      if (!response.data) {
-        throw new Error('No order history data found');
-      }
+      if (response.error) throw new Error(response.error);
+      if (!response.data) throw new Error('No order history data found');
 
       const cacheKey = createOrderHistoryCacheKey(params);
       const data: CachedOrderHistoryData = {
@@ -220,11 +226,9 @@ export const refreshOrderHistory = createAsyncThunk(
       };
 
       return { cacheKey, data, fromCache: false };
-    } catch (error) {
+    } catch (err) {
       return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : 'Failed to refresh order history'
+        err instanceof Error ? err.message : 'Failed to refresh order history'
       );
     }
   }
@@ -234,41 +238,38 @@ const orderSlice = createSlice({
   name: 'orders',
   initialState,
   reducers: {
-    clearOrderCache: (state) => {
+    clearOrderCache(state) {
       state.orderDetailsCache = {};
       state.orderHistoryCache = {};
       state.currentOrderId = null;
       state.isStale = false;
     },
-    clearOrderDetailsCache: (state) => {
+    clearOrderDetailsCache(state) {
       state.orderDetailsCache = {};
     },
-    clearOrderHistoryCache: (state) => {
+    clearOrderHistoryCache(state) {
       state.orderHistoryCache = {};
     },
-    clearCacheForOrder: (state, action: PayloadAction<string>) => {
-      const orderId = action.payload;
-      delete state.orderDetailsCache[orderId];
+    clearCacheForOrder(state, action: PayloadAction<string>) {
+      delete state.orderDetailsCache[action.payload];
     },
-    setCurrentOrderId: (state, action: PayloadAction<string | null>) => {
+    setCurrentOrderId(state, action: PayloadAction<string | null>) {
       state.currentOrderId = action.payload;
     },
-    setStale: (state, action: PayloadAction<boolean>) => {
+    setStale(state, action: PayloadAction<boolean>) {
       state.isStale = action.payload;
     },
-    checkStaleStatus: (state) => {
-      const currentCacheKey = state.currentCacheKey;
-      if (currentCacheKey && state.orderHistoryCache[currentCacheKey]) {
-        const cachedData = state.orderHistoryCache[currentCacheKey];
-        state.isStale = isCacheStale(cachedData.timestamp);
-      } else {
-        state.isStale = false;
-      }
+    checkStaleStatus(state) {
+      const key = state.currentCacheKey;
+      if (key && state.orderHistoryCache[key]) {
+        const cached = state.orderHistoryCache[key];
+        state.isStale = isCacheStale(cached.timestamp);
+      } else state.isStale = false;
     },
   },
   extraReducers: (builder) => {
     builder
-      // Order Details
+      /** Order Details */
       .addCase(fetchOrderDetails.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -278,7 +279,6 @@ const orderSlice = createSlice({
         state.error = null;
         state.currentOrderId = action.payload.orderId;
 
-        // Only update cache if data is not from cache
         if (!action.payload.fromCache) {
           state.orderDetailsCache[action.payload.orderId] = action.payload.data;
         }
@@ -287,7 +287,27 @@ const orderSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Order History
+
+      /** Order Details by Item ID */
+      .addCase(fetchOrderDetailsByItemId.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchOrderDetailsByItemId.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.currentOrderId = action.payload.orderId;
+
+        if (!action.payload.fromCache) {
+          state.orderDetailsCache[action.payload.orderId] = action.payload.data;
+        }
+      })
+      .addCase(fetchOrderDetailsByItemId.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      /** Order History */
       .addCase(fetchOrderHistory.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -297,18 +317,38 @@ const orderSlice = createSlice({
         state.error = null;
         state.currentCacheKey = action.payload.cacheKey;
 
-        // Only update cache if data is not from cache
         if (!action.payload.fromCache) {
           state.orderHistoryCache[action.payload.cacheKey] =
             action.payload.data;
+
+          /** Safely extract paginated content */
+          const historyData = action.payload.data.data as {
+            content?: OrderItemResponse[];
+          };
+
+          const content: OrderItemResponse[] = Array.isArray(
+            historyData?.content
+          )
+            ? historyData.content
+            : [];
+
+          /** Seed shallow entries into detail cache */
+          content.forEach((item) => {
+            const orderId = item.orderId;
+            if (orderId && !state.orderDetailsCache[orderId]) {
+              state.orderDetailsCache[orderId] = {
+                orderItems: [item],
+                timestamp: Date.now(),
+                lastFetched: Date.now(),
+                isPartial: true, // mark as shallow
+              };
+            }
+          });
         }
 
-        // Check if data is stale
         if (action.payload.fromCache) {
-          const cachedData = state.orderHistoryCache[action.payload.cacheKey];
-          state.isStale = cachedData
-            ? isCacheStale(cachedData.timestamp)
-            : false;
+          const cached = state.orderHistoryCache[action.payload.cacheKey];
+          state.isStale = cached ? isCacheStale(cached.timestamp) : false;
         } else {
           state.isStale = false;
         }
@@ -317,7 +357,8 @@ const orderSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Background Revalidation
+
+      /** Background revalidation */
       .addCase(revalidateOrderHistoryInBackground.pending, (state) => {
         state.backgroundLoading = true;
       })
@@ -326,8 +367,6 @@ const orderSlice = createSlice({
         (state, action) => {
           state.backgroundLoading = false;
           state.error = null;
-
-          // Always update cache with fresh data
           if (!action.payload.fromCache) {
             state.orderHistoryCache[action.payload.cacheKey] =
               action.payload.data;
@@ -335,12 +374,11 @@ const orderSlice = createSlice({
           }
         }
       )
-      .addCase(revalidateOrderHistoryInBackground.rejected, (state, action) => {
+      .addCase(revalidateOrderHistoryInBackground.rejected, (state) => {
         state.backgroundLoading = false;
-        // Don't set error for background revalidation failures
-        console.warn('Background revalidation failed:', action.payload);
       })
-      // Manual Refresh
+
+      /** Manual refresh */
       .addCase(refreshOrderHistory.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -349,8 +387,6 @@ const orderSlice = createSlice({
         state.loading = false;
         state.error = null;
         state.currentCacheKey = action.payload.cacheKey;
-
-        // Always update cache with fresh data
         state.orderHistoryCache[action.payload.cacheKey] = action.payload.data;
         state.isStale = false;
       })
@@ -370,4 +406,5 @@ export const {
   setStale,
   checkStaleStatus,
 } = orderSlice.actions;
+
 export default orderSlice.reducer;

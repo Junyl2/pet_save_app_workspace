@@ -151,3 +151,5 @@ export interface ZipCodeSearchServiceResponse {
   data?: ZipCodeSearchResponse;
   error?: string;
 }
+export type AddressKeywordSearchPostRequest = AddressSearchRequest;
+export type AddressKeywordSearchPostResponse = AddressSearchResponse;

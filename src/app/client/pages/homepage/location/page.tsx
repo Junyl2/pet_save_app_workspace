@@ -260,7 +260,7 @@ export default function LocationPage() {
       window.dispatchEvent(new CustomEvent('locationChanged'));
 
       // Navigate back to homepage
-      router.push('/client/pages/homepage');
+      router.back();
     },
     [router]
   );
@@ -283,7 +283,7 @@ export default function LocationPage() {
           <div className={styles.searchInputWrapper}>
             <input
               type="text"
-              placeholder="Bonvolu serĉi la saman nomon (urbeto, vilaĝo)"
+              placeholder="동명(읍, 면)으로 검색해 주세요"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className={styles.searchInput}

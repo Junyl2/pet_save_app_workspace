@@ -1,5 +1,5 @@
-"use client";
-import styles from "../ExchangePage.module.css";
+'use client';
+import styles from '../ExchangePage.module.css';
 interface SubmitButtonStepProps {
   onSubmit: () => void;
   disabled?: boolean;

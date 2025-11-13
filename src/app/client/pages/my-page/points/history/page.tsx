@@ -1,11 +1,17 @@
 'use client';
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { PointsService } from '@/app/api/services/client/memberService/points/pointsService';
+import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
+import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
 import styles from './PointsHistory.module.css';
 
 interface PointTransaction {
-  id: number;
+  id: string; // generated locally for React key
   date: string;
   type: 'earned' | 'used';
   description: string;
@@ -15,22 +21,27 @@ interface PointTransaction {
   subtitle: string;
 }
 
+const PAGE_SIZE = 10;
+
 export default function PointsHistoryPage() {
+  const { page, setPage } = usePageParam(1);
   const [pointHistory, setPointHistory] = useState<PointTransaction[]>([]);
   const [expiringPoints, setExpiringPoints] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
 
+  /** Fetch paginated points history */
   useEffect(() => {
     const fetchPointsHistory = async () => {
       try {
-        // Fetch points stats for current points and expiring points calculation
-        const statsResponse = await PointsService.getPointsStats();
-        if (statsResponse.data) {
-          // For now, we'll calculate expiring points from history
-          // In the future, this could be a separate API endpoint
-        }
+        setLoading(true);
 
-        // Fetch points history for the list and expiring calculation
-        const response = await PointsService.getPointsHistory({ size: 50 });
+        const response = await PointsService.getPointsHistory({
+          page: page - 1,
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        });
 
         if (
           response.data &&
@@ -38,82 +49,78 @@ export default function PointsHistoryPage() {
           response.data.data &&
           response.data.data.content
         ) {
-          // Calculate expiring points (within 7 days)
+          const { content, pageInfo } = response.data.data;
+
+          // 7일 이내 소멸 예정 포인트 계산
           const sevenDaysFromNow = new Date();
           sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-          const expiringAmount = response.data.data.content
+          const expiringAmount = content
             .filter(
               (transaction) =>
                 transaction.type === 'EARNED' &&
                 new Date(transaction.expiryDate) <= sevenDaysFromNow
             )
-            .reduce((sum, transaction) => sum + transaction.amount, 0);
+            .reduce((sum, t) => sum + t.amount, 0);
 
           setExpiringPoints(expiringAmount);
+          setTotalPages(pageInfo?.totalPages ?? 1);
 
-          // Transform API data to match existing UI structure
-          const transformedHistory: PointTransaction[] =
-            response.data.data.content.map((transaction, index) => ({
-              id: index + 1,
-              date: new Date(transaction.createdAt)
-                .toLocaleDateString('ko-KR', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                })
-                .replace(/\./g, '.')
-                .replace(/\s/g, ''),
-              type: transaction.type === 'EARNED' ? 'earned' : 'used',
-              description: transaction.title,
-              amount:
-                transaction.type === 'EARNED'
-                  ? transaction.amount
-                  : -transaction.amount,
-              expiryDate:
-                transaction.type === 'EARNED'
-                  ? `${new Date(transaction.expiryDate)
-                      .toLocaleDateString('ko-KR', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                      })
-                      .replace(/\./g, '.')
-                      .replace(/\s/g, '')} 소멸`
-                  : undefined,
-              status: transaction.type === 'USED' ? '사용 완료' : undefined,
-              subtitle:
-                transaction.product?.productName ||
-                (transaction.type === 'USED' ? '포인트 사용' : '포인트 적립'),
-            }));
+          const transformed: PointTransaction[] = content.map((t, i) => ({
+            id: `${page}-${i}`, // ✅ safe unique key per page
+            date: new Date(t.createdAt)
+              .toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+              })
+              .replace(/\./g, '.')
+              .replace(/\s/g, ''),
+            type: t.type === 'EARNED' ? 'earned' : 'used',
+            description: t.title,
+            amount: t.type === 'EARNED' ? t.amount : -t.amount,
+            expiryDate:
+              t.type === 'EARNED'
+                ? `${new Date(t.expiryDate)
+                    .toLocaleDateString('ko-KR', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                    })
+                    .replace(/\./g, '.')
+                    .replace(/\s/g, '')} 소멸`
+                : undefined,
+            status: t.type === 'USED' ? '사용 완료' : undefined,
+            subtitle:
+              t.product?.productName ||
+              (t.type === 'USED' ? '포인트 사용' : '포인트 적립'),
+          }));
 
-          setPointHistory(transformedHistory);
+          setPointHistory(transformed);
         } else {
-          console.error('History API response error:', response.error);
-          console.error('History API response data:', response.data);
-          // No fallback data - keep empty arrays
           setPointHistory([]);
           setExpiringPoints(0);
+          setTotalPages(1);
         }
       } catch (error) {
         console.error('Failed to fetch points history:', error);
-        // No fallback data - keep empty arrays
         setPointHistory([]);
         setExpiringPoints(0);
+        setTotalPages(1);
       } finally {
-        // Loading state removed as it's not used in UI
+        setLoading(false);
       }
     };
 
     fetchPointsHistory();
-  }, []);
+  }, [page]);
 
   return (
     <>
       <ProductHeader />
 
       <div className={styles.container}>
-        {/* Period Filter */}
+        {/* Expiring Points Info */}
         <div className={styles.filterSection}>
           <span className={styles.filterLabel}>7일 이내 소멸 예정</span>
           <span className={styles.filterValue}>
@@ -122,38 +129,70 @@ export default function PointsHistoryPage() {
         </div>
         <div className={styles.divider}></div>
 
-        {/* History List */}
+        {/* History Section */}
         <div className={styles.historySection}>
-          {pointHistory.map((transaction) => (
-            <div key={transaction.id} className={styles.historyItem}>
-              <div className={styles.historyLeft}>
-                <div className={styles.historyDate}>{transaction.date}</div>
-                <div className={styles.historyDescription}>
-                  {transaction.description}
-                </div>
-                <div className={styles.historySubtitle}>
-                  {transaction.subtitle}
-                </div>
-              </div>
-              <div className={styles.historyRight}>
-                <div
-                  className={`${styles.historyAmount} ${
-                    transaction.type === 'used'
-                      ? styles.negative
-                      : styles.positive
-                  }`}
-                >
-                  {transaction.type === 'used' ? '- ' : '+ '}
-                  {Math.abs(transaction.amount).toLocaleString()}원
-                </div>
-                <div className={styles.expiryDate}>
-                  {transaction.type === 'earned'
-                    ? transaction.expiryDate
-                    : transaction.status}
-                </div>
-              </div>
+          {loading ? (
+            <div className={styles.emptyContainer}>
+              <p className={styles.emptyText}>불러오는 중...</p>
             </div>
-          ))}
+          ) : pointHistory.length === 0 ? (
+            <div className={styles.emptyContainer}>
+              <Image
+                src="/images/products/noresult.png"
+                alt="No points history"
+                width={100}
+                height={100}
+                className={styles.emptyImage}
+              />
+              <p className={styles.emptyText}>포인트 내역이 없습니다.</p>
+            </div>
+          ) : (
+            <>
+              {pointHistory.map((transaction) => (
+                <div key={transaction.id} className={styles.historyItem}>
+                  <div className={styles.historyLeft}>
+                    <div className={styles.historyDate}>{transaction.date}</div>
+                    <div className={styles.historyDescription}>
+                      {transaction.description}
+                    </div>
+                    <div className={styles.historySubtitle}>
+                      {transaction.subtitle}
+                    </div>
+                  </div>
+                  <div className={styles.historyRight}>
+                    <div
+                      className={`${styles.historyAmount} ${
+                        transaction.type === 'used'
+                          ? styles.negative
+                          : styles.positive
+                      }`}
+                    >
+                      {transaction.type === 'used' ? '- ' : '+ '}
+                      {Math.abs(transaction.amount).toLocaleString()}원
+                    </div>
+                    <div className={styles.expiryDate}>
+                      {transaction.type === 'earned'
+                        ? transaction.expiryDate
+                        : transaction.status}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className={styles.pagination}>
+                  <div style={{ width: 320 }}>
+                    <ClientPagination
+                      currentPage={page}
+                      totalPages={totalPages}
+                      onPageChange={setPage}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </>

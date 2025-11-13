@@ -42,19 +42,19 @@ export default function InquiryReply({ inquiryId }: InquiryReplyProps) {
           );
           const transformed: ContactInquiry | null = foundApi
             ? {
-                id: parseInt(foundApi.inquiryId.split('-')[0], 16) || 0,
+                id: foundApi.inquiryId,
                 inquiryId: foundApi.inquiryId,
                 date: foundApi.createdAt,
-                shopName: foundApi.store.name,
-                shopLocation: foundApi.store.address,
+                shopName: foundApi.store?.name || '상점 정보 없음',
+                shopLocation: foundApi.store?.address || '주소 정보 없음',
                 shopImage:
-                  foundApi.store.profileUrl || '/images/shops/shop1.png',
+                  foundApi.store?.profileUrl || '/images/shops/shop1.png',
                 category: foundApi.category,
                 message: foundApi.content,
                 responseMessage: foundApi.answer || '',
                 status:
                   foundApi.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
-                productId: foundApi.product.productId,
+                productId: foundApi.product?.productId,
               }
             : null;
           if (mounted) setInquiry(transformed);

@@ -24,6 +24,7 @@ export const PAGE_URLS = {
 
   // My Page sections
   MEMBER_INFORMATION: '/client/pages/my-page/member-information', // mypage - member information page
+  BLOCK_LISTS: '/client/pages/my-page/block-list',
   MEMBER_INFO_PASSWORD: '/client/pages/my-page/member-information/password', // mypage - password change page
   MEMBER_INFO_DELIVERY_ADDRESS:
     '/client/pages/my-page/member-information/delivery-address', // mypage - delivery address page
@@ -35,6 +36,8 @@ export const PAGE_URLS = {
   REVIEWS: '/client/pages/my-page/reviews', // mypage - reviews page
   NOTIFICATION_SETTINGS: '/client/pages/my-page/notification-settings', // mypage - notification settings page
   STORE_INFO: '/client/pages/my-page/store-info', // mypage - store information page
+  DELIVERY_ADDRESS_MANAGEMENT:
+    '/client/pages/my-page/delivery-address-management',
 
   STEAMED_PRODUCTS: '/client/pages/my-page/steamed-products',
 
@@ -53,15 +56,15 @@ export const PAGE_URLS = {
     '/client/pages/my-page/terms-and-conditions/marketing-consent',
 
   //Order history sub pages
-  ORDER_DETAILS: (orderId: string) =>
-    `/client/pages/my-page/order-history/${orderId}`,
+  ORDER_DETAILS: (orderItemId: string) =>
+    `/client/pages/my-page/order-history/items/${orderItemId}`,
   ORDER_CANCEL: (orderId: string) =>
     `/client/pages/my-page/order-history/${orderId}/cancel`,
   ORDER_TRACKING: (orderId: string) =>
     `/client/pages/my-page/order-history/${orderId}/tracking`,
 
-  ORDER_REFUND: (orderId: string) =>
-    `/client/pages/my-page/order-history/${orderId}/tracking/refund`,
+  ORDER_RETURN: (orderId: string) =>
+    `/client/pages/my-page/order-history/${orderId}/tracking/return`,
 
   ORDER_EXCHANGE: (orderId: string) =>
     `/client/pages/my-page/order-history/${orderId}/tracking/exchange`,

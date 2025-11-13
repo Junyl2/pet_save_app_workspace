@@ -26,39 +26,41 @@ export const ProductInfo = ({
 ProductInfoProps) => {
   return (
     <div className={styles.info}>
-      <div className={styles.productWrapper}>
-        <div className={styles.productInfo}>
-          <h1 className={styles.name}>{name}</h1>
-          {/*  {category && category.length > 0 && (
+      <div className={styles.productInfoWrapper}>
+        <div className={styles.productWrapper}>
+          <div className={styles.productInfo}>
+            <h1 className={styles.name}>{name}</h1>
+            {/*  {category && category.length > 0 && (
             <p className={styles.category}>카테고리: {category.join(', ')}</p>
           )} */}
-          {/*   {quantity !== undefined && (
+            {/*   {quantity !== undefined && (
             <p className={styles.quantity}>재고: {quantity}개</p>
           )} */}
-          <p className={styles.expiration}>
-            {new Date(expiration).toLocaleDateString('ko-KR')} 까지
-          </p>
-          {/*   {averageRating !== undefined && totalReviews !== undefined && (
+            <p className={styles.expiration}>
+              {new Date(expiration).toLocaleDateString('ko-KR')} 까지
+            </p>
+            {/*   {averageRating !== undefined && totalReviews !== undefined && (
             <p className={styles.rating}>
               평점: {averageRating.toFixed(1)} ({totalReviews}개 리뷰)
             </p>
           )} */}
-        </div>
+          </div>
 
-        <p className={styles.price}>
-          {discountPrice && discountPrice !== price ? (
-            <span className={styles.discountWrapper}>
-              <span className={styles.original}>
-                {price.toLocaleString('ko-KR')}원
+          <p className={styles.price}>
+            {discountPrice && discountPrice !== price ? (
+              <span className={styles.discountWrapper}>
+                <span className={styles.original}>
+                  {price.toLocaleString('ko-KR')}원
+                </span>
+                <span className={styles.discount}>
+                  {discountPrice.toLocaleString('ko-KR')}원
+                </span>
               </span>
-              <span className={styles.discount}>
-                {discountPrice.toLocaleString('ko-KR')}원
-              </span>
-            </span>
-          ) : (
-            `${price.toLocaleString('ko-KR')}원`
-          )}
-        </p>
+            ) : (
+              `${price.toLocaleString('ko-KR')}원`
+            )}
+          </p>
+        </div>
       </div>
 
       {details && details.length > 0 && (

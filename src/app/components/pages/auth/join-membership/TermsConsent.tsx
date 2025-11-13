@@ -125,25 +125,24 @@ export default function TermsConsent() {
           체크해 주세요.
         </p>
 
-        {/* Checkboxes */}
-        <div className={styles.checkboxes}>
-          {/* Header */}
-          <div
-            className={`${styles.checkboxRow} ${
-              checked.all ? styles.checkedHeader : styles.headerRow
-            }`}
-            onClick={() => handleCheck('all')}
-          >
-            <label className={styles.selectAllLabel}>전체 동의</label>
-            <input
-              type="checkbox"
-              checked={checked.all}
-              onChange={() => handleCheck('all')}
-              className={styles.checkboxLabel}
-            />
-          </div>
+        {/* 전체 동의 Button */}
+        <div
+          className={`${styles.selectAllButton} ${
+            checked.all ? styles.checkedHeader : styles.headerRow
+          }`}
+          onClick={() => handleCheck('all')}
+        >
+          <label className={styles.selectAllLabel}>전체 동의</label>
+          <input
+            type="checkbox"
+            checked={checked.all}
+            onChange={() => handleCheck('all')}
+            className={styles.checkboxLabel}
+          />
+        </div>
 
-          {/* Individual Checkboxes */}
+        {/* Individual Checkboxes */}
+        <div className={styles.checkboxes}>
           {[
             { key: 'service', label: '서비스 이용 약관 동의 (필수)' },
             { key: 'privacy', label: '개인정보 수집 및 이용 동의 (필수)' },

@@ -23,6 +23,7 @@ export interface StoreProduct {
   createdAt?: string;
   updatedAt?: string;
   images?: string[];
+  thumbnail?: string;
 }
 
 export interface StoreProductsRequest {

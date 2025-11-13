@@ -310,28 +310,62 @@ export function UserProvider({ children }: { children: ReactNode }) {
     );
 
     if (!isLoggedIn) {
-      // Check if tokens are actually gone before clearing user
+      // Check if access token is actually gone before clearing user
       const authToken = localStorage.getItem('authToken');
-      const refreshToken = localStorage.getItem('refreshToken');
 
-      console.log('🔍 Checking tokens when isLoggedIn=false:', {
+      console.log('🔍 Checking token when isLoggedIn=false:', {
         hasAuthToken: !!authToken,
-        hasRefreshToken: !!refreshToken,
       });
 
-      if (!authToken && !refreshToken) {
-        console.log('🚨 Tokens removed, clearing user data');
+      if (!authToken) {
+        console.log('🚨 Access token removed, clearing user data');
         setUser(null);
         localStorage.removeItem('user');
       } else {
         console.log(
-          '⚠️ isLoggedIn=false but tokens still present, keeping user data'
+          '⚠️ isLoggedIn=false but access token still present, keeping user data'
         );
       }
     } else {
       console.log('✅ User is logged in, no action needed');
     }
   }, [isLoggedIn]);
+
+  // -------- Listen for token updates and refresh user data --------
+  useEffect(() => {
+    const handleTokenUpdate = (event: CustomEvent) => {
+      console.log('🔄 Token update event received in UserContext:', {
+        newToken: event.detail?.newToken
+          ? `${event.detail.newToken.substring(0, 20)}...`
+          : 'None',
+        oldToken: event.detail?.oldToken
+          ? `${event.detail.oldToken.substring(0, 20)}...`
+          : 'None',
+        tokenChanged: event.detail?.newToken !== event.detail?.oldToken,
+      });
+
+      // If we received a new token, refresh user data to ensure it's up to date
+      if (
+        event.detail?.newToken &&
+        event.detail?.newToken !== event.detail?.oldToken
+      ) {
+        console.log('🔄 New token received, refreshing user data...');
+        setTimeout(() => {
+          console.log('🔄 Auto-refreshing user data after token update...');
+          void refreshUserData();
+        }, 200); // Small delay to ensure token is fully processed
+      }
+    };
+
+    window.addEventListener('tokenUpdated', handleTokenUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener(
+        'tokenUpdated',
+        handleTokenUpdate as EventListener
+      );
+    };
+  }, [refreshUserData]);
 
   // -------- Public actions --------
   const login = (userData: User) => {

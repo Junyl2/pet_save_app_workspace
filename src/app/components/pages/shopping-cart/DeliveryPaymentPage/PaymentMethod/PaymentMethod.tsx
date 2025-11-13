@@ -21,8 +21,9 @@ export default function PaymentMethod({
       <div className={styles.quickSection}>
         <label className={styles.checkRow}>
           <input
-            type="checkbox"
+            type="radio"
             name="payCategory"
+            value="quick"
             checked={payCategory === 'quick'}
             onChange={() => setPayCategory('quick')}
             className={styles.checkbox}
@@ -65,25 +66,28 @@ export default function PaymentMethod({
         )}
       </div>
 
-      {/* Flex column for other payment methods */}
+      {/* Other payment methods */}
       <div className={styles.payCategoryColumn}>
         <label className={styles.checkRow}>
           <input
-            type="checkbox"
+            type="radio"
             name="payCategory"
+            value="card"
             checked={payCategory === 'card'}
-            className={styles.checkbox}
             onChange={() => setPayCategory('card')}
+            className={styles.checkbox}
           />
           <span>신용/체크카드</span>
         </label>
+
         <label className={styles.checkRow}>
           <input
-            type="checkbox"
+            type="radio"
             name="payCategory"
+            value="bank"
             checked={payCategory === 'bank'}
-            className={styles.checkbox}
             onChange={() => setPayCategory('bank')}
+            className={styles.checkbox}
           />
           <span>무통장입금</span>
         </label>

@@ -1,0 +1,47 @@
+/* src/app/admin/components/Pagination/Pagination.module.css */
+
+.container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 37px;
+  min-height: 17px;
+  width: 100%;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.link,
+.page {
+  color: #141414;
+  opacity: 0.8;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  height: 17px;
+  line-height: 17px;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.link:hover,
+.page:hover {
+  text-decoration: underline;
+}
+
+.active {
+  opacity: 1;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/*  Properly scoped disabled styling */
+.disabled,
+.page:disabled,
+.link:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  text-decoration: none;
+}

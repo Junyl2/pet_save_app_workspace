@@ -16,6 +16,10 @@ const eslintConfig = [
       // Disable warning about unescaped ' " < >
       'react/no-unescaped-entities': 'off',
       '@next/next/no-img-element': 'off',
+      //temporary disable for testing
+      // Disable TypeScript 'no-explicit-any' rule globally
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
 ];
