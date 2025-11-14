@@ -23,3 +23,10 @@ export interface RemoveMemberPermissionRequest {
 export interface RemoveMemberPermissionResponse extends BaseApiResponse {
   data: Record<string, unknown>;
 }
+
+/**
+ * Response for deleting a member
+ */
+export interface DeleteMemberResponse extends BaseApiResponse {
+  data: Record<string, unknown>;
+}

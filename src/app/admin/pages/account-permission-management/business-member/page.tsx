@@ -54,11 +54,15 @@ export default function BusinessMemberPage() {
 
       if (filters.dateStart?.trim()) {
         const dateStart = filters.dateStart.trim();
-        params.dateStart = dateStart.includes('T') ? dateStart.split('T')[0] : dateStart;
+        params.dateStart = dateStart.includes('T')
+          ? dateStart.split('T')[0]
+          : dateStart;
       }
       if (filters.dateEnd?.trim()) {
         const dateEnd = filters.dateEnd.trim();
-        params.dateEnd = dateEnd.includes('T') ? dateEnd.split('T')[0] : dateEnd;
+        params.dateEnd = dateEnd.includes('T')
+          ? dateEnd.split('T')[0]
+          : dateEnd;
       }
       if (filters.keyword?.trim()) {
         params.keyword = filters.keyword.trim();
@@ -68,7 +72,10 @@ export default function BusinessMemberPage() {
         await BusinessRegistrationService.getAllBusinessRegistrations(params);
 
       if (response.error) {
-        console.error('Failed to fetch business registrations:', response.error);
+        console.error(
+          'Failed to fetch business registrations:',
+          response.error
+        );
         setMembers([]);
         return;
       }
@@ -137,6 +144,11 @@ export default function BusinessMemberPage() {
     setSelectedMember(null);
   };
 
+  /** Refresh members list after update/delete */
+  const handleUpdate = (): void => {
+    void fetchMembers();
+  };
+
   return (
     <>
       <div className={styles.wrapper}>
@@ -197,6 +209,8 @@ export default function BusinessMemberPage() {
         open={modalOpen}
         onClose={handleCloseModal}
         memberId={selectedMember?.memberId ?? null}
+        requestId={selectedMember?.requestId ?? null}
+        onUpdate={handleUpdate}
       />
     </>
   );

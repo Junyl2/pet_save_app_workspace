@@ -86,23 +86,20 @@ export default function MemberDetailPanelPage() {
     if (!confirmDelete) return;
 
     try {
-      const response =
-        await MemberManagementService.removeMemberPermissionNoAdmin(id, {
-          permission: 'ADMIN',
-        });
+      const response = await MemberManagementService.deleteMember(id);
 
       if (response.error || !response.data?.success) {
         alert(
-          '권한 제거 실패: ' + (response.error ?? response.data?.resultMsg)
+          '회원 삭제 실패: ' + (response.error ?? response.data?.resultMsg)
         );
         return;
       }
 
-      alert('권한이 성공적으로 제거되었습니다.');
+      alert('회원이 성공적으로 삭제되었습니다.');
       router.push('/admin/pages/account-permission-management/general-member');
     } catch (error) {
-      console.error('Error removing member permission:', error);
-      alert('권한 제거 중 오류가 발생했습니다.');
+      console.error('Error deleting member:', error);
+      alert('회원 삭제 중 오류가 발생했습니다.');
     }
   };
 

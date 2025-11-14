@@ -33,6 +33,20 @@ export interface BusinessRegistrationActionRequest {
   adminNotes?: string;
 }
 
+/** -------------------- Update Business Registration (v2) -------------------- **/
+
+export interface BusinessRegistrationUpdateRequest {
+  name?: string;
+  nickname?: string;
+  email?: string;
+  phoneNumber?: string;
+  roadAddress?: string;
+  zipCode?: string;
+  detailedAddress?: string;
+  businessRegistrationCopyId?: string;
+  bankbookCopyId?: string;
+}
+
 /** -------------------- Common API Envelope -------------------- **/
 
 export interface ApiResponseEnvelope {

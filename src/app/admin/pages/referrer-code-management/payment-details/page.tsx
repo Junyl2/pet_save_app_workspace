@@ -30,6 +30,7 @@ export default function DocumentListPage(): React.ReactElement {
   const [selectedOption, setSelectedOption] = useState('전체');
   const [open, setOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [data, setData] = useState<ReferrerData[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -79,8 +80,8 @@ export default function DocumentListPage(): React.ReactElement {
         direction: 'desc',
       };
 
-      if (keyword.trim()) {
-        params.keyword = keyword.trim();
+      if (searchKeyword.trim()) {
+        params.keyword = searchKeyword.trim();
       }
 
       // Filter by pause status
@@ -121,7 +122,7 @@ export default function DocumentListPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, [page, keyword, selectedOption, getStatus, getIsPaused]);
+  }, [page, searchKeyword, selectedOption, getStatus, getIsPaused]);
 
   useEffect(() => {
     void fetchData();
@@ -204,9 +205,9 @@ export default function DocumentListPage(): React.ReactElement {
 
   /** Handle search */
   const handleSearch = useCallback(() => {
+    setSearchKeyword(keyword);
     setPage(1);
-    void fetchData();
-  }, [setPage, fetchData]);
+  }, [keyword, setPage]);
 
   /** Toggle dropdown visibility */
   const toggleDropdown = useCallback(() => setOpen((prev) => !prev), []);
@@ -283,27 +284,24 @@ export default function DocumentListPage(): React.ReactElement {
         </div>
 
         {/* Search Bar */}
-        <div className={styles.searchWrap}>
+        <form
+          className={styles.searchWrap}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSearch();
+          }}
+        >
           <input
             type="text"
             className={styles.searchInput}
             placeholder="검색어를 입력하세요"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleSearch();
-              }
-            }}
           />
-          <button
-            type="button"
-            className={styles.searchBtn}
-            onClick={handleSearch}
-          >
+          <button type="submit" className={styles.searchBtn}>
             검색
           </button>
-        </div>
+        </form>
       </div>
 
       {/* Table */}

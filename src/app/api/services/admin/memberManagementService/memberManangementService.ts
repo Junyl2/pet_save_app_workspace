@@ -1,6 +1,7 @@
 import { apiClient, ApiResponse } from '@/app/api/apiClient';
 import { AxiosError } from 'axios';
 import {
+  DeleteMemberResponse,
   RemoveMemberPermissionRequest,
   RemoveMemberPermissionResponse,
 } from './memberManagement';
@@ -88,6 +89,74 @@ export class MemberManagementService {
         error instanceof Error
           ? error.message
           : 'Failed to remove member permission';
+      return { data: null, error: message };
+    }
+  }
+
+  /**
+   * Delete a member by ID
+   * DELETE /api/pet-save/members/{memberId}
+   * Requires ADMIN permission
+   */
+  static async deleteMember(
+    memberId: string
+  ): Promise<ApiResponse<DeleteMemberResponse>> {
+    const url = `${this.BASE_URL}/${encodeURIComponent(memberId)}`;
+
+    try {
+      console.log('[MemberManagementService] Deleting member:', {
+        url,
+        memberId,
+      });
+
+      const response = await apiClient.raw.delete<DeleteMemberResponse>(url);
+
+      console.log(
+        '[MemberManagementService] Member deleted successfully:',
+        response.data
+      );
+
+      return { data: response.data, error: undefined };
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error.response) {
+        const status = error.response.status;
+        const statusText = error.response.statusText;
+        const responseData = error.response.data as
+          | {
+              resultMsg?: string;
+              message?: string;
+              error?: string;
+            }
+          | undefined;
+
+        const errorMessage =
+          responseData?.resultMsg ||
+          responseData?.message ||
+          responseData?.error ||
+          statusText ||
+          error.message;
+
+        console.error('[MemberManagementService] Failed to delete member:', {
+          status,
+          statusText,
+          url: error.config?.url,
+          method: error.config?.method,
+          responseData,
+          errorMessage,
+        });
+
+        return {
+          data: null,
+          error: `${status}: ${errorMessage}`,
+        };
+      }
+
+      console.error(
+        '[MemberManagementService] Failed to delete member:',
+        error
+      );
+      const message =
+        error instanceof Error ? error.message : 'Failed to delete member';
       return { data: null, error: message };
     }
   }
