@@ -70,7 +70,7 @@ export const CartModal = ({
         dispatchCartUpdate();
 
         toast.success(`${productName} 장바구니에 담겼습니다`, {
-          style: { background: '#66bfa7' },
+          style: { background: '#2F6F5E' },
           iconTheme: { primary: '#66bfa7', secondary: '#fff' },
         });
 
