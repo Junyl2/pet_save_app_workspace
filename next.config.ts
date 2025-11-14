@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
         hostname: 'images.pexels.com',
         pathname: '/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '11309',
+        pathname: '/api/pet-save/files/**',
+      },
     ],
     unoptimized: false,
     dangerouslyAllowSVG: true,
