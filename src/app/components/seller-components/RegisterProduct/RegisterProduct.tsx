@@ -1,6 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import styles from './RegisterProduct.module.css';
 import { FaChevronDown, FaChevronUp, FaTimes } from 'react-icons/fa';
 import { CiImageOn } from 'react-icons/ci';
@@ -49,6 +50,7 @@ export default function RegisterProductForm() {
 
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch store information and categories on component mount
   useEffect(() => {
@@ -541,9 +543,9 @@ export default function RegisterProductForm() {
 
           {/* Upload Button */}
           <div key="file-upload-label" className={styles.labelWrapper}>
-            <CiImageOn size={16} color="rgba(0,0,0,0.4)" />
+            <CiImageOn size={14} color="rgba(0,0,0,0.4)" />
             <label htmlFor="fileUpload" className={styles.fileUploadLabel}>
-              사진 첨부하기 (여러 개 선택 가능)
+              이미지 첨부하기
             </label>
           </div>
 
@@ -812,13 +814,33 @@ export default function RegisterProductForm() {
         {/* Expiration */}
         <label className={styles.label}>
           유통기한
-          <input
-            type="date"
-            placeholder="유통기한을 입력해 주세요"
-            value={expiration}
-            onChange={(e) => setExpiration(e.target.value)}
-            className={styles.input}
-          />
+          <div className={styles.dateInputWrapper}>
+            <input
+              ref={dateInputRef}
+              type="date"
+              placeholder="유통기한을 입력해 주세요"
+              value={expiration}
+              onChange={(e) => setExpiration(e.target.value)}
+              className={styles.input}
+            />
+            <Image
+              src="/images/icons/Calendar.svg"
+              alt="Calendar"
+              width={19}
+              height={19}
+              className={styles.calendarIcon}
+              onClick={() => {
+                if (dateInputRef.current) {
+                  if ('showPicker' in HTMLInputElement.prototype) {
+                    dateInputRef.current.showPicker();
+                  } else {
+                    dateInputRef.current.focus();
+                    dateInputRef.current.click();
+                  }
+                }
+              }}
+            />
+          </div>
         </label>
 
         {/* Status Dropdown */}

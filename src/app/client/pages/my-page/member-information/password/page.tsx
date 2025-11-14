@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { SecureService } from '@/app/api/services/client/auth/secureService';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
@@ -12,9 +11,6 @@ import styles from './PasswordChange.module.css';
 export default function PasswordChange() {
   const router = useRouter();
   const { logout } = useAuth();
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showToast, setShowToast] = useState(false);
@@ -73,7 +69,7 @@ export default function PasswordChange() {
     // Confirm password validation
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = '새 비밀번호 확인을 입력해주세요.';
-    } else if (formData.newPassword !== formData.confirmPassword) {
+    } else if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
       newErrors.confirmPassword = '새 비밀번호가 일치하지 않습니다.';
     }
 
@@ -84,13 +80,18 @@ export default function PasswordChange() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate passwords first
     if (!validatePasswords()) {
       return;
     }
 
     try {
       setIsSubmitting(true);
-      setErrors({});
+      // Clear only general errors, keep validation errors
+      setErrors((prev) => {
+        const { general, ...validationErrors } = prev;
+        return validationErrors;
+      });
 
       console.log('🔄 Changing password...');
 
@@ -103,12 +104,19 @@ export default function PasswordChange() {
         console.error('❌ Password change failed:', response.error);
 
         // Handle specific error cases
+        const errorMessage = response.error.toLowerCase();
         if (
-          response.error.includes('401') ||
-          response.error.includes('unauthorized')
+          errorMessage.includes('401') ||
+          errorMessage.includes('unauthorized') ||
+          errorMessage.includes('incorrect') ||
+          errorMessage.includes('wrong') ||
+          errorMessage.includes('invalid') ||
+          errorMessage.includes('현재 비밀번호')
         ) {
-          setErrors({ currentPassword: '현재 비밀번호가 올바르지 않습니다.' });
-        } else if (response.error.includes('400')) {
+          setErrors({
+            currentPassword: '현재 비밀번호가 올바르지 않습니다.'
+          });
+        } else if (errorMessage.includes('400') || errorMessage.includes('validation')) {
           setErrors({
             newPassword: '새 비밀번호가 요구사항을 만족하지 않습니다.',
           });
@@ -192,25 +200,16 @@ export default function PasswordChange() {
             {/* Current Password */}
             <div className={styles.formGroup}>
               <label className={styles.label}>현재 비밀번호</label>
-              <div className={styles.inputWrapper}>
-                <input
-                  type={showCurrentPassword ? 'text' : 'password'}
-                  name="currentPassword"
-                  value={formData.currentPassword}
-                  onChange={handleChange}
-                  className={`${styles.input} ${
-                    errors.currentPassword ? styles.inputError : ''
-                  }`}
-                  placeholder=""
-                />
-                <button
-                  type="button"
-                  className={styles.eyeButton}
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                >
-                  {showCurrentPassword ? <FiEyeOff /> : <FiEye />}
-                </button>
-              </div>
+              <input
+                type="password"
+                name="currentPassword"
+                value={formData.currentPassword}
+                onChange={handleChange}
+                className={`${styles.input} ${
+                  errors.currentPassword ? styles.inputError : ''
+                }`}
+                placeholder=""
+              />
               {errors.currentPassword && (
                 <p className={styles.errorMessage}>{errors.currentPassword}</p>
               )}
@@ -219,25 +218,16 @@ export default function PasswordChange() {
             {/* New Password */}
             <div className={styles.formGroup}>
               <label className={styles.label}>새 비밀번호 (8-16자 이내)</label>
-              <div className={styles.inputWrapper}>
-                <input
-                  type={showNewPassword ? 'text' : 'password'}
-                  name="newPassword"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  className={`${styles.input} ${
-                    errors.newPassword ? styles.inputError : ''
-                  }`}
-                  placeholder=""
-                />
-                <button
-                  type="button"
-                  className={styles.eyeButton}
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                >
-                  {showNewPassword ? <FiEyeOff /> : <FiEye />}
-                </button>
-              </div>
+              <input
+                type="password"
+                name="newPassword"
+                value={formData.newPassword}
+                onChange={handleChange}
+                className={`${styles.input} ${
+                  errors.newPassword ? styles.inputError : ''
+                }`}
+                placeholder=""
+              />
               {errors.newPassword && (
                 <p className={styles.errorMessage}>{errors.newPassword}</p>
               )}
@@ -246,25 +236,16 @@ export default function PasswordChange() {
             {/* Confirm New Password */}
             <div className={styles.formGroup}>
               <label className={styles.label}>새 비밀번호 확인</label>
-              <div className={styles.inputWrapper}>
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`${styles.input} ${
-                    errors.confirmPassword ? styles.inputError : ''
-                  }`}
-                  placeholder=""
-                />
-                <button
-                  type="button"
-                  className={styles.eyeButton}
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
-                </button>
-              </div>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className={`${styles.input} ${
+                  errors.confirmPassword ? styles.inputError : ''
+                }`}
+                placeholder=""
+              />
               {errors.confirmPassword && (
                 <p className={styles.errorMessage}>{errors.confirmPassword}</p>
               )}

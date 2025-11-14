@@ -1,6 +1,6 @@
 .container {
   padding: 1rem;
-  background-color: #f2f4f7;
+  background-color: rgba(255, 255, 255, 0.8);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -37,12 +37,14 @@
   flex-direction: column;
   gap: 12px;
   padding-bottom: 0.8rem;
+  background-color: rgba(255, 255, 255, 0.8);
 }
 
 .label {
-  font-size: clamp(0.9rem, 2.5vw, 1rem);
-  font-weight: 500;
-  color: #333;
+  font-size: 14px;
+  font-weight: normal;
+  color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(255, 255, 255, 0.8);
 }
 
 /* Input fields */
@@ -51,18 +53,54 @@
 .select,
 .inputFile {
   width: 100%;
-  padding: 1rem;
+  padding: 10.5px 9px;
+  height: 35px;
   border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  border-radius: 8px;
-  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  border-radius: 5px;
+  font-size: 14px;
   color: #333;
   box-sizing: border-box;
   background-color: #fff;
-  margin-top: 8px !important;
+  margin-top: 10px !important;
 }
 .textarea {
   height: 110px;
+  padding: 10px 9px;
   resize: none !important;
+}
+
+/* Date input wrapper */
+.dateInputWrapper {
+  position: relative;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.dateInputWrapper .input {
+  margin-top: 0;
+  padding-right: 40px;
+}
+
+.dateInputWrapper .input::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.dateInputWrapper .input[type='date']::-webkit-inner-spin-button,
+.dateInputWrapper .input[type='date']::-webkit-clear-button {
+  display: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.calendarIcon {
+  position: absolute;
+  right: 12px;
+  top: 60%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 1;
 }
 
 .input:focus,
@@ -76,19 +114,15 @@
 .input::placeholder,
 .textarea::placeholder {
   color: rgba(0, 0, 0, 0.4);
-}
-
-/* Textarea */
-.textarea {
-  min-height: 80px;
-  resize: vertical;
+  font-size: 14px;
 }
 
 /* Select */
 .select {
   border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  border-radius: 5px;
   color: rgba(0, 0, 0, 0.8);
+  font-size: 14px;
 }
 
 /* Submit button */
@@ -111,18 +145,19 @@
 /* Custom dropdown wrapper */
 .customSelect {
   width: 100%;
-  padding: 1rem;
+  padding: 10.5px 9px;
+  height: 35px;
   border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  border-radius: 8px;
+  border-radius: 5px;
   background-color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
   box-sizing: border-box;
-  font-size: clamp(0.9rem, 2.5vw, 1rem);
-  color: #333;
-  margin-top: 8px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.4);
+  margin-top: 10px;
 }
 
 .customSelectList {
@@ -131,7 +166,7 @@
   padding: 0;
   margin: 4px 0 0 0;
   border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  border-radius: 8px;
+  border-radius: 5px;
   background-color: #fff;
   box-sizing: border-box;
 }
@@ -140,6 +175,7 @@
   padding: 0.8rem 1rem;
   cursor: pointer;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 14px;
 }
 .customSelectItem:last-child {
   border-bottom: none !important;
@@ -156,11 +192,11 @@
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
-  margin-top: 0.5rem;
+  margin-top: 10px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 1rem;
-  border-radius: 10px;
-  min-height: 70px;
+  padding: 15px;
+  border-radius: 5px;
+  min-height: 69px;
   position: relative;
   overflow: hidden;
   background-color: #fff;
@@ -188,12 +224,12 @@
 
 .fileUploadLabel {
   display: flex;
-  padding: 1rem 0;
-  font-size: 0.8rem !important;
+  padding: 0;
+  font-size: 14px !important;
   font-weight: normal;
   color: rgba(0, 0, 0, 0.4) !important;
   background-color: #ffffff;
-  border-radius: 10px;
+  border-radius: 0;
   cursor: pointer;
   text-align: center;
   transition: background-color 0.2s ease;
@@ -232,9 +268,13 @@
     margin-inline: 0.5rem;
   }
   .input,
-  .textarea,
   .select,
   .inputFile {
-    padding: 0.8rem;
+    padding: 10.5px 9px;
+    height: 35px;
+  }
+  .textarea {
+    padding: 10px 9px;
+    height: 110px;
   }
 }

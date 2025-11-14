@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import styles from './BottomBar.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
@@ -16,6 +16,7 @@ type BottomItem = {
 
 export default function BottomBar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [hovered, setHovered] = useState<string | null>(null);
 
   const { user } = useUser();
@@ -30,10 +31,23 @@ export default function BottomBar() {
   const stripQuery = (path: string) => path.split('?')[0];
 
   const currentPath = normalizePath(pathname);
+  const isOnHomepage = currentPath === normalizePath(PAGE_URLS.HOME);
+
+  // Build home path - preserve categoryName if already on homepage
+  const getHomePath = () => {
+    if (isOnHomepage) {
+      const categoryName = searchParams.get('categoryName');
+      if (categoryName) {
+        const params = new URLSearchParams(searchParams.toString());
+        return `${PAGE_URLS.HOME}?${params.toString()}`;
+      }
+    }
+    return PAGE_URLS.HOME;
+  };
 
   // Build items
   const items: BottomItem[] = [
-    { name: 'home', label: '홈', path: PAGE_URLS.HOME },
+    { name: 'home', label: '홈', path: getHomePath() },
     { name: 'bag', label: '주변가게', path: PAGE_URLS.SHOPS || '/shops' },
   ];
 
