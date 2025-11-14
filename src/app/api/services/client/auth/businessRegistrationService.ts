@@ -3,6 +3,7 @@ import {
   BusinessRegistrationRequest,
   BusinessRegistrationResponse,
   BusinessRegistrationActionRequest,
+  BusinessRegistrationUpdateRequest,
 } from '../../../types/auth/BusinessRegistration';
 
 /**
@@ -191,6 +192,110 @@ export class BusinessRegistrationService {
           error instanceof Error
             ? error.message
             : 'Failed to fetch business registration by member ID',
+      };
+    }
+  }
+
+  /**
+   * Get business registration details by requestId (Admin)
+   * GET /api/pet-save/business-registrations/{requestId}
+   */
+  static async getBusinessRegistrationByRequestId(
+    requestId: string
+  ): Promise<ApiResponse<BusinessRegistrationResponse>> {
+    try {
+      if (!requestId) {
+        throw new Error('requestId is required');
+      }
+
+      const response = await apiClient.get<BusinessRegistrationResponse>(
+        `/business-registrations/${requestId}`
+      );
+
+      console.log(
+        ' Business registration fetched by request ID:',
+        response.data
+      );
+      return response;
+    } catch (error) {
+      console.error(
+        ' Error fetching business registration by request ID:',
+        error
+      );
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch business registration by request ID',
+      };
+    }
+  }
+
+  /**
+   * Update business registration information by requestId (Owner/Admin)
+   * PUT /api/pet-save/v2/business-registrations/{requestId}
+   */
+  static async updateBusinessRegistrationByRequestId(
+    requestId: string,
+    updateData: BusinessRegistrationUpdateRequest
+  ): Promise<ApiResponse<BusinessRegistrationResponse>> {
+    try {
+      if (!requestId) {
+        throw new Error('requestId is required');
+      }
+
+      const response = await apiClient.put<BusinessRegistrationResponse>(
+        `/v2/business-registrations/${requestId}`,
+        updateData
+      );
+
+      console.log(
+        ' Business registration updated by request ID:',
+        response.data
+      );
+      return response;
+    } catch (error) {
+      console.error(
+        ' Error updating business registration by request ID:',
+        error
+      );
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update business registration by request ID',
+      };
+    }
+  }
+
+  /**
+   * Delete business registration by requestId (Admin)
+   * DELETE /api/pet-save/business-registrations/{requestId}
+   */
+  static async deleteBusinessRegistration(
+    requestId: string
+  ): Promise<ApiResponse<BusinessRegistrationResponse>> {
+    try {
+      if (!requestId) {
+        throw new Error('requestId is required');
+      }
+
+      const response = await apiClient.delete<BusinessRegistrationResponse>(
+        `/business-registrations/${requestId}`
+      );
+
+      console.log(' Business registration deleted:', response.data);
+      return response;
+    } catch (error) {
+      console.error(' Error deleting business registration:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to delete business registration',
       };
     }
   }

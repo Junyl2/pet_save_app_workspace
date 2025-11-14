@@ -574,14 +574,10 @@ export default function ShoppingCartPage() {
 
               <button
                 onClick={() => {
-                  // Only include non-expired products in batch delete
-                  const validItems = items.filter(
-                    ({ product }) => !isProductExpired(product.expiration)
-                  );
-                  const productIds = validItems
+                  const productIds = items
                     .map(({ product }) => product.id)
                     .filter((id): id is string => id !== undefined);
-                  const cartItemIds = validItems
+                  const cartItemIds = items
                     .map(({ product }) => product.cartItemId)
                     .filter((id): id is string => id !== undefined);
 

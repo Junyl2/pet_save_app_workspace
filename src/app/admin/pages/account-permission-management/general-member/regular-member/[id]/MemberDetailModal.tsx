@@ -24,6 +24,7 @@ export default function MemberDetailModal({
   const [formData, setFormData] = useState<MemberInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   /** Fetch member detailed info (ADMIN/OWNER only) */
   useEffect(() => {
@@ -115,27 +116,30 @@ export default function MemberDetailModal({
     const confirmDelete = confirm('정말로 이 회원을 삭제하시겠습니까?');
     if (!confirmDelete) return;
 
+    setDeleting(true);
     try {
-      const response =
-        await MemberManagementService.removeMemberPermissionNoAdmin(memberId, {
-          permission: 'ADMIN',
-        });
+      const response = await MemberManagementService.deleteMember(memberId);
 
       if (response.error || !response.data?.success) {
+        setDeleting(false);
         alert(
-          '권한 제거 실패: ' + (response.error ?? response.data?.resultMsg)
+          '회원 삭제 실패: ' + (response.error ?? response.data?.resultMsg)
         );
         return;
       }
 
-      alert('권한이 성공적으로 제거되었습니다.');
+      setDeleting(false);
+      onClose();
       if (onUpdate) {
         onUpdate();
       }
-      onClose();
+      setTimeout(() => {
+        alert('회원이 성공적으로 삭제되었습니다.');
+      }, 50);
     } catch (error) {
-      console.error('Error removing member permission:', error);
-      alert('권한 제거 중 오류가 발생했습니다.');
+      console.error('Error deleting member:', error);
+      alert('회원 삭제 중 오류가 발생했습니다.');
+      setDeleting(false);
     }
   };
 
@@ -261,10 +265,15 @@ export default function MemberDetailModal({
               type="button"
               className={styles.btnOutline}
               onClick={handleDelete}
+              disabled={deleting}
             >
-              삭제
+              {deleting ? '삭제 중...' : '삭제'}
             </button>
-            <button type="submit" className={styles.btnPrimary} disabled={saving}>
+            <button
+              type="submit"
+              className={styles.btnPrimary}
+              disabled={saving}
+            >
               {saving ? '저장 중...' : '저장'}
             </button>
           </div>
@@ -273,4 +282,3 @@ export default function MemberDetailModal({
     </div>
   );
 }
-

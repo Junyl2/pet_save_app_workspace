@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './ProfileHeader.module.css';
 import Image from 'next/image';
@@ -157,9 +157,8 @@ const ProfileHeader = () => {
       {/* Quick Actions */}
       <div className={styles.quickActions}>
         {actions.map((action) => (
-          <>
+          <React.Fragment key={action.label}>
             <div
-              key={action.label}
               className={styles.quickActionItem}
               onClick={() => router.push(action.route)}
             >
@@ -173,7 +172,7 @@ const ProfileHeader = () => {
               <span className={styles.actionLabel}>{action.label}</span>
             </div>
             <div>{action.border}</div>
-          </>
+          </React.Fragment>
         ))}
       </div>
     </div>
