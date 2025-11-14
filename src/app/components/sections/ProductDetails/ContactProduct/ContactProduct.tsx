@@ -314,39 +314,45 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
         />
 
         {/* File Upload */}
-        <div className={styles.fileUploadWrapper}>
-          <input
-            type="file"
-            id="fileUpload"
-            accept="image/*"
-            onChange={handleFileChange}
-            className={styles.hiddenFileInput}
-          />
-          <div className={styles.labelWrapper}>
-            <CiImageOn size={16} color="rgba(0,0,0,0.4)" />
-            <label htmlFor="fileUpload" className={styles.fileUploadLabel}>
-              사진 첨부하기
-            </label>
+        <div className={styles.fileUploadSection}>
+          <div className={styles.fileUploadWrapper}>
+            <input
+              type="file"
+              id="fileUpload"
+              accept="image/*"
+              onChange={handleFileChange}
+              className={styles.hiddenFileInput}
+            />
+            <div className={styles.labelWrapper}>
+              <CiImageOn size={16} color="rgba(0,0,0,0.4)" />
+              <label htmlFor="fileUpload" className={styles.fileUploadLabel}>
+                사진 첨부하기
+              </label>
+            </div>
           </div>
 
+          {/* Image Preview - displayed below the upload button */}
           {filePreview && (
             <div className={styles.filePreview}>
-              <Image
-                src={filePreview}
-                alt="Preview"
-                width={100}
-                height={100}
-                className={styles.previewImage}
-              />
-              <div className={styles.fileInfo}>
-                <p className={styles.fileName}>{file?.name}</p>
+              <div className={styles.imageContainer}>
+                <Image
+                  src={filePreview}
+                  alt="Preview"
+                  width={100}
+                  height={100}
+                  className={styles.previewImage}
+                />
                 <button
                   type="button"
                   onClick={removeFile}
                   className={styles.removeFileButton}
+                  aria-label="Remove image"
                 >
                   ✕
                 </button>
+              </div>
+              <div className={styles.fileInfo}>
+                <p className={styles.fileName}>{file?.name}</p>
               </div>
             </div>
           )}

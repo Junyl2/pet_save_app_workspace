@@ -166,10 +166,17 @@
   border-radius: 10px;
 }
 
+/* File Upload Section - container for both upload button and preview */
+.fileUploadSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
 .fileUploadWrapper {
   display: flex;
   justify-content: center;
-  margin-top: 0.5rem;
   border: 1px solid rgba(0, 0, 0, 0.1);
   padding: 1rem;
   border-radius: 10px;
@@ -218,8 +225,8 @@
 }
 
 .form button {
-  margin-top: 0.5rem;
-  padding: 0.7rem 1rem;
+  margin-top: 0.2rem;
+  padding:1rem;
   font-size: 1rem;
   font-weight: 600;
   color: #ffffff;
@@ -298,42 +305,54 @@
   background-color: #f5f5f5;
 }
 
-/* File Preview Styles */
-.filePreview {
+/* Container for all file previews */
+.filePreviewsContainer {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.8rem;
-  margin-top: 1rem;
-  padding: 0.8rem;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
+}
+
+/* Individual File Preview Styles - displayed below upload button */
+.filePreview {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: fit-content;
+}
+
+.imageContainer {
+  position: relative;
+  width: 100px;
+  height: 100px;
 }
 
 .previewImage {
   width: 100px;
   height: 100px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid #dee2e6;
 }
 
 .fileInfo {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  flex: 1;
+  align-items: center;
 }
 
 .fileName {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #495057;
   margin: 0;
-  word-break: break-all;
+  word-break: break-word;
+  text-align: center;
+  max-width: 100px;
 }
 
 .removeFileButton {
-  align-self: flex-start;
+  position: absolute;
+  top: -8px;
+  right: -8px;
   background-color: #dc3545;
   color: white;
   border: none;
@@ -344,8 +363,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   transition: background-color 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .removeFileButton:hover {
