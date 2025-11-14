@@ -10,6 +10,7 @@ import { DotMenu } from '@/app/components/ui/DotMenu/DotMenu';
 import toast from 'react-hot-toast';
 import { useRouter, usePathname } from 'next/navigation';
 import Loading from '@/app/components/ui/Loading/Loading';
+import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
 
 type InquiryReplyProps = {
   inquiryId: string;
@@ -55,6 +56,7 @@ export default function InquiryReply({ inquiryId }: InquiryReplyProps) {
                 status:
                   foundApi.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
                 productId: foundApi.product?.productId,
+                imageUrls: foundApi.imageUrls || [],
               }
             : null;
           if (mounted) setInquiry(transformed);
@@ -153,6 +155,11 @@ export default function InquiryReply({ inquiryId }: InquiryReplyProps) {
             <DotMenu mode="deletePage" onDelete={handleDelete} />
             <div className={styles.messageContent}>
               <p>{inquiry.message}</p>
+              {inquiry.imageUrls && inquiry.imageUrls.length > 0 && (
+                <div className={styles.imagesContainer}>
+                  <ReviewImageGallery images={inquiry.imageUrls} />
+                </div>
+              )}
             </div>
           </div>
         </section>

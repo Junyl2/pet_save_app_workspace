@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import clsx from 'clsx';
 import styles from './CustomerService.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
@@ -14,68 +14,99 @@ const PAGE_SIZE = 10;
 
 export default function CustomerServicePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { page, setPage } = usePageParam(1);
   const [inquiries, setInquiries] = useState<AdminInquiryItem[]>([]);
   const [allInquiries, setAllInquiries] = useState<AdminInquiryItem[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const previousFilterTrigger = useRef(0);
 
   const { filters, filterTrigger } = useOrderFilter();
 
   /** Fetch inquiries */
-  const fetchInquiries = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    try {
-      const params: {
-        page: number;
-        size: number;
-        sortBy: 'createdAt';
-        direction: 'desc';
-        dateStart?: string;
-        dateEnd?: string;
-      } = {
-        page: page - 1,
-        size: PAGE_SIZE,
-        sortBy: 'createdAt',
-        direction: 'desc',
-      };
+  const fetchInquiries = useCallback(
+    async (pageNum?: number): Promise<void> => {
+      setLoading(true);
+      try {
+        // Use provided pageNum or current page from URL
+        const currentPage =
+          pageNum !== undefined
+            ? pageNum
+            : Number(searchParams.get('page') || 1);
 
-      if (filters.dateStart?.trim()) {
-        const dateStart = filters.dateStart.trim();
-        params.dateStart = dateStart.includes('T') ? dateStart.split('T')[0] : dateStart;
+        const params: {
+          page: number;
+          size: number;
+          sortBy: 'createdAt';
+          direction: 'desc';
+          dateStart?: string;
+          dateEnd?: string;
+        } = {
+          page: currentPage - 1,
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        };
+
+        if (filters.dateStart?.trim()) {
+          const dateStart = filters.dateStart.trim();
+          params.dateStart = dateStart.includes('T')
+            ? dateStart.split('T')[0]
+            : dateStart;
+        }
+        if (filters.dateEnd?.trim()) {
+          const dateEnd = filters.dateEnd.trim();
+          params.dateEnd = dateEnd.includes('T')
+            ? dateEnd.split('T')[0]
+            : dateEnd;
+        }
+
+        console.log('[CustomerServicePage] Fetching with params:', params);
+
+        const response = await AdminInquiryService.searchInquiries(params);
+
+        const data = response.data?.data;
+        const content = data?.content ?? [];
+        const total = data?.pageInfo?.totalPages ?? 1;
+
+        console.log('[CustomerServicePage] Response:', {
+          contentLength: content.length,
+          totalPages: total,
+          currentPage,
+        });
+
+        setAllInquiries(content);
+        setInquiries(content);
+        setTotalPages(total);
+      } catch (error) {
+        console.error('Failed to fetch inquiries:', error);
+        setInquiries([]);
+        setAllInquiries([]);
+      } finally {
+        setLoading(false);
       }
-      if (filters.dateEnd?.trim()) {
-        const dateEnd = filters.dateEnd.trim();
-        params.dateEnd = dateEnd.includes('T') ? dateEnd.split('T')[0] : dateEnd;
-      }
+    },
+    [filters.dateStart, filters.dateEnd, searchParams]
+  );
 
-      const response = await AdminInquiryService.searchInquiries(params);
-
-      const data = response.data?.data;
-      const content = data?.content ?? [];
-      const total = data?.pageInfo?.totalPages ?? 1;
-
-      setAllInquiries(content);
-      setInquiries(content);
-      setTotalPages(total);
-    } catch (error) {
-      console.error('Failed to fetch inquiries:', error);
-      setInquiries([]);
-      setAllInquiries([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, filters.dateStart, filters.dateEnd]);
-
+  // Reset to page 1 when filters change
   useEffect(() => {
-    if (filterTrigger > 0 && page !== 1) {
+    if (filterTrigger > previousFilterTrigger.current) {
+      previousFilterTrigger.current = filterTrigger;
       setPage(1);
+      // Fetch with page 1 explicitly
+      void fetchInquiries(1);
     }
-  }, [filterTrigger, page, setPage]);
+  }, [filterTrigger, setPage, fetchInquiries]);
 
+  // Fetch when page changes (from URL)
   useEffect(() => {
-    void fetchInquiries();
-  }, [fetchInquiries]);
+    // Only fetch if filterTrigger hasn't changed (to avoid double fetch)
+    if (filterTrigger === previousFilterTrigger.current) {
+      void fetchInquiries();
+    }
+  }, [page, fetchInquiries, filterTrigger]);
 
   useEffect(() => {
     if (filters.keyword && filters.keyword.trim()) {

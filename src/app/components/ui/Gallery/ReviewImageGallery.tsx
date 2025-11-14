@@ -43,6 +43,12 @@ export function ReviewImageGallery({ images }: ReviewImageGalleryProps) {
             maxZoomPixelRatio: 3,
             scrollToZoom: true,
           }}
+          controller={{
+            closeOnBackdropClick: true,
+          }}
+          carousel={{
+            finite: true,
+          }}
         />
       )}
     </>

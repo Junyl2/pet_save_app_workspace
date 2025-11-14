@@ -9,6 +9,7 @@ import { MemberStoreService } from '@/app/api/services/client/memberService/memb
 import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
 import { SellerInquiryService } from '@/app/api/services/client/seller/seller-inquiry/sellerInquiryService';
 import defaultProfile from '@/app/constats/defaultProfile';
+import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
 
 // Helper function to format date from YYYY-MM-DD to YY.MM.DD
 const formatDate = (dateString: string): string => {
@@ -32,6 +33,7 @@ interface TransformedInquiry {
   responseMessage: string;
   status: string;
   answering: boolean;
+  imageUrls: string[];
 }
 
 // Helper function to transform API response to UI format
@@ -50,6 +52,7 @@ const transformStoreInquiryToUI = (
     responseMessage: storeInquiry.answer || '',
     status: storeInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
     answering: false,
+    imageUrls: storeInquiry.imageUrls || [],
   };
 };
 
@@ -220,6 +223,11 @@ export default function ReplyInquiry() {
           <div className={styles.inquiryContent}>
             <div className={styles.messageBox}>
               <div className={styles.messageText}>{inquiry.message}</div>
+              {inquiry.imageUrls && inquiry.imageUrls.length > 0 && (
+                <div className={styles.imagesContainer}>
+                  <ReviewImageGallery images={inquiry.imageUrls} />
+                </div>
+              )}
             </div>
           </div>
         </div>

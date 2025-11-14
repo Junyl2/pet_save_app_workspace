@@ -12,6 +12,7 @@ import { DotMenu } from '@/app/components/ui/DotMenu/DotMenu';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import toast from 'react-hot-toast';
 import Loading from '@/app/components/ui/Loading/Loading';
+import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
 
 // Map API categories to Korean display names
 const mapApiCategoryToUI = (apiCategory: string): string => {
@@ -46,6 +47,7 @@ const transformMyInquiryToContactInquiry = (
     responseMessage: myInquiry.answer || '',
     status: myInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
     productId: myInquiry.product?.productId, // Store productId for routing
+    imageUrls: myInquiry.imageUrls || [], // Inquiry images
   };
 };
 
@@ -175,6 +177,11 @@ export default function DeleteInquiryPage() {
           <DotMenu mode="deletePage" onDelete={handleDelete} />
           <div className={styles.messageContent}>
             <p>{inquiry.message}</p>
+            {inquiry.imageUrls && inquiry.imageUrls.length > 0 && (
+              <div className={styles.imagesContainer}>
+                <ReviewImageGallery images={inquiry.imageUrls} />
+              </div>
+            )}
           </div>
         </div>
 

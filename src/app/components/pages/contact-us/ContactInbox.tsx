@@ -37,6 +37,7 @@ const transformMyInquiryToContactInquiry = (
   responseMessage: myInquiry.answer || '',
   status: myInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
   productId: myInquiry.product?.productId,
+  imageUrls: myInquiry.imageUrls || [],
 });
 
 export default function ContactInbox({

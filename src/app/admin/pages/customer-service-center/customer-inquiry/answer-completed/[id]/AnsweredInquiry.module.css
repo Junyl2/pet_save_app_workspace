@@ -58,6 +58,17 @@
   white-space: pre-line;
   font-size: 15px;
   color: #141414;
+  margin-bottom: 12px;
+}
+
+.imagesContainer {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.imagesContainer :global(div[class*="wrapper"]) {
+  justify-content: flex-start !important;
+  width: 100%;
 }
 
 .buttonRow {
@@ -108,4 +119,14 @@
   font-size: 14px;
   resize: vertical;
   background: #fff;
+}
+
+.loading,
+.error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  font-size: 16px;
+  color: #666;
 }

@@ -308,8 +308,9 @@
 /* Container for all file previews */
 .filePreviewsContainer {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 0.8rem;
+  margin-top: 0.5rem;
 }
 
 /* Individual File Preview Styles - displayed below upload button */

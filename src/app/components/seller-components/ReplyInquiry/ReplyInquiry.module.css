@@ -79,6 +79,12 @@
   color: #000;
   white-space: pre-wrap;
   word-break: break-word;
+  margin-bottom: 12px;
+}
+
+.imagesContainer {
+  margin-top: 12px;
+  width: 100%;
 }
 
 /* Reply Section */

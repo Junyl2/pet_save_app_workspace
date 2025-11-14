@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import styles from './AnsweredInquiry.module.css';
 import { AdminInquiryService } from '@/app/api/services/admin/adminInquiryService/adminInquiryService';
 import { AdminInquiryItem } from '@/app/api/services/admin/adminInquiryService/adminInquiry';
+import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
 
 export default function AnsweredInquiryPage() {
   const router = useRouter();
@@ -112,6 +113,11 @@ export default function AnsweredInquiryPage() {
         <label className={styles.label}>내용</label>
         <div className={styles.contentBox}>
           <p className={styles.text}>{inquiry.content ?? '-'}</p>
+          {inquiry.imageUrls && inquiry.imageUrls.length > 0 && (
+            <div className={styles.imagesContainer}>
+              <ReviewImageGallery images={inquiry.imageUrls} />
+            </div>
+          )}
         </div>
       </div>
 

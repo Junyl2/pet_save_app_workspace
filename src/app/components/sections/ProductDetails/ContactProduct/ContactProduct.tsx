@@ -10,6 +10,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import styles from './ContactProduct.module.css';
 
 import { productContactService } from '@/app/api/services/contact-product/productContactService';
+import { MemberInquiryService } from '@/app/api/services/client/memberService/inquiry-details/memberInquiryService';
 import { ProductSummary } from '@/app/api/types/products/productSummary';
 import { ContactDrawer } from '@/app/components/ui/drawer/ContactDrawer/ContactDrawer';
 import { StoreService } from '@/app/api/services/client/storeService/storeService';
@@ -21,6 +22,8 @@ interface ContactProductProps {
   productId?: string;
   storeId?: string;
 }
+
+type AttachedImage = { id: string; file: File; url: string };
 
 export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
   const router = useRouter();
@@ -34,9 +37,9 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
 
   const [inquiryType, setInquiryType] = useState('');
   const [content, setContent] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   /** Fetch product or store info */
@@ -103,12 +106,12 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
     if (productId || storeId) fetchData();
   }, [productId, storeId]);
 
-  /** Cleanup preview URL on unmount */
+  /** Cleanup preview URLs on unmount */
   useEffect(() => {
     return () => {
-      if (filePreview) URL.revokeObjectURL(filePreview);
+      attachedImages.forEach((img) => URL.revokeObjectURL(img.url));
     };
-  }, [filePreview]);
+  }, [attachedImages]);
 
   if (loading) return <Loading />;
   if (!product && !store) return <p>정보를 찾을 수 없습니다.</p>;
@@ -127,55 +130,104 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
 
   /** File handling */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0] || null;
-    setFile(selectedFile);
-    if (selectedFile) setFilePreview(URL.createObjectURL(selectedFile));
-    else setFilePreview(null);
+    const files = e.target.files;
+    if (!files) return;
+    const additions = Array.from(files).map((f) => ({
+      id: crypto.randomUUID(),
+      file: f,
+      url: URL.createObjectURL(f),
+    }));
+    setAttachedImages((prev) => [...prev, ...additions]);
   };
 
-  const removeFile = () => {
-    if (filePreview) URL.revokeObjectURL(filePreview);
-    setFile(null);
-    setFilePreview(null);
+  const removeImage = (id: string) => {
+    setAttachedImages((prev) => {
+      const img = prev.find((x) => x.id === id);
+      if (img) URL.revokeObjectURL(img.url);
+      return prev.filter((x) => x.id !== id);
+    });
   };
 
   /** Submit inquiry */
   const handleSubmit = async () => {
+    if (submitting || uploadingFiles) return;
+
     setSubmitting(true);
+    let uploadedEncryptedIds: string[] = [];
+    let uploadedFileIds: string[] = [];
+
     try {
       if (!selectedProductId) {
         toast.error('상품 정보를 찾을 수 없습니다.');
         return;
       }
 
-      // Log the productId being sent for debugging
-      console.log(
-        '🔍 [ContactProduct] Submitting inquiry with productId:',
-        selectedProductId
-      );
-      console.log('🔍 [ContactProduct] Product data:', product);
-      console.log('🔍 [ContactProduct] Product store info:', product?.store);
+      // Step 1: Upload files first and get encryptedId
+      if (attachedImages.length > 0) {
+        setUploadingFiles(true);
+        const files = attachedImages.map((img) => img.file);
 
+        const uploadResponse = await MemberInquiryService.uploadInquiryFiles(
+          files,
+          {
+            entityType: 'INQUIRY',
+            documentType: 'INQUIRY_ATTACHMENT',
+            description: `Attachment for inquiry about product ${selectedProductId}`,
+          }
+        );
+
+        if (uploadResponse.error || !uploadResponse.data?.data) {
+          throw new Error(
+            uploadResponse.error || '파일 업로드에 실패했습니다.'
+          );
+        }
+
+        uploadedEncryptedIds = uploadResponse.data.data
+          .filter((f) => f.encryptedId)
+          .map((f) => f.encryptedId);
+
+        uploadedFileIds = uploadResponse.data.data
+          .filter((f) => f.fileId)
+          .map((f) => f.fileId);
+
+        if (attachedImages.length > 0 && uploadedEncryptedIds.length === 0) {
+          throw new Error('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+        }
+      }
+
+      // Step 2: Create inquiry with encryptedIds
       const response = await productContactService.submitInquiry({
         productId: selectedProductId,
         inquiryType,
         content,
-        file,
+        encryptedIds: uploadedEncryptedIds,
       });
 
       if (response.error) {
-        // Show the specific error message from the service
         toast.error(response.error);
         return;
+      }
+
+      // Step 3: Attach files to the inquiry entity
+      // For inquiry files, attach each file individually using fileId as entityId
+      if (uploadedFileIds.length > 0) {
+        for (const fileId of uploadedFileIds) {
+          await MemberInquiryService.attachFilesToInquiry(fileId, [fileId]);
+        }
       }
 
       toast.success('문의가 정상적으로 접수되었습니다.');
       setTimeout(() => router.back(), 1500);
     } catch (err) {
       console.error(err);
-      toast.error('문의 접수 중 오류가 발생했습니다.');
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : '문의 접수 중 오류가 발생했습니다.';
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
+      setUploadingFiles(false);
     }
   };
 
@@ -320,6 +372,7 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
               type="file"
               id="fileUpload"
               accept="image/*"
+              multiple
               onChange={handleFileChange}
               className={styles.hiddenFileInput}
             />
@@ -331,12 +384,14 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
             </div>
           </div>
 
-          {/* Image Preview - displayed below the upload button */}
-          {filePreview && (
-            <div className={styles.filePreview}>
+          {/* Image Previews - displayed below the upload button */}
+          {attachedImages.length > 0 && (
+            <div className={styles.filePreviewsContainer}>
+              {attachedImages.map((img) => (
+                <div key={img.id} className={styles.filePreview}>
               <div className={styles.imageContainer}>
                 <Image
-                  src={filePreview}
+                      src={img.url}
                   alt="Preview"
                   width={100}
                   height={100}
@@ -344,7 +399,7 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
                 />
                 <button
                   type="button"
-                  onClick={removeFile}
+                      onClick={() => removeImage(img.id)}
                   className={styles.removeFileButton}
                   aria-label="Remove image"
                 >
@@ -352,8 +407,10 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
                 </button>
               </div>
               <div className={styles.fileInfo}>
-                <p className={styles.fileName}>{file?.name}</p>
+                    <p className={styles.fileName}>{img.file.name}</p>
+                  </div>
               </div>
+              ))}
             </div>
           )}
         </div>
@@ -365,12 +422,18 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
 
         <button
           onClick={handleSubmit}
-          disabled={!inquiryType || !content || submitting}
+          disabled={!inquiryType || !content || submitting || uploadingFiles}
           className={
-            !inquiryType || !content || submitting ? styles.disabledButton : ''
+            !inquiryType || !content || submitting || uploadingFiles
+              ? styles.disabledButton
+              : ''
           }
         >
-          {submitting ? '문의 중...' : '문의하기'}
+          {uploadingFiles
+            ? '파일 업로드 중...'
+            : submitting
+            ? '문의 중...'
+            : '문의하기'}
         </button>
       </div>
 

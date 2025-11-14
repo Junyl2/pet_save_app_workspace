@@ -246,3 +246,33 @@
 .searchBtn.enabled {
   background: #66bfa7;
 }
+
+.modalButtons {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.modalConfirmButton {
+  width: 100%;
+  padding: 1rem;
+  background: #66bfa7;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.975rem;
+}
+
+.modalCancelButton {
+  width: 100%;
+  padding: 1rem;
+  background: #fff;
+  color: #66bfa7;
+  border: 1px solid #66bfa7;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.975rem;
+}

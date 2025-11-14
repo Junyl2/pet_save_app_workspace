@@ -20,7 +20,7 @@ export interface DeliveryAddress {
 export interface CreateDeliveryAddressRequest {
   roadAddress: string;
   detailedAddress: string;
-  zipCode: string;
+  zipCode?: string;
   default: boolean;
 
   addressTitle: string;

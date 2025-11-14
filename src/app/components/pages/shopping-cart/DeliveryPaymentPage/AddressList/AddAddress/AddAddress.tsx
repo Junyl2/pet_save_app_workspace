@@ -2,12 +2,14 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
 import styles from './AddAddress.module.css';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { AddressService } from '@/app/api/services/client/addressService/addressService';
 import { AddressSearchResult } from '@/app/api/types/address/addressSearch';
 import { DeliveryAddressService } from '@/app/api/services/client/memberService/member-information/deliveryAddressService';
+import { CreateDeliveryAddressRequest } from '@/app/api/types/member/member-information/member-information';
+import { BaseModal } from '@/app/components/ui/modal/BaseModal';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 
 export default function AddAddressPage() {
   const router = useRouter();
@@ -27,6 +29,11 @@ export default function AddAddressPage() {
 
   const [isDefault, setIsDefault] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{
+    message: string;
+    isVisible: boolean;
+  }>({ message: '', isVisible: false });
 
   // Address search states (same pattern as MembershipInformation.tsx)
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
@@ -39,6 +46,15 @@ export default function AddAddressPage() {
   // Try zip first; if empty, fallback to roadAddress input as keyword
   const keyword = zipCode.trim() || roadAddress.trim();
   const canSearch = !!keyword && !isSearchingAddress;
+
+  // Toast helper functions
+  const showToast = (message: string) => {
+    setToastMessage({ message, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToastMessage({ message: '', isVisible: false });
+  };
 
   // ---------- helpers to avoid `any` ----------
   type UnknownRecord = Record<string, unknown>;
@@ -71,9 +87,29 @@ export default function AddAddressPage() {
     // Prefer a field-level validation map if present
     const validation = data.data;
     if (isObject(validation)) {
-      const parts = Object.entries(validation).map(
-        ([k, v]) => `${k}: ${formatValue(v)}`
-      );
+      // Map field names to Korean for better user experience
+      const fieldMap: Record<string, string> = {
+        zipCode: '우편번호',
+        roadAddress: '도로명 주소',
+        detailedAddress: '상세 주소',
+        addressTitle: '배송지명',
+        receiverName: '수령인 이름',
+        receiverPhone: '수령인 연락처',
+      };
+
+      const parts = Object.entries(validation).map(([k, v]) => {
+        const fieldName = fieldMap[k] || k;
+        const errorMsg = formatValue(v);
+        // Check for common validation messages and translate
+        if (
+          typeof errorMsg === 'string' &&
+          (errorMsg.toLowerCase().includes('blank') ||
+            errorMsg.toLowerCase().includes('null'))
+        ) {
+          return `${fieldName}를 입력해주세요.`;
+        }
+        return `${fieldName}: ${errorMsg}`;
+      });
       if (parts.length) return parts.join('\n');
     }
 
@@ -177,17 +213,27 @@ export default function AddAddressPage() {
   };
 
   const validate = () => {
-    const phoneOk = /^[0-9+\-\s]+$/.test(receiverPhone.trim());
-    if (!zipCode.trim()) return toast.error('우편번호를 입력하세요.'), false;
-    if (!roadAddress.trim())
-      return toast.error('도로명 주소를 입력하세요.'), false;
-    if (!receiverName.trim())
-      return toast.error('수령인 이름을 입력하세요.'), false;
-    if (!receiverPhone.trim())
-      return toast.error('수령인 연락처를 입력하세요.'), false;
-    if (!phoneOk) return toast.error('연락처 형식이 올바르지 않습니다.'), false;
-    if (!addressName.trim())
-      return toast.error('배송지명을 입력하세요.'), false; // maps to addressTitle
+    const phoneOk = /^[0-9]+$/.test(receiverPhone.trim());
+    if (!roadAddress.trim()) {
+      showToast('도로명 주소를 입력하세요.');
+      return false;
+    }
+    if (!receiverName.trim()) {
+      showToast('수령인 이름을 입력하세요.');
+      return false;
+    }
+    if (!receiverPhone.trim()) {
+      showToast('수령인 연락처를 입력하세요.');
+      return false;
+    }
+    if (!phoneOk) {
+      showToast('연락처는 숫자만 입력 가능합니다.');
+      return false;
+    }
+    if (!addressName.trim()) {
+      showToast('배송지명을 입력하세요.');
+      return false;
+    }
     return true;
   };
 
@@ -197,27 +243,29 @@ export default function AddAddressPage() {
       setSaving(true);
 
       // Payload expected by backend
-      const payload = {
+      const payload: CreateDeliveryAddressRequest = {
         roadAddress,
         detailedAddress: detailAddress,
-        zipCode,
         default: isDefault,
         addressTitle: addressName, // 배송지명 -> addressTitle
         receiverName, // NEW required
         receiverPhone, // NEW required
+        ...(zipCode.trim() ? { zipCode: zipCode.trim() } : {}),
       };
 
       const res = await DeliveryAddressService.createDeliveryAddress(payload);
 
       if (isSuccessResponse(res)) {
-        toast.success('배송지가 저장되었습니다.');
-        router.back();
+        showToast('배송지가 저장되었습니다.');
+        setTimeout(() => {
+          router.back();
+        }, 500);
       } else {
-        toast.error(extractServerMessage(res));
+        showToast(extractServerMessage(res));
       }
     } catch (e) {
       console.error(e);
-      toast.error('저장에 실패했습니다. 다시 시도해주세요.');
+      showToast('저장에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setSaving(false);
     }
@@ -233,12 +281,16 @@ export default function AddAddressPage() {
       receiverPhone ||
       isDefault
     ) {
-      if (!confirm('입력한 내용을 모두 지울까요?')) return;
-      resetForm();
-      toast('입력 내용이 초기화되었습니다.');
+      setShowConfirmModal(true);
     } else {
       router.back();
     }
+  };
+
+  const handleConfirmDelete = () => {
+    resetForm();
+    setShowConfirmModal(false);
+    showToast('입력 내용이 초기화되었습니다.');
   };
 
   return (
@@ -325,7 +377,10 @@ export default function AddAddressPage() {
 
           <input
             value={receiverPhone}
-            onChange={(e) => setReceiverPhone(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^0-9]/g, '');
+              setReceiverPhone(value);
+            }}
             placeholder="수신자 전화번호"
             className={styles.input}
             inputMode="tel"
@@ -377,6 +432,33 @@ export default function AddAddressPage() {
           </button>
         </div>
       </div>
+      <BaseModal
+        open={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        title="입력한 내용을 모두 지울까요?"
+      >
+        <div className={styles.modalButtons}>
+          <button
+            className={styles.modalCancelButton}
+            onClick={() => setShowConfirmModal(false)}
+          >
+            취소
+          </button>
+          <button
+            className={styles.modalConfirmButton}
+            onClick={handleConfirmDelete}
+          >
+            확인
+          </button>
+        </div>
+      </BaseModal>
+      {toastMessage.isVisible && (
+        <ToastMessage
+          message={toastMessage.message}
+          onClose={hideToast}
+          duration={3000}
+        />
+      )}
     </>
   );
 }

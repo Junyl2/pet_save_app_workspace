@@ -1,23 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import styles from './CustomerInquiry.module.css';
 import { AdminInquiryService } from '@/app/api/services/admin/adminInquiryService/adminInquiryService';
+import { AdminInquiryItem } from '@/app/api/services/admin/adminInquiryService/adminInquiry';
+import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
 
 export default function CustomerInquiryPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
+  const [inquiry, setInquiry] = useState<AdminInquiryItem | null>(null);
   const [answer, setAnswer] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const data = {
-    title: '공지사항 제목입니다.',
-    author: '사용자 아이디',
-    date: '2025-08-18',
-    content:
-      '사용자가 작성한 질문 내용이 이곳에 표시됩니다.\n구매한 상품에 대한 문의, 배송 관련 질문 등 긴 문장도 줄바꿈과 함께 자연스럽게 노출됩니다.',
-  };
+  useEffect(() => {
+    const loadInquiry = async (): Promise<void> => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const { data, error } = await AdminInquiryService.getInquiryById(id);
+        if (error || !data?.data) throw new Error();
+        setInquiry(data.data);
+      } catch {
+        alert('문의 상세 정보를 불러오지 못했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    void loadInquiry();
+  }, [id]);
 
   const handleSubmit = async (): Promise<void> => {
     if (!id) {
@@ -50,30 +63,53 @@ export default function CustomerInquiryPage() {
     }
   };
 
-  const handleDelete = (): void => {
-    alert('삭제 기능은 별도의 페이지에서 처리됩니다.');
+  const handleDelete = async (): Promise<void> => {
+    if (!id || !confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      const { error } = await AdminInquiryService.deleteInquiry(id);
+      if (error) throw new Error();
+      alert('삭제가 완료되었습니다.');
+      router.push('/admin/pages/customer-service-center/customer-inquiry');
+    } catch {
+      alert('삭제 중 오류가 발생했습니다.');
+    }
   };
+
+  if (loading) return <div className={styles.loading}>로딩 중...</div>;
+  if (!inquiry)
+    return <div className={styles.error}>데이터를 찾을 수 없습니다.</div>;
 
   return (
     <div className={styles.wrapper}>
       {/* 제목 */}
       <div className={styles.row}>
         <label className={styles.label}>제목</label>
-        <div className={styles.inputBox}>{data.title}</div>
-        <div className={styles.date}>{data.date}</div>
+        <div className={styles.inputBox}>
+          {inquiry.product?.productName ?? '문의 제목 없음'}
+        </div>
+        <div className={styles.date}>
+          {inquiry.createdAt ? inquiry.createdAt.slice(0, 10) : '-'}
+        </div>
       </div>
 
       {/* 작성자 */}
       <div className={styles.row}>
         <label className={styles.label}>작성자</label>
-        <div className={styles.inputBox}>{data.author}</div>
+        <div className={styles.inputBox}>
+          {inquiry.inquirer?.name ?? '익명'}
+        </div>
       </div>
 
       {/* 내용 */}
       <div className={styles.section}>
         <label className={styles.label}>내용</label>
         <div className={styles.contentBox}>
-          <p className={styles.text}>{data.content}</p>
+          <p className={styles.text}>{inquiry.content ?? '-'}</p>
+          {inquiry.imageUrls && inquiry.imageUrls.length > 0 && (
+            <div className={styles.imagesContainer}>
+              <ReviewImageGallery images={inquiry.imageUrls} />
+            </div>
+          )}
         </div>
       </div>
 

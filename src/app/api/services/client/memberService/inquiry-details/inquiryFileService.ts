@@ -3,7 +3,6 @@ import {
   FileUploadResponse,
   MultipleFileUploadResponse,
   FileAttachmentResponse,
-  FileAttachmentRequest,
   FileMetadata,
   FileDownloadOptions,
   FileInfoResponse,
@@ -108,7 +107,8 @@ export class InquiryFileService {
 
   /**
    * Attach uploaded files to an entity
-   * Endpoint: POST /api/pet-save/inquiries/files/attach?entityId={entityId}
+   * Endpoint: POST /api/pet-save/inquiries/files/attach?entityId={fileId}
+   * Note: For inquiry files, entityId should be the fileId itself
    */
   static async attachFiles(
     entityId: string,
@@ -120,22 +120,24 @@ export class InquiryFileService {
         fileIds,
       });
 
-      const requestData: FileAttachmentRequest = {
-        fileIds,
-      };
-
-      const response = await apiClient.post<FileAttachmentResponse>(
+      // For inquiry files, attach each file individually using fileId as entityId
+      // Send fileIds array directly in body (not wrapped in object)
+      const response = await apiClient.raw.post<FileAttachmentResponse>(
         `/inquiries/files/attach?entityId=${entityId}`,
-        requestData
+        fileIds,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
       );
 
-      if (response.error) {
-        console.error('File attachment failed:', response.error);
-        return response;
+      if (response.data) {
+        console.log('Files attached successfully:', response.data);
+        return { data: response.data, error: undefined };
+      } else {
+        return { data: null, error: 'File attachment failed' };
       }
-
-      console.log('Files attached successfully:', response.data);
-      return response;
     } catch (error) {
       console.error('File attachment service error:', error);
       return {

@@ -11,7 +11,7 @@ export interface Inquiry {
   productId: string;
   inquiryType: string;
   content: string;
-  file?: File | null;
+  encryptedIds?: string[];
 }
 
 // Map inquiry types to API categories
@@ -54,22 +54,25 @@ export const productContactService = {
         };
       }
 
-      // Create inquiry first (without file IDs)
+      // Create inquiry with encryptedIds (files should be uploaded before calling this)
       const trimmedProductId = inquiry.productId.trim();
       const inquiryRequest: CreateInquiryRequest = {
         productId: trimmedProductId,
         category,
         content: inquiry.content,
-        imageFileIds: [], // Don't include file IDs during creation
+        imageFileIds: inquiry.encryptedIds || [],
       };
 
       console.log('🔍 [productContactService] Creating inquiry with request:', {
         productId: trimmedProductId,
         category,
         contentLength: inquiry.content.length,
-        hasFile: !!inquiry.file,
+        imageFileIdsCount: inquiry.encryptedIds?.length || 0,
       });
-      console.log('🔍 [productContactService] Full request object:', JSON.stringify(inquiryRequest, null, 2));
+      console.log(
+        '🔍 [productContactService] Full request object:',
+        JSON.stringify(inquiryRequest, null, 2)
+      );
 
       const response = await MemberInquiryService.createInquiry(inquiryRequest);
 
@@ -83,56 +86,6 @@ export const productContactService = {
         '🔍 Full inquiry creation response:',
         JSON.stringify(response, null, 2)
       );
-
-      // Handle file upload and attachment after inquiry creation
-      if (inquiry.file && response.data) {
-        console.log('Uploading file for inquiry:', {
-          fileName: inquiry.file.name,
-          fileSize: inquiry.file.size,
-          fileType: inquiry.file.type,
-        });
-
-        try {
-          // For now, let's just upload the file without trying to attach it
-          // This will help us debug if the issue is with upload or attachment
-          console.log('🔍 Attempting file upload only (no attachment for now)');
-
-          const uploadResponse = await MemberInquiryService.uploadInquiryFile(
-            inquiry.file,
-            {
-              entityType: 'INQUIRY',
-              documentType: 'INQUIRY_ATTACHMENT',
-              description: `Attachment for inquiry about product ${inquiry.productId}`,
-            }
-          );
-
-          console.log(
-            '🔍 File upload response:',
-            JSON.stringify(uploadResponse, null, 2)
-          );
-
-          if (uploadResponse.error) {
-            console.error('File upload failed:', uploadResponse.error);
-            console.log('Inquiry created but file upload failed');
-          } else {
-            console.log('✅ File uploaded successfully');
-            console.log('🔍 File ID:', uploadResponse.data?.data?.fileId);
-            console.log('🔍 File URL:', uploadResponse.data?.data?.url);
-
-            // TODO: We'll implement attachment later once we confirm upload works
-            console.log(
-              '📝 Note: File attachment will be implemented after confirming upload works'
-            );
-          }
-        } catch (uploadError) {
-          console.error('Error during file upload:', uploadError);
-          console.log('Inquiry created but file upload failed');
-        }
-      } else if (inquiry.file) {
-        console.log('No inquiry created, skipping file upload');
-      } else {
-        console.log('No file provided, inquiry created without attachments');
-      }
 
       return response;
     } catch (error) {
