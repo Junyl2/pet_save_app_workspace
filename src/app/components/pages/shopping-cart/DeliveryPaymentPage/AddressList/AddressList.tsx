@@ -3,7 +3,7 @@
 import styles from './AddressList.module.css';
 import { useEffect, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { FiArrowLeft } from 'react-icons/fi';
 import { DeliveryAddressService } from '@/app/api/services/client/memberService/member-information/deliveryAddressService';
 import type { DeliveryAddress } from '@/app/api/types/member/member-information/member-information';
@@ -53,6 +53,7 @@ export default function AddressList() {
   });
 
   const router = useRouter();
+  const pathname = usePathname();
 
   // Custom toast with 확인 button
   const showConfirmToast = (message: string) => {
@@ -76,7 +77,15 @@ export default function AddressList() {
               border: 'none',
               color: '#fff',
             }}
-            onClick={() => toast.dismiss(t.id)}
+            onClick={() => {
+              toast.dismiss(t.id);
+              if (
+                pathname ===
+                '/client/pages/shopping-cart/delivery-payment/address-list'
+              ) {
+                router.back();
+              }
+            }}
           >
             확인
           </button>

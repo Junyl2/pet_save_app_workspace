@@ -226,7 +226,7 @@
 
 .form button {
   margin-top: 0.2rem;
-  padding:1rem;
+  padding: 1rem;
   font-size: 1rem;
   font-weight: 600;
   color: #ffffff;
@@ -354,19 +354,26 @@
   position: absolute;
   top: -8px;
   right: -8px;
-  background-color: #dc3545;
+  background-color: #66bfa7 !important;
   color: white;
   border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  border-radius: 50% !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
+  padding: 0 !important;
+  margin: 0 !important;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.8rem !important;
   transition: background-color 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  line-height: 1;
 }
 
 .removeFileButton:hover {

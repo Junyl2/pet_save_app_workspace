@@ -389,27 +389,27 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
             <div className={styles.filePreviewsContainer}>
               {attachedImages.map((img) => (
                 <div key={img.id} className={styles.filePreview}>
-              <div className={styles.imageContainer}>
-                <Image
+                  <div className={styles.imageContainer}>
+                    <Image
                       src={img.url}
-                  alt="Preview"
-                  width={100}
-                  height={100}
-                  className={styles.previewImage}
-                />
-                <button
-                  type="button"
+                      alt="Preview"
+                      width={100}
+                      height={100}
+                      className={styles.previewImage}
+                    />
+                    <button
+                      type="button"
                       onClick={() => removeImage(img.id)}
-                  className={styles.removeFileButton}
-                  aria-label="Remove image"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className={styles.fileInfo}>
+                      className={styles.removeFileButton}
+                      aria-label="Remove image"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className={styles.fileInfo}>
                     <p className={styles.fileName}>{img.file.name}</p>
                   </div>
-              </div>
+                </div>
               ))}
             </div>
           )}

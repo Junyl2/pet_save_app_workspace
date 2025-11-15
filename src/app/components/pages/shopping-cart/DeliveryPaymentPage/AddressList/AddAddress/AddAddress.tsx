@@ -79,10 +79,10 @@ export default function AddAddressPage() {
 
   /** Extracts a human-friendly server message without using `any`. */
   const extractServerMessage = (res: unknown): string => {
-    if (!isObject(res)) return '저장에 실패했습니다. 다시 시도해주세요.';
+    if (!isObject(res)) return '모든 필드를 입력해주세요.';
 
     const data = res.data;
-    if (!isObject(data)) return '저장에 실패했습니다. 다시 시도해주세요.';
+    if (!isObject(data)) return '모든 필드를 입력해주세요.';
 
     // Prefer a field-level validation map if present
     const validation = data.data;
@@ -118,7 +118,7 @@ export default function AddAddressPage() {
       return data.message;
     }
 
-    return '저장에 실패했습니다. 다시 시도해주세요.';
+    return '모든 필드를 입력해주세요.';
   };
 
   const isSuccessResponse = (res: unknown): boolean => {
@@ -259,13 +259,13 @@ export default function AddAddressPage() {
         showToast('배송지가 저장되었습니다.');
         setTimeout(() => {
           router.back();
-        }, 500);
+        }, 1500);
       } else {
         showToast(extractServerMessage(res));
       }
     } catch (e) {
       console.error(e);
-      showToast('저장에 실패했습니다. 다시 시도해주세요.');
+      showToast('모든 필드를 입력해주세요.');
     } finally {
       setSaving(false);
     }

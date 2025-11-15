@@ -170,8 +170,8 @@ export const ProductDrawer = ({
 
         // Show success toast matching CartModal.tsx format
         toast.success(`${product.name} 장바구니에 담겼습니다`, {
-          style: { background: '#66bfa7' },
-          iconTheme: { primary: '#66bfa7', secondary: '#fff' },
+          style: { background: '#2F6F5E' },
+          iconTheme: { primary: '#2F6F5E', secondary: '#fff' },
         });
 
         // Close drawer after success
