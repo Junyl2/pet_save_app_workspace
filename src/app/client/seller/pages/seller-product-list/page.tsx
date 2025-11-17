@@ -16,6 +16,7 @@ import {
 } from '@/app/api/types/products/productList';
 import { Pagination } from '@/app/components/ui/Pagination/Pagination';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
+import { DeleteModal } from '@/app/components/ui/modal/DeleteModal/DeleteModal';
 
 type ProductStatus = '판매중' | '판매완료';
 
@@ -213,19 +214,16 @@ export default function SellerProductListPage() {
       if (!target.closest('[data-delete-container]')) {
         setDeleteButtonOpen(null);
       }
-      if (!target.closest('[data-delete-modal-container]')) {
-        setDeleteModalOpen(null);
-      }
     };
 
-    if (statusDropdownOpen || deleteButtonOpen || deleteModalOpen) {
+    if (statusDropdownOpen || deleteButtonOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [statusDropdownOpen, deleteButtonOpen, deleteModalOpen]);
+  }, [statusDropdownOpen, deleteButtonOpen]);
 
   const handleDelete = async (productId: string) => {
     try {
@@ -534,30 +532,13 @@ export default function SellerProductListPage() {
 
         {/* Delete Confirmation Modal - Rendered at page level */}
         {deleteModalOpen && (
-          <div className={styles.deleteConfirmModal}>
-            <div
-              className={styles.deleteConfirmModalContent}
-              data-delete-modal-container
-            >
-              <p>상품을 삭제하시겠습니까?</p>
-              <div className={styles.deleteConfirmActions}>
-                <button
-                  onClick={() => setDeleteModalOpen(null)}
-                  className={styles.deleteCancelBtn}
-                >
-                  취소
-                </button>
-                <button
-                  onClick={() => {
-                    handleDelete(deleteModalOpen);
-                    setDeleteModalOpen(null);
-                  }}
-                  className={styles.deleteConfirmBtn}
-                >
-                  삭제
-                </button>
-              </div>
-            </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            <DeleteModal
+              modalTitle="상품을 삭제하시겠습니까?"
+              open
+              onDelete={() => handleDelete(deleteModalOpen)}
+              onClose={() => setDeleteModalOpen(null)}
+            />
           </div>
         )}
       </div>
