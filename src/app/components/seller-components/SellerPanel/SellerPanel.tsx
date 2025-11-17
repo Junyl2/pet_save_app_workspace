@@ -21,7 +21,7 @@ export default function SellerPanel({ show = true }: SellerPanelProps) {
     <div className={styles.container}>
       <div className={styles.sellerPanel}>
         {isHomepage && (
-          <>
+          <div className={styles.sellerButtons}>
             <button
               className={styles.sellerButton}
               onClick={() => router.push(PAGE_URLS.REGISTER_PRODUCT)}
@@ -36,7 +36,7 @@ export default function SellerPanel({ show = true }: SellerPanelProps) {
             >
               상품 리스트
             </button>
-          </>
+          </div>
         )}
 
         <button

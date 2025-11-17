@@ -54,6 +54,7 @@ export default function SellerProductListPage() {
   );
   const [statusChanging, setStatusChanging] = useState<string | null>(null);
   const [products, setProducts] = useState<StoreProduct[]>([]);
+  const [deleteButtonOpen, setDeleteButtonOpen] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -209,16 +210,22 @@ export default function SellerProductListPage() {
       if (!target.closest('[data-dropdown-container]')) {
         setStatusDropdownOpen(null);
       }
+      if (!target.closest('[data-delete-container]')) {
+        setDeleteButtonOpen(null);
+      }
+      if (!target.closest('[data-delete-modal-container]')) {
+        setDeleteModalOpen(null);
+      }
     };
 
-    if (statusDropdownOpen) {
+    if (statusDropdownOpen || deleteButtonOpen || deleteModalOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [statusDropdownOpen]);
+  }, [statusDropdownOpen, deleteButtonOpen, deleteModalOpen]);
 
   const handleDelete = async (productId: string) => {
     try {
@@ -357,7 +364,9 @@ export default function SellerProductListPage() {
                     key={option}
                     role="option"
                     aria-selected={option === filter}
-                    className={styles.dropdownItem}
+                    className={`${styles.dropdownItem} ${
+                      option === filter ? styles.dropdownItemActive : ''
+                    }`}
                     onClick={() => {
                       setFilter(option);
                       setDropdownOpen(false);
@@ -424,6 +433,7 @@ export default function SellerProductListPage() {
                           }
                         }}
                         disabled={statusChanging === p.productId}
+                        aria-expanded={statusDropdownOpen === p.productId}
                       >
                         <span
                           className={
@@ -442,7 +452,11 @@ export default function SellerProductListPage() {
                       {statusDropdownOpen === p.productId && (
                         <div className={styles.statusDropdown}>
                           <button
-                            className={styles.statusDropdownItem}
+                            className={`${styles.statusDropdownItem} ${
+                              displayStatus === '판매중'
+                                ? styles.statusDropdownItemActive
+                                : ''
+                            }`}
                             onClick={() =>
                               handleChangeStatus(p.productId, '판매중')
                             }
@@ -453,7 +467,11 @@ export default function SellerProductListPage() {
                               : '판매중'}
                           </button>
                           <button
-                            className={styles.statusDropdownItem}
+                            className={`${styles.statusDropdownItem} ${
+                              displayStatus === '판매완료'
+                                ? styles.statusDropdownItemActive
+                                : ''
+                            }`}
                             onClick={() =>
                               handleChangeStatus(p.productId, '판매완료')
                             }
@@ -471,31 +489,54 @@ export default function SellerProductListPage() {
                   </div>
 
                   {/* X Delete Button */}
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={() => setDeleteModalOpen(p.productId)}
-                    aria-label="Delete product"
-                  >
-                    <FaTimes size={14} />
-                  </button>
+                  <div data-delete-container>
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => setDeleteButtonOpen(p.productId)}
+                      aria-label="Delete product"
+                    >
+                      <FaTimes size={14} />
+                    </button>
 
-                  {/* Delete Modal */}
+                    {/* Delete Button Popup */}
+                    {deleteButtonOpen === p.productId && (
+                      <div className={styles.deletePopup}>
+                        <button
+                          className={styles.deletePopupBtn}
+                          onClick={() => {
+                            setDeleteButtonOpen(null);
+                            setDeleteModalOpen(p.productId);
+                          }}
+                        >
+                          상품 삭제하기
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Delete Confirmation Modal */}
                   {deleteModalOpen === p.productId && (
-                    <div className={styles.modalBackdrop}>
-                      <div className={styles.modal}>
-                        <p>정말 이 상품을 삭제하시겠습니까?</p>
-                        <div className={styles.modalActions}>
-                          <button
-                            onClick={() => handleDelete(p.productId)}
-                            className={styles.confirmBtn}
-                          >
-                            삭제
-                          </button>
+                    <div className={styles.deleteConfirmModal}>
+                      <div
+                        className={styles.deleteConfirmModalContent}
+                        data-delete-modal-container
+                      >
+                        <p>상품을 삭제하시겠습니까?</p>
+                        <div className={styles.deleteConfirmActions}>
                           <button
                             onClick={() => setDeleteModalOpen(null)}
-                            className={styles.cancelBtn}
+                            className={styles.deleteCancelBtn}
                           >
                             취소
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleDelete(p.productId);
+                              setDeleteModalOpen(null);
+                            }}
+                            className={styles.deleteConfirmBtn}
+                          >
+                            삭제
                           </button>
                         </div>
                       </div>
