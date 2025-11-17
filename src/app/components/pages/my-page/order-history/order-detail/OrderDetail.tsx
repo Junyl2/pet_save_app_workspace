@@ -290,7 +290,7 @@ export default function OrderDetail() {
             window.location.href = PAGE_URLS.ORDER_HISTORY;
           }
         }, 1200);
-        return;
+        return; 
       }
 
       // Check if there's an error in the response

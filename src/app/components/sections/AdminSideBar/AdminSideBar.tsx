@@ -117,7 +117,7 @@ export default function AdminSideBar({
       {/* Greeting */}
       <div className={styles.greetingCard}>
         <div className={styles.greetingRow}>
-          <div className={styles.greetingText}>안녕하세요, {adminName}</div>
+          <div className={styles.greetingText}> {adminName}, 반갑습니다 </div>
           <button
             className={styles.logoutBtn}
             onClick={handleLogout}

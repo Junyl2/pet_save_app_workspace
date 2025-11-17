@@ -214,6 +214,7 @@
   border: none;
   padding: 0.8rem 0rem;
   border-radius: 3px;
+  cursor: pointer;
 }
 .bulkDeleteButton {
   background-color: #fff;
