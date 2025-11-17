@@ -213,9 +213,16 @@ export default function AddAddressPage() {
   };
 
   const validate = () => {
-    const phoneOk = /^[0-9]+$/.test(receiverPhone.trim());
+    if (!zipCode.trim()) {
+      showToast('우편번호를 입력하세요.');
+      return false;
+    }
     if (!roadAddress.trim()) {
       showToast('도로명 주소를 입력하세요.');
+      return false;
+    }
+    if (!detailAddress.trim()) {
+      showToast('상세주소를 입력하세요.');
       return false;
     }
     if (!receiverName.trim()) {
@@ -226,6 +233,7 @@ export default function AddAddressPage() {
       showToast('수령인 연락처를 입력하세요.');
       return false;
     }
+    const phoneOk = /^[0-9]+$/.test(receiverPhone.trim());
     if (!phoneOk) {
       showToast('연락처는 숫자만 입력 가능합니다.');
       return false;
@@ -305,7 +313,7 @@ export default function AddAddressPage() {
               value={zipCode}
               onChange={(e) => setZipCode(e.target.value)}
               onKeyDown={handleZipKeyDown}
-              placeholder="04580"
+              placeholder="우편번호"
               className={styles.input}
             />
             <button

@@ -110,6 +110,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem('userInfo');
     localStorage.removeItem('user');
     localStorage.removeItem('favorites'); // Clear favorites on auth state clear
+    localStorage.removeItem('adminAuthToken');
+    localStorage.removeItem('adminRefreshToken');
+    localStorage.removeItem('adminUserInfo');
     setIsLoggedIn(false);
     setError(null);
 
@@ -319,6 +322,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem('sellerId');
       localStorage.removeItem('favorites');
       localStorage.removeItem('checkoutItems');
+      localStorage.removeItem('adminAuthToken');
+      localStorage.removeItem('adminRefreshToken');
+      localStorage.removeItem('adminUserInfo');
 
       // Remove all seller profile keys (seller:profile:*)
       if (typeof window !== 'undefined') {
@@ -351,6 +357,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem('rememberedUsername');
     localStorage.removeItem('sellerId');
     localStorage.removeItem('favorites');
+    localStorage.removeItem('adminAuthToken');
+    localStorage.removeItem('adminRefreshToken');
+    localStorage.removeItem('adminUserInfo');
     sessionStorage.clear();
     setIsLoggedIn(false);
     setError(null);

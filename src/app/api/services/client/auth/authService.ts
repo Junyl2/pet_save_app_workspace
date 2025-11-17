@@ -349,6 +349,9 @@ export class AuthService {
       localStorage.removeItem('userName');
       localStorage.removeItem('rememberedUsername');
       localStorage.removeItem('sellerId');
+      localStorage.removeItem('adminAuthToken');
+      localStorage.removeItem('adminRefreshToken');
+      localStorage.removeItem('adminUserInfo');
 
       // Remove cart & location data
       localStorage.removeItem('cart');

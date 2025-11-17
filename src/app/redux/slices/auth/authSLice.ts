@@ -59,6 +59,9 @@ export const logoutUser = createAsyncThunk(
       localStorage.removeItem('sellerId');
       localStorage.removeItem('favorites');
       localStorage.removeItem('checkoutItems');
+      localStorage.removeItem('adminAuthToken');
+      localStorage.removeItem('adminRefreshToken');
+      localStorage.removeItem('adminUserInfo');
 
       // Remove all seller profile keys (seller:profile:*)
       if (typeof window !== 'undefined') {
@@ -97,6 +100,9 @@ export const logoutUser = createAsyncThunk(
       localStorage.removeItem('sellerId');
       localStorage.removeItem('favorites');
       localStorage.removeItem('checkoutItems');
+      localStorage.removeItem('adminAuthToken');
+      localStorage.removeItem('adminRefreshToken');
+      localStorage.removeItem('adminUserInfo');
 
       // Remove all seller profile keys (seller:profile:*)
       if (typeof window !== 'undefined') {
