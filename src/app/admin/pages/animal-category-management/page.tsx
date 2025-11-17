@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { FiPlus } from 'react-icons/fi';
 import styles from './AnimalCategory.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
@@ -13,6 +12,8 @@ import {
   Category,
   CategoryUpdateRequest,
 } from '@/app/api/types/category/category';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 const PAGE_SIZE = 10;
 
@@ -23,6 +24,7 @@ export default function AnimalCategoryPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   /** Fetch real categories */
   useEffect(() => {
@@ -99,14 +101,14 @@ export default function AnimalCategoryPage() {
         )
       );
 
-      alert(
+      showSuccess(
         `"${category.categoryName}" 카테고리가 ${
           newVisibility ? '표시 중' : '숨김 상태'
         }으로 변경되었습니다.`
       );
     } catch (err) {
       console.error('[AnimalCategoryPage] Toggle error:', err);
-      alert('표시 상태 변경 중 오류가 발생했습니다.');
+      showError('표시 상태 변경 중 오류가 발생했습니다.');
     }
   };
 
@@ -169,15 +171,14 @@ export default function AnimalCategoryPage() {
           categories.map((cat) => (
             <div key={cat.categoryId} className={styles.dataRow}>
               <div className={`${styles.col} ${styles.image}`}>
-                <Image
+                <img
                   src={
                     cat.image && cat.image.startsWith('http')
                       ? cat.image
                       : '/images/icons/icon.png'
                   }
-                  height={45}
-                  width={45}
                   alt={cat.categoryName}
+                  className={styles.categoryThumb}
                 />
               </div>
               <div className={styles.col}>{cat.categoryName}</div>
@@ -215,6 +216,8 @@ export default function AnimalCategoryPage() {
           />
         </div>
       )}
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </>
   );
 }

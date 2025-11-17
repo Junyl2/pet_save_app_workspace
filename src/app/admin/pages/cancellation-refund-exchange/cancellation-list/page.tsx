@@ -100,7 +100,7 @@ export default function CancellationListPage() {
       const total = data?.pageInfo?.totalPages ?? 1;
 
       const mappedOrders: Order[] = content.map((item) => ({
-        id: item.orderNumber,
+        id: item.orderItemId,
         orderedAt: formatDateTime(item.orderedAt),
         buyer: item.customer.name,
         contact: formatPhoneNumber(item.customer.phone),

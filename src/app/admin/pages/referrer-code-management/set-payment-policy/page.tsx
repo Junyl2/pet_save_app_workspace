@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { ReferralPolicyService } from '@/app/api/services/admin/referralPolicyService/referralPolicyService';
 import { ReferralPolicy } from '@/app/api/services/admin/referralPolicyService/referralPolicy';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 const slugToTabKey = {
   'set-payment-policy': '지급 정책 설정',
@@ -26,6 +28,7 @@ export default function SetPaymentPolicyPage() {
     useState<number>(1000);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   /** Fetch current referral policy */
   useEffect(() => {
@@ -82,9 +85,9 @@ export default function SetPaymentPolicyPage() {
             '[SetPolicy] Failed to update policy:',
             error ?? data?.resultMsg
           );
-          alert('정책 저장에 실패했습니다. 다시 시도해주세요.');
+          showError('정책 저장에 실패했습니다. 다시 시도해주세요.');
         } else {
-          alert('정책이 성공적으로 수정되었습니다.');
+          showSuccess('정책이 성공적으로 수정되었습니다.');
           setPolicy((prev) =>
             prev
               ? { ...prev, pointsPerMember, monthlyLimitPerSeller }
@@ -101,9 +104,9 @@ export default function SetPaymentPolicyPage() {
             '[SetPolicy] Failed to create policy:',
             error ?? data?.resultMsg
           );
-          alert('정책 생성에 실패했습니다.');
+          showError('정책 생성에 실패했습니다.');
         } else {
-          alert('새로운 정책이 성공적으로 생성되었습니다.');
+          showSuccess('새로운 정책이 성공적으로 생성되었습니다.');
           void (async () => {
             const refresh = await ReferralPolicyService.getAllPolicies();
             if (refresh.data?.data?.[0]) setPolicy(refresh.data.data[0]);
@@ -112,7 +115,7 @@ export default function SetPaymentPolicyPage() {
       }
     } catch (err) {
       console.error('[SetPolicy] Unexpected error:', err);
-      alert('서버 오류가 발생했습니다.');
+      showError('서버 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -219,6 +222,8 @@ export default function SetPaymentPolicyPage() {
           </p>
         </div>
       )}
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </div>
   );
 }

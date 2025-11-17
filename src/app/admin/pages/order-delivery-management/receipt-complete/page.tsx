@@ -12,8 +12,10 @@ import {
   AdminSearchOrdersData,
   AdminSearchOrdersParams,
 } from '@/app/api/types/member/order/order';
-import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { useOrderFilter } from '@/app/context/orderFilterContext';
+import { InputModal } from '@/app/components/admin/ui/InputModal/InputModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 interface OrderRow {
   orderItemId: string;
@@ -37,10 +39,12 @@ export default function ReceiptCompletePage(): React.ReactElement {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<{ message: string; key: number } | null>(
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelReasonOpen, setCancelReasonOpen] = useState(false);
+  const [orderItemToCancel, setOrderItemToCancel] = useState<string | null>(
     null
   );
-  const [isCancelling, setIsCancelling] = useState(false);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   const { filters, filterTrigger } = useOrderFilter();
 
@@ -121,45 +125,40 @@ export default function ReceiptCompletePage(): React.ReactElement {
     void fetchOrders();
   }, [fetchOrders]);
 
-  /** Cancel order item (prompt reason before posting) */
-  const handleCancel = async (orderItemId: string): Promise<void> => {
-    const cancelReason = window.prompt(
-      '취소 사유를 입력하세요 (예: 단순 변심)'
-    );
-    if (!cancelReason || !cancelReason.trim()) {
-      setToast({
-        message: '취소 사유가 입력되지 않았습니다.',
-        key: Date.now(),
-      });
+  /** Cancel order item */
+  const handleCancelClick = (orderItemId: string): void => {
+    setOrderItemToCancel(orderItemId);
+    setCancelReasonOpen(true);
+  };
+
+  const handleCancel = async (cancelReason: string): Promise<void> => {
+    if (!orderItemToCancel || !cancelReason.trim()) {
+      showError('취소 사유가 입력되지 않았습니다.');
       return;
     }
-
+    setCancelReasonOpen(false);
     setIsCancelling(true);
+
     try {
       const { data, error } = await orderStatusService.cancelOrderItem(
-        orderItemId,
-        cancelReason
+        orderItemToCancel,
+        cancelReason.trim()
       );
 
       if (error || !data) {
         console.error('[Cancel Error]', error);
-        setToast({
-          message: '주문 취소 중 오류가 발생했습니다.',
-          key: Date.now(),
-        });
+        showError('주문 취소 중 오류가 발생했습니다.');
         return;
       }
 
-      setToast({
-        message: `주문이 성공적으로 취소되었습니다.`,
-        key: Date.now(),
-      });
+      showSuccess('주문이 성공적으로 취소되었습니다.');
       await fetchOrders();
     } catch (err) {
       console.error('[handleCancel] Error:', err);
-      setToast({ message: '주문 취소 실패', key: Date.now() });
+      showError('주문 취소 실패');
     } finally {
       setIsCancelling(false);
+      setOrderItemToCancel(null);
     }
   };
 
@@ -208,7 +207,7 @@ export default function ReceiptCompletePage(): React.ReactElement {
                   <button
                     type="button"
                     className={styles.cancelBtn}
-                    onClick={() => handleCancel(order.orderItemId)}
+                    onClick={() => handleCancelClick(order.orderItemId)}
                     disabled={isCancelling}
                   >
                     {isCancelling ? '취소 중...' : '취소'}
@@ -249,15 +248,22 @@ export default function ReceiptCompletePage(): React.ReactElement {
         </div>
       )}
 
-      {/*  Toast Renderer */}
-      {toast && (
-        <ToastMessage
-          key={toast.key}
-          message={toast.message}
-          onClose={() => setToast(null)}
-          duration={2500}
-        />
-      )}
+      <InputModal
+        open={cancelReasonOpen}
+        onClose={() => {
+          setCancelReasonOpen(false);
+          setOrderItemToCancel(null);
+        }}
+        onConfirm={handleCancel}
+        title="취소 사유 입력"
+        message="취소 사유를 입력하세요 (예: 단순 변심):"
+        placeholder="취소 사유를 입력하세요"
+        confirmText="취소"
+        cancelText="돌아가기"
+        inputType="textarea"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </>
   );
 }

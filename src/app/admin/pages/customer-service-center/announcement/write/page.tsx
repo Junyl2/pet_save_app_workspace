@@ -6,6 +6,9 @@ import styles from './WriteNotice.module.css';
 import { AdminNoticeService } from '@/app/api/services/admin/adminNoticeService/adminNoticeService';
 import { NoticeFileService } from '@/app/api/services/admin/adminNoticeService/noticeFileService/noticeFileService';
 import { NoticeFileUploadResponse } from '@/app/api/services/admin/adminNoticeService/noticeFileService/noticeFile';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 interface NoticeForm {
   title: string;
@@ -21,6 +24,8 @@ export default function WriteNoticePage() {
     imageFile: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   const handleChange =
     (key: keyof NoticeForm) =>
@@ -33,10 +38,13 @@ export default function WriteNoticePage() {
     setForm((prev) => ({ ...prev, imageFile: file }));
   };
 
+  const handleCancelClick = (): void => {
+    setCancelConfirmOpen(true);
+  };
+
   const handleCancel = (): void => {
-    if (confirm('작성 중인 내용을 취소하시겠습니까?')) {
-      router.push('/admin/pages/customer-service-center/announcement');
-    }
+    setCancelConfirmOpen(false);
+    router.push('/admin/pages/customer-service-center/announcement');
   };
 
   /** Upload file → attach → return encryptedId */
@@ -64,7 +72,7 @@ export default function WriteNoticePage() {
       return uploaded.data.encryptedId;
     } catch (error) {
       console.error('[WriteNoticePage] 파일 업로드 오류:', error);
-      alert('이미지 업로드 중 오류가 발생했습니다.');
+      showError('이미지 업로드 중 오류가 발생했습니다.');
       return null;
     }
   };
@@ -72,7 +80,7 @@ export default function WriteNoticePage() {
   /** Handle create notice */
   const handleSubmit = async (): Promise<void> => {
     if (!form.title.trim() || !form.content.trim()) {
-      alert('제목과 내용을 모두 입력해주세요.');
+      showError('제목과 내용을 모두 입력해주세요.');
       return;
     }
 
@@ -95,11 +103,11 @@ export default function WriteNoticePage() {
       const { data, error } = await AdminNoticeService.createNotice(payload);
       if (error || !data?.success) throw new Error('공지사항 등록 실패');
 
-      alert('공지사항이 등록되었습니다.');
+      showSuccess('공지사항이 등록되었습니다.');
       router.push('/admin/pages/customer-service-center/announcement');
     } catch (error) {
       console.error('❌ Failed to create notice:', error);
-      alert('공지사항 등록 중 오류가 발생했습니다.');
+      showError('공지사항 등록 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);
     }
@@ -159,7 +167,7 @@ export default function WriteNoticePage() {
         <button
           type="button"
           className={styles.cancelBtn}
-          onClick={handleCancel}
+          onClick={handleCancelClick}
           disabled={isSubmitting}
         >
           취소
@@ -173,6 +181,17 @@ export default function WriteNoticePage() {
           {isSubmitting ? '등록 중...' : '업로드'}
         </button>
       </div>
+
+      <ConfirmationModal
+        open={cancelConfirmOpen}
+        onClose={() => setCancelConfirmOpen(false)}
+        onConfirm={handleCancel}
+        message="작성 중인 내용을 취소하시겠습니까?"
+        confirmText="취소"
+        cancelText="돌아가기"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </div>
   );
 }

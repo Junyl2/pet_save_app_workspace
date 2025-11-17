@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import Lightbox from 'yet-another-react-lightbox';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
@@ -19,12 +18,10 @@ export function ReviewImageGallery({ images }: ReviewImageGalleryProps) {
       <div className={styles.wrapper}>
         <div className={styles.gallery}>
           {images.map((src, idx) => (
-            <Image
+            <img
               key={`${src}-${idx}`}
               src={src}
               alt={`review-${idx}`}
-              width={100}
-              height={100}
               className={styles.thumb}
               onClick={() => setIndex(idx)}
             />

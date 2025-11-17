@@ -34,15 +34,21 @@
 }
 
 .avatarWrapper {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background-color: #d9d9d9;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .avatarCircle {
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
   object-fit: cover;
-  background-color: #d9d9d9;
 }
 
 /* Info Section */

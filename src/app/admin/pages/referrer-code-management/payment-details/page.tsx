@@ -9,6 +9,10 @@ import clsx from 'clsx';
 import { IoChevronDownOutline } from 'react-icons/io5';
 import { ReferralManagementService } from '@/app/api/services/admin/referralManangementService/referralManagementService';
 import type { StorePointPaymentStatus } from '@/app/api/services/admin/referralManangementService/referralManagement';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { InputModal } from '@/app/components/admin/ui/InputModal/InputModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 const slugToTabKey = {
   'set-payment-policy': '지급 정책 설정',
@@ -34,6 +38,10 @@ export default function DocumentListPage(): React.ReactElement {
   const [data, setData] = useState<ReferrerData[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [pauseReasonOpen, setPauseReasonOpen] = useState(false);
+  const [reactivateConfirmOpen, setReactivateConfirmOpen] = useState(false);
+  const [storeToProcess, setStoreToProcess] = useState<string | null>(null);
+  const { toast, showSuccess, showError, hideToast } = useToast();
   const { page, setPage } = usePageParam(1);
   const router = useRouter();
   const pathname = usePathname();
@@ -129,79 +137,90 @@ export default function DocumentListPage(): React.ReactElement {
   }, [fetchData]);
 
   /** Handle pause action */
-  const handlePause = useCallback(
-    async (
-      storeId: string,
-      e?: React.MouseEvent<HTMLButtonElement>
-    ): Promise<void> => {
+  const handlePauseClick = useCallback(
+    (storeId: string, e?: React.MouseEvent<HTMLButtonElement>): void => {
       e?.preventDefault();
       e?.stopPropagation();
+      setStoreToProcess(storeId);
+      setPauseReasonOpen(true);
+    },
+    []
+  );
 
-      const reason = prompt('일시정지 사유를 입력하세요:');
-      if (!reason || !reason.trim()) {
+  const handlePause = useCallback(
+    async (reason: string): Promise<void> => {
+      if (!storeToProcess || !reason.trim()) {
         return;
       }
+      setPauseReasonOpen(false);
 
       try {
         const { data, error } =
-          await ReferralManagementService.pauseStorePointPayments(storeId, {
-            reason: reason.trim(),
-          });
+          await ReferralManagementService.pauseStorePointPayments(
+            storeToProcess,
+            {
+              reason: reason.trim(),
+            }
+          );
 
         if (error || !data?.success) {
           console.error('[PaymentDetailsPage] Pause failed:', error);
-          alert('일시정지에 실패했습니다.');
+          showError('일시정지에 실패했습니다.');
           return;
         }
 
-        alert('일시정지되었습니다.');
-        // Wait a moment for backend to process, then refetch
+        showSuccess('일시정지되었습니다.');
         setTimeout(() => {
           void fetchData();
         }, 500);
       } catch (err) {
         console.error('[PaymentDetailsPage] Pause error:', err);
-        alert('일시정지에 실패했습니다.');
+        showError('일시정지에 실패했습니다.');
+      } finally {
+        setStoreToProcess(null);
       }
     },
-    [fetchData]
+    [storeToProcess, fetchData, showSuccess, showError]
   );
 
   /** Handle reactivate action */
-  const handleReactivate = useCallback(
-    async (
-      storeId: string,
-      e?: React.MouseEvent<HTMLButtonElement>
-    ): Promise<void> => {
+  const handleReactivateClick = useCallback(
+    (storeId: string, e?: React.MouseEvent<HTMLButtonElement>): void => {
       e?.preventDefault();
       e?.stopPropagation();
+      setStoreToProcess(storeId);
+      setReactivateConfirmOpen(true);
+    },
+    []
+  );
 
-      if (!confirm('지급을 재개하시겠습니까?')) {
+  const handleReactivate = useCallback(async (): Promise<void> => {
+    if (!storeToProcess) return;
+    setReactivateConfirmOpen(false);
+
+    try {
+      const { data, error } =
+        await ReferralManagementService.reactivateStorePointPayments(
+          storeToProcess
+        );
+
+      if (error || !data?.success) {
+        console.error('[PaymentDetailsPage] Reactivate failed:', error);
+        showError('재개에 실패했습니다.');
         return;
       }
 
-      try {
-        const { data, error } =
-          await ReferralManagementService.reactivateStorePointPayments(storeId);
-
-        if (error || !data?.success) {
-          console.error('[PaymentDetailsPage] Reactivate failed:', error);
-          alert('재개에 실패했습니다.');
-          return;
-        }
-
-        alert('재개되었습니다.');
-        // Wait a moment for backend to process, then refetch
-        setTimeout(() => {
-          void fetchData();
-        }, 500);
-      } catch (err) {
-        console.error('[PaymentDetailsPage] Reactivate error:', err);
-        alert('재개에 실패했습니다.');
-      }
-    },
-    [fetchData]
-  );
+      showSuccess('재개되었습니다.');
+      setTimeout(() => {
+        void fetchData();
+      }, 500);
+    } catch (err) {
+      console.error('[PaymentDetailsPage] Reactivate error:', err);
+      showError('재개에 실패했습니다.');
+    } finally {
+      setStoreToProcess(null);
+    }
+  }, [storeToProcess, fetchData, showSuccess, showError]);
 
   /** Handle search */
   const handleSearch = useCallback(() => {
@@ -341,14 +360,14 @@ export default function DocumentListPage(): React.ReactElement {
                 <button
                   type="button"
                   className={styles.pauseBtn}
-                  onClick={(e) => handlePause(item.storeId, e)}
+                  onClick={(e) => handlePauseClick(item.storeId, e)}
                 >
                   지급 일시중지
                 </button>
                 <button
                   type="button"
                   className={styles.resumeBtn}
-                  onClick={(e) => handleReactivate(item.storeId, e)}
+                  onClick={(e) => handleReactivateClick(item.storeId, e)}
                 >
                   지급재개
                 </button>
@@ -372,6 +391,35 @@ export default function DocumentListPage(): React.ReactElement {
           </div>
         </div>
       )}
+
+      <InputModal
+        open={pauseReasonOpen}
+        onClose={() => {
+          setPauseReasonOpen(false);
+          setStoreToProcess(null);
+        }}
+        onConfirm={handlePause}
+        title="일시정지 사유 입력"
+        message="일시정지 사유를 입력하세요:"
+        placeholder="일시정지 사유를 입력하세요"
+        confirmText="일시정지"
+        cancelText="취소"
+        inputType="textarea"
+      />
+
+      <ConfirmationModal
+        open={reactivateConfirmOpen}
+        onClose={() => {
+          setReactivateConfirmOpen(false);
+          setStoreToProcess(null);
+        }}
+        onConfirm={handleReactivate}
+        message="지급을 재개하시겠습니까?"
+        confirmText="재개"
+        cancelText="취소"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </>
   );
 }

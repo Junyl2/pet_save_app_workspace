@@ -13,6 +13,10 @@ import {
 } from '@/app/api/types/member/order/order';
 import { useRouter } from 'next/navigation';
 import { useOrderFilter } from '@/app/context/orderFilterContext';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { InputModal } from '@/app/components/admin/ui/InputModal/InputModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 interface OrderRow {
   orderItemId: string;
@@ -32,6 +36,21 @@ export default function ProductPreperationPage(): React.ReactElement {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [cancelReasonOpen, setCancelReasonOpen] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [trackingNumberOpen, setTrackingNumberOpen] = useState(false);
+  const [deliveryConfirmOpen, setDeliveryConfirmOpen] = useState(false);
+  const [pickupConfirmOpen, setPickupConfirmOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [orderItemToProcess, setOrderItemToProcess] = useState<{
+    id: string;
+    method: '배송' | '픽업';
+  } | null>(null);
+  const [orderItemToCancel, setOrderItemToCancel] = useState<string | null>(
+    null
+  );
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   const { filters, filterTrigger } = useOrderFilter();
 
@@ -109,89 +128,120 @@ export default function ProductPreperationPage(): React.ReactElement {
   }, [fetchOrders]);
 
   /** Cancel an order item */
-  const handleCancel = async (orderItemId: string): Promise<void> => {
-    const reason = prompt('취소 사유를 입력하세요:');
-    if (!reason) return;
-    if (!confirm('정말로 이 상품을 취소하시겠습니까?')) return;
+  const handleCancelClick = (orderItemId: string): void => {
+    setOrderItemToCancel(orderItemId);
+    setCancelReasonOpen(true);
+  };
+
+  const handleCancelReasonSubmit = (reason: string): void => {
+    setCancelReason(reason);
+    setCancelReasonOpen(false);
+    setCancelConfirmOpen(true);
+  };
+
+  const handleCancel = async (): Promise<void> => {
+    if (!orderItemToCancel || !cancelReason) return;
+    setCancelConfirmOpen(false);
 
     try {
       const { data, error } = await orderStatusService.cancelOrderItem(
-        orderItemId,
-        reason
+        orderItemToCancel,
+        cancelReason
       );
 
       if (error || !data?.success) {
-        alert('상품 취소 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
+        showError('상품 취소 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
         console.error('[ProductPreperationPage] Cancel failed:', error);
         return;
       }
 
-      alert('상품이 성공적으로 취소되었습니다.');
+      showSuccess('상품이 성공적으로 취소되었습니다.');
       await fetchOrders();
     } catch (err) {
       console.error('[ProductPreperationPage] Cancel error:', err);
-      alert('상품 취소 중 오류가 발생했습니다.');
+      showError('상품 취소 중 오류가 발생했습니다.');
+    } finally {
+      setOrderItemToCancel(null);
+      setCancelReason('');
     }
   };
 
   /** Start delivery or pickup */
-  const handleProcess = async (
+  const handleProcessClick = (
     orderItemId: string,
     receiveMethod: '배송' | '픽업'
-  ): Promise<void> => {
+  ): void => {
+    setOrderItemToProcess({ id: orderItemId, method: receiveMethod });
     if (receiveMethod === '배송') {
-      const trackingNumber = prompt('운송장 번호를 입력하세요:');
-      if (!trackingNumber || !trackingNumber.trim()) {
-        alert('운송장 번호는 필수 입력 항목입니다.');
+      setTrackingNumberOpen(true);
+    } else {
+      setPickupConfirmOpen(true);
+    }
+  };
+
+  const handleTrackingNumberSubmit = (value: string): void => {
+    if (!value.trim()) {
+      showError('운송장 번호는 필수 입력 항목입니다.');
+      return;
+    }
+    setTrackingNumber(value);
+    setTrackingNumberOpen(false);
+    setDeliveryConfirmOpen(true);
+  };
+
+  const handleDelivery = async (): Promise<void> => {
+    if (!orderItemToProcess || !trackingNumber.trim()) return;
+    setDeliveryConfirmOpen(false);
+
+    try {
+      const { data, error } = await orderStatusService.beginDelivery(
+        orderItemToProcess.id,
+        trackingNumber.trim()
+      );
+
+      if (error || !data?.success) {
+        showError(
+          '배송 시작 실패: ' + (data?.resultMsg || '오류가 발생했습니다.')
+        );
+        console.error('[ProductPreperationPage] Delivery start failed:', error);
         return;
       }
-      if (!confirm('이 상품의 배송을 시작하시겠습니까?')) return;
 
-      try {
-        const { data, error } = await orderStatusService.beginDelivery(
-          orderItemId,
-          trackingNumber.trim()
+      showSuccess('배송이 성공적으로 시작되었습니다.');
+      await fetchOrders();
+    } catch (err) {
+      console.error('[ProductPreperationPage] Delivery error:', err);
+      showError('배송 처리 중 오류가 발생했습니다.');
+    } finally {
+      setOrderItemToProcess(null);
+      setTrackingNumber('');
+    }
+  };
+
+  const handlePickup = async (): Promise<void> => {
+    if (!orderItemToProcess) return;
+    setPickupConfirmOpen(false);
+
+    try {
+      const { data, error } = await orderStatusService.beginPickup(
+        orderItemToProcess.id
+      );
+
+      if (error || !data?.success) {
+        showError(
+          '픽업 시작 실패: ' + (data?.resultMsg || '오류가 발생했습니다.')
         );
-
-        if (error || !data?.success) {
-          alert(
-            '배송 시작 실패: ' + (data?.resultMsg || '오류가 발생했습니다.')
-          );
-          console.error(
-            '[ProductPreperationPage] Delivery start failed:',
-            error
-          );
-          return;
-        }
-
-        alert('배송이 성공적으로 시작되었습니다.');
-        await fetchOrders();
-      } catch (err) {
-        console.error('[ProductPreperationPage] Delivery error:', err);
-        alert('배송 처리 중 오류가 발생했습니다.');
+        console.error('[ProductPreperationPage] Pickup start failed:', error);
+        return;
       }
-    } else {
-      if (!confirm('이 상품의 픽업을 시작하시겠습니까?')) return;
 
-      try {
-        const { data, error } = await orderStatusService.beginPickup(
-          orderItemId
-        );
-
-        if (error || !data?.success) {
-          alert(
-            '픽업 시작 실패: ' + (data?.resultMsg || '오류가 발생했습니다.')
-          );
-          console.error('[ProductPreperationPage] Pickup start failed:', error);
-          return;
-        }
-
-        alert('픽업이 성공적으로 시작되었습니다.');
-        await fetchOrders();
-      } catch (err) {
-        console.error('[ProductPreperationPage] Pickup error:', err);
-        alert('픽업 처리 중 오류가 발생했습니다.');
-      }
+      showSuccess('픽업이 성공적으로 시작되었습니다.');
+      await fetchOrders();
+    } catch (err) {
+      console.error('[ProductPreperationPage] Pickup error:', err);
+      showError('픽업 처리 중 오류가 발생했습니다.');
+    } finally {
+      setOrderItemToProcess(null);
     }
   };
 
@@ -238,7 +288,7 @@ export default function ProductPreperationPage(): React.ReactElement {
                   className={styles.cancelBtn}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCancel(order.orderItemId);
+                    handleCancelClick(order.orderItemId);
                   }}
                 >
                   취소
@@ -248,7 +298,7 @@ export default function ProductPreperationPage(): React.ReactElement {
                   className={styles.startBtn}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleProcess(order.orderItemId, order.receiveMethod);
+                    handleProcessClick(order.orderItemId, order.receiveMethod);
                   }}
                 >
                   {order.receiveMethod === '배송'
@@ -273,6 +323,75 @@ export default function ProductPreperationPage(): React.ReactElement {
           </div>
         </div>
       )}
+
+      <InputModal
+        open={cancelReasonOpen}
+        onClose={() => {
+          setCancelReasonOpen(false);
+          setOrderItemToCancel(null);
+        }}
+        onConfirm={handleCancelReasonSubmit}
+        title="취소 사유 입력"
+        message="취소 사유를 입력하세요:"
+        placeholder="취소 사유를 입력하세요"
+        confirmText="다음"
+        cancelText="취소"
+        inputType="textarea"
+      />
+
+      <ConfirmationModal
+        open={cancelConfirmOpen}
+        onClose={() => {
+          setCancelConfirmOpen(false);
+          setOrderItemToCancel(null);
+          setCancelReason('');
+        }}
+        onConfirm={handleCancel}
+        message="정말로 이 상품을 취소하시겠습니까?"
+        confirmText="취소"
+        cancelText="돌아가기"
+      />
+
+      <InputModal
+        open={trackingNumberOpen}
+        onClose={() => {
+          setTrackingNumberOpen(false);
+          setOrderItemToProcess(null);
+        }}
+        onConfirm={handleTrackingNumberSubmit}
+        title="운송장 번호 입력"
+        message="운송장 번호를 입력하세요:"
+        placeholder="운송장 번호를 입력하세요"
+        confirmText="다음"
+        cancelText="취소"
+      />
+
+      <ConfirmationModal
+        open={deliveryConfirmOpen}
+        onClose={() => {
+          setDeliveryConfirmOpen(false);
+          setOrderItemToProcess(null);
+          setTrackingNumber('');
+        }}
+        onConfirm={handleDelivery}
+        message="이 상품의 배송을 시작하시겠습니까?"
+        confirmText="시작"
+        cancelText="취소"
+      />
+
+      <ConfirmationModal
+        open={pickupConfirmOpen}
+        onClose={() => {
+          setPickupConfirmOpen(false);
+          setOrderItemToProcess(null);
+        }}
+        onConfirm={handlePickup}
+        message="이 상품의 픽업을 시작하시겠습니까?"
+        confirmText="시작"
+        cancelText="취소"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </>
   );
 }

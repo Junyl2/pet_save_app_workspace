@@ -6,6 +6,9 @@ import styles from './CustomerInquiry.module.css';
 import { AdminInquiryService } from '@/app/api/services/admin/adminInquiryService/adminInquiryService';
 import { AdminInquiryItem } from '@/app/api/services/admin/adminInquiryService/adminInquiry';
 import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 export default function CustomerInquiryPage() {
   const router = useRouter();
@@ -14,6 +17,8 @@ export default function CustomerInquiryPage() {
   const [answer, setAnswer] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   useEffect(() => {
     const loadInquiry = async (): Promise<void> => {
@@ -24,21 +29,21 @@ export default function CustomerInquiryPage() {
         if (error || !data?.data) throw new Error();
         setInquiry(data.data);
       } catch {
-        alert('문의 상세 정보를 불러오지 못했습니다.');
+        showError('문의 상세 정보를 불러오지 못했습니다.');
       } finally {
         setLoading(false);
       }
     };
     void loadInquiry();
-  }, [id]);
+  }, [id, showError]);
 
   const handleSubmit = async (): Promise<void> => {
     if (!id) {
-      alert('문의 ID가 유효하지 않습니다.');
+      showError('문의 ID가 유효하지 않습니다.');
       return;
     }
     if (!answer.trim()) {
-      alert('답변 내용을 입력해 주세요.');
+      showError('답변 내용을 입력해 주세요.');
       return;
     }
 
@@ -53,25 +58,31 @@ export default function CustomerInquiryPage() {
         throw new Error(response?.resultMsg || '답변 등록 실패');
       }
 
-      alert('답변이 성공적으로 등록되었습니다.');
+      showSuccess('답변이 성공적으로 등록되었습니다.');
       router.push('/admin/pages/customer-service-center/customer-inquiry');
     } catch (err) {
       console.error(err);
-      alert('답변 등록 중 오류가 발생했습니다.');
+      showError('답변 등록 중 오류가 발생했습니다.');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleDeleteClick = (): void => {
+    if (!id) return;
+    setDeleteConfirmOpen(true);
+  };
+
   const handleDelete = async (): Promise<void> => {
-    if (!id || !confirm('정말 삭제하시겠습니까?')) return;
+    if (!id) return;
+    setDeleteConfirmOpen(false);
     try {
       const { error } = await AdminInquiryService.deleteInquiry(id);
       if (error) throw new Error();
-      alert('삭제가 완료되었습니다.');
+      showSuccess('삭제가 완료되었습니다.');
       router.push('/admin/pages/customer-service-center/customer-inquiry');
     } catch {
-      alert('삭제 중 오류가 발생했습니다.');
+      showError('삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -129,7 +140,7 @@ export default function CustomerInquiryPage() {
       <div className={styles.buttonRow}>
         <button
           className={styles.btnDelete}
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
           disabled={submitting}
         >
           삭제
@@ -151,6 +162,17 @@ export default function CustomerInquiryPage() {
           닫기
         </button>
       </div>
+
+      <ConfirmationModal
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+        message="정말 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </div>
   );
 }
