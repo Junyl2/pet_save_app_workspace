@@ -1,6 +1,5 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
-import Image from 'next/image';
 import { IoChevronDownOutline } from 'react-icons/io5';
 import styles from './ProductManagement.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
@@ -213,13 +212,12 @@ export default function ProductManagementPage() {
           products.map((product) => (
             <div key={product.productId} className={styles.dataRow}>
               <div className={`${styles.col} ${styles.image}`}>
-                <Image
+                <img
                   src={
                     imageErrors[product.productId] || !product.thumbnail
                       ? '/images/products/product-fallback.svg'
                       : product.thumbnail
                   }
-                  fill
                   alt={product.productName}
                   className={styles.thumb}
                   onError={() => handleImageError(product.productId)}
