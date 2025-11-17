@@ -513,35 +513,6 @@ export default function SellerProductListPage() {
                       </div>
                     )}
                   </div>
-
-                  {/* Delete Confirmation Modal */}
-                  {deleteModalOpen === p.productId && (
-                    <div className={styles.deleteConfirmModal}>
-                      <div
-                        className={styles.deleteConfirmModalContent}
-                        data-delete-modal-container
-                      >
-                        <p>상품을 삭제하시겠습니까?</p>
-                        <div className={styles.deleteConfirmActions}>
-                          <button
-                            onClick={() => setDeleteModalOpen(null)}
-                            className={styles.deleteCancelBtn}
-                          >
-                            취소
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleDelete(p.productId);
-                              setDeleteModalOpen(null);
-                            }}
-                            className={styles.deleteConfirmBtn}
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </article>
               );
             })
@@ -558,6 +529,35 @@ export default function SellerProductListPage() {
             }}
           >
             <Pagination pageInfo={pageInfo} onPageChange={handlePageChange} />
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal - Rendered at page level */}
+        {deleteModalOpen && (
+          <div className={styles.deleteConfirmModal}>
+            <div
+              className={styles.deleteConfirmModalContent}
+              data-delete-modal-container
+            >
+              <p>상품을 삭제하시겠습니까?</p>
+              <div className={styles.deleteConfirmActions}>
+                <button
+                  onClick={() => setDeleteModalOpen(null)}
+                  className={styles.deleteCancelBtn}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    handleDelete(deleteModalOpen);
+                    setDeleteModalOpen(null);
+                  }}
+                  className={styles.deleteConfirmBtn}
+                >
+                  삭제
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

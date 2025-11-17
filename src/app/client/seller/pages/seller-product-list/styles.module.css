@@ -8,6 +8,7 @@
   margin-right: -1rem;
   margin-bottom: 64px;
   min-height: calc(100vh- 178px);
+  position: relative;
 }
 .topBarLabel {
   display: flex;
@@ -438,14 +439,15 @@
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 12px;
-  padding: 24px;
+  padding: 20px 16px;
   min-width: 280px;
   max-width: 90%;
+  margin: 0 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   font-size: 14px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   animation: deleteConfirmSlideIn 0.2s ease-out;
 }
 
@@ -463,10 +465,11 @@
 .deleteConfirmModalContent p {
   margin: 0;
   color: #000;
-  font-size: 20px;
+  font-size: 16px;
   line-height: 22px;
   text-align: center;
-  font-weight: 700;
+  font-weight: 600;
+  word-break: keep-all;
 }
 
 .deleteConfirmActions {
@@ -479,13 +482,14 @@
   background: #66bfa7;
   color: #fff;
   border: none;
-  padding: 10px 24px;
+  padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   transition: opacity 0.2s ease;
-  min-width: 120px;
+  flex: 1;
+  max-width: 120px;
 }
 
 .deleteConfirmBtn:hover {
@@ -496,17 +500,18 @@
   background: #fff;
   color: #66bfa7;
   border: 1px solid #66bfa7;
-  padding: 10px 24px;
+  padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   transition: background 0.2s ease;
-  min-width: 120px;
+  flex: 1;
+  max-width: 120px;
 }
 
 .deleteCancelBtn:hover {
-  background: #e0e3e8;
+  background: #f0f9f6;
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
