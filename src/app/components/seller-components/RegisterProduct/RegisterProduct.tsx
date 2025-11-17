@@ -335,6 +335,11 @@ export default function RegisterProductForm() {
         setError('판매가를 올바르게 입력해주세요');
         return;
       }
+      // Validate that sale price (최종 판매가) is less than or equal to cost price (원가) when both are provided
+      if (costPrice && salePrice > costPrice) {
+        setError('최종 판매가는 원가보다 작거나 같아야 합니다');
+        return;
+      }
       if (!expiration) {
         setError('유통기한을 입력해주세요');
         return;
@@ -382,8 +387,8 @@ export default function RegisterProductForm() {
         categoryId: selectedCategoryId,
         description,
         quantity: Number(quantity),
-        salePrice: Number(salePrice),
-        discountedPrice: costPrice ? Number(costPrice) : undefined,
+        salePrice: costPrice ? Number(costPrice) : Number(salePrice), // Original price (원가 or 최종 판매가 if 원가 is empty)
+        discountedPrice: costPrice ? Number(salePrice) : undefined, // Discounted price (최종 판매가) only if 원가 exists
         expiryDate: expiration,
         registrationStatus: RegistrationStatus.ONSALE, // Always start with ONSALE
       };
