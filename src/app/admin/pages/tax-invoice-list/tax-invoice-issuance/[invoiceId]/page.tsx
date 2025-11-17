@@ -6,6 +6,8 @@ import Modal from '@/app/components/ui/modal/Modal';
 import styles from './page.module.css';
 import { invoiceService } from '@/app/api/services/admin/invoiceService/invoiceService';
 import { InvoiceDetail } from '@/app/api/services/admin/invoiceService/invoiceTypes';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 const KRW = (n: number) => new Intl.NumberFormat('ko-KR').format(n) + '원';
 
@@ -16,6 +18,7 @@ export default function TaxInvoiceDetails() {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [details, setDetails] = useState<InvoiceDetail | null>(null);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   useEffect(() => {
     const fetchInvoiceDetails = async (): Promise<void> => {
@@ -35,7 +38,7 @@ export default function TaxInvoiceDetails() {
             'Failed to fetch invoice details:',
             error || data?.resultMsg
           );
-          alert('송장 정보를 불러오는데 실패했습니다.');
+          showError('송장 정보를 불러오는데 실패했습니다.');
           setOpen(false);
           router.back();
           return;
@@ -44,7 +47,7 @@ export default function TaxInvoiceDetails() {
         setDetails(data.data);
       } catch (err) {
         console.error('Error fetching invoice details:', err);
-        alert('송장 정보를 불러오는데 실패했습니다.');
+        showError('송장 정보를 불러오는데 실패했습니다.');
         setOpen(false);
         router.back();
       } finally {
@@ -53,7 +56,7 @@ export default function TaxInvoiceDetails() {
     };
 
     void fetchInvoiceDetails();
-  }, [invoiceId, router]);
+  }, [invoiceId, router, showError]);
 
   const handleClose = (): void => {
     setOpen(false);
@@ -70,15 +73,15 @@ export default function TaxInvoiceDetails() {
 
       if (error || !data?.success) {
         console.error('Failed to issue invoice:', error || data?.resultMsg);
-        alert('발행에 실패했습니다.');
+        showError('발행에 실패했습니다.');
         return;
       }
 
-      alert('발행이 완료되었습니다.');
+      showSuccess('발행이 완료되었습니다.');
       handleClose();
     } catch (err) {
       console.error(err);
-      alert('발행에 실패했습니다.');
+      showError('발행에 실패했습니다.');
     }
   };
 
@@ -226,6 +229,7 @@ export default function TaxInvoiceDetails() {
           </button>
         )}
       </div>
+      <ToastContainer toast={toast} onClose={hideToast} />
     </Modal>
   );
 }

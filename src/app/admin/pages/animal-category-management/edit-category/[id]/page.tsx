@@ -10,6 +10,9 @@ import {
   Category,
   CategoryUpdateRequest,
 } from '@/app/api/types/category/category';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 export default function EditCategoryPage() {
   const router = useRouter();
@@ -30,6 +33,8 @@ export default function EditCategoryPage() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteImageConfirmOpen, setDeleteImageConfirmOpen] = useState(false);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   /** Fetch category by ID */
   useEffect(() => {
@@ -80,39 +85,53 @@ export default function EditCategoryPage() {
       setImagePreview(URL.createObjectURL(file));
 
       await CategoryFileService.attachFiles(id, { fileIds: [uploaded.fileId] });
+      showSuccess('파일이 성공적으로 업로드되었습니다.');
     } catch (err) {
       console.error('[EditCategoryPage] File upload error:', err);
-      alert('파일 업로드 중 오류가 발생했습니다.');
+      showError('파일 업로드 중 오류가 발생했습니다.');
     }
   };
 
   /** Delete uploaded image */
-  const handleDeleteImage = async () => {
+  const handleDeleteImageClick = (): void => {
     if (!uploadedEncryptedId && !category?.image) {
-      alert('삭제할 이미지가 없습니다.');
+      showError('삭제할 이미지가 없습니다.');
       return;
     }
 
     const targetEncryptedId =
       uploadedEncryptedId || extractEncryptedId(category?.image);
     if (!targetEncryptedId) {
-      alert('유효한 이미지 ID를 찾을 수 없습니다.');
+      showError('유효한 이미지 ID를 찾을 수 없습니다.');
       return;
     }
 
-    const confirmed = window.confirm('이미지를 삭제하시겠습니까?');
-    if (!confirmed) return;
+    setDeleteImageConfirmOpen(true);
+  };
+
+  const handleDeleteImage = async (): Promise<void> => {
+    if (!uploadedEncryptedId && !category?.image) {
+      return;
+    }
+
+    const targetEncryptedId =
+      uploadedEncryptedId || extractEncryptedId(category?.image);
+    if (!targetEncryptedId) {
+      return;
+    }
+
+    setDeleteImageConfirmOpen(false);
 
     try {
       const { error } = await CategoryFileService.deleteFile(targetEncryptedId);
       if (error) throw new Error(error);
 
-      alert('이미지가 성공적으로 삭제되었습니다.');
+      showSuccess('이미지가 성공적으로 삭제되었습니다.');
       setImagePreview(null);
       setUploadedEncryptedId(null);
     } catch (err) {
       console.error('[EditCategoryPage] Delete image error:', err);
-      alert('이미지 삭제 중 오류가 발생했습니다.');
+      showError('이미지 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -159,11 +178,11 @@ export default function EditCategoryPage() {
       const { error } = await CategoryService.updateCategory(id, payload);
       if (error) throw new Error(error);
 
-      alert('카테고리 정보가 성공적으로 수정되었습니다.');
+      showSuccess('카테고리 정보가 성공적으로 수정되었습니다.');
       router.push('/admin/pages/animal-category-management');
     } catch (err) {
       console.error('[EditCategoryPage] Update error:', err);
-      alert('카테고리 수정 중 오류가 발생했습니다.');
+      showError('카테고리 수정 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }
@@ -199,13 +218,10 @@ export default function EditCategoryPage() {
 
             <div className={styles.imageBox}>
               {imagePreview ? (
-                <Image
+                <img
                   src={imagePreview}
                   alt="대표 이미지"
-                  fill
                   className={styles.image}
-                  sizes="217px"
-                  priority
                 />
               ) : (
                 <Image
@@ -223,7 +239,7 @@ export default function EditCategoryPage() {
               <button
                 type="button"
                 className={styles.deleteBtn}
-                onClick={handleDeleteImage}
+                onClick={handleDeleteImageClick}
                 disabled={isSaving}
               >
                 삭제
@@ -300,6 +316,17 @@ export default function EditCategoryPage() {
           {isSaving ? '저장 중...' : '저장'}
         </button>
       </div>
+
+      <ConfirmationModal
+        open={deleteImageConfirmOpen}
+        onClose={() => setDeleteImageConfirmOpen(false)}
+        onConfirm={handleDeleteImage}
+        message="이미지를 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </>
   );
 }

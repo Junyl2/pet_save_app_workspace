@@ -12,6 +12,10 @@ import {
   AdminSearchOrdersParams,
 } from '@/app/api/types/member/order/order';
 import { useOrderFilter } from '@/app/context/orderFilterContext';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { InputModal } from '@/app/components/admin/ui/InputModal/InputModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 interface OrderRow {
   orderItemId: string;
@@ -34,6 +38,15 @@ export default function PaymentCompletedPage(): React.ReactElement {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [cancelReasonOpen, setCancelReasonOpen] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [startConfirmOpen, setStartConfirmOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [orderItemToCancel, setOrderItemToCancel] = useState<string | null>(
+    null
+  );
+  const [orderItemToStart, setOrderItemToStart] = useState<string | null>(null);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   const { filters, filterTrigger } = useOrderFilter();
 
@@ -103,58 +116,75 @@ export default function PaymentCompletedPage(): React.ReactElement {
   }, [fetchOrders]);
 
   /** Cancel an order item */
-  const handleCancel = async (orderItemId: string): Promise<void> => {
+  const handleCancelClick = (orderItemId: string): void => {
     if (!orderItemId) {
-      alert('유효하지 않은 상품 ID입니다.');
+      showError('유효하지 않은 상품 ID입니다.');
       return;
     }
+    setOrderItemToCancel(orderItemId);
+    setCancelReasonOpen(true);
+  };
 
-    const reason = prompt('취소 사유를 입력하세요:');
-    if (!reason) return;
-    if (!confirm('정말로 이 상품을 취소하시겠습니까?')) return;
+  const handleCancelReasonSubmit = (reason: string): void => {
+    setCancelReason(reason);
+    setCancelReasonOpen(false);
+    setCancelConfirmOpen(true);
+  };
 
-    setOrders((prev) => prev.filter((o) => o.orderItemId !== orderItemId));
+  const handleCancel = async (): Promise<void> => {
+    if (!orderItemToCancel || !cancelReason) return;
+    setCancelConfirmOpen(false);
+
+    setOrders((prev) => prev.filter((o) => o.orderItemId !== orderItemToCancel));
 
     try {
       const { data, error } = await orderStatusService.cancelOrderItem(
-        orderItemId,
-        reason
+        orderItemToCancel,
+        cancelReason
       );
 
       if (error || !data?.success) {
-        alert('상품 취소 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
+        showError('상품 취소 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
         console.error('[PaymentCompletedPage] Cancel failed:', error);
-        await fetchOrders(); // rollback
+        await fetchOrders();
         return;
       }
 
-      alert('상품이 성공적으로 취소되었습니다.');
+      showSuccess('상품이 성공적으로 취소되었습니다.');
       await fetchOrders();
     } catch (err) {
       console.error('[PaymentCompletedPage] Cancel error:', err);
-      alert('주문 상품 취소 중 오류가 발생했습니다.');
+      showError('주문 상품 취소 중 오류가 발생했습니다.');
       await fetchOrders();
+    } finally {
+      setOrderItemToCancel(null);
+      setCancelReason('');
     }
   };
 
   /** Start preparing an order item */
-  const handleStart = async (orderItemId: string): Promise<void> => {
+  const handleStartClick = (orderItemId: string): void => {
     if (!orderItemId) {
-      alert('유효하지 않은 상품 ID입니다.');
+      showError('유효하지 않은 상품 ID입니다.');
       return;
     }
+    setOrderItemToStart(orderItemId);
+    setStartConfirmOpen(true);
+  };
 
-    if (!confirm('이 상품의 준비를 시작하시겠습니까?')) return;
+  const handleStart = async (): Promise<void> => {
+    if (!orderItemToStart) return;
+    setStartConfirmOpen(false);
 
-    setOrders((prev) => prev.filter((o) => o.orderItemId !== orderItemId));
+    setOrders((prev) => prev.filter((o) => o.orderItemId !== orderItemToStart));
 
     try {
       const { data, error } = await orderStatusService.markOrderItemAsPreparing(
-        orderItemId
+        orderItemToStart
       );
 
       if (error || !data?.success) {
-        alert(
+        showError(
           '준비 상태 변경 실패: ' + (data?.resultMsg || '오류가 발생했습니다.')
         );
         console.error('[PaymentCompletedPage] Prepare failed:', error);
@@ -162,12 +192,14 @@ export default function PaymentCompletedPage(): React.ReactElement {
         return;
       }
 
-      alert('상품 준비 상태가 시작되었습니다.');
+      showSuccess('상품 준비 상태가 시작되었습니다.');
       await fetchOrders();
     } catch (err) {
       console.error('[PaymentCompletedPage] Prepare error:', err);
-      alert('상품 준비 중 오류가 발생했습니다.');
+      showError('상품 준비 중 오류가 발생했습니다.');
       await fetchOrders();
+    } finally {
+      setOrderItemToStart(null);
     }
   };
 
@@ -202,13 +234,13 @@ export default function PaymentCompletedPage(): React.ReactElement {
               <div className={styles.actions}>
                 <button
                   className={styles.cancelBtn}
-                  onClick={() => handleCancel(order.orderItemId)}
+                  onClick={() => handleCancelClick(order.orderItemId)}
                 >
                   취소
                 </button>
                 <button
                   className={styles.startBtn}
-                  onClick={() => handleStart(order.orderItemId)}
+                  onClick={() => handleStartClick(order.orderItemId)}
                 >
                   상품 준비 시작
                 </button>
@@ -226,6 +258,48 @@ export default function PaymentCompletedPage(): React.ReactElement {
           />
         </div>
       )}
+
+      <InputModal
+        open={cancelReasonOpen}
+        onClose={() => {
+          setCancelReasonOpen(false);
+          setOrderItemToCancel(null);
+        }}
+        onConfirm={handleCancelReasonSubmit}
+        title="취소 사유 입력"
+        message="취소 사유를 입력하세요:"
+        placeholder="취소 사유를 입력하세요"
+        confirmText="다음"
+        cancelText="취소"
+        inputType="textarea"
+      />
+
+      <ConfirmationModal
+        open={cancelConfirmOpen}
+        onClose={() => {
+          setCancelConfirmOpen(false);
+          setOrderItemToCancel(null);
+          setCancelReason('');
+        }}
+        onConfirm={handleCancel}
+        message="정말로 이 상품을 취소하시겠습니까?"
+        confirmText="취소"
+        cancelText="돌아가기"
+      />
+
+      <ConfirmationModal
+        open={startConfirmOpen}
+        onClose={() => {
+          setStartConfirmOpen(false);
+          setOrderItemToStart(null);
+        }}
+        onConfirm={handleStart}
+        message="이 상품의 준비를 시작하시겠습니까?"
+        confirmText="시작"
+        cancelText="취소"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </>
   );
 }

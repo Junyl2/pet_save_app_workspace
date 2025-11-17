@@ -6,6 +6,9 @@ import styles from './WriteNotice.module.css';
 import { AdminNoticeService } from '@/app/api/services/admin/adminNoticeService/adminNoticeService';
 import { NoticeFileService } from '@/app/api/services/admin/adminNoticeService/noticeFileService/noticeFileService';
 import { NoticeFileUploadResponse } from '@/app/api/services/admin/adminNoticeService/noticeFileService/noticeFile';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 interface NoticeForm {
   title: string;
@@ -27,6 +30,8 @@ export default function NoticeDetailsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   /** Fetch existing notice detail */
   useEffect(() => {
@@ -47,14 +52,14 @@ export default function NoticeDetailsPage() {
         });
       } catch (err) {
         console.error('Failed to fetch notice:', err);
-        alert('공지사항 정보를 불러올 수 없습니다.');
+        showError('공지사항 정보를 불러올 수 없습니다.');
       } finally {
         setLoading(false);
       }
     };
 
     void fetchNotice();
-  }, [noticeId]);
+  }, [noticeId, showError]);
 
   const handleChange =
     (key: keyof NoticeForm) =>
@@ -87,7 +92,7 @@ export default function NoticeDetailsPage() {
       return uploaded.data.encryptedId;
     } catch (err) {
       console.error('Image upload failed:', err);
-      alert('이미지 업로드 중 오류가 발생했습니다.');
+      showError('이미지 업로드 중 오류가 발생했습니다.');
       return null;
     }
   };
@@ -95,7 +100,7 @@ export default function NoticeDetailsPage() {
   /** Update notice (PUT) */
   const handleSubmit = async (): Promise<void> => {
     if (!form.title.trim() || !form.content.trim()) {
-      alert('제목과 내용을 모두 입력해주세요.');
+      showError('제목과 내용을 모두 입력해주세요.');
       return;
     }
 
@@ -120,23 +125,28 @@ export default function NoticeDetailsPage() {
       );
       if (error || !data?.success) throw new Error('공지사항 수정 실패');
 
-      alert('공지사항이 수정되었습니다.');
+      showSuccess('공지사항이 수정되었습니다.');
       router.push('/admin/pages/customer-service-center/announcement');
     } catch (error) {
       console.error('Failed to update notice:', error);
-      alert('공지사항 수정 중 오류가 발생했습니다.');
+      showError('공지사항 수정 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   /** Delete notice */
-  const handleDelete = async (): Promise<void> => {
+  const handleDeleteClick = (): void => {
     if (!noticeId) {
-      alert('삭제할 공지사항이 없습니다.');
+      showError('삭제할 공지사항이 없습니다.');
       return;
     }
-    if (!confirm('정말 삭제하시겠습니까?')) return;
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDelete = async (): Promise<void> => {
+    if (!noticeId) return;
+    setDeleteConfirmOpen(false);
 
     try {
       const { data, error } = await AdminNoticeService.deleteNotice(noticeId);
@@ -148,7 +158,7 @@ export default function NoticeDetailsPage() {
         (!data && !error); // fallback for empty but successful response
 
       if (isDeleted) {
-        alert('공지사항이 삭제되었습니다.');
+        showSuccess('공지사항이 삭제되었습니다.');
         router.push('/admin/pages/customer-service-center/announcement');
         return;
       }
@@ -157,7 +167,7 @@ export default function NoticeDetailsPage() {
       throw new Error('공지사항 삭제 실패');
     } catch (error) {
       console.error('Failed to delete notice:', error);
-      alert('공지사항 삭제 중 오류가 발생했습니다.');
+      showError('공지사항 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -233,7 +243,7 @@ export default function NoticeDetailsPage() {
         <button
           type="button"
           className={styles.btnDelete}
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
         >
           삭제
         </button>
@@ -255,6 +265,17 @@ export default function NoticeDetailsPage() {
           {isSubmitting ? '등록 중...' : '수정'}
         </button>
       </div>
+
+      <ConfirmationModal
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+        message="정말 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </div>
   );
 }

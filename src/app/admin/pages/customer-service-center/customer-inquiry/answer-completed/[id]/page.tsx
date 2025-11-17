@@ -6,6 +6,9 @@ import styles from './AnsweredInquiry.module.css';
 import { AdminInquiryService } from '@/app/api/services/admin/adminInquiryService/adminInquiryService';
 import { AdminInquiryItem } from '@/app/api/services/admin/adminInquiryService/adminInquiry';
 import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 export default function AnsweredInquiryPage() {
   const router = useRouter();
@@ -16,6 +19,8 @@ export default function AnsweredInquiryPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   useEffect(() => {
     const loadInquiry = async (): Promise<void> => {
@@ -27,26 +32,32 @@ export default function AnsweredInquiryPage() {
         setInquiry(data.data);
         setEditableAnswer(data.data.answer ?? '');
       } catch {
-        alert('문의 상세 정보를 불러오지 못했습니다.');
+        showError('문의 상세 정보를 불러오지 못했습니다.');
       } finally {
         setLoading(false);
       }
     };
     void loadInquiry();
-  }, [id]);
+  }, [id, showError]);
+
+  const handleDeleteClick = (): void => {
+    if (!id) return;
+    setDeleteConfirmOpen(true);
+  };
 
   const handleDelete = async (): Promise<void> => {
-    if (!id || !confirm('정말 삭제하시겠습니까?')) return;
+    if (!id) return;
+    setDeleteConfirmOpen(false);
     setDeleting(true);
     try {
       const { error } = await AdminInquiryService.deleteInquiry(id);
       if (error) throw new Error();
-      alert('삭제가 완료되었습니다.');
+      showSuccess('삭제가 완료되었습니다.');
       router.push(
         '/admin/pages/customer-service-center/customer-inquiry/answer-completed'
       );
     } catch {
-      alert('삭제 중 오류가 발생했습니다.');
+      showError('삭제 중 오류가 발생했습니다.');
     } finally {
       setDeleting(false);
     }
@@ -64,7 +75,7 @@ export default function AnsweredInquiryPage() {
 
     // If saving
     if (!editableAnswer.trim()) {
-      alert('답변 내용을 입력하세요.');
+      showError('답변 내용을 입력하세요.');
       return;
     }
 
@@ -74,13 +85,13 @@ export default function AnsweredInquiryPage() {
         answer: editableAnswer.trim(),
       });
       if (error) throw new Error(error);
-      alert('답변이 성공적으로 수정되었습니다.');
+      showSuccess('답변이 성공적으로 수정되었습니다.');
       setInquiry((prev) =>
         prev ? { ...prev, answer: editableAnswer.trim() } : prev
       );
       setIsEditing(false);
     } catch {
-      alert('수정 중 오류가 발생했습니다.');
+      showError('수정 중 오류가 발생했습니다.');
     } finally {
       setSaving(false);
     }
@@ -142,7 +153,7 @@ export default function AnsweredInquiryPage() {
       <div className={styles.buttonRow}>
         <button
           className={styles.btnDelete}
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
           disabled={deleting}
         >
           {deleting ? '삭제 중...' : '삭제'}
@@ -165,6 +176,17 @@ export default function AnsweredInquiryPage() {
           {isEditing ? (saving ? '저장 중...' : '저장') : '수정'}
         </button>
       </div>
+
+      <ConfirmationModal
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+        message="정말 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </div>
   );
 }

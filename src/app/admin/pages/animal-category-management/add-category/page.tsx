@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import styles from './Add.module.css';
 import { CategoryService } from '@/app/api/services/client/categoryService/categoryService';
 import { CategoryFileService } from '@/app/api/services/admin/adminCategoryService/categoryFileService';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 export default function AddCategoryPage() {
   const router = useRouter();
@@ -14,12 +17,14 @@ export default function AddCategoryPage() {
   const [uploadedFileId, setUploadedFileId] = useState<string | null>(null);
   const [encryptedId, setEncryptedId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [deleteImageConfirmOpen, setDeleteImageConfirmOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     englishName: '',
     displayOrder: 1,
     visible: true,
   });
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   /** Handle file upload */
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,35 +42,43 @@ export default function AddCategoryPage() {
       setImagePreview(URL.createObjectURL(file));
 
       console.log('[AddCategoryPage] File uploaded:', uploaded);
+      showSuccess('파일이 성공적으로 업로드되었습니다.');
     } catch (err) {
       console.error('[AddCategoryPage] File upload error:', err);
-      alert('파일 업로드 중 오류가 발생했습니다.');
+      showError('파일 업로드 중 오류가 발생했습니다.');
     } finally {
       setIsUploading(false);
     }
   };
 
   /** Delete uploaded file */
-  const handleDeleteImage = async () => {
+  const handleDeleteImageClick = (): void => {
     if (!encryptedId) {
-      alert('삭제할 이미지가 없습니다.');
+      showError('삭제할 이미지가 없습니다.');
       return;
     }
 
-    const confirmed = window.confirm('이미지를 삭제하시겠습니까?');
-    if (!confirmed) return;
+    setDeleteImageConfirmOpen(true);
+  };
+
+  const handleDeleteImage = async (): Promise<void> => {
+    if (!encryptedId) {
+      return;
+    }
+
+    setDeleteImageConfirmOpen(false);
 
     try {
       const { error } = await CategoryFileService.deleteFile(encryptedId);
       if (error) throw new Error(error);
 
-      alert('이미지가 성공적으로 삭제되었습니다.');
+      showSuccess('이미지가 성공적으로 삭제되었습니다.');
       setImagePreview(null);
       setUploadedFileId(null);
       setEncryptedId(null);
     } catch (err) {
       console.error('[AddCategoryPage] Delete image error:', err);
-      alert('이미지 삭제 중 오류가 발생했습니다.');
+      showError('이미지 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -87,7 +100,7 @@ export default function AddCategoryPage() {
   /** Create category */
   const handleCreateCategory = async () => {
     if (!encryptedId) {
-      alert('이미지를 먼저 업로드하세요.');
+      showError('이미지를 먼저 업로드하세요.');
       return;
     }
 
@@ -106,11 +119,11 @@ export default function AddCategoryPage() {
       if (error) throw new Error(error);
       if (!data?.success) throw new Error(data?.resultMsg || 'Creation failed');
 
-      alert('카테고리가 성공적으로 추가되었습니다.');
+      showSuccess('카테고리가 성공적으로 추가되었습니다.');
       router.push('/admin/pages/animal-category-management');
     } catch (err) {
       console.error('[AddCategoryPage] Category creation failed:', err);
-      alert('카테고리 추가 중 오류가 발생했습니다.');
+      showError('카테고리 추가 중 오류가 발생했습니다.');
     }
   };
 
@@ -164,7 +177,7 @@ export default function AddCategoryPage() {
               <button
                 type="button"
                 className={styles.deleteBtn}
-                onClick={handleDeleteImage}
+                onClick={handleDeleteImageClick}
                 disabled={isUploading}
               >
                 삭제
@@ -239,6 +252,17 @@ export default function AddCategoryPage() {
           {isUploading ? '업로드 중...' : '추가하기'}
         </button>
       </div>
+
+      <ConfirmationModal
+        open={deleteImageConfirmOpen}
+        onClose={() => setDeleteImageConfirmOpen(false)}
+        onConfirm={handleDeleteImage}
+        message="이미지를 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </>
   );
 }

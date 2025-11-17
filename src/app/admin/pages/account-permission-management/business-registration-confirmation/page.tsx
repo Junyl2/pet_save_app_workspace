@@ -7,6 +7,10 @@ import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagi
 import { usePageParam } from '@/app/components/ui/Pagination/usePageParam';
 import { BusinessRegistrationService } from '@/app/api/services/client/auth/businessRegistrationService';
 import { useOrderFilter } from '@/app/context/orderFilterContext';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { InputModal } from '@/app/components/admin/ui/InputModal/InputModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 interface Member {
   id: string;
@@ -32,6 +36,10 @@ export default function BusinessRegistrationConfirmationPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
+  const [rejectInputOpen, setRejectInputOpen] = useState(false);
+  const [requestToProcess, setRequestToProcess] = useState<string | null>(null);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   const { filters, filterTrigger } = useOrderFilter();
 
@@ -171,40 +179,59 @@ export default function BusinessRegistrationConfirmationPage() {
   }, [fetchBusinessRegistrations]);
 
   /** Approve registration */
-  const handleApprove = async (requestId: string): Promise<void> => {
-    if (!confirm('해당 사업자 등록을 승인하시겠습니까?')) return;
-    setProcessingId(requestId);
+  const handleApproveClick = (requestId: string): void => {
+    setRequestToProcess(requestId);
+    setApproveConfirmOpen(true);
+  };
+
+  const handleApprove = async (): Promise<void> => {
+    if (!requestToProcess) return;
+    setProcessingId(requestToProcess);
+    setApproveConfirmOpen(false);
     try {
-      await BusinessRegistrationService.approveBusinessRegistration(requestId, {
-        adminNotes: '관리자 승인 완료',
-      });
-      alert('승인되었습니다.');
+      await BusinessRegistrationService.approveBusinessRegistration(
+        requestToProcess,
+        {
+          adminNotes: '관리자 승인 완료',
+        }
+      );
+      showSuccess('승인되었습니다.');
       await fetchBusinessRegistrations();
     } catch (error) {
       console.error('승인 실패:', error);
-      alert('승인 중 오류가 발생했습니다.');
+      showError('승인 중 오류가 발생했습니다.');
     } finally {
       setProcessingId(null);
+      setRequestToProcess(null);
     }
   };
 
   /** Reject registration */
-  const handleReject = async (requestId: string): Promise<void> => {
-    const reason = prompt('거절 사유를 입력하세요:');
-    if (!reason) return;
-    setProcessingId(requestId);
+  const handleRejectClick = (requestId: string): void => {
+    setRequestToProcess(requestId);
+    setRejectInputOpen(true);
+  };
+
+  const handleReject = async (reason: string): Promise<void> => {
+    if (!requestToProcess || !reason) return;
+    setProcessingId(requestToProcess);
+    setRejectInputOpen(false);
     try {
-      await BusinessRegistrationService.rejectBusinessRegistration(requestId, {
-        rejectionReason: reason,
-        adminNotes: '관리자 검토 후 거절',
-      });
-      alert('거절되었습니다.');
+      await BusinessRegistrationService.rejectBusinessRegistration(
+        requestToProcess,
+        {
+          rejectionReason: reason,
+          adminNotes: '관리자 검토 후 거절',
+        }
+      );
+      showSuccess('거절되었습니다.');
       await fetchBusinessRegistrations();
     } catch (error) {
       console.error('거절 실패:', error);
-      alert('거절 중 오류가 발생했습니다.');
+      showError('거절 중 오류가 발생했습니다.');
     } finally {
       setProcessingId(null);
+      setRequestToProcess(null);
     }
   };
 
@@ -262,7 +289,7 @@ export default function BusinessRegistrationConfirmationPage() {
                   disabled={processingId === member.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    void handleReject(member.id);
+                    handleRejectClick(member.id);
                   }}
                 >
                   {processingId === member.id ? '반려...' : '반려'}
@@ -272,7 +299,7 @@ export default function BusinessRegistrationConfirmationPage() {
                   disabled={processingId === member.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    void handleApprove(member.id);
+                    handleApproveClick(member.id);
                   }}
                 >
                   {processingId === member.id ? '처리 중...' : '승인'}
@@ -296,6 +323,35 @@ export default function BusinessRegistrationConfirmationPage() {
           </div>
         </div>
       )}
+
+      <ConfirmationModal
+        open={approveConfirmOpen}
+        onClose={() => {
+          setApproveConfirmOpen(false);
+          setRequestToProcess(null);
+        }}
+        onConfirm={handleApprove}
+        message="해당 사업자 등록을 승인하시겠습니까?"
+        confirmText="승인"
+        cancelText="취소"
+      />
+
+      <InputModal
+        open={rejectInputOpen}
+        onClose={() => {
+          setRejectInputOpen(false);
+          setRequestToProcess(null);
+        }}
+        onConfirm={handleReject}
+        title="거절 사유 입력"
+        message="거절 사유를 입력하세요:"
+        placeholder="거절 사유를 입력하세요"
+        confirmText="거절"
+        cancelText="취소"
+        inputType="textarea"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </>
   );
 }

@@ -136,6 +136,12 @@
   border-radius: 5px;
 }
 
+.categoryThumb {
+  height: 45px;
+  width: 45px;
+  border-radius: 5px;
+}
+
 /* Buttons */
 .actions {
   position: absolute;

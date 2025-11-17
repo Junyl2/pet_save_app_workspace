@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import { IoChevronDownOutline } from 'react-icons/io5';
 import styles from './EditProductModal.module.css';
 import { ProductService } from '@/app/api/services/client/productService/productService';
@@ -12,6 +11,8 @@ import { ProductSummary } from '@/app/api/types/products/productSummary';
 import { Category } from '@/app/api/types/category/category';
 import { RegistrationStatus } from '@/app/api/types/products/createProduct';
 import { ProductUpdateRequest } from '@/app/api/services/admin/productManagement/productManagement';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 interface EditProductModalProps {
   open: boolean;
@@ -43,6 +44,7 @@ export default function EditProductModal({
   const [product, setProduct] = useState<ProductSummary | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { toast, showSuccess, hideToast } = useToast();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -357,7 +359,7 @@ export default function EditProductModal({
         throw new Error(updateError);
       }
 
-      alert('상품 정보가 성공적으로 수정되었습니다.');
+      showSuccess('상품 정보가 성공적으로 수정되었습니다.');
       onSuccess();
       onClose();
     } catch (err) {
@@ -568,11 +570,9 @@ export default function EditProductModal({
                 <div className={styles.imageGrid}>
                   {images.map((img, index) => (
                     <div key={index} className={styles.imageItem}>
-                      <Image
+                      <img
                         src={img.preview}
                         alt={`Preview ${index + 1}`}
-                        width={120}
-                        height={120}
                         className={styles.imagePreview}
                       />
                       {img.isUploading && (
@@ -657,6 +657,7 @@ export default function EditProductModal({
           </form>
         )}
       </div>
+      <ToastContainer toast={toast} onClose={hideToast} />
     </div>
   );
 }

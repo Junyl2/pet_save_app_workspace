@@ -1,6 +1,5 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
-import Image from 'next/image';
 import { IoChevronDownOutline } from 'react-icons/io5';
 import styles from './ProductManagement.module.css';
 import OrderPagination from '@/app/components/admin/ui/OrderPagination/OrderPagination';
@@ -12,6 +11,9 @@ import {
   Product,
 } from '@/app/api/types/products/products';
 import EditProductModal from './EditProductModal';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 interface ProductRow {
   productId: string;
@@ -40,6 +42,12 @@ export default function ProductManagementPage() {
   );
   const [deleting, setDeleting] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   const handleImageError = (productId: string) => {
     setImageErrors((prev) => ({ ...prev, [productId]: true }));
@@ -56,25 +64,32 @@ export default function ProductManagementPage() {
     setEditModalOpen(true);
   };
 
-  const handleDelete = async (productId: string, productName: string) => {
-    if (!confirm(`"${productName}" 상품을 삭제하시겠습니까?`)) {
-      return;
-    }
+  const handleDeleteClick = (productId: string, productName: string) => {
+    setProductToDelete({ id: productId, name: productName });
+    setDeleteConfirmOpen(true);
+  };
 
-    setDeleting(productId);
+  const handleDelete = async () => {
+    if (!productToDelete) return;
+
+    setDeleting(productToDelete.id);
+    setDeleteConfirmOpen(false);
     try {
-      const { error } = await ProductManagementService.deleteProduct(productId);
+      const { error } = await ProductManagementService.deleteProduct(
+        productToDelete.id
+      );
       if (error) {
-        alert(`상품 삭제 실패: ${error}`);
+        showError(`상품 삭제 실패: ${error}`);
       } else {
-        alert('상품이 성공적으로 삭제되었습니다.');
+        showSuccess('상품이 성공적으로 삭제되었습니다.');
         fetchProducts();
       }
     } catch (err) {
       console.error('[ProductManagementPage] Delete error:', err);
-      alert('상품 삭제 중 오류가 발생했습니다.');
+      showError('상품 삭제 중 오류가 발생했습니다.');
     } finally {
       setDeleting(null);
+      setProductToDelete(null);
     }
   };
 
@@ -151,7 +166,7 @@ export default function ProductManagementPage() {
       </div>
 
       <div className={styles.wrapper}>
-        {/* Top controls: dropdown + search */}
+        {/* Top controls */}
         <div className={styles.topHeader}>
           <div className={styles.dropdownWrapper}>
             <div
@@ -213,18 +228,18 @@ export default function ProductManagementPage() {
           products.map((product) => (
             <div key={product.productId} className={styles.dataRow}>
               <div className={`${styles.col} ${styles.image}`}>
-                <Image
+                <img
                   src={
                     imageErrors[product.productId] || !product.thumbnail
                       ? '/images/products/product-fallback.svg'
                       : product.thumbnail
                   }
-                  fill
                   alt={product.productName}
                   className={styles.thumb}
                   onError={() => handleImageError(product.productId)}
                 />
               </div>
+
               <div className={styles.col}>{product.storeName}</div>
               <div className={styles.col}>{product.productName}</div>
               <div className={styles.col}>
@@ -237,16 +252,18 @@ export default function ProductManagementPage() {
               >
                 {product.registrationStatus}
               </div>
+
               <div className={styles.actions}>
                 <button
                   className={styles.hideBtn}
                   onClick={() =>
-                    handleDelete(product.productId, product.productName)
+                    handleDeleteClick(product.productId, product.productName)
                   }
                   disabled={deleting === product.productId}
                 >
                   {deleting === product.productId ? '삭제 중...' : '삭제'}
                 </button>
+
                 <button
                   className={styles.editBtn}
                   tabIndex={0}
@@ -286,6 +303,24 @@ export default function ProductManagementPage() {
           onSuccess={handleEditSuccess}
         />
       )}
+
+      <ConfirmationModal
+        open={deleteConfirmOpen}
+        onClose={() => {
+          setDeleteConfirmOpen(false);
+          setProductToDelete(null);
+        }}
+        onConfirm={handleDelete}
+        message={
+          productToDelete
+            ? `"${productToDelete.name}" 상품을 삭제하시겠습니까?`
+            : ''
+        }
+        confirmText="삭제"
+        cancelText="취소"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </>
   );
 }

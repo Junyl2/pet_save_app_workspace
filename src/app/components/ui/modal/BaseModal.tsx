@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import ReactDOM from 'react-dom';
 import styles from './BaseModal.module.css';
 
@@ -25,6 +26,9 @@ export const BaseModal = ({
   withOverlay = true,
   noRadius = false,
 }: BaseModalProps) => {
+  const pathname = usePathname();
+  const isAdminPage = pathname?.includes('/admin') ?? false;
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -43,9 +47,13 @@ export const BaseModal = ({
     noRadius ? styles.noRadius : ''
   } ${className}`;
 
+  const overlayClass = `${styles.overlay} ${
+    isAdminPage ? styles.adminOverlay : ''
+  }`;
+
   const tree = (
     <div
-      className={styles.overlay}
+      className={overlayClass}
       onClick={(e) => {
         //  This ensures modal closes only when clicking outside
         if (e.target === e.currentTarget) onClose();
@@ -54,7 +62,7 @@ export const BaseModal = ({
       aria-modal="true"
     >
       {/* visible dim only over your app width (desktop) */}
-      <div className={styles.scrim} aria-hidden="true" />
+      {!isAdminPage && <div className={styles.scrim} aria-hidden="true" />}
 
       <div className={styles.canvas}>
         <div className={modalClass} onClick={(e) => e.stopPropagation()}>

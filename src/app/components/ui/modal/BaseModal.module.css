@@ -8,6 +8,16 @@
   align-items: center;
 }
 
+.adminOverlay {
+  background: rgba(0, 0, 0, 0.8) !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+}
+
 /* Desktop-specific visible scrim */
 .scrim {
   display: none;
@@ -68,7 +78,7 @@
   .modal {
     width: 80%;
   }
-  .overlay {
+  .overlay:not(.adminOverlay) {
     background: transparent;
   }
   .scrim {

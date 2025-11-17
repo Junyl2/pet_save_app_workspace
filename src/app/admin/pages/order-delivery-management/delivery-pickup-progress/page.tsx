@@ -12,6 +12,9 @@ import {
   AdminSearchOrdersParams,
 } from '@/app/api/types/member/order/order';
 import { useOrderFilter } from '@/app/context/orderFilterContext';
+import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
+import { useToast } from '@/app/components/admin/hooks/useToast';
+import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
 
 interface OrderRow {
   orderItemId: string;
@@ -32,6 +35,11 @@ export default function DeliveryPickupPage(): React.ReactElement {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [completeConfirmOpen, setCompleteConfirmOpen] = useState(false);
+  const [orderItemToComplete, setOrderItemToComplete] = useState<string | null>(
+    null
+  );
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   const { filters, filterTrigger } = useOrderFilter();
 
@@ -111,25 +119,33 @@ export default function DeliveryPickupPage(): React.ReactElement {
   }, [fetchOrders]);
 
   /** Mark order item as completed */
-  const handleComplete = async (orderItemId: string): Promise<void> => {
-    if (!confirm('이 상품의 수령(배송 완료)을 처리하시겠습니까?')) return;
+  const handleCompleteClick = (orderItemId: string): void => {
+    setOrderItemToComplete(orderItemId);
+    setCompleteConfirmOpen(true);
+  };
+
+  const handleComplete = async (): Promise<void> => {
+    if (!orderItemToComplete) return;
+    setCompleteConfirmOpen(false);
 
     try {
       const { data, error } = await orderStatusService.markOrderItemAsCompleted(
-        orderItemId
+        orderItemToComplete
       );
 
       if (error || !data?.success) {
-        alert('처리 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
+        showError('처리 실패: ' + (data?.resultMsg || '오류가 발생했습니다.'));
         console.error('[DeliveryPickupPage] Complete failed:', error);
         return;
       }
 
-      alert('상품이 성공적으로 수령 완료 처리되었습니다.');
+      showSuccess('상품이 성공적으로 수령 완료 처리되었습니다.');
       await fetchOrders();
     } catch (err) {
       console.error('[DeliveryPickupPage] Completion error:', err);
-      alert('수령 완료 처리 중 오류가 발생했습니다.');
+      showError('수령 완료 처리 중 오류가 발생했습니다.');
+    } finally {
+      setOrderItemToComplete(null);
     }
   };
 
@@ -176,7 +192,7 @@ export default function DeliveryPickupPage(): React.ReactElement {
                 <button
                   type="button"
                   className={styles.completeBtn}
-                  onClick={() => handleComplete(order.orderItemId)}
+                  onClick={() => handleCompleteClick(order.orderItemId)}
                 >
                   수령 완료
                 </button>
@@ -198,6 +214,20 @@ export default function DeliveryPickupPage(): React.ReactElement {
           </div>
         </div>
       )}
+
+      <ConfirmationModal
+        open={completeConfirmOpen}
+        onClose={() => {
+          setCompleteConfirmOpen(false);
+          setOrderItemToComplete(null);
+        }}
+        onConfirm={handleComplete}
+        message="이 상품의 수령(배송 완료)을 처리하시겠습니까?"
+        confirmText="처리"
+        cancelText="취소"
+      />
+
+      <ToastContainer toast={toast} onClose={hideToast} />
     </>
   );
 }
