@@ -131,10 +131,10 @@ export default function SellerDetailsPage() {
       return '영업시간 정보 없음';
     }
 
-    const openingTime = store.closingHours;
-    const closingTime = store.openingHours;
+    const open = store.openingHours;
+    const close = store.closingHours;
 
-    return `${openingTime} - ${closingTime}`;
+    return `${open} - ${close}`;
   };
 
   const businessHours = getBusinessHours();

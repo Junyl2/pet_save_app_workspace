@@ -195,8 +195,8 @@ Props) {
             sellerData?.phoneNumber ||
             override.phone ||
             '',
-          openTime: storeData?.closingHours || override.openTime || '09:00',
-          closeTime: storeData?.openingHours || override.closeTime || '18:00',
+          openTime: storeData?.openingHours || override.openTime || '09:00',
+          closeTime: storeData?.closingHours || override.closeTime || '18:00',
           address:
             storeData?.roadAddress && storeData?.detailedAddress
               ? `${storeData.roadAddress} ${storeData.detailedAddress}`
@@ -295,17 +295,16 @@ Props) {
       const detailedAddress = addressParts[addressParts.length - 1] || '';
 
       // Prepare update data for the API
-      // Note: API field names are swapped, so we need to send them in reverse
       const updateData: UpdateStoreRequest = {
         businessName: form.businessName,
         roadAddress: roadAddress,
         detailedAddress: detailedAddress,
-        zipCode: '00000', // Default zip code - you might want to make this configurable
+        zipCode: '00000',
         businessPhoneNumber: form.phone,
-        allowPhoneInquiries: true, // Default to true - you might want to make this configurable
-        businessOpeningTime: `${form.closeTime}:00`, // Send closeTime as openingHours (API field swap)
-        businessClosingTime: `${form.openTime}:00`, // Send openTime as closingHours (API field swap)
-        businessLogoFileId: uploadedFileId || undefined, // Include uploaded file ID if available
+        allowPhoneInquiries: true,
+        businessOpeningTime: `${form.openTime}:00`,
+        businessClosingTime: `${form.closeTime}:00`,
+        businessLogoFileId: uploadedFileId || undefined,
       };
 
       console.log('Updating store with data:', updateData);
