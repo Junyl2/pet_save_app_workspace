@@ -15,6 +15,7 @@ import {
   RegistrationStatus,
 } from '@/app/api/types/products/createProduct';
 import { Category } from '@/app/api/types/category/category';
+import { toast } from 'react-hot-toast';
 
 export default function RegisterProductForm() {
   const router = useRouter();
@@ -296,7 +297,7 @@ export default function RegisterProductForm() {
         const errorMsg =
           '이미지 업로드가 완료되지 않았습니다. 이미지를 다시 선택해주세요.';
         setError(errorMsg);
-        alert(errorMsg);
+        toast.error(errorMsg);
         return;
       }
 

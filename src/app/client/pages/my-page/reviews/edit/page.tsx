@@ -12,6 +12,7 @@ import { Review } from '@/app/api/types/member/review/review';
 import Loading from '@/app/components/ui/Loading/Loading';
 import { useAppSelector, useAppDispatch } from '@/app/redux/hooks';
 import { setHasLoadedOnce } from '@/app/redux/slices/auth/ui/loadingSlice';
+import toast, { Toaster } from 'react-hot-toast';
 
 type NewImage = { id: string; file: File; url: string };
 
@@ -49,7 +50,7 @@ export default function EditReviewPage() {
 
     const fetchReview = async () => {
       if (!reviewId) {
-        setError('리뷰 ID가 필요합니다.');
+        toast.error('리뷰 ID가 필요합니다.');
         setLoading(false);
         return;
       }
@@ -60,7 +61,7 @@ export default function EditReviewPage() {
         if (!isMounted) return;
 
         if (response.error) {
-          setError('리뷰를 불러올 수 없습니다.');
+          toast.error('리뷰를 불러올 수 없습니다.');
         } else if (response.data) {
           const reviewData = response.data;
           setReview(reviewData);
@@ -75,12 +76,12 @@ export default function EditReviewPage() {
           );
           dispatch(setHasLoadedOnce(`edit-review-${reviewId}`));
         } else {
-          setError('리뷰 정보를 찾을 수 없습니다.');
+          toast.error('리뷰 정보를 찾을 수 없습니다.');
         }
       } catch (err) {
         if (!isMounted) return;
         console.error('Failed to fetch review:', err);
-        setError('리뷰를 불러오는 중 오류가 발생했습니다.');
+        toast.error('리뷰를 불러오는 중 오류가 발생했습니다.');
       } finally {
         if (!isMounted) return;
         setLoading(false);
@@ -136,7 +137,7 @@ export default function EditReviewPage() {
       setUploadProgress('');
     } catch (err) {
       console.error('Upload error:', err);
-      setError('이미지 업로드 중 오류가 발생했습니다.');
+      toast.error('이미지 업로드 중 오류가 발생했습니다.');
       setAttachedImages((prev) =>
         prev.filter((img) => !additions.some((add) => add.id === img.id))
       );
@@ -203,7 +204,7 @@ export default function EditReviewPage() {
 
     try {
       if (!review) {
-        setError('리뷰 정보를 찾을 수 없습니다.');
+        toast.error('리뷰 정보를 찾을 수 없습니다.');
         setSubmitting(false);
         return;
       }
@@ -220,7 +221,7 @@ export default function EditReviewPage() {
       );
 
       if (updateResponse.error) {
-        alert('리뷰 수정에 실패했습니다. 다시 시도해주세요.');
+        toast.error('리뷰 수정에 실패했습니다. 다시 시도해주세요.');
       } else {
         setShowSuccessMessage(true);
         setTimeout(() => {
@@ -232,7 +233,7 @@ export default function EditReviewPage() {
       }
     } catch (err) {
       console.error('Failed to update review:', err);
-      alert('리뷰 수정 중 오류가 발생했습니다.');
+      toast.error('리뷰 수정 중 오류가 발생했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -257,6 +258,7 @@ export default function EditReviewPage() {
 
   return (
     <div className={styles.container}>
+      <Toaster position="bottom-center" />
       <ProductHeader />
       <div className={styles.content}>
         {/* Product Info */}

@@ -12,6 +12,7 @@ import { ProductSummary } from '@/app/api/types/products/productSummary';
 import { ReviewCreateDto } from '@/app/api/types/member/review/review';
 import Loading from '@/app/components/ui/Loading/Loading';
 import Image from 'next/image';
+import toast, { Toaster } from 'react-hot-toast';
 
 type NewImage = { id: string; file: File; url: string };
 
@@ -39,7 +40,7 @@ export default function WriteReviewPage() {
 
     const fetchProduct = async () => {
       if (!productId) {
-        setError('상품 ID가 필요합니다.');
+        toast.error('상품 ID가 필요합니다.');
         setLoading(false);
         return;
       }
@@ -49,16 +50,16 @@ export default function WriteReviewPage() {
         if (!active) return;
 
         if (response.error) {
-          setError('상품을 불러올 수 없습니다.');
+          toast.error('상품을 불러올 수 없습니다.');
         } else if (response.data?.data) {
           setProduct(response.data.data);
         } else {
-          setError('상품 정보를 찾을 수 없습니다.');
+          toast.error('상품 정보를 찾을 수 없습니다.');
         }
       } catch (err) {
         if (!active) return;
         console.error(err);
-        setError('상품을 불러오는 중 오류가 발생했습니다.');
+        toast.error('상품을 불러오는 중 오류가 발생했습니다.');
       } finally {
         if (active) setLoading(false);
       }
@@ -156,7 +157,7 @@ export default function WriteReviewPage() {
       const response = await ReviewService.createReview(reviewData);
 
       if (response.error) {
-        alert('리뷰 등록에 실패했습니다. 다시 시도해주세요.');
+        toast.error('리뷰 등록에 실패했습니다. 다시 시도해주세요.');
       } else {
         setShowSuccessMessage(true);
         setTimeout(() => {
@@ -169,7 +170,7 @@ export default function WriteReviewPage() {
         err instanceof Error
           ? err.message
           : '리뷰 등록 중 오류가 발생했습니다.';
-      alert(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
       setUploadingFiles(false);
@@ -188,6 +189,7 @@ export default function WriteReviewPage() {
   if (error || !product) {
     return (
       <div className={styles.container}>
+        <Toaster position="bottom-center" />
         <ProductHeader />
         <div className={styles.content}>
           <p className={styles.error}>
@@ -201,6 +203,7 @@ export default function WriteReviewPage() {
   // ---------- UI ----------
   return (
     <div className={styles.container}>
+      <Toaster position="bottom-center" />
       <ProductHeader />
       <div className={styles.content}>
         {/* Product Info */}

@@ -23,18 +23,19 @@ import { FaStar } from 'react-icons/fa6';
 import { BsBoxSeam } from 'react-icons/bs';
 import Loading from '@/app/components/ui/Loading/Loading';
 import Image from 'next/image';
+import toast, { Toaster } from 'react-hot-toast';
+import { ContactDrawer } from '@/app/components/ui/drawer/ContactDrawer/ContactDrawer';
 
 export default function SellerDetailsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [showDrawer, setShowDrawer] = useState(false);
 
-  // Get storeId from route or fallback to last segment
   const params = useParams<{ id?: string }>();
   const pathname = usePathname();
   const lastSeg = pathname?.split('/').filter(Boolean).at(-1);
   const storeId = params?.id ?? lastSeg ?? '';
 
-  // Get category from URL parameters
   const urlCategory = searchParams.get('categoryName') || '';
 
   const [store, setStore] = useState<StoreInfo | null>(null);
@@ -44,24 +45,18 @@ export default function SellerDetailsPage() {
   );
   const [error, setError] = useState<string | null>(null);
 
-  // Sync URL category with state
   useEffect(() => {
     if (urlCategory !== selectedCategory) {
       setSelectedCategory(urlCategory);
     }
   }, [urlCategory, selectedCategory]);
 
-  // Get current user's store ID
   useEffect(() => {
     const getCurrentUserStoreId = async () => {
       try {
         const response = await MemberService.getMyInfo();
-        console.log('Current user info:', response.data?.data);
         if (response.data?.data?.storeId) {
-          console.log('Current user store ID:', response.data.data.storeId);
           setCurrentUserStoreId(response.data.data.storeId);
-        } else {
-          console.log('No store ID found for current user');
         }
       } catch (error) {
         console.error('Failed to get current user store ID:', error);
@@ -70,25 +65,22 @@ export default function SellerDetailsPage() {
     getCurrentUserStoreId();
   }, []);
 
-  // Fetch store details
   useEffect(() => {
     setError(null);
     setStore(null);
+
     if (!storeId) {
       setError('잘못된 상점 경로입니다. (storeId 미확인)');
       return;
     }
+
     (async () => {
       try {
         let response;
 
-        // If viewing own store, use MemberStoreService for detailed info
         if (currentUserStoreId && currentUserStoreId === storeId) {
-          console.log('Fetching own store details using MemberStoreService...');
           response = await MemberStoreService.getMyStore();
         } else {
-          // For other stores, use StoreService
-          console.log('Fetching store details using StoreService...');
           response = await StoreService.getStoreSummary(storeId);
         }
 
@@ -96,22 +88,9 @@ export default function SellerDetailsPage() {
           setError(response.error);
           return;
         }
+
         if (response.data?.data) {
           setStore(response.data.data);
-          console.log('Store details loaded:', response.data.data);
-          console.log(
-            'Store profile image:',
-            response.data.data.businessProfileImage
-          );
-          console.log('Store phone:', response.data.data.businessPhoneNumber);
-          console.log(
-            'Store hours:',
-            response.data.data.openingHours,
-            '-',
-            response.data.data.closingHours
-          );
-          console.log('Product count:', response.data.data.numberOfProducts);
-          console.log('Average rating:', response.data.data.averageRating);
         } else {
           setError('상점 정보를 찾을 수 없습니다.');
         }
@@ -125,60 +104,45 @@ export default function SellerDetailsPage() {
     })();
   }, [storeId, currentUserStoreId]);
 
-  // Decide ownership by comparing current user's storeId with URL storeId
   const isOwner = useMemo(() => {
-    console.log('Ownership check:', {
-      currentUserStoreId,
-      urlStoreId: storeId,
-      isOwner: currentUserStoreId === storeId,
-    });
     if (!currentUserStoreId || !storeId) return false;
     return currentUserStoreId === storeId;
   }, [currentUserStoreId, storeId]);
 
   if (error) {
     return (
-      <React.Fragment>
+      <>
+        <Toaster position="bottom-center" />
         <ProductHeader />
         <div className={styles.container}>
           <p style={{ padding: 16, color: 'crimson' }}>{error}</p>
         </div>
-      </React.Fragment>
+      </>
     );
   }
 
   if (!store) return <Loading />;
 
-  // Use real store data from API
   const profileImage = store.businessProfileImage || defaultProfile.image;
   const phoneNumber = store.businessPhoneNumber || '전화번호 없음';
-  // Display business hours - API field names are swapped
+
   const getBusinessHours = () => {
     if (!store.openingHours || !store.closingHours) {
       return '영업시간 정보 없음';
     }
 
-    // API returns: openingHours = closing time, closingHours = opening time
-    // So we need to use them in the correct order for display
-    const openingTime = store.closingHours; // This is the actual opening time
-    const closingTime = store.openingHours; // This is the actual closing time
+    const openingTime = store.closingHours;
+    const closingTime = store.openingHours;
 
     return `${openingTime} - ${closingTime}`;
   };
 
   const businessHours = getBusinessHours();
 
-  // Debug: Log the actual values to see what's happening
-  console.log('Business hours debug:', {
-    rawOpeningHours: store.openingHours,
-    rawClosingHours: store.closingHours,
-    actualOpening: store.closingHours,
-    actualClosing: store.openingHours,
-    businessHours: businessHours,
-  });
   const fullAddress = store.detailedAddress
     ? `${store.roadAddress} ${store.detailedAddress}`
     : store.roadAddress;
+
   const productCount = store.numberOfProducts ?? 0;
   const averageRating = store.averageRating ?? 0;
 
@@ -186,7 +150,6 @@ export default function SellerDetailsPage() {
     router.push(`/client/seller/pages/change-profile?storeId=${storeId}`);
   };
 
-  // Handle category change by updating URL
   const handleCategoryChange = (categoryName: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (categoryName === '') {
@@ -194,14 +157,14 @@ export default function SellerDetailsPage() {
     } else {
       params.set('categoryName', categoryName);
     }
-    // Reset to page 0 when changing category
     params.delete('page');
     const newUrl = params.toString() ? `?${params.toString()}` : '';
     router.push(`/client/pages/seller-details/${storeId}${newUrl}`);
   };
 
   return (
-    <React.Fragment>
+    <>
+      <Toaster position="bottom-center" />
       <ProductHeader />
       <div className={styles.container}>
         <div className={styles.profileDetails}>
@@ -210,7 +173,6 @@ export default function SellerDetailsPage() {
               type="button"
               className={styles.editChip}
               onClick={goToEditProfile}
-              aria-label="프로필 수정하기"
             >
               수정하기
             </button>
@@ -238,24 +200,27 @@ export default function SellerDetailsPage() {
               <button
                 className={styles.callButton}
                 onClick={() => {
-                  if (phoneNumber !== '전화번호 없음') {
-                    alert(`연락처: ${phoneNumber}`);
-                  } else {
-                    alert('전화번호 정보가 없습니다.');
+                  if (phoneNumber === '전화번호 없음') {
+                    toast.error('전화번호 정보가 없습니다.');
+                    return;
                   }
+                  setShowDrawer(true);
                 }}
               >
                 전화 연결
               </button>
             </div>
+
             <div className={styles.details}>
               <LuAlarmClock size={18} color="rgba(0,0,0,0.8)" />
               <p className={styles.workingHours}>{businessHours}</p>
             </div>
+
             <div className={styles.details}>
               <IoLocationOutline size={18} color="rgba(0,0,0,0.8)" />
               <p className={styles.location}>{fullAddress}</p>
             </div>
+
             {store.businessEmail && (
               <div className={styles.details}>
                 <IoCallOutline size={18} color="rgba(0,0,0,0.8)" />
@@ -275,7 +240,9 @@ export default function SellerDetailsPage() {
               {productCount} 개
             </span>
           </p>
+
           <div className={styles.separator}></div>
+
           <p className={styles.review}>
             <span className={styles.reviewLabel}>평점</span>
             <span className={styles.reviewQuantity}>
@@ -307,6 +274,10 @@ export default function SellerDetailsPage() {
           onAddToCart={() => {}}
         />
       </div>
-    </React.Fragment>
+
+      {showDrawer && storeId && (
+        <ContactDrawer storeId={storeId} onClose={() => setShowDrawer(false)} />
+      )}
+    </>
   );
 }

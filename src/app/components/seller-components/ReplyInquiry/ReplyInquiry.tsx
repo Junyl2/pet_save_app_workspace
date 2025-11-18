@@ -10,6 +10,7 @@ import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
 import { SellerInquiryService } from '@/app/api/services/client/seller/seller-inquiry/sellerInquiryService';
 import defaultProfile from '@/app/constats/defaultProfile';
 import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Helper function to format date from YYYY-MM-DD to YY.MM.DD
 const formatDate = (dateString: string): string => {
@@ -90,7 +91,7 @@ export default function ReplyInquiry() {
     }
   }, [user, router]);
 
-  // Get inquiry data from API using inquiryId from URL params
+  // Get inquiry data
   useEffect(() => {
     const fetchInquiry = async () => {
       const inquiryId = searchParams.get('id');
@@ -102,12 +103,12 @@ export default function ReplyInquiry() {
       if (!user?.role || user.role !== 'seller') return;
 
       setLoading(true);
+
       try {
-        // Fetch all store inquiries and find the one with matching inquiryId
         const response = await MemberStoreService.getMyStoreInquiries({
           sortBy: 'createdAt',
           direction: 'desc',
-          size: 100, // Get more items to find the specific inquiry
+          size: 100,
         });
 
         if (response.error || !response.data) {
@@ -116,7 +117,6 @@ export default function ReplyInquiry() {
           return;
         }
 
-        // Find inquiry with matching inquiryId
         const matchingInquiry = response.data.data.content.find(
           (inq) => inq.inquiryId === inquiryId
         );
@@ -125,7 +125,7 @@ export default function ReplyInquiry() {
           const transformedInquiry = transformStoreInquiryToUI(matchingInquiry);
           setInquiry(transformedInquiry);
         } else {
-          console.error('Inquiry not found for inquiryId:', inquiryId);
+          console.error('Inquiry not found:', inquiryId);
           router.push('/client/seller/pages/seller-inquiry-details');
         }
       } catch (error) {
@@ -141,7 +141,7 @@ export default function ReplyInquiry() {
 
   const handleSubmit = async () => {
     if (!replyText.trim()) {
-      alert('답변을 입력해주세요.');
+      toast.error('답변을 입력해주세요.');
       return;
     }
 
@@ -149,10 +149,13 @@ export default function ReplyInquiry() {
 
     try {
       const inquiryId = inquiry?.inquiryId as string | undefined;
-      if (!inquiryId || !inquiry)
-        throw new Error('유효하지 않은 문의 ID 입니다.');
+      if (!inquiryId || !inquiry) {
+        toast.error('유효하지 않은 문의 ID 입니다.');
+        setIsSubmitting(false);
+        return;
+      }
 
-      // If already answered, update; otherwise, create answer
+      // Update or create answer
       if (inquiry.status === '답변 완료') {
         const res = await SellerInquiryService.updateInquiryAnswer(inquiryId, {
           answer: replyText,
@@ -165,18 +168,18 @@ export default function ReplyInquiry() {
         if (res.error) throw new Error(res.error);
       }
 
-      alert('답변이 성공적으로 등록되었습니다.');
+      toast.success('답변이 성공적으로 등록되었습니다.');
       router.push('/client/seller/pages/seller-inquiry-details');
     } catch (error) {
       console.error('Error submitting reply:', error);
-      alert('답변 등록 중 오류가 발생했습니다. 다시 시도해주세요.');
+      toast.error('답변 등록 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (!user || user.role !== 'seller') {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
   if (loading) {
@@ -197,9 +200,10 @@ export default function ReplyInquiry() {
 
   return (
     <>
+      <Toaster position="bottom-center" />
       <ProductHeader />
       <div className={styles.page}>
-        {/* Inquiry Details Section */}
+        {/* Inquiry Details */}
         <div className={styles.inquirySection}>
           <div className={styles.inquiryHeader}>
             <div className={styles.userInfo}>
@@ -212,7 +216,6 @@ export default function ReplyInquiry() {
                 <span className={styles.userName}>{inquiry.name}</span>
               </div>
 
-              {/* Meta line: Category | ProductName | Date */}
               <div className={styles.inquiryMeta}>
                 {mapApiCategoryToUI(inquiry.category)} | {inquiry.productName} |{' '}
                 {formatDate(inquiry.date)}

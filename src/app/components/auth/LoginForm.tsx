@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-/* import { FaChevronLeft } from 'react-icons/fa'; */
 import styles from './LoginForm.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { useRouter } from 'next/navigation';

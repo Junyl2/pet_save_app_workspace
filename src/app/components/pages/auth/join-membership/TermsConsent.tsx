@@ -4,6 +4,7 @@ import styles from './TermsConsent.module.css';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { FaChevronLeft } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 
 type CheckboxKey =
   | 'all'
@@ -84,7 +85,7 @@ export default function TermsConsent() {
       router.push('/client/join-membership/membership-information');
     } catch (error) {
       console.error('Failed to submit terms consent', error);
-      alert('약관 동의 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      toast.error('약관 동의 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
     }
   };
 
