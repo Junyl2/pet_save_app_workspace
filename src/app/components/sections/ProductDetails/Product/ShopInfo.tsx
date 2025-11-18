@@ -42,12 +42,10 @@ export const ShopInfo = ({
         onClick={handleShopClick}
         style={{ cursor: 'pointer' }}
       >
-        <Image
+        <img
           src={shopImage || defaultProfile.image}
           alt={shopName || '판매처'}
-          width={35}
-          height={35}
-          style={{ borderRadius: '50%', objectFit: 'cover' }}
+          className={styles.shopProfile}
         />
         <div className={styles.shopInfo}>
           <h2 className={styles.hospital}>

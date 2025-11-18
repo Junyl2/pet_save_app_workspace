@@ -22,7 +22,6 @@ import { LuAlarmClock } from 'react-icons/lu';
 import { FaStar } from 'react-icons/fa6';
 import { BsBoxSeam } from 'react-icons/bs';
 import Loading from '@/app/components/ui/Loading/Loading';
-import Image from 'next/image';
 import toast, { Toaster } from 'react-hot-toast';
 import { ContactDrawer } from '@/app/components/ui/drawer/ContactDrawer/ContactDrawer';
 
@@ -182,12 +181,10 @@ export default function SellerDetailsPage() {
 
           {profileImage && (
             <div className={styles.profileWrapper}>
-              <Image
+              <img
                 src={profileImage}
                 alt={store.businessName}
                 className={styles.profileImage}
-                height={70}
-                width={70}
               />
               <h1 className={styles.sellerName}>{store.businessName}</h1>
             </div>

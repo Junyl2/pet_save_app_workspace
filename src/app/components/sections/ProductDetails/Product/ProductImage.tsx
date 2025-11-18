@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
 import {
   FiMoreHorizontal,
   FiChevronLeft,
@@ -32,6 +31,7 @@ export const ProductImage = ({
   const [product, setProduct] = useState<
     ProductDetails | ProductSummary | null
   >(initialProduct ?? null);
+
   const [images, setImages] = useState<string[]>(
     (initialProduct &&
     'images' in initialProduct &&
@@ -39,16 +39,18 @@ export const ProductImage = ({
       ? initialProduct.images
       : []) || (src ? [src] : [])
   );
+
   const [loading, setLoading] = useState(false);
   const [index, setIndex] = useState(0);
 
   const totalImages = images.length || 1;
+
   const displaySrc = useMemo(
     () => images[index] ?? src ?? '/images/placeholder.png',
     [images, index, src]
   );
 
-  // Fetch product details if productId provided
+  // Fetch product if needed
   useEffect(() => {
     if (initialProduct) return;
     if (!productId) return;
@@ -63,6 +65,7 @@ export const ProductImage = ({
         const json = (await res.json()) as ProductDetailsResponse;
         if (cancelled) return;
         const data = json.data;
+
         setProduct(data);
         setImages(data?.images?.length ? data.images : src ? [src] : []);
         setIndex(0);
@@ -78,7 +81,7 @@ export const ProductImage = ({
     };
   }, [productId, initialProduct, src]);
 
-  // Swipe & drag support
+  // Swipe & drag
   const startX = useRef<number | null>(null);
   const isDragging = useRef(false);
   const threshold = 50;
@@ -86,7 +89,6 @@ export const ProductImage = ({
   const goNext = () => {
     if (index < totalImages - 1) setIndex((i) => i + 1);
   };
-
   const goPrev = () => {
     if (index > 0) setIndex((i) => i - 1);
   };
@@ -95,15 +97,10 @@ export const ProductImage = ({
     startX.current = e.touches[0].clientX;
     isDragging.current = true;
   };
-
   const onTouchEnd = (e: React.TouchEvent) => {
     if (!isDragging.current || startX.current === null) return;
-    const endX = e.changedTouches[0].clientX;
-    const delta = endX - startX.current;
-    if (Math.abs(delta) > threshold) {
-      if (delta < 0) goNext();
-      else goPrev();
-    }
+    const delta = e.changedTouches[0].clientX - startX.current;
+    if (Math.abs(delta) > threshold) delta < 0 ? goNext() : goPrev();
     isDragging.current = false;
     startX.current = null;
   };
@@ -112,14 +109,10 @@ export const ProductImage = ({
     startX.current = e.clientX;
     isDragging.current = true;
   };
-
   const onMouseUp = (e: React.MouseEvent) => {
     if (!isDragging.current || startX.current === null) return;
     const delta = e.clientX - startX.current;
-    if (Math.abs(delta) > threshold) {
-      if (delta < 0) goNext();
-      else goPrev();
-    }
+    if (Math.abs(delta) > threshold) delta < 0 ? goNext() : goPrev();
     isDragging.current = false;
     startX.current = null;
   };
@@ -132,41 +125,24 @@ export const ProductImage = ({
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
     >
-      {/* Image */}
-      <Image
-        src={displaySrc}
-        alt={alt}
-        fill
-        className={styles.image}
-        style={{ objectFit: 'contain' }}
-      />
+      {/* Real img tag replacement */}
+      <img src={displaySrc} alt={alt} className={styles.image} />
 
-      {/* Prev / Next buttons */}
       {index > 0 && (
-        <button
-          className={styles.navLeft}
-          onClick={goPrev}
-          aria-label="Previous image"
-        >
+        <button className={styles.navLeft} onClick={goPrev}>
           <FiChevronLeft size={22} />
         </button>
       )}
       {index < totalImages - 1 && (
-        <button
-          className={styles.navRight}
-          onClick={goNext}
-          aria-label="Next image"
-        >
+        <button className={styles.navRight} onClick={goNext}>
           <FiChevronRight size={22} />
         </button>
       )}
 
-      {/* Menu */}
       <div className={styles.menuWrapper}>
         <button
           className={styles.menuBtn}
           onClick={() => setMenuOpen((prev) => !prev)}
-          aria-label="Open image menu"
         >
           <FiMoreHorizontal size={20} />
         </button>
@@ -186,14 +162,12 @@ export const ProductImage = ({
         </div>
       )}
 
-      {/* Report Modal */}
       <ReportModal
         show={reportOpen}
         onClose={() => setReportOpen(false)}
         product={product ?? undefined}
       />
 
-      {/* Real image index */}
       <div className={styles.indexIndicator}>
         {index + 1}/{totalImages}
       </div>
