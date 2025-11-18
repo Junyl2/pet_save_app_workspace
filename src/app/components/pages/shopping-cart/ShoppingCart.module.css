@@ -33,6 +33,12 @@
   padding: 1rem 0rem !important;
   background-color: #fff;
 }
+.imageThumb {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  object-position: center;
+}
 
 .right {
   display: flex;

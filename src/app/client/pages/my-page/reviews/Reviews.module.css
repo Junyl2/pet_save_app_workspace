@@ -92,7 +92,7 @@
   flex-shrink: 0;
 }
 
-.productImage > span {
+/* .productImage > span {
   width: 100% !important;
   height: 100% !important;
   min-width: 70px !important;
@@ -107,15 +107,12 @@
   object-fit: cover !important;
   display: block !important;
   position: relative !important;
-}
+} */
 
 .thumb {
-  width: 100% !important;
-  height: 100% !important;
-  min-width: 70px !important;
+  width: 70px !important;
+  height: 70px !important;
   object-fit: cover !important;
-  display: block !important;
-  position: relative !important;
 }
 
 /* .productImage img {

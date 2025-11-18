@@ -30,7 +30,9 @@ export default function OrderHistoryItem({
   const handleDetailClick = (): void => {
     // Store the current order history URL with query parameters before navigating
     // This ensures we can return to the exact same page after deleting
-    const currentUrl = `${pathname}${searchParams?.toString() ? `?${searchParams.toString()}` : ''}`;
+    const currentUrl = `${pathname}${
+      searchParams?.toString() ? `?${searchParams.toString()}` : ''
+    }`;
     sessionStorage.setItem('orderHistoryReturnUrl', currentUrl);
 
     // Navigate to order detail
@@ -48,11 +50,9 @@ export default function OrderHistoryItem({
 
       <div className={styles.body}>
         <div className={styles.imageWrapper}>
-          <Image
+          <img
             src={product.image ?? '/placeholder.png'}
             alt={product.name}
-            width={80}
-            height={80}
             className={styles.image}
           />
         </div>

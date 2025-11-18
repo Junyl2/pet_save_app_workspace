@@ -236,11 +236,9 @@ export default function PointsPage() {
           <div className={styles.productList}>
             {visibleProducts.map((product) => (
               <div key={product.orderItemId} className={styles.productItem}>
-                <Image
+                <img
                   src={product.image}
                   alt={product.name}
-                  width={70}
-                  height={70}
                   className={styles.productImage}
                 />
                 <div className={styles.productInfo}>

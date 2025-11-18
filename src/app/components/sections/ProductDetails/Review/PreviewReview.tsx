@@ -6,7 +6,6 @@ import { IoStarSharp } from 'react-icons/io5';
 import { Review } from '@/app/api/types/member/review/review';
 import styles from './PreviewReview.module.css';
 import { BiChevronRight } from 'react-icons/bi';
-import Image from 'next/image';
 
 interface CustomerReviewProps {
   productId: string | number;
@@ -15,14 +14,12 @@ interface CustomerReviewProps {
 const ReviewItem = ({ review }: { review: Review }) => {
   return (
     <li className={styles.reviewItem}>
-      <Image
+      <img
         src={
           review.reviewer.profileImageUrl || '/images/icons/profile-default.png'
         }
         alt={review.reviewer.name}
         className={styles.avatar}
-        height={35}
-        width={35}
       />
       <div className={styles.reviewContent}>
         <div className={styles.rating}>

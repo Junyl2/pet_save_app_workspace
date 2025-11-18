@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import Image from 'next/image';
 import { IoStarSharp } from 'react-icons/io5';
 import { FiMoreHorizontal } from 'react-icons/fi';
 import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
@@ -181,14 +180,12 @@ export const CustomerReviews = ({ productId }: CustomerReviewsProps) => {
             )}
 
             <div className={styles.header}>
-              <Image
+              <img
                 src={
                   review.reviewer.profileImageUrl ||
                   '/images/icons/profile-default.png'
                 }
                 alt={review.reviewer.name}
-                width={40}
-                height={40}
                 className={styles.avatar}
               />
               <div className={styles.right}>

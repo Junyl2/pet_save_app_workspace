@@ -627,19 +627,12 @@ export default function ShoppingCartPage() {
                   </div>
                   <div className={styles.left}>
                     <div className={styles.thumb}>
-                      <Image
+                      <img
                         src={
                           product.image ?? '/images/products/placeholder.png'
                         }
                         alt={product.name || 'Product Image'}
-                        width={70}
-                        height={70}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          objectPosition: 'center',
-                        }}
+                        className={styles.imageThumb}
                       />
                     </div>
                   </div>

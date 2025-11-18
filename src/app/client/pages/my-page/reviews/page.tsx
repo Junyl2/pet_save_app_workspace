@@ -208,13 +208,10 @@ export default function ReviewsPage() {
                         className={styles.productItem}
                       >
                         <div className={styles.productImage}>
-                          <Image
+                          <img
                             src={product.productImageUrl}
                             alt={product.productName}
-                            width={70}
-                            height={70}
                             className={styles.thumb}
-                            unoptimized
                           />
                         </div>
                         <div className={styles.productInfo}>
