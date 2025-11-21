@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  background-color: #f2f4f7;
+  min-height: calc(100vh - 64px);
 }
 
 .loading,
@@ -56,12 +58,15 @@
   color: #f5a623; /* star color */
   margin: 0;
 }
-
+.productName {
+  margin: 0;
+}
 /* Review content */
 .content {
   font-size: 14px;
   color: #333;
   line-height: 1.4;
+  margin: 0;
 }
 /* images */
 .images {
@@ -82,6 +87,7 @@
   object-fit: cover;
   cursor: pointer;
   flex-shrink: 0;
+  background-color: #f0f0f0;
 }
 
 /* Hover effect for images */
@@ -104,7 +110,6 @@
 
 .authorDate {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 0.2rem;
 }

@@ -4,8 +4,9 @@
   left: 0;
   width: 100%;
   background: #ffffff;
-  border-top: 1px solid #e5e7eb;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   z-index: 800;
+  border-radius: 10px 10px 0px 0px;
 }
 
 .list {
@@ -26,6 +27,7 @@
   cursor: pointer;
   transition: color 0.2s ease-in-out;
   color: rgba(0, 0, 0, 0.6);
+  gap: 6px;
 }
 
 .icon {
@@ -37,9 +39,9 @@
 }
 
 .label {
-  margin-top: 0.25rem;
   color: rgba(0, 0, 0, 0.6);
   transition: color 0.2s ease-in-out;
+  font-size: 10px !important;
 }
 
 /* hover + active state for BOTH icon + label */
@@ -48,6 +50,7 @@
 .item.active .icon,
 .item.active .label {
   color: #66bfa7;
+  font-weight: 700 !important;
 }
 
 @media (min-width: 1025px) {
@@ -55,6 +58,6 @@
     width: 468px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 1rem 1rem 0 0;
+    border-radius: 10px 10px 0 0;
   }
 }

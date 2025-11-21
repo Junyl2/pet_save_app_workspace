@@ -1,5 +1,5 @@
-import FindPassword from '@/app/components/pages/auth/reset-password/FindPassword';
+import SelectVerification from '../../../components/pages/auth/find-id/SelectVerification';
 
-export default function ResetPassword() {
-  return <FindPassword />;
+export default function FindIdPage() {
+  return <SelectVerification />;
 }

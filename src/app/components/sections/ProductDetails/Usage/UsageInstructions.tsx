@@ -5,18 +5,34 @@ import { usageInstructionsService } from '@/app/api/services/usage-instructions/
 import { UsageInstruction } from '@/app/api/types/usageInstructions/usageInstructions';
 import styles from './UsageInstructions.module.css';
 
-export const UsageInstructions = () => {
+interface UsageInstructionsProps {
+  pickupLocation?: string;
+  openingHourStart?: string | null;
+  openingHourEnd?: string | null;
+}
+
+export const UsageInstructions = ({
+  pickupLocation,
+  openingHourStart,
+  openingHourEnd,
+}: UsageInstructionsProps) => {
   const [instructions, setInstructions] = useState<UsageInstruction[]>([]);
 
   useEffect(() => {
-    usageInstructionsService.getAll().then(setInstructions);
-  }, []);
+    usageInstructionsService
+      .getAll({
+        pickupLocation,
+        openingHourStart,
+        openingHourEnd,
+      })
+      .then(setInstructions);
+  }, [pickupLocation, openingHourStart, openingHourEnd]);
 
   return (
     <section className={styles.section}>
-      {instructions.map((item) => (
+      {instructions.map((item, index) => (
         <div key={item.id}>
-          <h3>{item.title}</h3>
+          {index === 0 ? <h3>{item.title}</h3> : <h4>{item.title}</h4>}
           {item.description && <p>{item.description}</p>}
           {item.listItems && (
             <ul>

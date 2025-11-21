@@ -1,68 +1,59 @@
 'use client';
 
 import styles from './AddressList.module.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { FiArrowLeft } from 'react-icons/fi';
+import { DeliveryAddressService } from '@/app/api/services/client/memberService/member-information/deliveryAddressService';
+import type { DeliveryAddress } from '@/app/api/types/member/member-information/member-information';
 
-type Address = {
-  id: number;
-  label: string;
-  name: string;
-  postalCode: string;
-  address: string;
+// Explicit types for form state to avoid implicit anys
+type EditFormState = {
+  zipCode: string;
+  roadAddress: string;
+  detailedAddress: string;
+  default: boolean;
+  addressTitle: string;
+  receiverName: string;
+  receiverPhone: string;
 };
 
-const initialAddresses: Address[] = [
-  {
-    id: 1,
-    label: '기본 배송지',
-    name: '펫세이브',
-    postalCode: '04580',
-    address: '서울특별시 중구 왕십리로 407 5층',
-  },
-  {
-    id: 2,
-    label: '회사',
-    name: '김민준',
-    postalCode: '06134',
-    address: '서울특별시 강남구 테헤란로 152 강남파이낸스센터 21층',
-  },
-  {
-    id: 3,
-    label: '부모님 댁',
-    name: '박서연',
-    postalCode: '48058',
-    address: '부산광역시 해운대구 마린시티2로 33 두산위브더제니스 101동 2504호',
-  },
-  {
-    id: 4,
-    label: '제주도 별장',
-    name: '이도현',
-    postalCode: '63564',
-    address: '제주특별자치도 서귀포시 안덕면 신화역사로304번길 38',
-  },
-  {
-    id: 5,
-    label: '친구 집',
-    name: '최지우',
-    postalCode: '22005',
-    address: '인천광역시 연수구 컨벤시아대로 165 송도힐스테이트 402동 1101호',
-  },
-];
+type NewAddressFormState = EditFormState;
 
 export default function AddressList() {
-  const [addresses] = useState<Address[]>(initialAddresses);
-  const [selectedId, setSelectedId] = useState<number | null>(1);
-  const [defaultId, setDefaultId] = useState<number>(1);
+  const [apiAddresses, setApiAddresses] = useState<DeliveryAddress[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [defaultId, setDefaultId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+
+  // EDIT form state (includes new fields)
+  const [editForm, setEditForm] = useState<EditFormState>({
+    zipCode: '',
+    roadAddress: '',
+    detailedAddress: '',
+    default: false,
+    addressTitle: '',
+    receiverName: '',
+    receiverPhone: '',
+  });
+
+  // NEW form state (includes new fields)
+  const [newAddressForm, setNewAddressForm] = useState<NewAddressFormState>({
+    zipCode: '',
+    roadAddress: '',
+    detailedAddress: '',
+    default: false,
+    addressTitle: '',
+    receiverName: '',
+    receiverPhone: '',
+  });
 
   const router = useRouter();
-
-  /*  const selectedLabel = useMemo(
-    () => addresses.find((a) => a.id === selectedId)?.label ?? '',
-    [addresses, selectedId]
-  ); */
+  const pathname = usePathname();
 
   // Custom toast with 확인 button
   const showConfirmToast = (message: string) => {
@@ -86,27 +77,298 @@ export default function AddressList() {
               border: 'none',
               color: '#fff',
             }}
-            onClick={() => toast.dismiss(t.id)}
+            onClick={() => {
+              toast.dismiss(t.id);
+              if (
+                pathname ===
+                '/client/pages/shopping-cart/delivery-payment/address-list'
+              ) {
+                router.back();
+              }
+            }}
           >
             확인
           </button>
         </div>
       ),
-      {
-        position: 'bottom-center',
-      }
+      { position: 'bottom-center' }
     );
   };
 
-  const handleAddAddress = () => {
-    showConfirmToast('배송지가 변경 되었습니다.');
+  const handleSetDefault = async () => {
+    if (!selectedId) return;
+    const selected = apiAddresses.find(
+      (a) => a.deliveryAddressId === selectedId
+    );
+    if (!selected) return;
+    try {
+      setIsSaving(true);
+      const response = await DeliveryAddressService.updateDeliveryAddress(
+        selectedId,
+        {
+          roadAddress: selected.roadAddress,
+          detailedAddress: selected.detailedAddress,
+          zipCode: selected.zipCode,
+          isDefault: true,
+          // not required to resend title/receiver/phone for default toggle
+        }
+      );
+      if (response?.data?.success) {
+        setApiAddresses((prev) =>
+          prev.map((a) => ({
+            ...a,
+            default: a.deliveryAddressId === selectedId,
+          }))
+        );
+        setDefaultId(selectedId);
+        showConfirmToast('기본 배송지가 설정되었습니다.');
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSetDefault = () => {
-    if (!selectedId) return;
-    setDefaultId(selectedId);
-    showConfirmToast('기본 배송지가 변경 되었습니다.');
+  const handleEditAddress = (addressId: string) => {
+    const address = apiAddresses.find((a) => a.deliveryAddressId === addressId);
+    if (!address) return;
+    setEditingId(addressId);
+    setEditForm({
+      zipCode: address.zipCode || '',
+      roadAddress: address.roadAddress || '',
+      detailedAddress: address.detailedAddress || '',
+      default: !!address.default,
+      addressTitle: address.addressTitle || '',
+      receiverName: address.receiverName || '',
+      receiverPhone: address.receiverPhone || '',
+    });
   };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditForm({
+      zipCode: '',
+      roadAddress: '',
+      detailedAddress: '',
+      default: false,
+      addressTitle: '',
+      receiverName: '',
+      receiverPhone: '',
+    });
+  };
+
+  const handleEditFormChange = (
+    field: keyof EditFormState,
+    value: string | boolean
+  ) => {
+    setEditForm((prev) => ({ ...prev, [field]: value as never }));
+
+    if (field === 'default' && value === true && editingId) {
+      setSelectedId(editingId);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return;
+    try {
+      setIsSaving(true);
+
+      // Send full payload (including new fields)
+      const response = await DeliveryAddressService.updateDeliveryAddress(
+        editingId,
+        {
+          roadAddress: editForm.roadAddress,
+          detailedAddress: editForm.detailedAddress,
+          zipCode: editForm.zipCode,
+          isDefault: editForm.default, // <-- if checked, API sets this one as default
+          addressTitle: editForm.addressTitle,
+          receiverName: editForm.receiverName,
+          receiverPhone: editForm.receiverPhone,
+        }
+      );
+
+      if (response?.data?.success) {
+        // Always update edited address fields
+        if (editForm.default) {
+          // SAME BEHAVIOR AS BOTTOM BAR: only this one is default, others false
+          setApiAddresses((prev) =>
+            prev.map((a) =>
+              a.deliveryAddressId === editingId
+                ? {
+                    ...a,
+                    roadAddress: editForm.roadAddress,
+                    detailedAddress: editForm.detailedAddress,
+                    zipCode: editForm.zipCode,
+                    default: true,
+                    addressTitle: editForm.addressTitle,
+                    receiverName: editForm.receiverName,
+                    receiverPhone: editForm.receiverPhone,
+                  }
+                : { ...a, default: false }
+            )
+          );
+          setDefaultId(editingId);
+          setSelectedId(editingId);
+        } else {
+          // Just update fields; leave default mapping unchanged
+          setApiAddresses((prev) =>
+            prev.map((a) =>
+              a.deliveryAddressId === editingId
+                ? {
+                    ...a,
+                    roadAddress: editForm.roadAddress,
+                    detailedAddress: editForm.detailedAddress,
+                    zipCode: editForm.zipCode,
+                    addressTitle: editForm.addressTitle,
+                    receiverName: editForm.receiverName,
+                    receiverPhone: editForm.receiverPhone,
+                  }
+                : a
+            )
+          );
+        }
+
+        setEditingId(null);
+        showConfirmToast('배송지가 수정되었습니다.');
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelAdd = () => {
+    setIsAddingNew(false);
+    setNewAddressForm({
+      zipCode: '',
+      roadAddress: '',
+      detailedAddress: '',
+      default: false,
+      addressTitle: '',
+      receiverName: '',
+      receiverPhone: '',
+    });
+  };
+
+  const handleNewAddressFormChange = (
+    field: keyof NewAddressFormState,
+    value: string | boolean
+  ) => {
+    setNewAddressForm((prev) => ({ ...prev, [field]: value as never }));
+  };
+
+  const handleSaveNewAddress = async () => {
+    // Validate required fields the API enforces
+    if (!newAddressForm.addressTitle.trim()) {
+      toast.error('배송지명을 입력하세요.');
+      return;
+    }
+    if (!newAddressForm.receiverName.trim()) {
+      toast.error('수령인 이름을 입력하세요.');
+      return;
+    }
+    if (!newAddressForm.receiverPhone.trim()) {
+      toast.error('수령인 연락처를 입력하세요.');
+      return;
+    }
+    if (!newAddressForm.zipCode.trim()) {
+      toast.error('우편번호를 입력하세요.');
+      return;
+    }
+    if (!newAddressForm.roadAddress.trim()) {
+      toast.error('도로명 주소를 입력하세요.');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const response = await DeliveryAddressService.createDeliveryAddress({
+        roadAddress: newAddressForm.roadAddress,
+        detailedAddress: newAddressForm.detailedAddress,
+        zipCode: newAddressForm.zipCode,
+        default: newAddressForm.default,
+        addressTitle: newAddressForm.addressTitle,
+        receiverName: newAddressForm.receiverName,
+        receiverPhone: newAddressForm.receiverPhone,
+      });
+      if (response?.data?.success && response.data.data) {
+        const created = response.data.data as DeliveryAddress;
+        setApiAddresses((prev) => [...prev, created]);
+        if (created.default) {
+          setDefaultId(created.deliveryAddressId);
+          setSelectedId(created.deliveryAddressId);
+        }
+        setIsAddingNew(false);
+        showConfirmToast('배송지가 추가되었습니다.');
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // NEW: delete handler using the new endpoint
+  const handleDeleteAddress = async (addressId: string) => {
+    const target = apiAddresses.find((a) => a.deliveryAddressId === addressId);
+    if (!target) return;
+
+    if (!window.confirm('이 배송지를 삭제하시겠습니까?')) return;
+
+    try {
+      setIsDeletingId(addressId);
+
+      const res = await DeliveryAddressService.deleteDeliveryAddress(addressId);
+
+      if (res?.data?.success) {
+        setApiAddresses((prev) =>
+          prev.filter((a) => a.deliveryAddressId !== addressId)
+        );
+
+        setSelectedId((prevSelected) => {
+          if (prevSelected === addressId) {
+            const remaining = apiAddresses.filter(
+              (a) => a.deliveryAddressId !== addressId
+            );
+            return remaining.length ? remaining[0].deliveryAddressId : null;
+          }
+          return prevSelected;
+        });
+
+        setDefaultId((prevDefault) =>
+          prevDefault === addressId ? null : prevDefault
+        );
+
+        showConfirmToast('배송지가 삭제되었습니다.');
+      } else {
+        toast.error('삭제에 실패했습니다.');
+      }
+    } catch {
+      toast.error('삭제 중 오류가 발생했습니다.');
+    } finally {
+      setIsDeletingId(null);
+    }
+  };
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        const response = await DeliveryAddressService.getDeliveryAddresses();
+        if (response?.data?.success && Array.isArray(response.data.data)) {
+          const list = response.data.data as DeliveryAddress[];
+          setApiAddresses(list);
+          const defaultAddr = list.find((a) => a.default);
+          if (defaultAddr) {
+            setDefaultId(defaultAddr.deliveryAddressId);
+            setSelectedId(defaultAddr.deliveryAddressId);
+          } else if (list.length > 0) {
+            setSelectedId(list[0].deliveryAddressId);
+          }
+        } else {
+          setApiAddresses([]);
+        }
+      } catch {
+        setApiAddresses([]);
+      }
+    };
+    fetchAddresses();
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -114,7 +376,7 @@ export default function AddressList() {
       <div className={styles.topBar}>
         <button
           className={styles.backButton}
-          onClick={() => router.back()}
+          onClick={() => router.back()} // remove unused event param
           aria-label="뒤로가기"
         >
           <FiArrowLeft size={24} />
@@ -147,50 +409,327 @@ export default function AddressList() {
         }}
       />
 
-      {/*   {selectedId && (
-        <div className={styles.selectedLabel}>
-          선택된 배송지: <strong>{selectedLabel}</strong>
-        </div>
-      )}
- */}
-      {addresses.map((addr) => (
-        <div key={addr.id} className={styles.card}>
-          <label className={styles.radioWrapper}>
-            <input
-              type="radio"
-              name="address"
-              checked={selectedId === addr.id}
-              onChange={() => setSelectedId(addr.id)}
-            />
-            <span className={styles.customRadio}></span>
-          </label>
+      {apiAddresses.map((api) => {
+        const postal = api.zipCode;
+        const fullAddress = `${api.roadAddress} ${
+          api.detailedAddress || ''
+        }`.trim();
+        return (
+          <div key={api.deliveryAddressId} className={styles.card}>
+            {editingId === api.deliveryAddressId ? (
+              <div className={styles.cardContent}>
+                <h3 className={styles.label}>배송지 수정</h3>
 
-          <div className={styles.cardContent}>
-            <h3
-              className={`${styles.label} ${
-                selectedId === addr.id ? styles.labelSelected : ''
-              }`}
-            >
-              {addr.label}
-              {defaultId === addr.id && (
-                <span className={styles.defaultBadge}>기본</span>
-              )}
-            </h3>
-            <p className={styles.name}>{addr.name}</p>
-            <p className={styles.postal}>({addr.postalCode})</p>
-            <p className={styles.address}>{addr.address}</p>
-            <div className={styles.editBtnContainer}>
-              <button className={styles.editBtn}>수정하기</button>
-            </div>
+                {/* Address Title */}
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>배송지명</label>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    value={editForm.addressTitle}
+                    onChange={(e) =>
+                      handleEditFormChange('addressTitle', e.target.value)
+                    }
+                    placeholder="예: 우리집, 회사"
+                  />
+                </div>
+
+                {/* Receiver Name */}
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>수령인</label>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    value={editForm.receiverName}
+                    onChange={(e) =>
+                      handleEditFormChange('receiverName', e.target.value)
+                    }
+                    placeholder="수령인 이름"
+                  />
+                </div>
+
+                {/* Receiver Phone */}
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>연락처</label>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    value={editForm.receiverPhone}
+                    onChange={(e) =>
+                      handleEditFormChange('receiverPhone', e.target.value)
+                    }
+                    placeholder="예: 010-1234-5678"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>우편번호</label>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    value={editForm.zipCode}
+                    onChange={(e) =>
+                      handleEditFormChange('zipCode', e.target.value)
+                    }
+                    placeholder="12345"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>주소</label>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    value={editForm.roadAddress}
+                    onChange={(e) =>
+                      handleEditFormChange('roadAddress', e.target.value)
+                    }
+                    placeholder="도로명 주소"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>상세 주소</label>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    value={editForm.detailedAddress}
+                    onChange={(e) =>
+                      handleEditFormChange('detailedAddress', e.target.value)
+                    }
+                    placeholder="동/호수, 건물명 등"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={editForm.default}
+                      onChange={(e) =>
+                        handleEditFormChange('default', e.target.checked)
+                      }
+                      className={styles.checkbox}
+                    />
+                    기본 배송지로 설정
+                  </label>
+                </div>
+
+                <div className={styles.editBtnContainer}>
+                  <button
+                    className={styles.btnOutline}
+                    onClick={handleCancelEdit}
+                    disabled={isSaving}
+                  >
+                    취소
+                  </button>
+                  <button
+                    className={styles.btnPrimary}
+                    onClick={handleSaveEdit}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? '저장 중...' : '저장'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className={styles.addressItem}>
+                  <label className={styles.radioWrapper}>
+                    <input
+                      type="radio"
+                      name="address"
+                      checked={selectedId === api.deliveryAddressId}
+                      onChange={() => setSelectedId(api.deliveryAddressId)}
+                    />
+                    <span className={styles.customRadio}></span>
+                  </label>
+                  <div className={styles.cardContent}>
+                    <h3
+                      className={`${styles.label} ${
+                        selectedId === api.deliveryAddressId
+                          ? styles.labelSelected
+                          : ''
+                      }`}
+                    >
+                      {/* Address Title shown here */}
+                      {api.addressTitle || '배송지'}
+                      {defaultId === api.deliveryAddressId && (
+                        <span className={styles.defaultBadge}>기본</span>
+                      )}
+                    </h3>
+
+                    {/* Receiver name shown here */}
+                    <p className={styles.name}>
+                      {api.receiverName || '수령인 미지정'}
+                    </p>
+
+                    {/* Phone number shown here */}
+                    {api.receiverPhone && (
+                      <p className={styles.phone}>{api.receiverPhone}</p>
+                    )}
+
+                    <p className={styles.postal}>({postal})</p>
+                    <p className={styles.address}>{fullAddress}</p>
+                  </div>
+                </div>
+                <div className={styles.editBtnContainer}>
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => handleEditAddress(api.deliveryAddressId)}
+                  >
+                    수정하기
+                  </button>
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={() => handleDeleteAddress(api.deliveryAddressId)}
+                    disabled={isDeletingId === api.deliveryAddressId}
+                    aria-label="배송지 삭제"
+                    title="삭제"
+                  >
+                    {isDeletingId === api.deliveryAddressId
+                      ? '삭제 중…'
+                      : '삭제'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Fixed bottom action bar */}
       <div className={styles.bottomBar}>
-        <button className={styles.btnOutline} onClick={handleAddAddress}>
-          배송지 추가
-        </button>
+        {isAddingNew ? (
+          <div className={styles.card}>
+            <div className={styles.cardContent}>
+              <h3 className={styles.label}>새 배송지 추가</h3>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>배송지명</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  value={newAddressForm.addressTitle}
+                  onChange={(e) =>
+                    handleNewAddressFormChange('addressTitle', e.target.value)
+                  }
+                  placeholder="예: 우리집, 회사"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>수령인</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  value={newAddressForm.receiverName}
+                  onChange={(e) =>
+                    handleNewAddressFormChange('receiverName', e.target.value)
+                  }
+                  placeholder="수령인 이름"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>연락처</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  value={newAddressForm.receiverPhone}
+                  onChange={(e) =>
+                    handleNewAddressFormChange('receiverPhone', e.target.value)
+                  }
+                  placeholder="예: 010-1234-5678"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>우편번호</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  value={newAddressForm.zipCode}
+                  onChange={(e) =>
+                    handleNewAddressFormChange('zipCode', e.target.value)
+                  }
+                  placeholder="12345"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>주소</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  value={newAddressForm.roadAddress}
+                  onChange={(e) =>
+                    handleNewAddressFormChange('roadAddress', e.target.value)
+                  }
+                  placeholder="도로명 주소"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>상세 주소</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  value={newAddressForm.detailedAddress}
+                  onChange={(e) =>
+                    handleNewAddressFormChange(
+                      'detailedAddress',
+                      e.target.value
+                    )
+                  }
+                  placeholder="동/호수, 건물명 등"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={newAddressForm.default}
+                    onChange={(e) =>
+                      handleNewAddressFormChange('default', e.target.checked)
+                    }
+                    className={styles.checkbox}
+                  />
+                  기본 배송지로 설정
+                </label>
+              </div>
+
+              <div className={styles.editBtnContainer}>
+                <button
+                  className={styles.btnOutline}
+                  onClick={handleCancelAdd}
+                  disabled={isSaving}
+                >
+                  취소
+                </button>
+                <button
+                  className={styles.btnPrimary}
+                  onClick={handleSaveNewAddress}
+                  disabled={isSaving}
+                >
+                  {isSaving ? '저장 중...' : '저장'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button
+            className={styles.btnOutline}
+            onClick={() =>
+              router.push(
+                '/client/pages/my-page/delivery-address-management/add-address'
+              )
+            } // removed any unused event param
+          >
+            배송지 추가
+          </button>
+        )}
         <button
           className={styles.btnPrimary}
           onClick={handleSetDefault}

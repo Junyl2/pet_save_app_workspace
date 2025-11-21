@@ -1,0 +1,269 @@
+/* Base skeleton animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* Container - matches Reviews page layout */
+.container {
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+.content {
+  padding: 0;
+}
+
+/* Tab Navigation Skeleton */
+.tabContainer {
+  display: flex;
+  border-bottom: 1px solid #e5e5e5;
+  margin: 0 -16px 0.5rem -16px;
+}
+
+.tabSkeleton {
+  composes: skeleton;
+  flex: 1;
+  height: 48px;
+  margin: 0 8px;
+}
+
+.activeTabSkeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-bottom: 2px solid #8bc4a8;
+}
+
+/* Write Review Section Skeleton */
+.writeReviewSection {
+  /* No additional styles needed - inherits from parent */
+}
+
+.sectionTitleSkeleton {
+  composes: skeleton;
+  height: 48px;
+  margin: 0 -16px 12px -16px;
+  background-color: #f2f4f7;
+}
+
+.productList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.productItem {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f1f3f4;
+  margin: 0 -16px;
+}
+
+.productItem:last-child {
+  border-bottom: none;
+}
+
+.productImageSkeleton {
+  composes: skeleton;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.productInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-right: 12px;
+}
+
+.productNameSkeleton {
+  composes: skeleton;
+  width: 180px;
+  height: 14px;
+}
+
+.productPriceSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 16px;
+}
+
+.productStoreSkeleton {
+  composes: skeleton;
+  width: 100px;
+  height: 12px;
+}
+
+.reviewButtonSkeleton {
+  composes: skeleton;
+  width: 70px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+/* My Reviews Section Skeleton */
+.myReviewsSection {
+  padding: 20px 0;
+}
+
+.detailedReviewContainer {
+  /* No additional styles needed */
+}
+
+.detailedReview {
+  padding: 20px 16px;
+  border-bottom: 1px solid #f1f3f4;
+  margin: 0 -16px;
+}
+
+.detailedReview:last-child {
+  border-bottom: none;
+}
+
+/* Review Header Skeleton */
+.reviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.userInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.profileImageSkeleton {
+  composes: skeleton;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.userDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.usernameAndRating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.usernameSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 16px;
+}
+
+.starsContainer {
+  display: flex;
+  gap: 2px;
+}
+
+.starSkeleton {
+  composes: skeleton;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.userIdAndDateSkeleton {
+  composes: skeleton;
+  width: 120px;
+  height: 12px;
+}
+
+.editButtonSkeleton {
+  composes: skeleton;
+  width: 60px;
+  height: 28px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Product Name Skeleton */
+.reviewProductNameSkeleton {
+  composes: skeleton;
+  width: 200px;
+  height: 16px;
+  margin-bottom: 16px;
+}
+
+/* Review Images Skeleton */
+.reviewImagesContainer {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.reviewImageItemSkeleton {
+  composes: skeleton;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+/* Review Text Skeleton */
+.reviewTextContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reviewTextLineSkeleton {
+  composes: skeleton;
+  width: 100%;
+  height: 14px;
+}
+
+.reviewTextLineShortSkeleton {
+  composes: skeleton;
+  width: 60%;
+  height: 14px;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .productNameSkeleton {
+    width: 150px;
+  }
+
+  .reviewProductNameSkeleton {
+    width: 160px;
+  }
+
+  .usernameSkeleton {
+    width: 60px;
+  }
+
+  .userIdAndDateSkeleton {
+    width: 100px;
+  }
+}

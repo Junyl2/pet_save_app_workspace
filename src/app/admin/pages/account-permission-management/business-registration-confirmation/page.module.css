@@ -1,0 +1,99 @@
+.wrapper {
+  width: 100%;
+  margin: 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  color: #131313;
+}
+
+.headerRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr 1.2fr 1fr 0.8fr;
+  background-color: #f1f9f6;
+  color: #1f4a31;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+}
+
+.dataRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr 1.2fr 1fr 0.8fr;
+  background-color: #ffffff;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.dataRow:last-child {
+  border-bottom: none;
+}
+
+.col {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .wrapper {
+    font-size: 14px;
+  }
+
+  .headerRow,
+  .dataRow {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .headerRow div:nth-child(n + 4),
+  .dataRow div:nth-child(n + 4) {
+    display: none;
+  }
+}
+
+/* Buttons */
+.actions {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+.cancelBtn {
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid #2b6442;
+  color: #141414;
+  border-radius: 100px;
+  width: 75px;
+  height: 29px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cancelBtn:hover {
+  background-color: #f8f8f8;
+}
+
+.approveBtn {
+  background-color: #2b6442;
+  color: #ffffff;
+  border: none;
+  border-radius: 100px;
+  width: 75;
+  height: 29px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.approveBtn:hover {
+  background-color: #245537;
+}

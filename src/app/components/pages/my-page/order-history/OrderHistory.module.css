@@ -1,15 +1,54 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 24px; /* space between header and filter bar */
-  padding-top: 80px;
-  max-width: 1200px; /* keep content centered */
+  gap: 24px;
+  padding-top: 64px;
   margin: 0 -1rem;
+  min-height: calc(100vh - 64px);
 }
 
 .inner {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 0 1rem; /* reapply padding *inside* if you still want breathing space */
+  padding: 0 1rem;
+  position: relative;
+}
+
+.list {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+.emptyContainer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 16px;
+  text-align: center;
+  z-index: 0;
+}
+
+.emptyImage {
+  opacity: 0.9;
+  margin-bottom: 16px;
+  max-width: 200px;
+  height: auto;
+}
+
+.emptyText {
+  font-size: 15px;
+  color: #777;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  background-color: #fff;
+  margin: 1rem 0rem;
+  padding: 1rem 0rem;
 }

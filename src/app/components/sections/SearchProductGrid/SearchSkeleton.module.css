@@ -1,3 +1,20 @@
+/* Base skeleton animation - shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -5,14 +22,13 @@
   padding: 1rem;
   width: 100%;
   box-sizing: border-box;
-  margin-top: 140.9px;
+  margin-top: 161px;
 }
 
 .card {
   background-color: #f3f4f6;
   border-radius: 8px;
   overflow: hidden;
-  animation: pulse 1.2s infinite;
 }
 
 .imageWrapper {
@@ -20,9 +36,9 @@
 }
 
 .imageSkeleton {
+  composes: skeleton;
   width: 100%;
   height: 120px;
-  background-color: #e5e7eb;
   border-radius: 8px;
 }
 
@@ -37,10 +53,9 @@
 }
 
 .nameSkeleton {
+  composes: skeleton;
   width: 60%;
   height: 14px;
-  background-color: #e5e7eb;
-  border-radius: 4px;
 }
 
 .iconsSkeleton {
@@ -49,29 +64,15 @@
 }
 
 .iconSkeleton {
+  composes: skeleton;
   width: 24px;
   height: 24px;
-  background-color: #e5e7eb;
-  border-radius: 4px;
 }
 
 .detailSkeleton,
 .priceSkeleton,
 .infoSkeleton {
+  composes: skeleton;
   height: 12px;
-  background-color: #e5e7eb;
-  border-radius: 4px;
   margin-top: 6px;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-  100% {
-    opacity: 1;
-  }
 }

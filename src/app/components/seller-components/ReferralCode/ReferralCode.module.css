@@ -35,6 +35,82 @@
   border-radius: 0;
 }
 
+/* Loading Container */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  gap: 8px;
+}
+
+.loadingSpinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #66bfa7;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingContainer p {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+  text-align: center;
+}
+
+/* No QR Code Message */
+.noQrCode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+}
+
+.noQrCode p {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.2;
+}
+
+.noQrSubtext {
+  font-size: 10px !important;
+  color: #999 !important;
+  margin-top: 4px !important;
+}
+
+/* Error Message */
+.errorMessage {
+  background: #fee;
+  color: #c33;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 16px;
+  border: 1px solid #fcc;
+}
+
 /* Seller Info */
 .sellerInfo {
   display: flex;
@@ -86,8 +162,15 @@
   justify-content: center;
 }
 
-.downloadBtn:hover {
+.downloadBtn:hover:not(:disabled) {
   background: #f8f9fa;
+}
+
+.downloadBtn:disabled {
+  background: #f5f5f5;
+  color: #999;
+  border-color: #ddd;
+  cursor: not-allowed;
 }
 
 .offlineText {

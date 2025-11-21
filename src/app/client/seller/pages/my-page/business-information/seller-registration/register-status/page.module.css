@@ -1,0 +1,132 @@
+.container {
+  margin-bottom: 68px;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 120px);
+  padding: 20px;
+}
+
+.loadingText {
+  font-size: 16px;
+  color: #666;
+}
+
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 120px);
+  padding: 20px;
+  text-align: center;
+}
+
+.errorText {
+  font-size: 16px;
+  color: #e74c3c;
+  margin-bottom: 20px;
+}
+
+.retryButton {
+  background-color: #66c0a4;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.retryButton:hover {
+  background-color: #5ab394;
+}
+
+/* Modal Content Styles */
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 0;
+  width: 100%;
+}
+
+.modalIcon {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.rejectIcon {
+  width: 50px;
+  height: 50px;
+  background-color: #ff0000;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.modalText {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+  gap: 0;
+}
+
+.modalTitle {
+  font-size: 20px;
+  color: #1f1f1f;
+  margin: 0 0 0 0;
+  line-height: 20px;
+  font-weight: bold;
+}
+
+.modalMessageLabel {
+  font-size: 13px;
+  color: rgba(31, 31, 31, 0.6);
+  margin: 0 0 8px 0;
+  line-height: 13px;
+}
+
+.modalMessage {
+  font-size: 13px;
+  color: rgba(31, 31, 31, 0.6);
+  margin: 0;
+  line-height: 13px;
+  white-space: pre-line;
+}
+
+.modalButton {
+  background-color: #66bfa4;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  height: 40px;
+  width: 300px;
+  font-size: 18px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.modalButton:hover {
+  background-color: #5ab394;
+}

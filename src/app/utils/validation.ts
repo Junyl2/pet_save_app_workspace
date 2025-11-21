@@ -1,4 +1,4 @@
-import type { RefundData } from "@/app/components/types/refund";
+import type { RefundData } from '@/app/components/types/refund';
 
 export function isStepValid(step: number, refundData: RefundData): boolean {
   switch (step) {

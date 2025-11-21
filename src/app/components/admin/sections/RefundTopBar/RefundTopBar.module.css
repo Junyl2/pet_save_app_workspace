@@ -1,0 +1,55 @@
+.wrap {
+  display: grid;
+  row-gap: 24px;
+  padding: 1rem 1rem 8px 1rem;
+  margin-bottom: 2rem;
+}
+
+.title {
+  justify-self: start;
+  font-size: 36px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #000;
+  margin: 0;
+}
+
+.tabRow {
+  display: flex;
+  justify-content: flex-start;
+  gap: 50px;
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  line-height: 29px;
+  cursor: pointer;
+  color: rgba(20, 20, 20, 0.7);
+  transition: color 0.15s ease;
+  padding-bottom: 4px;
+  position: relative;
+}
+
+/* underline effect for active */
+.active {
+  color: rgba(20, 20, 20, 1);
+  font-weight: 600;
+}
+
+/* .active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #000;
+  border-radius: 1px;
+}
+
+.inactive:hover {
+  color: rgba(20, 20, 20, 0.9);
+}
+ */

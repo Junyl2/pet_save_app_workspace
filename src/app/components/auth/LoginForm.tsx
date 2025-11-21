@@ -4,11 +4,53 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-/* import { FaChevronLeft } from 'react-icons/fa'; */
 import styles from './LoginForm.module.css';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/app/context/userContext';
+import { AuthService } from '@/app/api/services/client/auth/authService';
+import { LOGIN_TYPES } from '@/app/api/types/auth/MemberSignupDto';
+
+type WithDataIdentifier = { data: { identifier: string } };
+type WithUserIdentifier = { user: { identifier: string } };
+type DirectIdentifier = { identifier: string };
+
+function extractIdentifier(payload: unknown): string | null {
+  if (payload && typeof payload === 'object') {
+    const p = payload as Record<string, unknown>;
+
+    // { data: { identifier } }
+    if (
+      'data' in p &&
+      p.data &&
+      typeof p.data === 'object' &&
+      'identifier' in (p.data as Record<string, unknown>) &&
+      typeof (p.data as Record<string, unknown>).identifier === 'string'
+    ) {
+      return (p as WithDataIdentifier).data.identifier;
+    }
+
+    // { user: { identifier } }
+    if (
+      'user' in p &&
+      p.user &&
+      typeof p.user === 'object' &&
+      'identifier' in (p.user as Record<string, unknown>) &&
+      typeof (p.user as Record<string, unknown>).identifier === 'string'
+    ) {
+      return (p as WithUserIdentifier).user.identifier;
+    }
+
+    // { identifier }
+    if (
+      'identifier' in p &&
+      typeof (p as DirectIdentifier).identifier === 'string'
+    ) {
+      return (p as DirectIdentifier).identifier;
+    }
+  }
+  return null;
+}
 
 export default function LoginForm() {
   const router = useRouter();
@@ -21,12 +63,18 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // --- helper: derive sellerId from username for demo ---
-  const deriveSellerId = (u: string): number => {
-    // seller / seller2 / seller-7 / seller_7 → number
-    const m = u.match(/^seller(?:[-_]?(\d+))?$/i);
-    if (!m) return 1; // default if pattern doesn't match
-    return m[1] ? Number(m[1]) : 1;
+  // Handle username input changes
+  const handleUsernameChange = (value: string) => {
+    setUsername(value);
+    setError('');
+    // If "remember" is checked, save username to localStorage as user types
+    if (remember && value.trim()) {
+      try {
+        localStorage.setItem('rememberedUsername', value.trim());
+      } catch {
+        // ignore localStorage errors
+      }
+    }
   };
 
   // Prefill username if previously remembered
@@ -48,45 +96,66 @@ export default function LoginForm() {
     setError('');
 
     try {
-      // --- demo: client login ---
-      if (username === 'user' && password === 'user123') {
-        login({ username, role: 'client' });
-
-        // store/clear remembered username
-        if (remember) {
-          localStorage.setItem('rememberedUsername', username);
-        } else {
-          localStorage.removeItem('rememberedUsername');
-        }
-
-        // IMPORTANT: clear any previous seller id
-        localStorage.removeItem('sellerId');
-
-        router.push('/');
+      // Validate input
+      if (!username.trim() || !password.trim()) {
+        setError('아이디와 비밀번호를 입력해주세요.');
+        setLoading(false);
         return;
       }
 
-      // --- demo: seller login (sets sellerId for owner checks) ---
-      if (/^seller(?:[-_]?\d+)?$/i.test(username) && password === 'seller123') {
-        const sellerId = deriveSellerId(username);
+      // Call the real API (username will be normalized in the service)
+      const response = await AuthService.loginWithCredentials(
+        username.trim(),
+        password,
+        LOGIN_TYPES.GENERAL
+      );
 
-        login({ username, role: 'seller' });
-
-        // store/clear remembered username
-        if (remember) {
-          localStorage.setItem('rememberedUsername', username);
-        } else {
-          localStorage.removeItem('rememberedUsername');
+      if (response.error) {
+        // Remove status code prefix (e.g., "404: Not Found" -> "Not Found")
+        let errorMessage = response.error;
+        const statusCodeMatch = errorMessage.match(/^\d{3}:\s*/);
+        if (statusCodeMatch) {
+          errorMessage = errorMessage.replace(statusCodeMatch[0], '').trim();
         }
-
-        // 🔑 this is what your SellerDetails page reads to show "수정하기"
-        localStorage.setItem('sellerId', String(sellerId));
-
-        router.push('/');
+        setError(errorMessage);
+        setLoading(false);
         return;
       }
 
-      throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
+      if (response.data) {
+        const userIdentifier = extractIdentifier(response.data);
+
+        if (userIdentifier) {
+          // Update user context
+          login({
+            username: userIdentifier,
+            role: 'client',
+          });
+
+          // Store/clear remembered username
+          try {
+            if (remember) {
+              localStorage.setItem('rememberedUsername', username.trim());
+            } else {
+              localStorage.removeItem('rememberedUsername');
+            }
+          } catch {
+            // ignore localStorage errors
+          }
+
+          // Clear any previous seller id (since this is client login)
+          localStorage.removeItem('sellerId');
+
+          // Redirect to home page
+          router.push('/');
+        } else {
+          setError('로그인 응답에 사용자 정보가 없습니다. 다시 시도해주세요.');
+          setLoading(false);
+        }
+      } else {
+        setError('로그인 응답이 올바르지 않습니다. 다시 시도해주세요.');
+        setLoading(false);
+      }
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -114,7 +183,7 @@ export default function LoginForm() {
       </div> */}
 
       <div className={styles.loginPage}>
-        {/* Logo */}
+        {/* Logo - Click to go to homepage */}
         <div className={styles.imageWrapper}>
           <Image
             src="/images/logo/loading-screen.png"
@@ -123,7 +192,7 @@ export default function LoginForm() {
             width={144}
             className={styles.objectContain}
             priority
-            onClick={() => router.back()}
+            onClick={() => router.push('/')}
           />
         </div>
 
@@ -136,11 +205,11 @@ export default function LoginForm() {
                 name="username"
                 autoComplete="username"
                 className={styles.inputField}
-                placeholder="아이디를 입력하세요."
+                placeholder="아이디를 입력하세요"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => handleUsernameChange(e.target.value)}
                 required
-                aria-label="아이디"
+                aria-label="아이디 (대소문자 구분 없음)"
               />
             </div>
 
@@ -176,11 +245,17 @@ export default function LoginForm() {
                   onChange={(e) => {
                     const checked = e.target.checked;
                     setRemember(checked);
-                    if (checked && username) {
-                      localStorage.setItem('rememberedUsername', username);
-                    }
-                    if (!checked) {
-                      localStorage.removeItem('rememberedUsername');
+                    try {
+                      if (checked && username.trim()) {
+                        localStorage.setItem(
+                          'rememberedUsername',
+                          username.trim()
+                        );
+                      } else if (!checked) {
+                        localStorage.removeItem('rememberedUsername');
+                      }
+                    } catch {
+                      // ignore localStorage errors
                     }
                   }}
                 />{' '}

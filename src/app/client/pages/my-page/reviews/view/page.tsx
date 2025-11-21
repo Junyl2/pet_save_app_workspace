@@ -1,66 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
-import { FaStar, FaEllipsisV } from 'react-icons/fa';
+import Image from 'next/image';
 import styles from './ViewReview.module.css';
-import Portal from '@/app/components/system/Portal';
-
-// Mock review data
-const mockReviews = [
-  {
-    id: 1,
-    productName: '탐사 강아지 고구마말랭이 간식',
-    rating: 5,
-    reviewText:
-      '우리 강아지가 너무 잘 먹어요! 고구마 말랭이라 건강에도 좋고, 말랑해서 먹기도 편해 보여요. 간식 줄 때마다 꼬리를 흔들며 좋아하네요. 재구매 의사 100%입니다!',
-    images: [
-      '/images/products/dog-snack.png',
-      '/images/products/dog-snack2.png',
-      '/images/products/dogfood.png',
-    ],
-    username: '만족해요',
-    userId: 'petsave100000',
-    date: '2025.08.10',
-    profileImage: '/images/icons/apple.png',
-  },
-];
+import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
+import { Review } from '@/app/api/types/member/review/review';
+import Loading from '@/app/components/ui/Loading/Loading';
+import { useAppSelector, useAppDispatch } from '@/app/redux/hooks';
+import { setHasLoadedOnce } from '@/app/redux/slices/auth/ui/loadingSlice';
+import { DotMenu } from '@/app/components/ui/DotMenu/DotMenu';
+import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
 
 export default function ViewReviewPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const reviewId = searchParams.get('reviewId');
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [review, setReview] = useState<Review | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Find review by ID (default to first review if not found)
-  const review =
-    mockReviews.find((r) => r.id.toString() === reviewId) || mockReviews[0];
+  const hasLoadedOnce = useAppSelector(
+    (state) => state.loading.hasLoadedOnce[`view-review-${reviewId}`] || false
+  );
+  const [loading, setLoading] = useState<boolean>(!hasLoadedOnce);
 
-  const handleOptionsClick = () => setShowOptionsMenu((s) => !s);
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!hasLoadedOnce) setLoading(true);
+    setError(null);
+
+    const fetchReview = async () => {
+      if (!reviewId) {
+        setError('리뷰 ID가 필요합니다.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await ReviewService.getReviewById(reviewId);
+        if (!isMounted) return;
+
+        if (response.error) {
+          setError('리뷰를 불러올 수 없습니다.');
+        } else if (response.data) {
+          setReview(response.data);
+          dispatch(setHasLoadedOnce(`view-review-${reviewId}`));
+        } else {
+          setError('리뷰 정보를 찾을 수 없습니다.');
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Failed to fetch review:', err);
+        setError('리뷰를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        if (!isMounted) return;
+        setLoading(false);
+      }
+    };
+
+    fetchReview();
+    return () => {
+      isMounted = false;
+    };
+  }, [reviewId, hasLoadedOnce, dispatch]);
 
   const handleEditReview = () => {
-    setShowOptionsMenu(false);
     router.push(`/client/pages/my-page/reviews/edit?reviewId=${reviewId}`);
   };
 
-  const handleDeleteReview = () => {
-    setShowOptionsMenu(false);
-    if (window.confirm('리뷰를 삭제하시겠습니까?')) {
-      router.push('/client/pages/my-page/reviews');
+  const getRatingComment = (rating: number): string => {
+    switch (rating) {
+      case 5:
+        return '매우 만족';
+      case 4:
+        return '만족해요';
+      case 3:
+        return '보통이에요';
+      case 2:
+        return '불만족';
+      case 1:
+        return '매우 불만족';
+      default:
+        return '보통';
     }
   };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, index) => (
-      <FaStar
-        key={index} // static 1..5
-        className={`${styles.star} ${
-          index < rating ? styles.starFilled : styles.starEmpty
-        }`}
-      />
-    ));
-  };
+  if (loading || error || !review) return <Loading />;
 
   return (
     <div className={styles.container}>
@@ -82,79 +110,65 @@ export default function ViewReviewPage() {
 
         {/* Review Content */}
         <div className={styles.reviewContainer}>
-          {/* Review Header */}
           <div className={styles.reviewHeader}>
             <div className={styles.userInfo}>
               <div className={styles.profileImage}>
-                <img src={review.profileImage} alt="Profile" />
+                <img
+                  src={
+                    review.reviewer.profileImageUrl ||
+                    '/images/icons/profile-default.png'
+                  }
+                  alt="Profile"
+                />
               </div>
               <div className={styles.userDetails}>
-                <div className={styles.username}>{review.username}</div>
+                <div className={styles.usernameAndRating}>
+                  <span className={styles.username}>
+                    {getRatingComment(review.rating)}
+                  </span>
+                  <div className={styles.starsContainer}>
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Image
+                        key={i}
+                        src={
+                          i < review.rating
+                            ? '/images/icons/filledStar.svg'
+                            : '/images/icons/blankStar.svg'
+                        }
+                        alt={i < review.rating ? 'Filled star' : 'Blank star'}
+                        width={20}
+                        height={20}
+                      />
+                    ))}
+                  </div>
+                </div>
                 <div className={styles.userIdAndDate}>
-                  {review.userId} | {review.date}
+                  {review.reviewer.name} |{' '}
+                  {new Date(review.createdAt).toLocaleDateString('ko-KR')}
                 </div>
               </div>
             </div>
 
             <div className={styles.headerActions}>
-              <button
-                className={styles.optionsButton}
-                onClick={handleOptionsClick}
-                aria-haspopup="menu"
-                aria-expanded={showOptionsMenu}
-              >
-                <FaEllipsisV />
-              </button>
+              <DotMenu mode="editOnly" onEdit={handleEditReview} />
             </div>
-          </div>
-
-          {/* Star Rating */}
-          <div className={styles.ratingContainer}>
-            <div className={styles.stars}>{renderStars(review.rating)}</div>
           </div>
 
           {/* Product Name */}
-          <div className={styles.productName}>{review.productName}</div>
+          <div className={styles.productName}>{review.product.productName}</div>
 
-          {/* Review Images (stable keys) */}
-          {review.images && review.images.length > 0 && (
-            <div className={styles.imagesContainer}>
-              {review.images.map((image) => (
-                <div key={image} className={styles.reviewImage}>
-                  <img src={image} alt="Review image" />
-                </div>
-              ))}
+          {/* Review Images with zoom modal */}
+          {review.imageUrls?.length ? (
+            <div className={styles.imagesAndContent}>
+              <div className={styles.imagesContainer}>
+                <ReviewImageGallery images={review.imageUrls} />
+              </div>
+              {/* Review Text */}
+              <div className={styles.reviewText}>{review.content}</div>
             </div>
-          )}
-
-          {/* Review Text */}
-          <div className={styles.reviewText}>{review.reviewText}</div>
+          ) : null}
         </div>
       </div>
-
-      {/* Menu + overlay rendered in a body-level portal */}
-      {showOptionsMenu && (
-        <Portal>
-          <div className={styles.optionsPortalWrap}>
-            <div className={styles.optionsMenu} role="menu">
-              <button className={styles.optionItem} onClick={handleEditReview}>
-                수정하기
-              </button>
-              <button
-                className={styles.optionItem}
-                onClick={handleDeleteReview}
-              >
-                삭제하기
-              </button>
-            </div>
-            <div
-              className={styles.overlay}
-              onClick={() => setShowOptionsMenu(false)}
-              aria-hidden="true"
-            />
-          </div>
-        </Portal>
-      )}
     </div>
   );
 }

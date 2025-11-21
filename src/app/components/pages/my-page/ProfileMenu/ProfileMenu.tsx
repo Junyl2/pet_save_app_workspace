@@ -1,6 +1,5 @@
 'use client';
-import React from 'react';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProfileHeader from './ProfileHeader/ProfileHeader';
 import ProfileSection from './ProfileSection/ProfileSection';
 import ProfileItem from './ProfileItem/ProfileItem';
@@ -10,11 +9,31 @@ import BottomBar from '@/app/components/sections/BottomBar/BottomBar';
 import { useUser } from '@/app/context/userContext';
 import { PAGE_URLS } from '@/app/utils/page_url';
 import LogoutModal from '@/app/components/ui/modal/LogoutModal/LogoutModal';
+import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
+import { fetchUserInfo } from '@/app/redux/slices/cache/userSlice';
 
-const ProfileMenu = () => {
+const ProfileMenu = (): React.ReactElement => {
   const { user } = useUser();
-
+  const dispatch = useAppDispatch();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Redux state
+  const { userInfo } = useAppSelector((state) => state.user);
+  const role = userInfo?.role || user?.role;
+  const businessApprovalStatus =
+    userInfo?.businessApprovalStatus || user?.businessApprovalStatus;
+  const storeId = userInfo?.storeId || user?.storeId;
+
+  // Check if user has registered a business (has any approval status: PENDING, APPROVED, or REJECTED)
+  // Show "사업장 정보" for PENDING, APPROVED, or REJECTED status
+  const hasBusinessRegistration =
+    businessApprovalStatus === 'PENDING' ||
+    businessApprovalStatus === 'APPROVED' ||
+    businessApprovalStatus === 'REJECTED';
+
+  useEffect(() => {
+    dispatch(fetchUserInfo());
+  }, [dispatch]);
 
   return (
     <>
@@ -29,16 +48,19 @@ const ProfileMenu = () => {
             route="/client/pages/my-page/history-inquiry"
           />
 
-          {/* Show Business option depending on role */}
-          {user?.role === 'seller' ? (
-            <ProfileItem
-              label="사업자 정보"
-              route={PAGE_URLS.BUSINESS_INFORMATION}
-            />
-          ) : (
+          {/* Business Registration / Info */}
+          {!hasBusinessRegistration && (
             <ProfileItem
               label="사업자등록"
               route={PAGE_URLS.SELLER_REGISTRATION}
+            />
+          )}
+
+          {/* Store Info (show if user has registered a business, regardless of approval status) */}
+          {hasBusinessRegistration && (
+            <ProfileItem
+              label="사업장 정보"
+              route={PAGE_URLS.BUSINESS_OPTIONS}
             />
           )}
 
@@ -58,7 +80,11 @@ const ProfileMenu = () => {
             label="알림 설정"
             route={PAGE_URLS.NOTIFICATION_SETTINGS}
           />
-          <ProfileItem label="차단 리스트" route="/my-page/block-list" />
+          <ProfileItem
+            label="배송지 관리"
+            route={PAGE_URLS.DELIVERY_ADDRESS_MANAGEMENT}
+          />
+          <ProfileItem label="신고/차단 리스트" route={PAGE_URLS.BLOCK_LISTS} />
         </ProfileSection>
 
         {/* Etc */}
@@ -68,14 +94,19 @@ const ProfileMenu = () => {
             route={PAGE_URLS.NOTICE_PAGE}
             showChevron={false}
           />
-          <ProfileItem
-            label="내 추천인 코드"
-            route={PAGE_URLS.MY_REFFERAL_CODE}
-            showChevron={false}
-          />
+
+          {/* Show referral code only for sellers */}
+          {role === 'seller' && (
+            <ProfileItem
+              label="내 추천인 코드"
+              route={PAGE_URLS.MY_REFFERAL_CODE}
+              showChevron={false}
+            />
+          )}
+
           <ProfileItem
             label="로그아웃"
-            onClick={() => setShowLogoutModal(true)} // open modal
+            onClick={() => setShowLogoutModal(true)}
             showChevron={false}
           />
           <ProfileItem

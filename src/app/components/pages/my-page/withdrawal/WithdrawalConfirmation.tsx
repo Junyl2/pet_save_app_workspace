@@ -1,25 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-/* import { useRouter } from 'next/navigation'; */
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import styles from './WithdrawalConfirmation.module.css';
-/* import { PAGE_URLS } from '@/app/utils/page_url'; */
+import toast from 'react-hot-toast';
+import { SecureService } from '@/app/api/services/client/auth/secureService';
 
 const WithdrawalConfirmation = () => {
   const [reason, setReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
   const [password, setPassword] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  /*  const router = useRouter(); */
-
-  const handleWithdrawal = () => {
-    // Handle withdrawal logic here
-    console.log('Withdrawal requested with reason:', reason);
-    console.log('Password confirmation:', password);
-
-    // Add API call here for actual withdrawal
-    // Add your withdrawal API logic here
-  };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCustomReason, setIsCustomReason] = useState(false);
 
   const dropdownOptions = [
     '자주 이용하지 않아요',
@@ -32,12 +25,52 @@ const WithdrawalConfirmation = () => {
   ];
 
   const handleDropdownToggle = () => {
-    setIsDropdownOpen(!isDropdownOpen);
+    setIsDropdownOpen((prev) => !prev);
   };
 
   const handleOptionSelect = (option: string) => {
-    setReason(option);
     setIsDropdownOpen(false);
+    if (option === '기타 (직접 입력)') {
+      setIsCustomReason(true);
+      setReason(option);
+      setCustomReason('');
+    } else {
+      setIsCustomReason(false);
+      setReason(option);
+      setCustomReason('');
+    }
+  };
+
+  const handleWithdrawal = async () => {
+    const finalReason = isCustomReason ? customReason.trim() : reason;
+
+    if (!finalReason || !password) {
+      toast.error('탈퇴 사유와 비밀번호를 입력해주세요.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await SecureService.withdrawMember({
+        withdrawalReason: finalReason,
+        password,
+      });
+
+      if (res.error) {
+        toast.error(res.error);
+      } else if (res.data?.success) {
+        toast.success('회원 탈퇴가 완료되었습니다.');
+        localStorage.clear();
+        window.location.href = '/';
+      } else {
+        toast.error(res.data?.resultMsg || '회원 탈퇴에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('Withdrawal failed:', err);
+      toast.error('탈퇴 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -45,20 +78,20 @@ const WithdrawalConfirmation = () => {
       <ProductHeader />
       <div className={styles.container}>
         <div className={styles.content}>
-          {/* Header section with icon and title */}
+          {/* Header */}
           <div className={styles.iconContainer}>
             <div className={styles.trashIcon}>
               <img
                 src="/images/icons/trash.svg"
                 alt="Trash"
-                width={60}
-                height={60}
-              />{' '}
+                width={49}
+                height={57}
+              />
             </div>
             <h1 className={styles.title}>정말 탈퇴하시겠어요?</h1>
           </div>
 
-          {/* Reason dropdown section */}
+          {/* Reason dropdown */}
           <div className={styles.formSection}>
             <div className={styles.formGroup}>
               <div className={styles.customDropdown}>
@@ -75,13 +108,14 @@ const WithdrawalConfirmation = () => {
                     className={`${styles.dropdownArrow} ${
                       isDropdownOpen ? styles.dropdownArrowOpen : ''
                     }`}
-                    width="12"
-                    height="12"
-                    viewBox="0 0 12 12"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
                   >
                     <path
-                      d="M3 4.5L6 7.5L9 4.5"
-                      stroke="#9CA3AF"
+                      d="M7 10L12 15L17 10"
+                      stroke="rgba(0, 0, 0, 0.6)"
                       strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -90,10 +124,12 @@ const WithdrawalConfirmation = () => {
                 </div>
                 {isDropdownOpen && (
                   <div className={styles.dropdownOptions}>
-                    {dropdownOptions.map((option, index) => (
+                    {dropdownOptions.map((option) => (
                       <div
-                        key={index}
-                        className={styles.dropdownOption}
+                        key={option}
+                        className={`${styles.dropdownOption} ${
+                          reason === option ? styles.dropdownOptionSelected : ''
+                        }`}
                         onClick={() => handleOptionSelect(option)}
                       >
                         {option}
@@ -103,11 +139,22 @@ const WithdrawalConfirmation = () => {
                 )}
               </div>
             </div>
+
+            {/* Custom input field (visible only for "기타") */}
+            {isCustomReason && (
+              <div className={styles.formGroup}>
+                <input
+                  type="text"
+                  className={styles.customReasonInput}
+                  placeholder="탈퇴 사유를 입력하세요"
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
-          <hr className={styles.separator} />
-
-          {/* Password section */}
+          {/* Password input */}
           <div className={styles.passwordSection}>
             <div className={styles.formGroup}>
               <label className={styles.label}>비밀번호 입력</label>
@@ -116,16 +163,15 @@ const WithdrawalConfirmation = () => {
                 className={styles.passwordInput}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder=""
               />
             </div>
           </div>
 
-          <hr className={styles.separator} />
-
-          {/* Information section */}
+          {/* Info */}
           <div className={styles.infoSection}>
-            <h3 className={styles.infoTitle}>탈퇴 전 유의사항</h3>
+            <div className={styles.infoTitleWrapper}>
+              <h3 className={styles.infoTitle}>탈퇴 전 유의사항</h3>
+            </div>
             <ul className={styles.infoList}>
               <li>탈퇴 후 7일간 재가입이 불가능합니다.</li>
               <li>
@@ -135,17 +181,19 @@ const WithdrawalConfirmation = () => {
             </ul>
           </div>
 
-          {/* Spacer to push button to bottom */}
-          <div className={styles.spacer}></div>
-
-          {/* Withdrawal button */}
+          {/* Submit button */}
           <div className={styles.buttonContainer}>
             <button
               className={styles.withdrawButton}
               onClick={handleWithdrawal}
-              disabled={!reason || !password}
+              disabled={
+                isSubmitting ||
+                !password ||
+                (!isCustomReason && !reason) ||
+                (isCustomReason && !customReason.trim())
+              }
             >
-              탈퇴하기
+              {isSubmitting ? '처리 중...' : '탈퇴하기'}
             </button>
           </div>
         </div>

@@ -1,10 +1,18 @@
 'use client';
-/* import { useState } from 'react'; */
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDispatch, useSelector } from 'react-redux';
 import { FaChevronRight } from 'react-icons/fa';
 import Image from 'next/image';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
 import { PAGE_URLS } from '@/app/utils/page_url';
+import {
+  fetchPointsStats,
+  fetchPointsHistory,
+} from '@/app/redux/slices/cache/pointsSlice';
+import { RootState, AppDispatch } from '@/app/redux/store';
+import PointsSkeleton from '@/app/components/ui/SkeletonLoading/PointsSkeleton/PointsSkeleton';
+import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
 import styles from './Points.module.css';
 
 interface PointTransaction {
@@ -17,76 +25,122 @@ interface PointTransaction {
   status?: string;
 }
 
-interface RewardProduct {
-  id: number;
+interface ReviewableProduct {
+  orderItemId: string;
+  productId: string;
   name: string;
   price: number;
-  originalPrice?: number;
   brand: string;
   image: string;
 }
 
 export default function PointsPage() {
   const router = useRouter();
-  const currentPoints = 445;
+  const dispatch = useDispatch<AppDispatch>();
 
-  const pointHistory: PointTransaction[] = [
-    {
-      id: 1,
-      date: '2025.07.30',
-      type: 'earned',
-      description: '구매확정',
-      amount: 100,
-      expiryDate: '2026.07.30 소멸',
-    },
-    {
-      id: 2,
-      date: '2025.07.22',
-      type: 'earned',
-      description: '리뷰작성',
-      amount: 50,
-      expiryDate: '2026.07.22 소멸',
-    },
-    {
-      id: 3,
-      date: '2025.07.15',
-      type: 'used',
-      description: '포인트 사용',
-      amount: -2500,
-      status: '사용 완료',
-    },
-  ];
+  const { loading } = useSelector((state: RootState) => state.points);
 
-  const rewardProducts: RewardProduct[] = [
-    {
-      id: 1,
-      name: '로얄캐닌 강아지 사료 1kg',
-      price: 11000,
-      brand: '○○ 동물병원',
-      image: '/images/products/dogfood.png',
-    },
-    {
-      id: 2,
-      name: '하림펫푸드 더리얼 동결건조 닭가슴살',
-      price: 12560,
-      brand: '펫프렌즈',
-      image: '/images/products/dog-snack.png',
-    },
-    {
-      id: 3,
-      name: '하림펫푸드 더리얼 동결건조 닭가슴살',
-      price: 12560,
-      brand: '펫프렌즈',
-      image: '/images/products/dog-snack2.png',
-    },
-  ];
+  const [currentPoints, setCurrentPoints] = useState(0);
+  const [pointHistory, setPointHistory] = useState<PointTransaction[]>([]);
+  const [reviewableProducts, setReviewableProducts] = useState<
+    ReviewableProduct[]
+  >([]);
+
+  //  control how many products to show initially
+  const [showAllReviewables, setShowAllReviewables] = useState(false);
+
+  useEffect(() => {
+    const loadPointsData = async () => {
+      try {
+        const statsResult = await dispatch(fetchPointsStats());
+        if (fetchPointsStats.fulfilled.match(statsResult)) {
+          const totalUsablePoints =
+            statsResult.payload.data.data.data.totalUsablePoints;
+          setCurrentPoints(totalUsablePoints || 0);
+        }
+
+        const historyResult = await dispatch(fetchPointsHistory({ size: 3 }));
+        if (fetchPointsHistory.fulfilled.match(historyResult)) {
+          const content = historyResult.payload.data.data.data?.content || [];
+          const transformedHistory: PointTransaction[] = content.map(
+            (transaction: any, index: number) => ({
+              id: index + 1,
+              date: new Date(transaction.createdAt)
+                .toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                })
+                .replace(/\./g, '.')
+                .replace(/\s/g, ''),
+              type: transaction.type === 'EARNED' ? 'earned' : 'used',
+              description: transaction.title,
+              amount:
+                transaction.type === 'EARNED'
+                  ? transaction.amount
+                  : -transaction.amount,
+              expiryDate:
+                transaction.type === 'EARNED'
+                  ? `${new Date(transaction.expiryDate)
+                      .toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                      })
+                      .replace(/\./g, '.')
+                      .replace(/\s/g, '')} 소멸`
+                  : undefined,
+              status: transaction.type === 'USED' ? '사용 완료' : undefined,
+            })
+          );
+          setPointHistory(transformedHistory);
+        }
+
+        //  Fetch reviewable products
+        const reviewableResult = await orderDetailsService.getMyOrderHistory({
+          onlyReviewable: true,
+        });
+        if (reviewableResult.data?.data?.content) {
+          const items = reviewableResult.data.data.content.map((item) => ({
+            orderItemId: item.orderItemId,
+            productId: item.productId,
+            name: item.productName,
+            price: item.price,
+            brand: item.storeName,
+            image: item.productImageUrl,
+          }));
+          setReviewableProducts(items);
+        } else {
+          setReviewableProducts([]);
+        }
+      } catch (error) {
+        console.error('Failed to load points data:', error);
+      }
+    };
+
+    loadPointsData();
+  }, [dispatch]);
+
+  if (loading) {
+    return (
+      <>
+        <ProductHeader />
+        <PointsSkeleton />
+      </>
+    );
+  }
+
+  // Show only first 5 products unless "show all" is true
+  const visibleProducts = showAllReviewables
+    ? reviewableProducts
+    : reviewableProducts.slice(0, 5);
 
   return (
     <>
       <ProductHeader />
 
       <div className={styles.container}>
-        {/* Current Points Section */}
+        {/* Current Points */}
         <div className={styles.pointsSection}>
           <h2 className={styles.sectionTitle}>현재 포인트</h2>
           <div className={styles.currentPoints}>
@@ -101,11 +155,10 @@ export default function PointsPage() {
               />
             </div>
             <span className={styles.pointAmount}>
-              {currentPoints.toLocaleString()}원
+              {(currentPoints || 0).toLocaleString()}원
             </span>
           </div>
 
-          {/* Points Usage Info */}
           <button
             className={styles.pointsInfoButton}
             onClick={() => router.push(PAGE_URLS.POINTS_GUIDE)}
@@ -114,9 +167,10 @@ export default function PointsPage() {
             <FaChevronRight className={styles.chevronIcon} />
           </button>
         </div>
+
         <div className={styles.divider}></div>
 
-        {/* Points History Section */}
+        {/* Points History */}
         <div className={styles.historyHeader}>
           <h3 className={styles.historyTitle}>포인트 내역</h3>
           <button
@@ -134,13 +188,6 @@ export default function PointsPage() {
                 <div className={styles.historyDate}>{transaction.date}</div>
                 <div className={styles.historyDescription}>
                   {transaction.description}
-                </div>
-                <div className={styles.historySubtitle}>
-                  {transaction.id === 1
-                    ? '로얄캐닌 강아지 사료 1kg'
-                    : transaction.id === 2
-                    ? 'ANF 유기농 6Free 연어 강아지 사료'
-                    : '배송비 결제'}
                 </div>
               </div>
               <div className={styles.historyRight}>
@@ -163,30 +210,35 @@ export default function PointsPage() {
             </div>
           ))}
         </div>
+
         <div className={styles.divider}></div>
 
-        {/* Rewards Section */}
+        {/* Reviewable Products */}
         <div className={styles.rewardsHeader}>
           <h3 className={styles.rewardsTitle}>리뷰 쓰고 포인트 받기</h3>
         </div>
 
         <div className={styles.rewardsSubHeader}>
           <span className={styles.rewardsSubTitle}>쓸 수 있는 리뷰</span>
-          <span className={styles.rewardsCount}>7개</span>
-          <button className={styles.viewAllButton}>
+          <span className={styles.rewardsCount}>
+            {reviewableProducts.length}개
+          </span>
+          {/*  View All navigates to reviews page */}
+          <button
+            className={styles.viewAllButton}
+            onClick={() => router.push('/client/pages/my-page/reviews')}
+          >
             전체보기 <FaChevronRight className={styles.smallChevron} />
           </button>
         </div>
 
         <div className={styles.rewardsSection}>
           <div className={styles.productList}>
-            {rewardProducts.map((product) => (
-              <div key={product.id} className={styles.productItem}>
-                <Image
+            {visibleProducts.map((product) => (
+              <div key={product.orderItemId} className={styles.productItem}>
+                <img
                   src={product.image}
                   alt={product.name}
-                  width={60}
-                  height={60}
                   className={styles.productImage}
                 />
                 <div className={styles.productInfo}>
@@ -196,7 +248,17 @@ export default function PointsPage() {
                   </div>
                   <div className={styles.productBrand}>{product.brand}</div>
                 </div>
-                <button className={styles.reviewButton}>리뷰쓰기</button>
+
+                <button
+                  className={styles.reviewButton}
+                  onClick={() =>
+                    router.push(
+                      `/client/pages/my-page/reviews/write?productId=${product.productId}`
+                    )
+                  }
+                >
+                  리뷰쓰기
+                </button>
               </div>
             ))}
           </div>

@@ -2,19 +2,22 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from './SellerInquiryDetails.module.css';
 import { FaChevronDown } from 'react-icons/fa';
-import Image from 'next/image';
-import { mockContactInquiries } from '../../data/mockContact';
+import styles from './SellerInquiryDetails.module.css';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import BottomBar from '../../sections/BottomBar/BottomBar';
 import { useUser } from '@/app/context/userContext';
+import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
+import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
+import { baseURL } from '@/app/api/config';
+import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
 
 type InquiryType =
   | '전체'
   | '상품 문의'
   | '배송 문의'
-  | '교환/ 환불 문의'
+  | '교환/환불 문의'
+  | '결제 문의'
   | '기타 문의';
 
 type InquiryStatus = '답변 대기 중' | '답변 완료';
@@ -22,11 +25,13 @@ type InquiryStatus = '답변 대기 중' | '답변 완료';
 const TYPE_OPTIONS: Exclude<InquiryType, '전체'>[] = [
   '상품 문의',
   '배송 문의',
-  '교환/ 환불 문의',
+  '교환/환불 문의',
+  '결제 문의',
   '기타 문의',
 ];
 
-// Helper function to format date from YYYY-MM-DD to YY.MM.DD
+const PAGE_SIZE = 10;
+
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   const year = date.getFullYear().toString().slice(-2);
@@ -35,26 +40,143 @@ const formatDate = (dateString: string): string => {
   return `${year}.${month}.${day}`;
 };
 
+const constructFileUrl = (fileId: string | null | undefined): string => {
+  if (!fileId) return '/images/products/dogfood.png';
+  if (fileId.startsWith('http')) return fileId;
+  if (fileId.startsWith('/')) return fileId;
+  return `${baseURL}/files/${fileId}`;
+};
+
+interface TransformedInquiry {
+  id: number;
+  inquiryId: string;
+  date: string;
+  productName: string;
+  productPrice: number;
+  productImage: string;
+  category: string;
+  uiCategory: InquiryType;
+  message: string;
+  responseMessage: string;
+  status: InquiryStatus;
+  answering: boolean;
+}
+
+const mapApiCategoryToUI = (apiCategory: string): InquiryType => {
+  switch (apiCategory) {
+    case 'PRODUCT':
+      return '상품 문의';
+    case 'DELIVERY':
+      return '배송 문의';
+    case 'EXCHANGE_RETURN':
+      return '교환/환불 문의';
+    case 'PAYMENT':
+      return '결제 문의';
+    default:
+      return '기타 문의';
+  }
+};
+
+const transformStoreInquiryToUI = (
+  storeInquiry: StoreInquiry
+): TransformedInquiry => {
+  const productName =
+    storeInquiry.product?.productName ||
+    storeInquiry.productName ||
+    'Unknown Product';
+
+  const productPrice =
+    storeInquiry.product?.discountedPrice ??
+    storeInquiry.product?.salePrice ??
+    0;
+
+  const productImage =
+    constructFileUrl(storeInquiry.product?.productThumbnail) ||
+    '/images/products/dogfood.png';
+
+  return {
+    id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0,
+    inquiryId: storeInquiry.inquiryId,
+    date: storeInquiry.createdAt,
+    productName,
+    productPrice,
+    productImage,
+    category: storeInquiry.category,
+    uiCategory: mapApiCategoryToUI(storeInquiry.category),
+    message: storeInquiry.content,
+    responseMessage: storeInquiry.answer || '',
+    status: storeInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
+    answering: false,
+  };
+};
+
 export default function SellerInquiryDetails() {
   const router = useRouter();
   const { user } = useUser();
 
-  // tabs
   const [tab, setTab] = useState<InquiryStatus>('답변 대기 중');
-
-  // dropdown
   const [open, setOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<InquiryType>('전체');
   const ddRef = useRef<HTMLDivElement | null>(null);
 
-  // Check if user is seller
-  useEffect(() => {
-    if (user?.role !== 'seller') {
-      router.push('/client/pages/homepage');
-      return;
-    }
-  }, [user, router]);
+  const [inquiries, setInquiries] = useState<TransformedInquiry[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Redirect non-sellers
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== 'seller' || !user.storeId) {
+      router.push('/client/pages/homepage');
+    }
+  }, [user, user?.role, user?.storeId, router]);
+
+  // Fetch inquiries
+  useEffect(() => {
+    if (!user || user.role !== 'seller' || !user.storeId) return;
+
+    const fetchInquiries = async (): Promise<void> => {
+      setLoading(true);
+      setInquiries([]);
+
+      try {
+        const statusParam = tab === '답변 완료' ? 'ANSWERED' : 'WAITING';
+
+        const response = await MemberStoreService.getMyStoreInquiries({
+          page: currentPage - 1,
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+          status: statusParam,
+        });
+
+        if (response.error || !response.data) {
+          console.error('Failed to fetch store inquiries:', response.error);
+          setInquiries([]);
+          setTotalPages(1);
+          return;
+        }
+
+        const transformed = response.data.data.content.map(
+          transformStoreInquiryToUI
+        );
+        setInquiries(transformed);
+        setTotalPages(response.data.data.pageInfo?.totalPages ?? 1);
+      } catch (error) {
+        console.error('Error fetching store inquiries:', error);
+        setInquiries([]);
+        setTotalPages(1);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchInquiries();
+  }, [user, user?.role, user?.storeId, currentPage, tab]);
+
+  // Close dropdown when clicking outside
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
       if (!ddRef.current) return;
@@ -65,38 +187,48 @@ export default function SellerInquiryDetails() {
   }, []);
 
   const filtered = useMemo(() => {
-    return mockContactInquiries.filter((q) => {
-      const byTab = q.status === tab;
-      const byType =
-        selectedType === '전체' ? true : q.category === selectedType;
-      return byTab && byType;
-    });
-  }, [tab, selectedType]);
+    return inquiries.filter((q) =>
+      selectedType === '전체' ? true : q.uiCategory === selectedType
+    );
+  }, [inquiries, selectedType]);
 
   const handlePick = (t: InquiryType) => {
     setSelectedType(t);
     setOpen(false);
   };
 
-  const handleInquiryClick = (inquiryId: number) => {
-    router.push(`/client/seller/pages/reply-inquiry?id=${inquiryId}`);
+  const handleInquiryClick = (inquiry: TransformedInquiry) => {
+    router.push(`/client/seller/pages/reply-inquiry?id=${inquiry.inquiryId}`);
   };
 
-  if (!user || user.role !== 'seller') {
-    return null; // Will redirect in useEffect
+  if (loading) {
+    return (
+      <>
+        <ProductHeader />
+        <div className={styles.page}>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            문의 내역을 불러오는 중...
+          </div>
+        </div>
+        <BottomBar />
+      </>
+    );
   }
 
   return (
     <>
       <ProductHeader />
       <div className={styles.page}>
-        {/* Top tabs (답변대기 / 답변완료) */}
+        {/* Tabs */}
         <div className={styles.tabs}>
           <button
             className={`${styles.tabBtn} ${
               tab === '답변 대기 중' ? styles.active : ''
             }`}
-            onClick={() => setTab('답변 대기 중')}
+            onClick={() => {
+              setTab('답변 대기 중');
+              setCurrentPage(1);
+            }}
           >
             답변대기
           </button>
@@ -104,13 +236,16 @@ export default function SellerInquiryDetails() {
             className={`${styles.tabBtn} ${
               tab === '답변 완료' ? styles.active : ''
             }`}
-            onClick={() => setTab('답변 완료')}
+            onClick={() => {
+              setTab('답변 완료');
+              setCurrentPage(1);
+            }}
           >
             답변완료
           </button>
         </div>
 
-        {/* Filter block */}
+        {/* Filter */}
         <div className={styles.filterWrap}>
           <div className={styles.filterRow} ref={ddRef}>
             <button
@@ -160,28 +295,29 @@ export default function SellerInquiryDetails() {
           </div>
         </div>
 
-        {/* List */}
-        {/* List */}
+        {/* Inquiry list */}
         <div className={styles.list}>
+          {filtered.length === 0 && (
+            <div className={styles.empty}>해당 조건의 문의가 없습니다.</div>
+          )}
+
           {filtered.map((q) => (
             <article
-              key={q.id}
+              key={q.inquiryId}
               className={styles.card}
-              onClick={() => handleInquiryClick(q.id)}
+              onClick={() => handleInquiryClick(q)}
               style={{ cursor: 'pointer' }}
             >
               <header className={styles.cardHead}>
                 <div className={styles.headLeft}>
                   <span className={styles.headType}>
-                    {q.category}
+                    {q.uiCategory}
                     <span className={styles.dot}>·</span>
                     <span className={styles.headDate}>
                       {formatDate(q.date)}
                     </span>
                   </span>
                 </div>
-
-                {/* Top right status only if tab is "답변 완료" */}
                 {tab === '답변 완료' && (
                   <div
                     className={`${styles.answerStatus} ${
@@ -195,28 +331,32 @@ export default function SellerInquiryDetails() {
 
               <div className={styles.itemRow}>
                 <div className={styles.thumbWrap}>
-                  <Image
-                    src={q.shopImage || '/images/products/dogfood.png'}
-                    alt=""
-                    width={60}
-                    height={60}
-                    className={styles.thumb}
-                    unoptimized
-                  />
+                  <img src={q.productImage} alt="" className={styles.thumb} />
                 </div>
                 <div className={styles.meta}>
-                  <div className={styles.title}>{q.shopName}</div>
-                  <div className={styles.price}>{q.shopLocation}</div>
+                  <div className={styles.title}>{q.productName}</div>
+                  <div className={styles.price}>
+                    {q.productPrice
+                      ? `${q.productPrice.toLocaleString()}원`
+                      : '가격 정보 없음'}
+                  </div>
                   <div className={styles.snippet}>{q.message}</div>
                 </div>
               </div>
             </article>
           ))}
-
-          {filtered.length === 0 && (
-            <div className={styles.empty}>해당 조건의 문의가 없습니다.</div>
-          )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
+            <ClientPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
       </div>
       <BottomBar />
     </>

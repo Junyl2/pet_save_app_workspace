@@ -1,0 +1,209 @@
+.wrap {
+  width: 337px;
+  min-height: 100vh;
+  background: rgba(238, 238, 238, 0.6);
+  flex-direction: column;
+  gap: 25px;
+  padding: 21px 18px;
+  box-sizing: border-box;
+}
+
+/* Logo block (75 x 50 at x:18 y:21 in Figma) */
+.logoBlock {
+  width: 75px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.logoBlock img {
+  object-fit: contain;
+}
+
+/* Greeting card (Frame 12) */
+.greetingCard {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 14px 19px;
+  margin-bottom: 1.5rem;
+}
+
+.greetingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.greetingText {
+  color: #141414;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+/* Logout icon container */
+.logoutBtn {
+  width: 35px;
+  height: 35px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.logoutBtn:focus-visible {
+  outline: 2px solid #66bfa7;
+  outline-offset: 2px;
+}
+
+/* Menu stack (Frame 475) */
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Base menu item (height: 64, radius:10, horizontal layout) */
+.menuItem {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 32px; /* leave room for chevron button at right */
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  color: #000;
+  font-weight: 600 !important;
+  font-size: 20px !important;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 120ms ease, border-color 120ms ease,
+    bor transform 80ms ease;
+}
+
+.menuItem:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.menuItem:active {
+  transform: translateY(0.5px);
+}
+
+.menuItem:focus-visible {
+  outline: 2px solid #b5db58;
+  outline-offset: 2px;
+}
+
+/* Active state */
+.menuItemActive {
+  background: #e2e2e2;
+  border-color: transparent;
+}
+
+/* Label typography */
+.menuLabel {
+  color: #000;
+  font-weight: 600 !important;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+/* Group container */
+.group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Chevron button (separate target to avoid navigation) --- */
+.chevronBtn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-left: 8px;
+  font-size: 1.8rem;
+}
+.chevronBtn:focus-visible {
+  outline: 2px solid #66bfa7;
+  outline-offset: 2px;
+}
+
+/* --- Dropdown chevron icon --- */
+.dropdownIcon {
+  transition: transform 160ms ease;
+  opacity: 0.9;
+}
+.dropdownOpen {
+  transform: rotate(180deg);
+}
+
+/* --- Submenu container (Figma Frame 19) --- */
+.submenu {
+  background: #e1e1e1;
+  border-radius: 10px;
+  margin-top: 10px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+
+  /* Match x:32, y:20 padding feel */
+  padding: 20px 16px 20px 32px;
+}
+
+/* Submenu items (text rows) */
+.submenuItem {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: #000;
+  text-align: left;
+  cursor: pointer;
+
+  font-size: 18px;
+  line-height: 21px;
+  font-weight: normal;
+
+  transition: opacity 120ms ease, transform 80ms ease;
+}
+
+.submenuItem:hover {
+  opacity: 0.8;
+}
+
+.submenuItem:active {
+  transform: translateY(0.5px);
+}
+
+.submenuItem:focus-visible {
+  outline: 2px solid #66bfa7;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Active child state */
+.submenuItemActive {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* Small screens: allow sidebar to shrink if needed */
+@media (max-height: 800px) {
+  .wrap {
+    gap: 16px;
+  }
+  .menu {
+    gap: 8px;
+  }
+  .menuItem {
+    height: 56px;
+  }
+}

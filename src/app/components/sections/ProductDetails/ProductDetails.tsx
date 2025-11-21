@@ -1,37 +1,58 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ProductHeader } from './Header/ProductHeader';
-import { ProductImage } from './Product/ProductImage';
-import { ProductInfo } from './Product/ProductInfo';
-import { ShopInfo } from './Product/ShopInfo';
-import { UsageInstructions } from './Usage/UsageInstructions';
-import { ProductActions } from './Actions/ProductActions';
-import { PreviewReview } from './Review/PreviewReview';
-/* import { useFavorites } from '@/app/context/FavoritesContext'; */
-import { productService } from '@/app/api/services/product-service/productService';
-import { Product } from '@/app/api/types/products/products';
-import Loading from '../../ui/Loading/Loading';
-import styles from './ProductDetails.module.css';
+import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
+import { ProductImage } from '@/app/components/sections/ProductDetails/Product/ProductImage';
+import { ProductInfo } from '@/app/components/sections/ProductDetails/Product/ProductInfo';
+import { ShopInfo } from '@/app/components/sections/ProductDetails/Product/ShopInfo';
+import { UsageInstructions } from '@/app/components/sections/ProductDetails/Usage/UsageInstructions';
+import { ProductActions } from '@/app/components/sections/ProductDetails/Actions/ProductActions';
+import { PreviewReview } from '@/app/components/sections/ProductDetails/Review/PreviewReview';
+import { ProductService } from '@/app/api/services/client/productService/productService';
+import { ProductSummary } from '@/app/api/types/products/productSummary';
+import Loading from '@/app/components/ui/Loading/Loading';
+import styles from '@/app/components/sections/ProductDetails/ProductDetails.module.css';
 
-export default function ProductDetails() {
+export default function ProductDetailPage() {
   const { id } = useParams();
-  const productId = Number(id);
-  /*  const { toggleFavorite } = useFavorites(); */
+  const productId = id as string;
 
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ProductSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  /*  const [cartOpen, setCartOpen] = useState(false); */
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
+    setError(null);
 
-    productService.getById(productId).then((res) => {
-      if (!isMounted) return;
-      if (!res.error) setProduct(res.data);
-      setLoading(false);
-    });
+    const fetchProduct = async () => {
+      try {
+        const response = await ProductService.getProductSummary(productId);
+
+        if (!isMounted) return;
+
+        if (response.error) {
+          setError('상품을 불러올 수 없습니다.');
+        } else if (response.data?.data) {
+          setProduct(response.data.data);
+        } else {
+          setError('상품 정보를 찾을 수 없습니다.');
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Failed to fetch product:', err);
+        setError('상품을 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        if (!isMounted) return;
+        setLoading(false);
+      }
+    };
+
+    if (productId) {
+      fetchProduct();
+    }
 
     return () => {
       isMounted = false;
@@ -40,34 +61,51 @@ export default function ProductDetails() {
 
   if (loading) return <Loading />;
 
-  if (!product)
-    return <p className={styles.error}>상품을 불러올 수 없습니다.</p>;
+  if (error || !product) {
+    return (
+      <p className={styles.error}>{error || '상품을 불러올 수 없습니다.'}</p>
+    );
+  }
 
   return (
     <section className={styles.container}>
       <ProductHeader />
-      <ProductImage src={product.image} alt={product.name} />
+      <ProductImage
+        src={product.thumbnail || ''}
+        alt={product.productName}
+        product={product}
+      />
       <ShopInfo
-        shopName={product.shopName}
-        shopLocation={product.shopLocation || product.location}
-        shopImage={product.shopImage}
-        productId={product.id}
+        shopName={product.store.name}
+        shopLocation={product.store.address}
+        shopImage={product.store.profileUrl || undefined}
+        productId={product.productId}
+        storeId={product.store.storeId}
       />
       <ProductInfo
-        name={product.name}
-        expiration={product.expiration}
-        price={product.price}
-        discountPrice={product.discountPrice}
-        details={product.details}
+        name={product.productName}
+        expiration={product.expiryDate}
+        price={product.salePrice}
+        discountPrice={product.discountedPrice}
+        details={product.description ? [product.description] : []}
+        category={product.category}
+        quantity={product.quantity}
+        averageRating={product.averageRating}
+        totalReviews={product.totalReviews}
       />
-      <UsageInstructions />
-      <PreviewReview productId={product.id} />
+      <UsageInstructions
+        pickupLocation={product.store.address}
+        openingHourStart={product.store.openingHourStart}
+        openingHourEnd={product.store.openingHourEnd}
+      />
+      <PreviewReview productId={product.productId} />
       <ProductActions
-        productId={product.id}
-        productName={product.name}
-        productPrice={product.discountPrice || product.price}
+        productId={product.productId}
+        productName={product.productName}
+        productPrice={product.discountedPrice || product.salePrice}
+        productImage={product.thumbnail}
+        storeId={product.store.storeId}
         onAddToCart={(quantity, name) => {
-          /*    setCartOpen(true); */
           console.log('Added to cart:', quantity, name);
         }}
         onPurchase={(quantity, name) => {

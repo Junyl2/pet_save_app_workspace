@@ -1,5 +1,22 @@
 /* ProductGrid.module.css */
 
+/* Base skeleton animation - shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
 .productGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -38,7 +55,7 @@
 
 .exploreButton {
   padding: 12px 24px;
-  background-color: #4caf50;
+  background-color: #66bfa7;
   color: white;
   border: none;
   border-radius: 6px;
@@ -49,7 +66,7 @@
 }
 
 .exploreButton:hover {
-  background-color: #45a049;
+  background-color: #5dc9af;
 }
 
 /* Loading state */
@@ -67,20 +84,17 @@
 }
 
 .skeletonImage {
+  composes: skeleton;
   width: 100%;
   height: 120px;
-  background-color: #f0f0f0;
   border-radius: 6px;
   margin-bottom: 12px;
-  animation: pulse 1.5s ease-in-out infinite alternate;
 }
 
 .skeletonText {
+  composes: skeleton;
   height: 16px;
-  background-color: #f0f0f0;
-  border-radius: 4px;
   margin-bottom: 8px;
-  animation: pulse 1.5s ease-in-out infinite alternate;
 }
 
 .skeletonText.short {
@@ -92,23 +106,9 @@
 }
 
 .skeletonButton {
+  composes: skeleton;
   width: 100%;
   height: 36px;
-  background-color: #f0f0f0;
   border-radius: 6px;
   margin-top: 8px;
-  animation: pulse 1.5s ease-in-out infinite alternate;
 }
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.7;
-  }
-}
-
-
-
-

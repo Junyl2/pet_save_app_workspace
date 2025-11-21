@@ -2,16 +2,56 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   images: {
-    domains: [
-      'i.pravatar.cc',
-      'placekitten.com',
-      'placedog.net',
-      'cdn.pixabay.com',
-      'images.pexels.com',
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: '211.107.13.167',
+        port: '11309',
+        pathname: '/api/pet-save/files/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'placekitten.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'placedog.net',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.pixabay.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '11309',
+        pathname: '/api/pet-save/files/**',
+      },
     ],
+    unoptimized: false,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   async rewrites() {
     return [
+      // API proxy to backend server
+      {
+        source: '/api/pet-save/:path*',
+        destination: 'http://211.107.13.167:11309/api/pet-save/:path*',
+      },
       {
         source: '/login',
         destination: '/client/login',

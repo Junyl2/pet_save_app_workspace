@@ -26,7 +26,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  // ✅ initialize from localStorage
+  // initialize from localStorage
   const [cart, setCart] = useState<CartItem[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -39,7 +39,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return [];
   });
 
-  // ✅ persist to localStorage on every change
+  // persist to localStorage on every change
   useEffect(() => {
     try {
       localStorage.setItem('cart', JSON.stringify(cart));

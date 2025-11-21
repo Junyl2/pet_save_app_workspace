@@ -5,9 +5,10 @@
   background-color: #fff;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 5px;
-  padding: 0rem 1rem;
-  min-height: 3rem;
+  padding: 0 20px;
+  height: 45px;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .fileName {
@@ -15,22 +16,30 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #333;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 16px;
+  line-height: 16px;
 }
 
 .chooseButton {
   position: absolute;
-  right: 0.5rem;
+  right: 11px;
   top: 50%;
   transform: translateY(-50%);
   background-color: #66bfa7;
   color: #fff;
   border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 0.25rem;
+  height: 23px;
+  padding: 5px;
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 13px;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 49px;
+  white-space: nowrap;
 }
 
 /* Modal overlay */
@@ -106,4 +115,85 @@
 /* hidden input inside modal */
 .hiddenInputModal {
   display: none;
+}
+
+/* PDF Preview Styles */
+.pdfPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.pdfIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+}
+
+.pdfInfo {
+  text-align: center;
+}
+
+.pdfTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 0.5rem 0;
+}
+
+.pdfFileName {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0 0 0.25rem 0;
+  word-break: break-all;
+  max-width: 200px;
+}
+
+.pdfFileSize {
+  font-size: 0.8rem;
+  color: #888;
+  margin: 0 0 0.25rem 0;
+}
+
+.pdfType {
+  font-size: 0.75rem;
+  color: #66bfa7;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Error and Success Messages */
+.errorMessage {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.errorMessage p {
+  color: #c33;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.successMessage {
+  background-color: #efe;
+  border: 1px solid #cfc;
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.successMessage p {
+  color: #3c3;
+  margin: 0;
+  font-size: 0.875rem;
 }

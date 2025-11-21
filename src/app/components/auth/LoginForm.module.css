@@ -3,8 +3,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 69px;
-  height: 100%;
+  height: 100vh;
   background: #ffffff;
   width: 100%;
 }
@@ -62,6 +61,7 @@
 .objectContain {
   object-fit: contain;
   cursor: pointer;
+  margin-bottom: 68.53px;
 }
 
 .loginFormContainer {
@@ -69,7 +69,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border-bottom: 1px solid #bcbcbc;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
   gap: 1.9rem;
   padding-bottom: 1.9rem;
 }
@@ -94,18 +94,22 @@
 }
 
 .inputField {
-  padding: 1rem;
-  margin-bottom: 16px;
-  border: 1px solid #bcbcbc;
-  border-radius: 4px;
-  font-size: clamp(1rem, 2.8vw, 1.1rem);
+  height: 45px;
+  padding: 0 20px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  font-size: 14px;
   color: #333;
   width: 100%;
+  margin-bottom: 15px;
+  background-color: #fff;
 }
+
 .inputField::placeholder {
-  font-size: clamp(13px, 2.5vw, 14px);
   color: rgba(0, 0, 0, 0.4);
+  font-size: 14px;
 }
+
 .inputField:focus {
   border-color: #66bfa7;
   outline: 1px solid #66bfa7;
@@ -153,15 +157,15 @@
 }
 
 .loginButton {
-  padding: 1rem 0;
+  height: 45px;
+  border-radius: 5px;
   background-color: #66bfa7;
-  color: white;
+  color: #fff;
   border: none;
-  border-radius: 4px;
-  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-size: 16px;
   cursor: pointer;
   transition: background-color 0.3s;
-  margin-top: 1.5rem;
+  margin-top: 20px;
 }
 
 .loginButton:hover {
@@ -211,7 +215,7 @@
   align-items: center;
   justify-content: center;
   gap: 45px;
-  margin-top: -1.5rem;
+  margin-top: 30px;
 }
 
 .logo {
@@ -246,4 +250,15 @@
 }
 .eyeButton:hover {
   color: #66bfa7;
+}
+
+.error {
+  color: #e74c3c;
+  font-size: 14px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  border-radius: 4px;
+  text-align: center;
 }

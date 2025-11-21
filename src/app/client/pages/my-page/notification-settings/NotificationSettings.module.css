@@ -1,6 +1,6 @@
 .container {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #f2f4f7;
   padding: 0;
   margin: 0 -16px;
   width: calc(100% + 32px);
@@ -15,105 +15,171 @@
 }
 
 .section {
-  background-color: #ffffff;
-  margin-bottom: 8px;
+  background-color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0;
   border-radius: 0;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .section:last-child {
   margin-bottom: 0;
 }
 
+.divider {
+  height: 1rem;
+  background-color: #f2f4f7;
+  width: 100%;
+}
+
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0;
+  padding-left: 16px;
+}
+
 .sectionTitle {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 8px 0;
-  padding: 20px 16px 0 16px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #000000;
+  margin: 0;
+  padding: 0;
 }
 
 .sectionDescription {
-  font-size: 14px;
-  color: #666;
-  margin: 0 0 20px 0;
-  padding: 0 16px;
-  line-height: 1.4;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.4);
+  margin: 0;
+  padding: 0;
+  line-height: 1;
 }
 
 .settingsList {
   display: flex;
   flex-direction: column;
-  padding: 1rem;
-  gap: 1rem;
-  background-color: rgba(255, 255, 255, 0.8);
+  padding: 20px 16px;
+  gap: 15px;
 }
 
 .settingItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 16px;
-  background-color: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  padding: 16px;
+  height: 48px;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 5px;
   width: 100%;
-  box-sizing: border-box;
+  gap: 10px;
 }
 
 .settingItem:last-child {
-  border-bottom: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .settingLabel {
   font-size: 16px;
-  color: #333;
+  color: #000000;
   font-weight: 400;
 }
 
 .toggle {
   position: relative;
   width: 50px;
-  height: 30px;
+  height: 28px;
   border: none;
-  border-radius: 15px;
+  border-radius: 100px;
   cursor: pointer;
   transition: background-color 0.3s ease;
   padding: 0;
   outline: none;
+  flex-shrink: 0;
 }
 
 .toggleOff {
-  background-color: #e5e7eb;
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 .toggleOn {
-  background-color: #8bc4a8;
+  background-color: rgb(102, 191, 176);
 }
 
 .toggleSlider {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   background-color: #ffffff;
   border-radius: 50%;
   transition: transform 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .toggleOn .toggleSlider {
-  transform: translateX(20px);
+  transform: translateX(22px);
 }
 
 .toggle:focus {
-  outline: 2px solid #8bc4a8;
+  outline: 2px solid rgb(102, 191, 176);
   outline-offset: 2px;
 }
 
 .toggle:hover {
   opacity: 0.8;
+}
+
+.toggle.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle.disabled:hover {
+  opacity: 0.5;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  font-size: 16px;
+  color: #666;
+  background-color: #fff;
+  margin: 8px 0;
+  border-radius: 8px;
+}
+
+.error {
+  background-color: #fee;
+  color: #c33;
+  padding: 16px;
+  margin: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #fcc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.retryButton {
+  background-color: rgb(102, 191, 176);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.retryButton:hover {
+  background-color: rgb(91, 172, 158);
 }
 
 /* Mobile responsive */
@@ -122,21 +188,27 @@
     padding-top: 50px;
   }
 
+  .sectionHeader {
+    padding: 12px 0;
+    padding-left: 16px;
+  }
+
   .sectionTitle {
     font-size: 16px;
-    padding: 16px 16px 0 16px;
+    padding: 0;
   }
 
   .sectionDescription {
-    font-size: 13px;
-    padding: 0 16px;
+    font-size: 12px;
+    padding: 0;
   }
 
   .settingItem {
-    padding: 14px 16px;
+    padding: 16px;
+    height: 48px;
   }
 
   .settingLabel {
-    font-size: 15px;
+    font-size: 16px;
   }
 }

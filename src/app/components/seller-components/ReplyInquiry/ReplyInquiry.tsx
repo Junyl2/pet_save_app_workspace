@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import styles from './ReplyInquiry.module.css';
-import { mockContactInquiries } from '../../data/mockContact';
-import { ContactInquiry } from '@/app/api/types/contact/contact';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import { useUser } from '@/app/context/userContext';
+import { MemberStoreService } from '@/app/api/services/client/memberService/memberStore/memberStoreService';
+import { StoreInquiry } from '@/app/api/types/member/store/storeInquiry';
+import { SellerInquiryService } from '@/app/api/services/client/seller/seller-inquiry/sellerInquiryService';
+import defaultProfile from '@/app/constats/defaultProfile';
+import { ReviewImageGallery } from '@/app/components/ui/Gallery/ReviewImageGallery';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Helper function to format date from YYYY-MM-DD to YY.MM.DD
 const formatDate = (dateString: string): string => {
@@ -18,80 +21,168 @@ const formatDate = (dateString: string): string => {
   return `${year}.${month}.${day}`;
 };
 
+// Interface for the transformed inquiry data used in UI
+interface TransformedInquiry {
+  id: number;
+  inquiryId: string;
+  date: string;
+  name: string;
+  profileImageUrl: string;
+  productName: string;
+  category: string;
+  message: string;
+  responseMessage: string;
+  status: string;
+  answering: boolean;
+  imageUrls: string[];
+}
+
+// Helper function to transform API response to UI format
+const transformStoreInquiryToUI = (
+  storeInquiry: StoreInquiry
+): TransformedInquiry => {
+  return {
+    id: parseInt(storeInquiry.inquiryId?.split('-')[0], 16) || 0,
+    inquiryId: storeInquiry.inquiryId,
+    date: storeInquiry.createdAt,
+    name: storeInquiry.inquirer?.name || 'Unknown',
+    profileImageUrl: storeInquiry.inquirer?.profileImageUrl || '',
+    productName: storeInquiry.product?.productName || '상품명 없음',
+    category: storeInquiry.category,
+    message: storeInquiry.content,
+    responseMessage: storeInquiry.answer || '',
+    status: storeInquiry.status === 'ANSWERED' ? '답변 완료' : '답변 대기 중',
+    answering: false,
+    imageUrls: storeInquiry.imageUrls || [],
+  };
+};
+
+// Map API categories to UI categories
+const mapApiCategoryToUI = (apiCategory: string): string => {
+  switch (apiCategory) {
+    case 'PRODUCT':
+      return '상품 문의';
+    case 'DELIVERY':
+      return '배송 문의';
+    case 'EXCHANGE_RETURN':
+      return '교환/환불 문의';
+    case 'PAYMENT':
+      return '결제 문의';
+    case 'OTHER':
+    default:
+      return '기타 문의';
+  }
+};
+
 export default function ReplyInquiry() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useUser();
-  const [inquiry, setInquiry] = useState<ContactInquiry | null>(null);
+  const [inquiry, setInquiry] = useState<TransformedInquiry | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Check if user is seller
+  // Check if user is approved seller
   useEffect(() => {
-    if (user?.role !== 'seller') {
+    if (user?.role !== 'seller' || !user?.storeId) {
       router.push('/client/pages/homepage');
       return;
     }
   }, [user, router]);
 
-  // Get inquiry data from URL params
+  // Get inquiry data
   useEffect(() => {
-    const inquiryId = searchParams.get('id');
-    if (inquiryId) {
-      const foundInquiry = mockContactInquiries.find(
-        (inq) => inq.id === parseInt(inquiryId)
-      );
-      if (foundInquiry) {
-        setInquiry(foundInquiry);
-      } else {
+    const fetchInquiry = async () => {
+      const inquiryId = searchParams.get('id');
+      if (!inquiryId) {
         router.push('/client/seller/pages/seller-inquiry-details');
+        return;
       }
-    } else {
-      router.push('/client/seller/pages/seller-inquiry-details');
-    }
-  }, [searchParams, router]);
+
+      if (!user?.role || user.role !== 'seller') return;
+
+      setLoading(true);
+
+      try {
+        const response = await MemberStoreService.getMyStoreInquiries({
+          sortBy: 'createdAt',
+          direction: 'desc',
+          size: 100,
+        });
+
+        if (response.error || !response.data) {
+          console.error('Failed to fetch store inquiries:', response.error);
+          router.push('/client/seller/pages/seller-inquiry-details');
+          return;
+        }
+
+        const matchingInquiry = response.data.data.content.find(
+          (inq) => inq.inquiryId === inquiryId
+        );
+
+        if (matchingInquiry) {
+          const transformedInquiry = transformStoreInquiryToUI(matchingInquiry);
+          setInquiry(transformedInquiry);
+        } else {
+          console.error('Inquiry not found:', inquiryId);
+          router.push('/client/seller/pages/seller-inquiry-details');
+        }
+      } catch (error) {
+        console.error('Error fetching inquiry:', error);
+        router.push('/client/seller/pages/seller-inquiry-details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInquiry();
+  }, [searchParams, router, user]);
 
   const handleSubmit = async () => {
     if (!replyText.trim()) {
-      alert('답변을 입력해주세요.');
+      toast.error('답변을 입력해주세요.');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Here you would typically make an API call to submit the reply
-      // For now, we'll simulate the API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const inquiryId = inquiry?.inquiryId as string | undefined;
+      if (!inquiryId || !inquiry) {
+        toast.error('유효하지 않은 문의 ID 입니다.');
+        setIsSubmitting(false);
+        return;
+      }
 
-      // Update the inquiry status in mock data (in real app, this would be handled by API)
-      /*   const updatedInquiries = mockContactInquiries.map((inq) =>
-        inq.id === inquiry?.id
-          ? { ...inq, responseMessage: replyText, status: '답변 완료' as const }
-          : inq
-      ); */
+      // Update or create answer
+      if (inquiry.status === '답변 완료') {
+        const res = await SellerInquiryService.updateInquiryAnswer(inquiryId, {
+          answer: replyText,
+        });
+        if (res.error) throw new Error(res.error);
+      } else {
+        const res = await SellerInquiryService.answerInquiry(inquiryId, {
+          answer: replyText,
+        });
+        if (res.error) throw new Error(res.error);
+      }
 
-      // In a real app, you would update the backend here
-      console.log('Reply submitted:', {
-        inquiryId: inquiry?.id,
-        reply: replyText,
-      });
-
-      alert('답변이 성공적으로 등록되었습니다.');
+      toast.success('답변이 성공적으로 등록되었습니다.');
       router.push('/client/seller/pages/seller-inquiry-details');
     } catch (error) {
       console.error('Error submitting reply:', error);
-      alert('답변 등록 중 오류가 발생했습니다. 다시 시도해주세요.');
+      toast.error('답변 등록 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (!user || user.role !== 'seller') {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
-  if (!inquiry) {
+  if (loading) {
     return (
       <div className={styles.loading}>
         <div>문의 정보를 불러오는 중...</div>
@@ -99,26 +190,34 @@ export default function ReplyInquiry() {
     );
   }
 
+  if (!inquiry) {
+    return (
+      <div className={styles.loading}>
+        <div>문의를 찾을 수 없습니다.</div>
+      </div>
+    );
+  }
+
   return (
     <>
+      <Toaster position="bottom-center" />
       <ProductHeader />
       <div className={styles.page}>
-        {/* Inquiry Details Section */}
+        {/* Inquiry Details */}
         <div className={styles.inquirySection}>
           <div className={styles.inquiryHeader}>
             <div className={styles.userInfo}>
               <div className={styles.userProfile}>
-                <Image
-                  src="/images/logo/pet-saves.png"
-                  alt="펫세이브"
-                  width={30}
-                  height={30}
+                <img
+                  src={inquiry.profileImageUrl || defaultProfile.image}
+                  alt={inquiry.name || '사용자'}
                   className={styles.profileImage}
                 />
-                <span className={styles.userName}>펫세이브</span>
+                <span className={styles.userName}>{inquiry.name}</span>
               </div>
+
               <div className={styles.inquiryMeta}>
-                {inquiry.category} | [{inquiry.shopName}] |{' '}
+                {mapApiCategoryToUI(inquiry.category)} | {inquiry.productName} |{' '}
                 {formatDate(inquiry.date)}
               </div>
             </div>
@@ -127,6 +226,11 @@ export default function ReplyInquiry() {
           <div className={styles.inquiryContent}>
             <div className={styles.messageBox}>
               <div className={styles.messageText}>{inquiry.message}</div>
+              {inquiry.imageUrls && inquiry.imageUrls.length > 0 && (
+                <div className={styles.imagesContainer}>
+                  <ReviewImageGallery images={inquiry.imageUrls} />
+                </div>
+              )}
             </div>
           </div>
         </div>

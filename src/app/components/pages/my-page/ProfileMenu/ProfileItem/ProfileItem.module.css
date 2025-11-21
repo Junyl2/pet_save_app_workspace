@@ -1,5 +1,4 @@
 .profileItem {
-  padding: 0.75rem 0;
   border-bottom: 1px solid #eee;
   text-align: left;
   background: none;
@@ -8,6 +7,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  height: 24px;
 }
 
 .icon {
@@ -15,7 +15,10 @@
   color: #999;
 }
 .label {
-  font-size: 0.875rem;
+  font-size: 13px;
   color: #000;
   font-weight: normal;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
+    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', sans-serif;
 }

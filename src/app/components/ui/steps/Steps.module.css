@@ -7,8 +7,8 @@
 .progressTrack {
   position: absolute;
   top: 10px;
-  left: 20px;
-  right: 20px;
+  left: 18px;
+  right: 28px;
   height: 3px;
   background-color: #e5e7eb;
   z-index: 1;
@@ -16,7 +16,7 @@
 
 .progressFill {
   height: 100%;
-  background-color: #10b981;
+  background-color: #66bfa7;
   transition: width 0.3s ease;
   border-radius: 3px;
 }
@@ -37,8 +37,8 @@
 }
 
 .stepDot {
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   border: 3px solid;
   background-color: white;
@@ -50,8 +50,8 @@
 }
 
 .stepDotActive {
-  background-color: #10b981;
-  border-color: #10b981;
+  background-color: #66bfa7;
+  border-color: #66bfa7;
 }
 
 .stepDotInactive {
@@ -73,7 +73,7 @@
 }
 
 .stepLabelActive {
-  color: #059669;
+  color: #66bfa7;
 }
 
 .stepLabelInactive {
@@ -96,13 +96,25 @@
   }
 
   .stepDot {
-    width: 16px;
-    height: 16px;
+    width: 13px;
+    height: 13px;
   }
 
   .progressTrack {
     top: 8px;
     left: 16px;
     right: 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .progressTrack {
+    position: absolute;
+    top: 10px;
+    left: 18px;
+    right: 28px;
+    height: 3px;
+    background-color: #e5e7eb;
+    z-index: 1;
   }
 }

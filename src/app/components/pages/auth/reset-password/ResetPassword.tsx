@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { FaChevronLeft } from 'react-icons/fa';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { BaseModal } from '@/app/components/ui/modal/BaseModal';
+import { AuthService } from '@/app/api/services/client/auth/authService';
 import Image from 'next/image';
 import styles from './ResetPassword.module.css';
 
@@ -15,6 +16,8 @@ export default function ResetPassword() {
   const [errors, setErrors] = useState({ password: '', confirm: '' });
   const [isValid, setIsValid] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -27,12 +30,20 @@ export default function ResetPassword() {
     const trimmedPassword = password.trim();
     const trimmedConfirm = confirmPassword.trim();
 
-    if (trimmedPassword && !/^\d{10}$/.test(trimmedPassword)) {
-      passError = '입력하신 비밀번호가 지정된 형식에 맞지 않습니다.';
+    // New password validation to match MembershipInformation
+    if (trimmedPassword) {
+      if (trimmedPassword.length < 8) {
+        passError = '비밀번호는 최소 8자 이상이어야 합니다.';
+      } else if (
+        !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(trimmedPassword)
+      ) {
+        passError =
+          '비밀번호는 대문자, 소문자, 숫자, 특수문자를 포함해야 합니다.';
+      }
     }
 
     if (trimmedConfirm && trimmedPassword !== trimmedConfirm) {
-      confirmError = '비밀번호 확인 값이 일치하지 않습니다.';
+      confirmError = '비밀번호가 일치하지 않습니다.';
     }
 
     setErrors({ password: passError, confirm: confirmError });
@@ -42,14 +53,45 @@ export default function ResetPassword() {
     );
   }, [password, confirmPassword]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
 
-    // TODO: Integrate password reset API here
-    // Example: await api.post('/reset-password', { password });
+    setIsLoading(true);
+    setErrorMessage('');
 
-    setShowModal(true);
+    try {
+      // Get reset token from URL params or localStorage
+      // For now, we'll use a placeholder - in real implementation,
+      // this should come from the previous step
+      const resetToken =
+        localStorage.getItem('resetToken') || 'placeholder_token';
+
+      console.log('API → 비밀번호 재설정 요청:', { newPassword: password });
+
+      const response = await AuthService.resetPassword(password, resetToken);
+
+      if (response.error) {
+        console.error('비밀번호 재설정 실패:', response.error);
+        let userErrorMessage = '비밀번호 재설정에 실패했습니다.';
+        if (response.error.includes('400')) {
+          const match = response.error.match(/400: (.+)/);
+          if (match) {
+            userErrorMessage = match[1];
+          }
+        }
+        setErrorMessage(userErrorMessage);
+        return;
+      }
+
+      console.log('비밀번호 재설정 성공:', response.data);
+      setShowModal(true);
+    } catch (err) {
+      console.error('비밀번호 재설정 실패', err);
+      setErrorMessage('비밀번호 재설정 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -118,13 +160,16 @@ export default function ResetPassword() {
             {errors.confirm && <p className={styles.error}>{errors.confirm}</p>}
           </div>
 
+          {/* Error Message */}
+          {errorMessage && <p className={styles.error}>{errorMessage}</p>}
+
           {/* Submit Button */}
           <button
             type="submit"
             className={styles.modalButton}
-            disabled={!isValid}
+            disabled={!isValid || isLoading}
           >
-            변경하기
+            {isLoading ? '변경 중...' : '변경하기'}
           </button>
         </form>
 
@@ -149,6 +194,8 @@ export default function ResetPassword() {
             className={styles.modalButton}
             onClick={() => {
               setShowModal(false);
+              // Clear the reset token from localStorage
+              localStorage.removeItem('resetToken');
               router.push('/client/login');
             }}
           >

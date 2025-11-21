@@ -7,6 +7,10 @@ import { Product } from './ProductCard';
 import styles from './AddToCartModal.module.css';
 import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { useRouter } from 'next/navigation';
+import { cartService } from '@/app/api/services/client/cartService/cartService';
+import { useUser } from '@/app/context/userContext';
+import { dispatchCartUpdate } from '@/app/components/hooks/use-cart-quantity';
+import { PAGE_URLS } from '@/app/utils/page_url';
 
 interface AddToCartModalProps {
   isOpen: boolean;
@@ -42,6 +46,7 @@ export function AddToCartModal({
   const [isLoading, setIsLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const router = useRouter();
+  const { user } = useUser();
 
   // Reset state when modal opens
   useEffect(() => {
@@ -55,6 +60,13 @@ export function AddToCartModal({
 
   if (!product) return null;
 
+  // Check if user is trying to add their own product to cart
+  const isOwnProduct = Boolean(
+    user?.role === 'seller' &&
+      user?.storeId &&
+      (product as { storeId?: string }).storeId === user.storeId
+  );
+
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
     if (newQuantity >= 1 && newQuantity <= 99) {
@@ -65,25 +77,94 @@ export function AddToCartModal({
   const calculateTotal = () => product.salePrice * quantity;
 
   const handleAddToCart = async () => {
+    if (!product) return;
+
     setIsLoading(true);
     try {
-      await onAddToCart(product, quantity, shippingOption);
-      onClose();
-      setShowToast(true); // ✅ directly show toast
+      // Call the real API
+      const response = await cartService.addToCart(product.id, quantity);
+
+      if (response.data?.success) {
+        // Also call the local handler for UI updates
+        await onAddToCart(product, quantity, shippingOption);
+        dispatchCartUpdate();
+        onClose();
+        setShowToast(true);
+      } else if (
+        response.error === 'Authentication required' ||
+        response.error === 'No refresh token available'
+      ) {
+        // Don't show error toast - user is being redirected to login
+        onClose();
+      } else {
+        // Handle other errors silently or show custom toast if needed
+        console.error('Add to cart failed:', response.error);
+      }
     } catch (error) {
       console.error('Failed to add to cart:', error);
+      // Don't show error toast for authentication errors - user is being redirected
+      if (
+        error instanceof Error &&
+        (error.message.includes('No refresh token available') ||
+          error.message.includes('401') ||
+          error.message.includes('Unauthorized'))
+      ) {
+        onClose();
+      } else {
+        console.error('Network error during add to cart:', error);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handlePurchase = async () => {
+    if (!product) return;
+
     setIsLoading(true);
     try {
-      await onPurchase(product, quantity, shippingOption);
+      // Normalize product price
+      const normalizedPrice = product.salePrice;
+      const normalizedId = String(product.id);
+
+      // Use quantity and shipping option from modal state
+      const selectedQuantity = quantity;
+      const selectedDeliveryOption = shippingOption; // 'delivery' or 'pickup'
+
+      // Use actual product image if available, otherwise use a fallback
+      const productImageUrl = product.image || '/placeholder.png';
+
+      // Create order data (same structure as handlePurchase in ProductActions)
+      const orderData = [
+        {
+          product: {
+            id: normalizedId,
+            name: product.name,
+            price: normalizedPrice,
+            discountPrice: product.originalPrice || null,
+            brand: 'Pet Save',
+            image: productImageUrl,
+          },
+          quantity: selectedQuantity,
+          isDirectPurchase: true,
+          productId: normalizedId,
+        },
+      ];
+
+      // Save to localStorage (same as ProductActions handlePurchase)
+      localStorage.setItem('checkoutItems', JSON.stringify(orderData));
+      localStorage.setItem('selectedDeliveryOption', selectedDeliveryOption);
+      localStorage.setItem('isDirectPurchase', 'true');
+
+      // Call onPurchase callback
+      await onPurchase(product, selectedQuantity, selectedDeliveryOption);
+
+      // Navigate to delivery payment page
+      router.push(PAGE_URLS.DELIVERY_PAYMENT);
+
       onClose();
     } catch (error) {
-      console.error('Failed to purchase:', error);
+      console.error('Failed to process purchase:', error);
     } finally {
       setIsLoading(false);
     }
@@ -187,16 +268,24 @@ export function AddToCartModal({
           <button
             className={`${styles.actionButton} ${styles.addToCartButton}`}
             onClick={handleAddToCart}
-            disabled={isLoading}
+            disabled={isLoading || isOwnProduct}
           >
-            {isLoading ? '담는 중...' : '장바구니 담기'}
+            {isLoading
+              ? '담는 중...'
+              : isOwnProduct
+              ? '본인 상품은 담을 수 없습니다'
+              : '장바구니 담기'}
           </button>
           <button
             className={`${styles.actionButton} ${styles.purchaseButton}`}
             onClick={handlePurchase}
-            disabled={isLoading}
+            disabled={isLoading || isOwnProduct}
           >
-            {isLoading ? '구매 중...' : '구매하기'}
+            {isLoading
+              ? '구매 중...'
+              : isOwnProduct
+              ? '본인 상품은 구매할 수 없습니다'
+              : '구매하기'}
           </button>
         </div>
       </BaseModal>

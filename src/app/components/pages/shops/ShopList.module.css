@@ -4,8 +4,10 @@
   background-color: #f2f4f7;
   margin-left: -1rem;
   margin-right: -1rem;
-  margin-bottom: 68.09px;
-  margin-top: 178px;
+  /*   margin-bottom: 68.09px;
+  margin-top: 178px; */
+  margin-top: 148px;
+  min-height: calc(100vh - 148px);
 }
 
 .searchWrapper {
@@ -57,7 +59,7 @@
   display: flex;
   align-items: center;
   background-color: #fff;
-  padding: 0.75rem 1rem;
+  padding: 1rem 0rem 1rem 0.3rem;
   /*   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); */
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
@@ -82,12 +84,13 @@
 }
 
 .shopImage {
-  background-color: gray;
+  /*   background-color: gray; */
   border-radius: 5px;
   height: 95px;
   width: 95px;
-  object-fit: cover;
+  object-fit: contain;
   margin-right: 1rem;
+  display: block;
 }
 
 .shopInfo {

@@ -11,7 +11,7 @@ export interface OrderConfirmationProps {
   itemCount: number;
   amount: number;
   paymentLabel: string;
-  date: Date; // e.g., new Date(2025, 7, 6) for 8/6
+  date: Date;
 }
 
 function formatKoreanShortDate(d: Date) {
@@ -30,6 +30,7 @@ export default function OrderConfirmation({
   date,
 }: OrderConfirmationProps) {
   const dateStr = formatKoreanShortDate(date);
+  const isBankTransfer = paymentLabel === '무통장입금';
 
   return (
     <div className={styles.confirmation}>
@@ -45,21 +46,28 @@ export default function OrderConfirmation({
 
       <h2 className={styles.confirmationTitle}>주문이 완료되었습니다.</h2>
 
-      <p className={styles.confirmationSub}>
-        {mode === 'delivery' ? (
-          <>
-            <span className={styles.date}>{dateStr}</span>에 배송됩니다.
-          </>
-        ) : (
-          <>
-            <span>{dateStr}</span>까지 픽업해주세요.
-          </>
-        )}
-      </p>
+      {isBankTransfer ? (
+        <p className={styles.confirmationSub}>
+          무통장입금 결제를 선택하셨습니다. 아래 계좌로 입금하시면 주문이
+          확정됩니다.
+        </p>
+      ) : (
+        <p className={styles.confirmationSub}>
+          {mode === 'delivery' ? (
+            <>
+              <span className={styles.date}>{dateStr}</span>에 배송됩니다.
+            </>
+          ) : (
+            <>
+              <span>{dateStr}</span>까지 픽업해주세요.
+            </>
+          )}
+        </p>
+      )}
 
       <div className={styles.orderNumber}>
         <span className={styles.orderLabel}>주문번호</span>
-        <span className={styles.orderBalue}>{orderNo}</span>
+        <span className={styles.orderValue}>{orderNo}</span>
       </div>
 
       <div className={styles.divider}></div>
@@ -78,6 +86,15 @@ export default function OrderConfirmation({
         <span className={styles.label}>결제 방법</span>
         <span className={styles.value}>{paymentLabel}</span>
       </div>
+      {/*
+      {isBankTransfer && (
+        <button
+          className={styles.confirmationCta}
+          onClick={() => router.push(PAGE_URLS.HOME)}
+        >
+          홈으로 돌아가기
+        </button>
+      )} */}
     </div>
   );
 }

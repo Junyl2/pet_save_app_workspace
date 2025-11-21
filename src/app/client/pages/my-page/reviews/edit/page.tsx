@@ -3,118 +3,304 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
-import { FaStar, FaCamera } from 'react-icons/fa';
-import styles from './EditReview.module.css';
-
-// Mock review data - in real app, this would come from API
-const mockReviews = [
-  {
-    id: 1,
-    productName: '탐사 강아지 고구마말랭이 간식',
-    store: '○○ 동물병원',
-    purchaseDate: '25.07.30',
-    image: '/images/products/dog-snack.png',
-    rating: 5,
-    reviewText:
-      '우리 강아지가 너무 잘 먹어요! 고구마 말랭이라 건강에도 좋고, 말랑해서 먹기도 편해 보여요. 간식 줄 때마다 꼬리를 흔들며 좋아하네요. 재구매 의사 100%입니다!',
-    existingImages: [
-      '/images/products/dog-snack.png',
-      '/images/products/dog-snack2.png',
-      '/images/products/dogfood.png',
-    ],
-  },
-];
+import { FaCamera } from 'react-icons/fa';
+import Image from 'next/image';
+import styles from '../write/WriteReview.module.css';
+import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
+import { ReviewFileService } from '@/app/api/services/client/fileService/reviewFileService';
+import { Review } from '@/app/api/types/member/review/review';
+import Loading from '@/app/components/ui/Loading/Loading';
+import { useAppSelector, useAppDispatch } from '@/app/redux/hooks';
+import { setHasLoadedOnce } from '@/app/redux/slices/auth/ui/loadingSlice';
+import toast, { Toaster } from 'react-hot-toast';
 
 type NewImage = { id: string; file: File; url: string };
 
 export default function EditReviewPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const reviewId = searchParams.get('reviewId');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Find review by ID (default to first review if not found)
-  const existingReview =
-    mockReviews.find((r) => r.id.toString() === reviewId) || mockReviews[0];
+  const [review, setReview] = useState<Review | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const [rating, setRating] = useState<number>(existingReview.rating);
-  const [reviewText, setReviewText] = useState<string>(
-    existingReview.reviewText
+  const hasLoadedOnce = useAppSelector(
+    (state) => state.loading.hasLoadedOnce[`edit-review-${reviewId}`] || false
   );
+  const [loading, setLoading] = useState<boolean>(!hasLoadedOnce);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [uploadingFiles, setUploadingFiles] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState('');
+
+  const [rating, setRating] = useState<number>(0);
+  const [reviewText, setReviewText] = useState<string>('');
   const [attachedImages, setAttachedImages] = useState<NewImage[]>([]);
-  const [existingImages, setExistingImages] = useState<string[]>(
-    existingReview.existingImages || []
-  );
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [uploadedFileIds, setUploadedFileIds] = useState<string[]>([]);
   const [hoveredStar, setHoveredStar] = useState<number>(0);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
 
-  const handleStarClick = (starIndex: number) => setRating(starIndex);
-  const handleStarHover = (starIndex: number) => setHoveredStar(starIndex);
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!hasLoadedOnce) setLoading(true);
+    setError(null);
+
+    const fetchReview = async () => {
+      if (!reviewId) {
+        toast.error('리뷰 ID가 필요합니다.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await ReviewService.getReviewById(reviewId);
+
+        if (!isMounted) return;
+
+        if (response.error) {
+          toast.error('리뷰를 불러올 수 없습니다.');
+        } else if (response.data) {
+          const reviewData = response.data;
+          setReview(reviewData);
+          setRating(reviewData.rating);
+          setReviewText(reviewData.content || '');
+          setExistingImages(reviewData.imageUrls || []);
+          setUploadedFileIds(
+            reviewData.imageUrls?.map((url) => {
+              const urlParts = url.split('/');
+              return urlParts[urlParts.length - 1];
+            }) || []
+          );
+          dispatch(setHasLoadedOnce(`edit-review-${reviewId}`));
+        } else {
+          toast.error('리뷰 정보를 찾을 수 없습니다.');
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Failed to fetch review:', err);
+        toast.error('리뷰를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        if (!isMounted) return;
+        setLoading(false);
+      }
+    };
+
+    fetchReview();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [reviewId, hasLoadedOnce, dispatch]);
+
+  const handleStarClick = (i: number) => setRating(i);
+  const handleStarHover = (i: number) => setHoveredStar(i);
   const handleStarLeave = () => setHoveredStar(0);
 
   const handlePhotoUpload = () => fileInputRef.current?.click();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-    const additions: NewImage[] = Array.from(files).map((f) => ({
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !reviewId) return;
+
+    const additions = Array.from(files).map((f) => ({
       id: crypto.randomUUID(),
       file: f,
       url: URL.createObjectURL(f),
     }));
     setAttachedImages((prev) => [...prev, ...additions]);
+
+    setUploadingFiles(true);
+    setUploadProgress('이미지 업로드 중...');
+
+    try {
+      const filesArray = Array.from(files);
+      const uploadResponse = await ReviewFileService.uploadMultipleFiles(
+        filesArray,
+        {
+          entityType: 'review',
+          entityId: reviewId,
+        }
+      );
+
+      if (uploadResponse.error || !uploadResponse.data?.data) {
+        throw new Error(uploadResponse.error || '파일 업로드에 실패했습니다.');
+      }
+
+      const newFileIds = uploadResponse.data.data
+        .filter((f) => f.encryptedId)
+        .map((f) => f.encryptedId);
+
+      setUploadedFileIds((prev) => [...prev, ...newFileIds]);
+      setUploadProgress('');
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('이미지 업로드 중 오류가 발생했습니다.');
+      setAttachedImages((prev) =>
+        prev.filter((img) => !additions.some((add) => add.id === img.id))
+      );
+    } finally {
+      setUploadingFiles(false);
+      setUploadProgress('');
+    }
   };
 
-  const removeNewImage = (id: string) => {
+  const removeImage = (id: string) => {
+    const img = attachedImages.find((x) => x.id === id);
+    if (!img) return;
+
     setAttachedImages((prev) => {
-      const img = prev.find((x) => x.id === id);
-      if (img) URL.revokeObjectURL(img.url);
+      const found = prev.find((x) => x.id === id);
+      if (found) URL.revokeObjectURL(found.url);
       return prev.filter((x) => x.id !== id);
     });
+
+    const urlParts = img.url.split('/');
+    const encryptedId = urlParts[urlParts.length - 1];
+    if (encryptedId && uploadedFileIds.includes(encryptedId)) {
+      setUploadedFileIds((prev) =>
+        prev.filter((fileId) => fileId !== encryptedId)
+      );
+    }
   };
 
-  // revoke URLs on unmount
+  const removeExistingImage = async (imageUrl: string) => {
+    const urlParts = imageUrl.split('/');
+    const encryptedId = urlParts[urlParts.length - 1];
+
+    if (encryptedId) {
+      try {
+        await ReviewFileService.deleteFile(encryptedId);
+      } catch (err) {
+        console.error('Error deleting existing file:', err);
+      }
+    }
+
+    setExistingImages((prev) => prev.filter((x) => x !== imageUrl));
+    setUploadedFileIds((prev) =>
+      prev.filter((fileId) => fileId !== encryptedId)
+    );
+  };
+
   useEffect(() => {
     return () => {
       attachedImages.forEach((x) => URL.revokeObjectURL(x.url));
     };
   }, [attachedImages]);
 
-  const handleSubmit = () => {
-    if (rating > 0 && reviewText.trim()) {
-      setShowSuccessMessage(true);
-      setTimeout(() => {
-        setShowSuccessMessage(false);
-        router.push(
-          `/client/pages/my-page/reviews/view?reviewId=${existingReview.id}`
-        );
-      }, 2000);
+  const handleSubmit = async () => {
+    if (
+      rating <= 0 ||
+      !reviewText.trim() ||
+      !reviewId ||
+      submitting ||
+      uploadingFiles
+    )
+      return;
+
+    setSubmitting(true);
+
+    try {
+      if (!review) {
+        toast.error('리뷰 정보를 찾을 수 없습니다.');
+        setSubmitting(false);
+        return;
+      }
+
+      const reviewData = {
+        rating: rating,
+        content: reviewText.trim(),
+        imageFileIds: uploadedFileIds,
+      };
+
+      const updateResponse = await ReviewService.updateReview(
+        reviewId,
+        reviewData
+      );
+
+      if (updateResponse.error) {
+        toast.error('리뷰 수정에 실패했습니다. 다시 시도해주세요.');
+      } else {
+        setShowSuccessMessage(true);
+        setTimeout(() => {
+          setShowSuccessMessage(false);
+          router.push(
+            `/client/pages/my-page/reviews/view?reviewId=${reviewId}`
+          );
+        }, 3000);
+      }
+    } catch (err) {
+      console.error('Failed to update review:', err);
+      toast.error('리뷰 수정 중 오류가 발생했습니다.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const isFormValid = rating > 0 && reviewText.trim().length > 0;
+  const isFormValid =
+    rating > 0 &&
+    reviewText.trim().length > 0 &&
+    !submitting &&
+    !uploadingFiles;
+
+  if (loading || error || !review) return <Loading />;
+
+  const allImages = [
+    ...existingImages.map((url) => ({ type: 'existing' as const, url })),
+    ...attachedImages.map((img) => ({
+      type: 'new' as const,
+      url: img.url,
+      id: img.id,
+    })),
+  ];
 
   return (
     <div className={styles.container}>
+      <Toaster position="bottom-center" />
       <ProductHeader />
-
       <div className={styles.content}>
         {/* Product Info */}
         <div className={styles.productSection}>
           <div className={styles.productImage}>
-            <img src={existingReview.image} alt={existingReview.productName} />
+            {review.product.productThumbnail ? (
+              <Image
+                src={review.product.productThumbnail}
+                alt={review.product.productName}
+                width={90}
+                height={90}
+                priority
+              />
+            ) : (
+              <span className={styles.altText}>
+                {review.product.productName}
+              </span>
+            )}
           </div>
+
           <div className={styles.productInfo}>
             <div className={styles.productName}>
-              {existingReview.productName}
+              {review.product.productName}
             </div>
-            <div className={styles.productStore}>{existingReview.store}</div>
+            <div className={styles.productStore}>
+              {review.product.productNumber || '상점 정보 없음'}
+            </div>
             <div className={styles.purchaseDate}>
-              {existingReview.purchaseDate} 주문
+              {review.createdAt
+                ? new Date(review.createdAt)
+                    .toLocaleDateString('ko-KR', {
+                      year: '2-digit',
+                      month: '2-digit',
+                      day: '2-digit',
+                    })
+                    .replace(/\./g, '.')
+                    .replace(/\s/g, '')
+                : '날짜 정보 없음'}{' '}
+              주문
             </div>
           </div>
         </div>
-
         <div className={styles.divider}></div>
 
         {/* Rating Section */}
@@ -123,28 +309,35 @@ export default function EditReviewPage() {
             구매하신 상품은 만족하시나요?
           </div>
           <div className={styles.starsContainer}>
-            {[1, 2, 3, 4, 5].map((starIndex) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <button
-                key={starIndex} // static 1..5
+                key={i}
                 className={styles.starButton}
-                onClick={() => handleStarClick(starIndex)}
-                onMouseEnter={() => handleStarHover(starIndex)}
+                onClick={() => handleStarClick(i)}
+                onMouseEnter={() => handleStarHover(i)}
                 onMouseLeave={handleStarLeave}
               >
-                <FaStar
-                  className={`${styles.star} ${
-                    starIndex <= (hoveredStar || rating)
-                      ? styles.starFilled
-                      : styles.starEmpty
-                  }`}
+                <Image
+                  src={
+                    i <= (hoveredStar || rating)
+                      ? '/images/icons/filledStar.svg'
+                      : '/images/icons/blankStar.svg'
+                  }
+                  alt={
+                    i <= (hoveredStar || rating) ? 'Filled star' : 'Blank star'
+                  }
+                  width={43}
+                  height={43}
+                  className={styles.star}
                 />
               </button>
             ))}
           </div>
         </div>
+
         <div className={styles.divider}></div>
 
-        {/* Review Text Section */}
+        {/* Review Text */}
         <div className={styles.reviewSection}>
           <div className={styles.reviewTitle}>자세한 리뷰를 작성해주세요</div>
           <textarea
@@ -157,50 +350,8 @@ export default function EditReviewPage() {
           <div className={styles.charCount}>{reviewText.length}/500</div>
         </div>
 
-        {/* Photo Upload Section */}
+        {/* Photo Upload */}
         <div className={styles.photoSection}>
-          {/* Existing Images (stable keys by URL) */}
-          {existingImages.length > 0 && (
-            <div className={styles.existingImagesContainer}>
-              <div className={styles.imageGrid}>
-                {existingImages.map((image) => (
-                  <div key={image} className={styles.imagePreview}>
-                    <img src={image} alt="Existing" />
-                    <button
-                      className={styles.removeImageButton}
-                      onClick={() =>
-                        setExistingImages((prev) =>
-                          prev.filter((x) => x !== image)
-                        )
-                      }
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* New Images (stable keys by id) */}
-          {attachedImages.length > 0 && (
-            <div className={styles.newImagesContainer}>
-              <div className={styles.imageGrid}>
-                {attachedImages.map((img) => (
-                  <div key={img.id} className={styles.imagePreview}>
-                    <img src={img.url} alt="New Preview" />
-                    <button
-                      className={styles.removeImageButton}
-                      onClick={() => removeNewImage(img.id)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <button className={styles.photoButton} onClick={handlePhotoUpload}>
             <FaCamera className={styles.cameraIcon} />
             사진 첨부하기
@@ -213,11 +364,34 @@ export default function EditReviewPage() {
             onChange={handleFileChange}
             className={styles.hiddenInput}
           />
+
+          {allImages.length > 0 && (
+            <div className={styles.imagePreviewContainer}>
+              {allImages.map((img) => (
+                <div
+                  key={img.type === 'existing' ? img.url : img.id}
+                  className={styles.imagePreview}
+                >
+                  <img src={img.url} alt="Preview" />
+                  <button
+                    className={styles.removeImageButton}
+                    onClick={() =>
+                      img.type === 'existing'
+                        ? removeExistingImage(img.url)
+                        : removeImage(img.id)
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Submit Button */}
-        <div className={styles.line}></div>
-
+      {/* Submit Button - Fixed at Bottom */}
+      <div className={styles.submitButtonContainer}>
         <button
           className={`${styles.submitButton} ${
             isFormValid ? styles.submitButtonActive : ''
@@ -225,11 +399,14 @@ export default function EditReviewPage() {
           onClick={handleSubmit}
           disabled={!isFormValid}
         >
-          수정하기
+          {uploadingFiles
+            ? uploadProgress
+            : submitting
+            ? '수정 중...'
+            : '수정하기'}
         </button>
       </div>
 
-      {/* Success Message */}
       {showSuccessMessage && (
         <div className={styles.successMessage}>리뷰가 수정되었습니다.</div>
       )}

@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local environment variables
+.env.local
+
+# Cursor IDE settings
+.cursor
+.cursor-rules

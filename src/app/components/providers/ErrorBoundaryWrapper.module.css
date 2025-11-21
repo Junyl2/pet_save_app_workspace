@@ -1,0 +1,55 @@
+.container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 245, 245, 0.95);
+  z-index: 9999;
+}
+
+.card {
+  background: #fff;
+  padding: 32px 24px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  width: 90%;
+  max-width: 360px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222;
+  margin: 16px 0 8px;
+}
+
+.message {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 20px;
+  white-space: pre-wrap;
+}
+
+.reloadButton {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #66bfa7;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.reloadButton:hover {
+  background: #57aa94;
+}
+
+/* Desktop view */
+@media (min-width: 1024px) {
+  .card {
+    max-width: 468px;
+  }
+}

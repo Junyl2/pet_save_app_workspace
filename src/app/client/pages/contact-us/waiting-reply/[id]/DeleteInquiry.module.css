@@ -1,5 +1,5 @@
 .container {
-  margin-top: 71.59px;
+  margin-top: 64px;
   margin-bottom: 68.09px;
   background-color: rgba(255, 255, 255, 0.8);
   margin-left: -1rem;
@@ -48,6 +48,20 @@
   border-radius: 5px;
 }
 
+.messageContent p {
+  margin-bottom: 12px;
+}
+
+.imagesContainer {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.imagesContainer :global(div[class*="wrapper"]) {
+  justify-content: flex-start !important;
+  width: 100%;
+}
+
 .deleteButton {
   background-color: #e53e3e;
   color: #fff;
@@ -87,6 +101,7 @@
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+  display: block;
 }
 
 .userName {

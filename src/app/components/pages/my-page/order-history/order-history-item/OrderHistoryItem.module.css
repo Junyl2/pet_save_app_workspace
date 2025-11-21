@@ -1,8 +1,8 @@
 .card {
   display: flex;
   flex-direction: column;
-  margin: 0 -16px;   /* cancel out .app-content padding */
-  padding: 12px 16px; /* consistent inner spacing */
+  margin: 0 -16px;
+  padding: 8px 16px;
   border-bottom: 1px solid #eee;
 }
 
@@ -10,7 +10,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .status {
@@ -32,31 +32,41 @@
 
 .body {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .imageWrapper {
   flex-shrink: 0;
+  width: 108px;
+  height: 108px;
+  overflow: hidden;
+  border-radius: 6px;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .image {
   border-radius: 6px;
   object-fit: cover;
+  width: 108px;
+  height: 108px;
 }
 
 .details {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* ✅ align items at the top */
+  justify-content: flex-start;
   flex: 1;
-  gap: 1px; /* optional: small spacing instead of big gap */
+  gap: 8px;
 }
 .details p {
-  margin: 0; /* remove browser default margins */
+  margin: 0;
 }
 .orderNumber {
   font-size: 13px;
-  color: #666;
+  color: #000;
 }
 
 .name {
@@ -73,8 +83,7 @@
 
 .price {
   font-size: 14px;
-  font-weight: 500;
-  color: #333;
+  color: #aaa;
 }
 
 .date {

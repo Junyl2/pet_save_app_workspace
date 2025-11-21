@@ -1,7 +1,6 @@
 .container {
   display: grid;
-  gap: 1rem;
-  margin: 71.59px 0px;
+  margin: 64px 0px;
   /*   padding-bottom: calc(120px + env(safe-area-inset-bottom)); */
 }
 .topBar {
@@ -40,16 +39,24 @@
   color: #2563eb;
 }
 
+.addressItem {
+  display: flex;
+  gap: 15px;
+}
+
 .card {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  /*   align-items: flex-start; */
+  flex-direction: column;
+  gap: 10px;
   background: #fff;
-  padding: 1rem;
-  margin-left: -1rem;
-  margin-right: -1rem;
-  gap: 0.75rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 15px 0px;
+  border-bottom: 1px solid #d3d3d3 !important;
+  border-top: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
 }
 
 .radioWrapper {
@@ -88,15 +95,24 @@
 }
 
 .cardContent {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cardContent > * {
+  margin: 0 !important;
+}
+
+.editContainer {
+  min-height: calc(100vh - 60px);
 }
 
 .label {
   font-weight: 600;
-  font-size: 0.975rem;
+  font-size: 16px;
   padding: 0.4rem 0rem;
   margin-bottom: 0.25rem;
-  color: #000;
+  color: #000000;
   margin-top: 0;
 }
 
@@ -111,19 +127,39 @@
 }
 
 .name {
-  font-size: 1rem;
-  margin: 0.25rem 0;
+  font-size: 16px;
+  margin: 0.8rem 0;
   font-weight: normal;
+  color: #000000;
+}
+
+.phone {
+  font-size: 16px;
+  margin: 0;
+  font-weight: normal;
+  color: #000000;
 }
 
 .postal {
-  font-size: 0.9rem;
-  color: #6b7280;
+  font-size: 16px;
+  color: #000000;
 }
 
 .address {
-  font-size: 0.95rem;
+  font-size: 16px;
   margin: 0.5rem 0;
+  color: #000000;
+}
+
+/* Default badge to match member page */
+.defaultBadge {
+  background-color: #66bfa7;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px;
+  border-radius: 5px;
+  margin-left: 8px;
 }
 
 .editBtnContainer {
@@ -131,23 +167,47 @@
   width: 100%;
   align-items: center;
   justify-content: flex-end;
+  gap: 10px;
 }
 
 .editBtn {
-  margin-top: 0.5rem;
   background: #fff;
   color: #000;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  height: 22px;
+  width: 45px;
   padding: 0.4rem 0.8rem;
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.2s;
-  font-size: 0.775rem;
+  font-size: 10px;
+  padding: 0;
 }
 
-/* optional: keep light hover so text stays readable */
 .editBtn:hover {
   background: rgba(0, 0, 0, 0.04);
+}
+
+.deleteBtn {
+  background: #ffffff;
+  color: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  height: 22px;
+  width: 45px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 10px;
+  padding: 0;
+}
+
+.deleteBtn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* =========================
@@ -164,6 +224,80 @@
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   display: flex;
   gap: 12px;
+}
+
+/* ----- Form styles (add/edit) copied to match member page ----- */
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.formInput {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  background-color: #fff;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.formInput:focus {
+  border-color: #66bfa7;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+}
+
+/* Hide default checkbox appearance */
+.checkbox {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.checkbox:checked {
+  background-color: #66bfa7;
+  border-color: #66bfa7;
+}
+
+.checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 6.5px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox:hover {
+  border-color: #57a98e;
 }
 
 .btnOutline {

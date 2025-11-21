@@ -18,33 +18,33 @@ export default function TermsAndConditionsPage() {
     {
       id: 'service-terms',
       title: '서비스 이용약관',
-      path: PAGE_URLS.TERMS_SERVICE
+      path: PAGE_URLS.TERMS_SERVICE,
     },
     {
       id: 'privacy-policy',
       title: '개인정보 수집 및 이용 동의',
-      path: PAGE_URLS.TERMS_PRIVACY
+      path: PAGE_URLS.TERMS_PRIVACY,
     },
     {
       id: 'location-terms',
       title: '전자금융거래 이용 약관',
-      path: PAGE_URLS.TERMS_FINANCIAL
+      path: PAGE_URLS.TERMS_FINANCIAL,
     },
     {
       id: 'marketing-policy',
       title: '환불/취소/교환 정책',
-      path: PAGE_URLS.TERMS_REFUND
+      path: PAGE_URLS.TERMS_REFUND,
     },
     {
       id: 'location-service',
       title: '위치정보 서비스 이용 약관',
-      path: PAGE_URLS.TERMS_LOCATION
+      path: PAGE_URLS.TERMS_LOCATION,
     },
     {
       id: 'marketing-consent',
       title: '광고/마케팅 정보 수신 동의',
-      path: PAGE_URLS.TERMS_MARKETING
-    }
+      path: PAGE_URLS.TERMS_MARKETING,
+    },
   ];
 
   const handlePolicyClick = (path: string) => {
@@ -65,7 +65,11 @@ export default function TermsAndConditionsPage() {
             onClick={() => handlePolicyClick(item.path)}
           >
             <span className={styles.policyTitle}>{item.title}</span>
-            <FaChevronRight className={styles.chevronIcon} />
+            <FaChevronRight
+              className={styles.chevronIcon}
+              height={14}
+              width={7}
+            />
           </button>
         ))}
       </div>

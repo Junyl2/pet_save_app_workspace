@@ -2,14 +2,14 @@
   display: flex;
   align-items: flex-start;
   flex-direction: column;
-  /*   min-height: 100vh; */
-  /*  margin-top: 140.9px; */
+  min-height: calc(100vh - 115px);
+  margin-top: 115px;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
+  gap: 20px;
   width: 100%;
   padding: 1rem 0rem;
 }
@@ -17,15 +17,18 @@
 /* Filter bar */
 .filterBar {
   position: sticky;
-  background-color: #fff;
-  top: 154px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: #f2f4f7;
+  top: 115px;
   z-index: 500;
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
   margin-bottom: 1rem;
-  padding: 1rem 0rem;
+  padding: 1rem 1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
 }
 
 .totalCount {
@@ -80,8 +83,10 @@
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-/* 카드 */
 .card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   background-color: rgba(255, 255, 255, 0.8);
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -94,13 +99,19 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 1rem;
-  /*   background: #f9f9f9; */
+  height: 147px;
+  width: 100%;
+  padding: 0rem;
+  overflow: hidden;
+  border-radius: 6px;
 }
 
 .image {
+  border-radius: 6px;
   object-fit: contain;
-  border-radius: 8px;
+  width: 100%;
+  height: 147px;
+  display: block;
 }
 
 .icons {
@@ -125,10 +136,25 @@
   border-radius: 10000px;
 }
 
-/* 컨텐츠 */
-.content {
-  padding: 1rem;
+.quantityBadge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: #66bfa7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
 }
+
+.quantityText {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* 컨텐츠 */
 
 .header {
   display: flex;
@@ -145,22 +171,22 @@
 
 /* 상품 상세 */
 .detail {
-  font-size: 0.9rem;
-  color: #666;
-  margin: 0.5rem 0;
+  font-size: 12px;
+  color: #000;
+  margin: 0;
 }
 
 /* 가격 */
 .price {
-  margin: 0.5rem 0;
-  font-size: 1rem;
+  margin: 0;
+  font-size: 12px;
   font-weight: 500;
-  color: #333;
+  color: #000;
 }
 
 .original {
   text-decoration: line-through;
-  color: #999;
+  color: rgba(0, 0, 0, 0.5);
   margin-right: 0.5rem;
 }
 
@@ -169,15 +195,30 @@
   font-weight: 600;
 }
 
-/* 기타 정보 */
-.info {
-  font-size: 0.85rem;
-  color: #777;
-  line-height: 1.4;
-  margin-top: 0.5rem;
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-/* 검색 결과 없을 때 */
+.expiryDate {
+  font-size: 12px;
+  color: #000;
+  margin: 0;
+}
+
+.storeName {
+  font-size: 10px;
+  color: #000;
+  margin: 0;
+}
+
+.distance {
+  font-size: 10px;
+  color: #000;
+  margin: 0;
+}
+
 .emptyContainer {
   height: 600px;
   display: flex;
@@ -191,7 +232,8 @@
 
 .emptyText {
   margin-top: 1rem;
-  font-size: 1rem;
+  font-size: 15px;
+  font-weight: normal;
 }
 /* .divider {
   background-color: #f2f4f7;

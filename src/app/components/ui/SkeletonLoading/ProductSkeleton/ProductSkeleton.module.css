@@ -1,7 +1,41 @@
+/* Base skeleton animation - shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
 .container {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(1);
   gap: 1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  background-color: #f2f4f7;
+}
+
+.divider {
+  margin-top: -1.5rem;
+  height: 2rem;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+  }
 }
 .divider {
   background-color: #f2f4f7;
@@ -13,24 +47,31 @@
 
 .card {
   display: flex;
-  border-radius: 8px;
+  background: #fff;
   overflow: hidden;
-  animation: pulse 1.2s infinite;
-  align-items: center;
+  position: relative;
+  align-items: stretch;
+  min-height: 177.31px;
 }
 
 .imageWrapper {
   flex-shrink: 0;
   width: 120px;
-  height: 120px;
-  padding: 1rem 0.5rem 1rem 1rem;
   position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  margin: 1.4rem 0rem 1.4rem 1rem;
 }
 
 .imageSkeleton {
+  composes: skeleton;
   width: 100%;
   height: 100%;
-  background-color: #e5e7eb;
   border-radius: 5px;
 }
 
@@ -39,21 +80,23 @@
   padding: 1rem;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 0.5rem;
+  align-self: stretch;
 }
 
 .header {
+  padding-top: 0.5rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  position: relative;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .nameSkeleton {
+  composes: skeleton;
   width: 50%;
   height: 12px;
-  background-color: #e5e7eb;
-  border-radius: 4px;
 }
 
 .iconsSkeleton {
@@ -62,28 +105,37 @@
 }
 
 .iconSkeleton {
+  composes: skeleton;
   width: 24px;
   height: 24px;
-  background-color: #e5e7eb;
-  border-radius: 4px;
 }
 
 .detailSkeleton,
 .priceSkeleton,
 .infoSkeleton {
+  composes: skeleton;
   height: 12px;
-  background-color: #e5e7eb;
-  border-radius: 4px;
 }
 
-@keyframes pulse {
-  0% {
-    opacity: 1;
+@media (min-width: 400px) {
+  .header {
+    margin-bottom: -0.2rem;
   }
-  50% {
-    opacity: 0.4;
+}
+
+/* Base skeleton animation - shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
   }
   100% {
-    opacity: 1;
+    background-position: calc(200px + 100%) 0;
   }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
 }

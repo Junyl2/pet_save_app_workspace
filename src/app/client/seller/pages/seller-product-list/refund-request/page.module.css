@@ -1,0 +1,272 @@
+.pageContainer {
+  background: rgba(242, 244, 247, 1);
+  margin-left: -1rem;
+  margin-right: -1rem;
+  margin-top: 64px;
+  min-height: calc(100vh - 64px) !important;
+}
+
+/* Top Tab Header */
+.topTabHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  height: 40px;
+  width: 100%;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.topTabHeader div {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tab links */
+.tabLink {
+  font-size: 14px;
+  line-height: 16px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.tabLinkActive {
+  color: rgb(102, 191, 167);
+}
+
+.tabLinkInactive {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* Filter buttons container */
+.filterContainer {
+  display: flex;
+  gap: 12px;
+  margin-top: 26px;
+  padding: 0rem 1rem;
+}
+
+/* Filter button */
+.filterButton {
+  border-radius: 5px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 14px;
+  border: 1px solid;
+}
+
+.filterButtonActive {
+  background: rgba(102, 191, 167, 1);
+  border-color: rgba(0, 0, 0, 0);
+  color: #fff;
+}
+
+.filterButtonInactive {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* Cards container */
+.cardsContainer {
+  margin-top: 22px;
+  display: grid;
+  gap: 16px;
+}
+
+.cardsContainer:last-child {
+  margin-bottom: 82px;
+}
+
+/* Card */
+.card {
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  padding: 12px 1rem;
+  align-items: center;
+}
+
+/* Card image container */
+.cardImageContainer {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  flex: 0 0 auto;
+  border-radius: 5px;
+  overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+.cardImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 5px;
+  display: block;
+}
+
+/* Card content */
+.cardContent {
+  display: grid;
+  row-gap: 8px;
+  margin-left: 1rem;
+}
+.cardContent > * {
+  font-size: 12px !important;
+}
+
+/* Tags container */
+.tagsContainer {
+  display: flex;
+  gap: 8px;
+}
+
+/* Tag */
+.tag {
+  border-radius: 10px;
+  padding: 3px 10px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tagRed {
+  background: rgba(255, 228, 230, 1);
+  color: rgba(199, 0, 54, 1);
+  font-size: 11px !important;
+}
+
+.tagGreen {
+  background: rgba(231, 246, 241, 1);
+  color: rgba(47, 125, 113, 1);
+  font-size: 11px !important;
+}
+
+.tagPurple {
+  background: rgba(224, 231, 255, 1);
+  color: rgba(67, 45, 215, 1);
+  font-size: 11px !important;
+}
+
+.tagGray {
+  background: rgba(217, 217, 217, 1);
+  color: rgba(255, 255, 255, 1);
+  font-size: 11px !important;
+}
+
+/* Card text */
+.cardText {
+  font-size: 14px;
+}
+
+/* Card actions container */
+.cardActionsContainer {
+  grid-column: 1 / span 2;
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Detail button */
+.detailButton {
+  flex: 1 0 260px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+/* Action button */
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.actionButton {
+  flex: 0 0 40px;
+  border-radius: 5px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+.actionButtonGreen {
+  background: rgba(231, 246, 241, 1);
+  color: rgba(47, 125, 113, 1);
+}
+
+.actionButtonRed {
+  background: rgba(255, 228, 230, 1);
+  color: rgba(199, 0, 54, 1);
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .cardsContainer {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    padding: 0 1rem;
+  }
+
+  .card {
+    grid-template-columns: 1fr 1fr;
+    padding: 16px;
+  }
+
+  .cardImageContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 140px;
+    background-color: #f5f5f5;
+  }
+
+  .cardImage {
+    object-fit: cover !important;
+    height: 100%;
+    width: 100%;
+  }
+
+  .cardActionsContainer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actionButtons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .actionButton {
+    flex: 1;
+  }
+
+  .detailButton {
+    flex: 1;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    padding: 0.5rem;
+  }
+}

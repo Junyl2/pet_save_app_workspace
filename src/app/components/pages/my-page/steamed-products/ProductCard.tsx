@@ -1,8 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { FaHeart } from "react-icons/fa";
-import styles from "./ProductCard.module.css";
+import { useState } from 'react';
+import Image from 'next/image';
+import { FaHeart } from 'react-icons/fa';
+import styles from './ProductCard.module.css';
+import { useProductCartQuantity } from '@/app/components/hooks/use-product-cart-quantity';
 
 export interface Product {
   id: string;
@@ -26,6 +28,7 @@ export function ProductCard({
 }: ProductCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const { getProductQuantity } = useProductCartQuantity();
 
   const handleAddToCart = async () => {
     setIsLoading(true);
@@ -48,6 +51,13 @@ export function ProductCard({
     return price.toLocaleString();
   };
 
+  const handleCartIconClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAddToCart(product);
+  };
+
+  const quantity = getProductQuantity(product.id);
+
   return (
     <div className={styles.productCard}>
       <div className={styles.productImageContainer}>
@@ -56,22 +66,39 @@ export function ProductCard({
           alt={product.name}
           className={styles.productImage}
         />
+        <div className={styles.icons}>
+          <button className={styles.iconBtn} onClick={handleCartIconClick}>
+            {quantity > 0 ? (
+              <div className={styles.quantityBadge}>
+                <span className={styles.quantityText}>{quantity}</span>
+              </div>
+            ) : (
+              <Image
+                src="/images/products/search-cart.svg"
+                alt="Cart Icon"
+                width={24}
+                height={24}
+                className="object-contain"
+              />
+            )}
+          </button>
+        </div>
       </div>
       <div className={styles.productDetails}>
         <button
           className={styles.favoriteButton}
           onClick={handleToggleFavorite}
-          aria-label={product.isFavorited ? "찜 해제" : "찜하기"}
+          aria-label={product.isFavorited ? '찜 해제' : '찜하기'}
         >
           <FaHeart
             className={`${styles.heartIcon} ${
-              product.isFavorited ? "" : styles.unfavorited
+              product.isFavorited ? '' : styles.unfavorited
             }`}
           />
         </button>
         <h3
           className={`${styles.productName} ${
-            isExpanded ? styles.expanded : ""
+            isExpanded ? styles.expanded : ''
           }`}
           onClick={toggleExpand}
         >
@@ -94,7 +121,7 @@ export function ProductCard({
           onClick={handleAddToCart}
           disabled={isLoading}
         >
-          {isLoading ? "담는 중..." : "장바구니 담기"}
+          {isLoading ? '담는 중...' : '장바구니 담기'}
         </button>
       </div>
     </div>

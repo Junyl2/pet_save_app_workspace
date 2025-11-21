@@ -1,13 +1,20 @@
-// /client/seller/pages/change-profile/page.tsx
 'use client';
 
 import React, { useEffect, useId, useMemo, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { FaCamera, FaChevronDown } from 'react-icons/fa';
+import Image from 'next/image';
 import styles from './ChangeSellerProfile.module.css';
 import { ProductHeader } from '../../sections/ProductDetails/Header/ProductHeader';
 import { sellerService } from '@/app/api/services/seller/serller-details/sellerService';
 import { shopService } from '@/app/api/services/shops/shopService';
+import {
+  StoreService,
+  UpdateStoreRequest,
+} from '@/app/api/services/client/storeService/storeService';
+import { StoreFileService } from '@/app/api/services/client/fileService/storeFileService';
+import defaultProfile from '@/app/constats/defaultProfile';
+import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 
 type SellerProfile = {
   businessName: string;
@@ -24,49 +31,68 @@ type Props = {
   onBack?: () => void;
 };
 
+type StoreSummary = {
+  businessName?: string;
+  businessPhoneNumber?: string;
+  openingHours?: string;
+  closingHours?: string;
+  roadAddress?: string;
+  detailedAddress?: string;
+  businessProfileImage?: string;
+  allowPhoneInquiries?: boolean;
+};
+
+type LegacySeller = {
+  name?: string;
+  phoneNumber?: string;
+  location?: string;
+  products?: Array<{ shopImage?: string }>;
+};
+
+type ApiEnvelope<T> = {
+  success?: boolean;
+  status?: number;
+  resultMsg?: string;
+  divisionCode?: string | null;
+  data?: T;
+};
+
 const timeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
   const h = Math.floor(i / 2);
   const m = i % 2 === 0 ? '00' : '30';
   return `${String(h).padStart(2, '0')}:${m}`;
 });
 
-// util: file -> dataURL (persistable)
-const fileToDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(String(fr.result));
-    fr.onerror = reject;
-    fr.readAsDataURL(file);
-  });
-
-export default function ChangeSellerProfile({
-  initial,
-  onSubmit,
-}: /*   onBack, */
-Props) {
+export default function ChangeSellerProfile({ initial, onSubmit }: Props) {
   const businessId = useId();
   const phoneId = useId();
   const openId = useId();
   const closeId = useId();
   const addressId = useId();
 
-  const router = useRouter();
   const params = useSearchParams();
 
-  // 1) identify which shop/owner we’re editing
-  const routeShopId = Number(params?.get('shopId') || NaN);
+  const routeStoreId = params?.get('storeId') || null;
+  const routeShopId = params?.get('shopId') || null;
+
   const storedSellerId = useMemo(() => {
     if (typeof window === 'undefined') return null;
-    const v = Number(window.localStorage.getItem('sellerId'));
-    return Number.isFinite(v) ? v : null;
+    const v = window.localStorage.getItem('sellerId');
+    return v || null;
   }, []);
 
-  // prefer route ?shopId=...; fallback to local sellerId
-  const shopId = Number.isFinite(routeShopId)
-    ? routeShopId
-    : storedSellerId ?? null;
+  const storeId = routeStoreId || routeShopId || storedSellerId;
 
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const [uploadedFileId, setUploadedFileId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const [allowPhoneInquiries, setAllowPhoneInquiries] = useState<boolean>(true);
 
   const [form, setForm] = useState<SellerProfile>({
     businessName: initial?.businessName ?? 'ㅇㅇ 동물병원',
@@ -74,54 +100,96 @@ Props) {
     openTime: initial?.openTime ?? '09:00',
     closeTime: initial?.closeTime ?? '18:00',
     address: initial?.address ?? '서울 관악구 신림로70길 23',
-    avatarUrl:
-      initial?.avatarUrl ??
-      'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=300&auto=format&fit=crop',
+    avatarUrl: initial?.avatarUrl ?? defaultProfile.image,
   });
 
-  // 2) load existing data for this shop/owner + any saved overrides
   useEffect(() => {
     (async () => {
       try {
-        if (!Number.isFinite(Number(shopId))) {
+        if (!storeId) {
           setLoading(false);
           return;
         }
 
-        const seller = await sellerService.getSellerDetailsByShopId(
-          Number(shopId)
-        );
+        let storeData: StoreSummary | null = null;
 
-        // load overrides from localStorage if any
-        const lsKey = `seller:profile:${shopId}`;
+        try {
+          const storeResponse = (await StoreService.getStoreSummary(
+            storeId.toString()
+          )) as unknown as { data?: ApiEnvelope<StoreSummary> };
+
+          if (storeResponse?.data?.data) {
+            storeData = storeResponse.data.data;
+          }
+        } catch {
+          console.log('StoreSummary failed — fallback to legacy.');
+        }
+
+        let sellerData: LegacySeller | null = null;
+        if (!storeData) {
+          try {
+            const numericStoreId = Number(storeId);
+            if (Number.isFinite(numericStoreId)) {
+              const legacyRes = (await sellerService.getSellerDetailsByShopId(
+                numericStoreId
+              )) as unknown as LegacySeller | null;
+              sellerData = legacyRes ?? null;
+            }
+          } catch {
+            console.log('Legacy seller also failed.');
+          }
+        }
+
+        const lsKey = `seller:profile:${storeId}`;
         const saved =
           typeof window !== 'undefined'
             ? window.localStorage.getItem(lsKey)
             : null;
-
         const override: Partial<SellerProfile> = saved ? JSON.parse(saved) : {};
 
         const mapped: SellerProfile = {
-          businessName: override.businessName ?? seller.name ?? '업체명',
-          phone: override.phone ?? seller.phoneNumber ?? '',
-          openTime: override.openTime ?? '09:00',
-          closeTime: override.closeTime ?? '18:00',
-          address: override.address ?? seller.location ?? '',
+          businessName:
+            storeData?.businessName ||
+            sellerData?.name ||
+            override.businessName ||
+            '업체명',
+          phone:
+            storeData?.businessPhoneNumber ||
+            sellerData?.phoneNumber ||
+            override.phone ||
+            '',
+          openTime: storeData?.openingHours || override.openTime || '09:00',
+          closeTime: storeData?.closingHours || override.closeTime || '18:00',
+          address:
+            storeData?.roadAddress && storeData?.detailedAddress
+              ? `${storeData.roadAddress} ${storeData.detailedAddress}`
+              : storeData?.roadAddress ||
+                storeData?.detailedAddress ||
+                sellerData?.location ||
+                override.address ||
+                '',
           avatarUrl:
+            storeData?.businessProfileImage ??
+            sellerData?.products?.[0]?.shopImage ??
             override.avatarUrl ??
-            seller.products?.[0]?.shopImage ??
-            form.avatarUrl,
+            defaultProfile.image,
         };
 
         setForm(mapped);
-      } catch {
-        // fall back to defaults silently
+
+        // Load allowPhoneInquiries
+        if (storeData?.allowPhoneInquiries !== undefined) {
+          setAllowPhoneInquiries(storeData.allowPhoneInquiries);
+        } else {
+          setAllowPhoneInquiries(true);
+        }
+      } catch (error) {
+        console.error('Error loading seller profile:', error);
       } finally {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId]);
+  }, [storeId]);
 
   const handleChange =
     (key: keyof SellerProfile) =>
@@ -132,42 +200,92 @@ Props) {
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // persistable data url
-    const dataUrl = await fileToDataUrl(file);
-    setForm((p) => ({ ...p, avatarUrl: dataUrl }));
-    e.currentTarget.value = '';
+
+    setIsUploading(true);
+
+    try {
+      const uploadResponse = await StoreFileService.uploadFile({
+        file,
+        metadata: {
+          entityType: 'store',
+          documentType: 'PROFILE_IMAGE',
+        },
+      });
+
+      if (uploadResponse.error) {
+        setToastMessage('파일 업로드에 실패했습니다.');
+        setShowToast(true);
+        return;
+      }
+
+      if (uploadResponse.data?.data?.encryptedId) {
+        setUploadedFileId(uploadResponse.data.data.encryptedId);
+        setForm((p) => ({
+          ...p,
+          avatarUrl: uploadResponse.data?.data?.url || p.avatarUrl,
+        }));
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+    } finally {
+      setIsUploading(false);
+      e.currentTarget.value = '';
+    }
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // persist for THIS owner/shop
-    if (Number.isFinite(Number(shopId))) {
-      const lsKey = `seller:profile:${shopId}`;
-      localStorage.setItem(lsKey, JSON.stringify(form));
+    if (!storeId) return;
 
-      // also sync basic fields to mock shop service (so lists reflect it)
-      try {
-        shopService.updateShop(Number(shopId), {
-          name: form.businessName,
-          phoneNumber: form.phone,
-          location: form.address,
-          shopName: form.businessName,
-          shopLocation: form.address,
-          // you can add a field in your Shop type for avatar if desired
-          // image: form.avatarUrl,
-        });
-      } catch {
-        // ignore in mock
+    setIsUpdating(true);
+
+    try {
+      const addressParts = form.address.split(' ');
+      const roadAddress = addressParts.slice(0, -1).join(' ') || form.address;
+      const detailedAddress = addressParts[addressParts.length - 1] || '';
+
+      const updateData: UpdateStoreRequest = {
+        businessName: form.businessName,
+        roadAddress,
+        detailedAddress,
+        zipCode: '00000',
+        businessPhoneNumber: form.phone,
+        allowPhoneInquiries,
+        businessOpeningTime: `${form.openTime}:00`,
+        businessClosingTime: `${form.closeTime}:00`,
+        businessLogoFileId: uploadedFileId || undefined,
+      };
+
+      const response = await StoreService.updateStore(storeId, updateData);
+
+      if (response.error) {
+        console.error('Update failed:', response.error);
+        return;
       }
-    }
 
-    onSubmit?.(form);
-    console.log('Form submitted:', form);
+      localStorage.setItem(`seller:profile:${storeId}`, JSON.stringify(form));
 
-    // go back to seller details (optional UX)
-    if (Number.isFinite(Number(shopId))) {
-      router.push(`/seller-details/${shopId}`);
+      try {
+        const numericStoreId = Number(storeId);
+        if (Number.isFinite(numericStoreId)) {
+          shopService.updateShop(numericStoreId, {
+            name: form.businessName,
+            phoneNumber: form.phone,
+            location: form.address,
+            shopName: form.businessName,
+            shopLocation: form.address,
+          });
+        }
+      } catch {}
+
+      onSubmit?.(form);
+      setToastMessage('업체 정보가 성공적으로 업데이트되었습니다.');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Submit error:', error);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -194,12 +312,13 @@ Props) {
 
           <label htmlFor="avatar" className={styles.changePhotoBtn}>
             <FaCamera className={styles.cameraIcon} />
-            <span>프로필 사진 변경</span>
+            <span>{isUploading ? '업로드 중...' : '프로필 사진 변경'}</span>
             <input
               id="avatar"
               type="file"
               accept="image/*"
               onChange={handleAvatarPick}
+              disabled={isUploading}
               className={styles.hiddenFile}
             />
           </label>
@@ -230,6 +349,78 @@ Props) {
               value={form.phone}
               onChange={handleChange('phone')}
             />
+          </div>
+
+          {/* NEW — 전화문의 활성화 UI (Figma) */}
+          <div className={styles.phoneInquiryWrap}>
+            <div className={styles.phoneInquiryHeader}>
+              <div className={styles.phoneInquiryTitle}>전화문의 활성화</div>
+              <div className={styles.phoneInquiryDesc}>
+                앱 내 전화문의를 활성화합니다.
+              </div>
+            </div>
+
+            <div className={styles.phoneInquiryButtons}>
+              {/* 공개 */}
+              <div
+                className={
+                  allowPhoneInquiries
+                    ? styles.phoneBtnActiveGreen
+                    : styles.phoneBtnInactive
+                }
+                onClick={() => setAllowPhoneInquiries(true)}
+              >
+                <Image
+                  src={
+                    allowPhoneInquiries
+                      ? '/images/icons/active-call.svg'
+                      : '/images/icons/call.svg'
+                  }
+                  alt="call"
+                  width={16}
+                  height={16}
+                />
+                <span
+                  className={
+                    allowPhoneInquiries
+                      ? styles.phoneTextWhite
+                      : styles.phoneTextInactive
+                  }
+                >
+                  공개
+                </span>
+              </div>
+
+              {/* 비공개 */}
+              <div
+                className={
+                  !allowPhoneInquiries
+                    ? styles.phoneBtnActiveGreen
+                    : styles.phoneBtnInactive
+                }
+                onClick={() => setAllowPhoneInquiries(false)}
+              >
+                <Image
+                  src={
+                    !allowPhoneInquiries
+                      ? '/images/icons/lock.png'
+                      : '/images/icons/inactive-lock.png'
+                  }
+                  alt="lock"
+                  width={16}
+                  height={16}
+                />
+                <span
+                  className={
+                    !allowPhoneInquiries
+                      ? styles.phoneTextWhite
+                      : styles.phoneTextInactive
+                  }
+                >
+                  비공개
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* 영업 시간 */}
@@ -282,19 +473,31 @@ Props) {
             </label>
             <input
               id={addressId}
-              className={styles.input}
+              className={`${styles.input} ${styles.addressInput}`}
               value={form.address}
               onChange={handleChange('address')}
             />
           </div>
 
           <div className={styles.ctaBar}>
-            <button type="submit" className={styles.ctaBtn}>
-              수정 완료하기
+            <button
+              type="submit"
+              className={styles.ctaBtn}
+              disabled={isUpdating || isUploading}
+            >
+              {isUpdating ? '업데이트 중...' : '수정 완료하기'}
             </button>
           </div>
         </form>
       </div>
+
+      {showToast && (
+        <ToastMessage
+          message={toastMessage}
+          onClose={() => setShowToast(false)}
+          duration={3000}
+        />
+      )}
     </>
   );
 }

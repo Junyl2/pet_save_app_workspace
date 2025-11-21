@@ -1,227 +1,218 @@
-"use client";
-import React, { useEffect } from "react";
-import DateRange from "@/app/components/ui/DateRange/DateRange";
-import styles from "./OrderTracking.module.css";
-import { useParams } from "next/navigation";
-import { mockOrders } from "@/app/components/data/mockOrders";
-import ProductSection from "@/app/components/sections/ProductSection/ProductSection";
-import Steps from "@/app/components/ui/steps/Steps";
+'use client';
 
-interface TrackingEvent {
-  date: string;
-  time: string;
-  status: string;
-  description: string;
-}
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import DateRange from '@/app/components/ui/DateRange/DateRange';
+import ProductSection from '@/app/components/sections/ProductSection/ProductSection';
+import Steps from '@/app/components/ui/steps/Steps';
+import OrderTrackingSkeleton from '@/app/components/ui/SkeletonLoading/OrderTrackingSkeleton/OrderTrackingSkeleton';
+import styles from './OrderTracking.module.css';
+import { deliveryTrackingService } from '@/app/api/services/client/memberService/order/deliveryTrackingService';
+import { orderDetailsService } from '@/app/api/services/client/memberService/order/oderDetailsService';
+import {
+  DeliveryTrackingData,
+  DeliveryInfoData,
+  DeliveryEvent,
+} from '@/app/api/types/member/order/deliveryTracking';
+import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
 
-interface OrderItem {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-  originalPrice?: number;
-  brand: string;
-}
-
-interface OrderTrackingProps {
-  orderId?: string;
-  orderNumber?: string;
-  currentStatus?: "ordered" | "preparing" | "shipped" | "delivered";
-  item?: OrderItem;
-  trackingEvents?: TrackingEvent[];
-  orderInfo?: {
-    orderNumber: string;
-    recipient: string;
-  };
-  deliveryInfo?: {
-    company: string;
-    address: string;
-    phone: string;
-  };
-}
-
-export default function OrderTracking(props: OrderTrackingProps = {}) {
+export default function OrderTracking() {
   const params = useParams();
-  const orderId = props.orderId || (params?.orderId as string);
+  const searchParams = useSearchParams();
+  const orderId = params?.orderId as string;
+  const orderItemId = searchParams?.get('orderItemId') as string | null;
 
-  // ✅ Find order from shared mockOrders (same as OrderDetail)
-  const order = mockOrders.find((o) => o.orderNumber === orderId);
+  const [trackingData, setTrackingData] = useState<DeliveryTrackingData | null>(
+    null
+  );
+  const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfoData | null>(
+    null
+  );
+  const [trackingEvents, setTrackingEvents] = useState<DeliveryEvent[]>([]);
+  const [orderItem, setOrderItem] = useState<OrderItemResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTrackingData = useCallback(async () => {
+    if (!orderId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      let item: OrderItemResponse | null = null;
+
+      // If orderItemId is provided, fetch only that specific item
+      if (orderItemId) {
+        const itemResponse = await orderDetailsService.getOrderDetailsByItemId(
+          orderItemId
+        );
+        if (itemResponse.error || !itemResponse.data?.data) {
+          throw new Error('주문 상품 정보를 찾을 수 없습니다.');
+        }
+        item = itemResponse.data.data;
+      } else {
+        // Fallback: use orderId to get first item (for backward compatibility)
+        const orderResponse = await orderDetailsService.getOrderDetails(
+          orderId
+        );
+        const content = orderResponse.data?.data?.content;
+        if (!content || content.length === 0)
+          throw new Error('주문 정보를 찾을 수 없습니다.');
+        item = content[0];
+      }
+
+      if (!item) throw new Error('주문 상품 정보를 찾을 수 없습니다.');
+
+      setOrderItem(item);
+
+      // Delivery info
+      const deliveryInfoRes = await deliveryTrackingService.getDeliveryInfo(
+        item.orderItemId
+      );
+      const deliveryData = deliveryInfoRes?.data?.data;
+      if (!deliveryData) throw new Error('배송 정보를 찾을 수 없습니다.');
+      setDeliveryInfo(deliveryData);
+
+      // Delivery events
+      if (deliveryData.deliveryId) {
+        const eventsRes = await deliveryTrackingService.getDeliveryEvents(
+          deliveryData.deliveryId
+        );
+        const eventsData = eventsRes?.data?.data;
+        if (Array.isArray(eventsData)) {
+          const sorted = [...eventsData].sort(
+            (a, b) =>
+              new Date(b.eventTime).getTime() - new Date(a.eventTime).getTime()
+          );
+          setTrackingEvents(sorted);
+        }
+      }
+
+      // Full tracking data (for address, etc.)
+      if (deliveryData.trackingNumber) {
+        const trackingRes = await deliveryTrackingService.trackDelivery(
+          deliveryData.trackingNumber
+        );
+        if (trackingRes?.data?.data) {
+          setTrackingData(trackingRes.data.data);
+        }
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : '배송 조회 중 오류가 발생했습니다.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId, orderItemId]);
 
   useEffect(() => {
-    if (orderId) {
-      console.log("OrderTracking loaded for orderId:", orderId, order);
-    }
-  }, [orderId, order]);
+    if (orderId) fetchTrackingData();
+  }, [orderId, fetchTrackingData]);
 
-  if (!order) {
+  if (loading)
+    return <OrderTrackingSkeleton />;
+
+  if (error)
+    return (
+      <div className={styles.container}>
+        <p>오류: {error}</p>
+      </div>
+    );
+
+  if (!deliveryInfo)
+    return (
+      <div className={styles.container}>
+        <p>배송 정보를 찾을 수 없습니다.</p>
+      </div>
+    );
+
+  if (!orderItem)
     return (
       <div className={styles.container}>
         <p>주문 내역을 찾을 수 없습니다.</p>
       </div>
     );
-  }
 
-  // ✅ Extract real order data
-  const { orderNumber, date, status, item } = order;
-
-  // ✅ Map order status to tracking status
-  const getTrackingStatus = (orderStatus: string) => {
-    const statusMap: Record<
-      string,
-      "ordered" | "preparing" | "shipped" | "delivered"
-    > = {
-      주문접수: "ordered",
-      "배송 시작": "preparing",
-      배송중: "shipped",
-      "배송 완료": "delivered",
-      ordered: "ordered",
-      preparing: "preparing",
-      shipped: "shipped",
-      delivered: "delivered",
-    };
-    return statusMap[orderStatus] || "ordered";
+  const formatDate = (orderNumber: string): string => {
+    const dateMatch = orderNumber.match(/ORD-(\d{6})-/);
+    if (dateMatch) {
+      const dateStr = dateMatch[1];
+      const year = '20' + dateStr.substring(0, 2);
+      const month = dateStr.substring(2, 4);
+      const day = dateStr.substring(4, 6);
+      return `${year}.${month}.${day}`;
+    }
+    return new Date().toLocaleDateString('ko-KR').replace(/\s/g, '');
   };
 
-  const currentStatus = getTrackingStatus(status);
-
-  // ✅ Create tracking events based on current status
-  const generateTrackingEvents = (
-    currentStatus: string,
-    orderDate: string
-  ): TrackingEvent[] => {
-    const baseEvents: TrackingEvent[] = [];
-    const orderDateObj = new Date(orderDate);
-
-    // Generate realistic timestamps
-    const formatDate = (date: Date) => {
-      return date.toISOString().split("T")[0];
+  const getTrackingStatus = (
+    apiStatus: string
+  ): 'ordered' | 'preparing' | 'shipped' | 'delivered' | 'completed' => {
+    const map: Record<string, string> = {
+      PENDING: 'ordered',
+      PREPARING: 'preparing',
+      STARTED: 'shipped',
+      DELIVERED: 'completed',
     };
-
-    const formatTime = (date: Date) => {
-      return date.toTimeString().split(" ")[0];
-    };
-
-    // Always add order received event
-    baseEvents.push({
-      date: formatDate(orderDateObj),
-      time: formatTime(orderDateObj),
-      status: "주문접수",
-      description: "주문이 접수되었습니다",
-    });
-
-    if (["preparing", "shipped", "delivered"].includes(currentStatus)) {
-      const prepareDate = new Date(orderDateObj.getTime() + 2 * 60 * 60 * 1000); // +2 hours
-      baseEvents.push({
-        date: formatDate(prepareDate),
-        time: formatTime(prepareDate),
-        status: "상품 준비",
-        description: "상품 준비 중입니다",
-      });
-    }
-
-    if (["shipped", "delivered"].includes(currentStatus)) {
-      const shipDate = new Date(orderDateObj.getTime() + 4 * 60 * 60 * 1000); // +4 hours
-      baseEvents.push({
-        date: formatDate(shipDate),
-        time: formatTime(shipDate),
-        status: "배송 시작",
-        description: "상품이 배송을 시작했습니다",
-      });
-    }
-
-    if (currentStatus === "delivered") {
-      const deliverDate = new Date(
-        orderDateObj.getTime() + 24 * 60 * 60 * 1000
-      ); // +1 day
-      baseEvents.push({
-        date: formatDate(deliverDate),
-        time: formatTime(deliverDate),
-        status: "배송 완료",
-        description: "배송이 완료되었습니다",
-      });
-    }
-
-    return baseEvents.reverse(); // Show most recent first
+    return (
+      (map[apiStatus] as
+        | 'ordered'
+        | 'preparing'
+        | 'shipped'
+        | 'delivered'
+        | 'completed') ?? 'ordered'
+    );
   };
 
-  // ✅ Use real data with fallbacks
-  const trackingData = {
-    orderNumber: orderNumber,
-    currentStatus: currentStatus,
-    item: {
-      id: item.product.id,
-      name: item.product.name,
-      image: item.product.image,
-      price: item.product.discountPrice ?? item.product.price,
-      originalPrice: item.product.discountPrice
-        ? item.product.price
-        : undefined,
-      brand: item.product.brand || "브랜드명",
-    },
-    trackingEvents: generateTrackingEvents(currentStatus, date),
-    orderInfo: {
-      orderNumber: orderNumber,
-      recipient: "CJ대한통운", // You can add recipient info to your mockOrders if needed
-    },
-    deliveryInfo: {
-      company: "CJ대한통운",
-      address: "서울특별시 중구 양화대교 407 5층", // You can add address info to mockOrders if needed
-      phone: "010-1234-5678",
-    },
-  };
-
+  const currentStatus = getTrackingStatus(deliveryInfo.currentStatus);
   const steps = [
-    { key: "ordered", label: "주문접수" },
-    { key: "preparing", label: "배송 시작" },
-    { key: "shipped", label: "집화" },
-    { key: "delivered", label: "배송중" },
-    { key: "completed", label: "배송완료" },
+    { key: 'ordered', label: '주문접수' },
+    { key: 'preparing', label: '배송 시작' },
+    { key: 'shipped', label: '집하 완료' },
+    { key: 'delivered', label: '배송 진행중' },
+    { key: 'completed', label: '배송완료' },
   ];
+  const currentStepIndex = steps.findIndex((s) => s.key === currentStatus);
 
-  const getCurrentStepIndex = () => {
-    const statusToIndex: Record<string, number> = {
-      ordered: 0,
-      preparing: 1,
-      shipped: 2,
-      delivered: 3,
-      completed: 4,
-    };
-    return statusToIndex[trackingData.currentStatus] || 0;
-  };
+  const formatPrice = (p: number) => p.toLocaleString();
 
-  const currentStepIndex = getCurrentStepIndex();
-
-  const formatPrice = (price: number) => price.toLocaleString();
-
-  // ✅ Get status message based on current status
-  const getStatusMessage = (status: string) => {
-    const messages: Record<string, string> = {
-      ordered: "주문이 접수되었습니다!",
-      preparing: "상품을 준비중입니다!",
-      shipped: "상품이 택배사에 도착했어요!",
-      delivered: "배송이 완료되었습니다!",
-    };
-    return messages[status] || "주문 처리중입니다!";
+  const formatEventDate = (iso: string): { date: string; time: string } => {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const time = d.toLocaleTimeString('ko-KR', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    return { date, time };
   };
 
   return (
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
-        <DateRange start={date} end={date} />
+        <DateRange
+          start={formatDate(orderItem.orderNumber)}
+          end={formatDate(orderItem.orderNumber)}
+        />
         <p className={styles.orderNumber}>
-          주문번호 {trackingData.orderNumber}
+          주문번호 {orderItem.orderNumber}
         </p>
       </div>
 
-      {/* Progress Indicator */}
+      {/* Progress */}
       <div className={styles.progressSection}>
         <h2 className={styles.progressTitle}>
-          {getStatusMessage(trackingData.currentStatus)}
+          배송 상태: {deliveryInfo.currentStatus}
         </h2>
-
         <div className={styles.progressContainer}>
-          {/* Progress Line */}
           <div className={styles.progressTrack}>
             <div
               className={styles.progressFill}
@@ -230,32 +221,34 @@ export default function OrderTracking(props: OrderTrackingProps = {}) {
               }}
             />
           </div>
-
-          {/* Steps Section */}
-          <Steps steps={steps} currentStepIndex={currentStepIndex} />
+          <Steps
+            steps={steps}
+            currentStepIndex={Math.max(currentStepIndex, 0)}
+          />
         </div>
       </div>
 
-      {/* Product Section */}
+      {/* Products */}
       <ProductSection
+        key={orderItem.orderItemId}
         mainContent={
           <div className={styles.productContent}>
             <img
-              src={trackingData.item.image}
-              alt={trackingData.item.name}
+              src={orderItem.productImageUrl}
+              alt={orderItem.productName}
               className={styles.productImage}
             />
             <div className={styles.productDetails}>
-              <h3 className={styles.productName}>{trackingData.item.name}</h3>
-              <p className={styles.productBrand}>{trackingData.item.brand}</p>
+              <h3 className={styles.productName}>{orderItem.productName}</h3>
+              <p className={styles.productBrand}>{orderItem.storeName}</p>
               <div className={styles.productPricing}>
-                {trackingData.item.originalPrice && (
+                {orderItem.appliedDiscountAmount > 0 && (
                   <span className={styles.originalPrice}>
-                    {formatPrice(trackingData.item.originalPrice)}원
+                    {formatPrice(orderItem.price)}원
                   </span>
                 )}
                 <span className={styles.currentPrice}>
-                  {formatPrice(trackingData.item.price)}원
+                  {formatPrice(orderItem.totalAmount)}원
                 </span>
               </div>
             </div>
@@ -263,76 +256,81 @@ export default function OrderTracking(props: OrderTrackingProps = {}) {
         }
       />
 
-      {/* Tracking Timeline */}
-      <div className={styles.timelineSection}>
-        <div className={styles.sectionHeader}>
+      {/* Delivery Information */}
+      <div className={styles.infoContainer}>
+        {/* Delivery record */}
+        <div className={styles.timelineSection}>
           <h3 className={styles.sectionTitle}>배송기록</h3>
-        </div>
-
-        <div className={styles.timelineContent}>
           <div className={styles.timelineList}>
-            {trackingData.trackingEvents.map((event, index) => (
-              <div key={index} className={styles.timelineItem}>
-                <div className={styles.eventTime}>
-                  <p className={styles.eventDate}>{event.date}</p>
-                  <p className={styles.eventTimeStamp}>{event.time}</p>
-                </div>
-                <div className={styles.eventDetails}>
-                  <p className={styles.eventStatus}>{event.status}</p>
-                  <p className={styles.eventDescription}>{event.description}</p>
-                </div>
-              </div>
-            ))}
+            {trackingEvents.length > 0 ? (
+              trackingEvents.map((e) => {
+                const { date, time } = formatEventDate(e.eventTime);
+                return (
+                  <div key={e.deliveryEventId} className={styles.timelineItem}>
+                    <div className={styles.eventTime}>
+                      <p className={styles.eventDate}>{date}</p>
+                      <p className={styles.eventTimeStamp}>{time}</p>
+                    </div>
+                    <div className={styles.eventDetails}>
+                      <p className={styles.eventStatus}>{e.message}</p>
+                      <p className={styles.eventDescription}>
+                        {e.location || '-'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className={styles.noEvents}>배송 기록이 없습니다.</p>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Order Info */}
-      <div className={styles.infoSection}>
-        <div className={styles.sectionHeader}>
+        {/* Invoice */}
+        <div className={styles.infoSection}>
           <h3 className={styles.sectionTitle}>송장번호</h3>
+          <div className={styles.infoContent}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>송장 번호</span>
+              <span className={styles.infoValue}>
+                {deliveryInfo.trackingNumber}
+              </span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>택배사</span>
+              <span className={styles.infoValue}>
+                {deliveryInfo.courierName}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className={styles.infoContent}>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>송장 번호</span>
-            <span className={styles.infoValue}>
-              {trackingData.orderInfo.orderNumber}
-            </span>
-          </div>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>택배사</span>
-            <span className={styles.infoValue}>
-              {trackingData.orderInfo.recipient}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Delivery Info */}
-      <div className={styles.infoSection}>
-        <div className={styles.sectionHeader}>
+        {/* Shipping Address */}
+        <div className={styles.infoSection}>
           <h3 className={styles.sectionTitle}>배송지 정보</h3>
-        </div>
-
-        <div className={styles.infoContent}>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>받는분</span>
-            <span className={styles.infoValue}>
-              {trackingData.deliveryInfo.company}
-            </span>
-          </div>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>주소</span>
-            <span className={styles.infoValueAddress}>
-              {trackingData.deliveryInfo.address}
-            </span>
-          </div>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>연락처</span>
-            <span className={styles.infoValue}>
-              {trackingData.deliveryInfo.phone}
-            </span>
+          <div className={styles.infoContent}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>받는분</span>
+              <span className={styles.infoValue}>
+                {trackingData?.receiverName ?? deliveryInfo.receiverName ?? '-'}
+              </span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>주소</span>
+              <span className={styles.infoValueAddress}>
+                {trackingData?.receiverAddress ??
+                  deliveryInfo.receiverAddress ??
+                  '-'}
+              </span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>연락처</span>
+              <span className={styles.infoValue}>
+                {trackingData?.receiverPhone ??
+                  deliveryInfo.receiverPhone ??
+                  '-'}
+              </span>
+            </div>
           </div>
         </div>
       </div>

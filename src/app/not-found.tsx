@@ -2,9 +2,22 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function NotFound() {
   const router = useRouter();
+  const [homeHref, setHomeHref] = useState('/client/pages/homepage');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hasAdmin =
+        window.history.state?.url?.includes('/admin') ||
+        document.referrer.includes('/admin') ||
+        window.location.pathname.includes('/admin');
+      if (hasAdmin)
+        setHomeHref('/admin/pages/order-delivery-management/waiting-payment');
+    }
+  }, []);
 
   return (
     <div
@@ -21,19 +34,14 @@ export default function NotFound() {
           '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      <div
-        style={{
-          padding: '40px',
-          maxWidth: '500px',
-          width: '100%',
-        }}
-      >
+      <div style={{ padding: '40px', maxWidth: '500px', width: '100%' }}>
         <div
           style={{
             fontSize: '120px',
             fontWeight: 'bold',
             background:
-              'linear-gradient(135deg, #007FFF 0%, #00E5FF 50%, #7C4DFF 100%)',
+              'linear-gradient(135deg, #66bfa7 0%, #5ca895 50%, #4e9785 100%)',
+
             backgroundSize: '200% 200%',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
@@ -69,10 +77,10 @@ export default function NotFound() {
 
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
           <Link
-            href="/client/pages/homepage"
+            href={homeHref}
             style={{
               display: 'inline-block',
-              background: '#007FFF',
+              background: '#66bfa7 ',
               color: 'white',
               padding: '12px 22px',
               borderRadius: '9999px',
@@ -93,13 +101,13 @@ export default function NotFound() {
             style={{
               display: 'inline-block',
               background: 'transparent',
-              color: '#007FFF',
+              color: '#66bfa7',
               padding: '12px 22px',
               borderRadius: '9999px',
               textDecoration: 'none',
               fontWeight: 600,
               fontSize: '16px',
-              border: '2px solid #007FFF',
+              border: '2px solid #66bfa7',
               cursor: 'pointer',
             }}
           >

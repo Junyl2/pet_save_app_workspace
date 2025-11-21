@@ -24,7 +24,10 @@ export const PAGE_URLS = {
 
   // My Page sections
   MEMBER_INFORMATION: '/client/pages/my-page/member-information', // mypage - member information page
+  BLOCK_LISTS: '/client/pages/my-page/block-list',
   MEMBER_INFO_PASSWORD: '/client/pages/my-page/member-information/password', // mypage - password change page
+  MEMBER_INFO_DELIVERY_ADDRESS:
+    '/client/pages/my-page/member-information/delivery-address', // mypage - delivery address page
   MYPAGE_POINTS: '/client/pages/my-page/points', // mypage - points page
   POINTS_HISTORY: '/client/pages/my-page/points/history', // mypage - points history page
   POINTS_GUIDE: '/client/pages/my-page/points/guide', // mypage - points guide page
@@ -32,6 +35,9 @@ export const PAGE_URLS = {
   TERMS_CONDITIONS: '/client/pages/my-page/terms-and-conditions', // mypage - terms and conditions page
   REVIEWS: '/client/pages/my-page/reviews', // mypage - reviews page
   NOTIFICATION_SETTINGS: '/client/pages/my-page/notification-settings', // mypage - notification settings page
+  STORE_INFO: '/client/pages/my-page/store-info', // mypage - store information page
+  DELIVERY_ADDRESS_MANAGEMENT:
+    '/client/pages/my-page/delivery-address-management',
 
   STEAMED_PRODUCTS: '/client/pages/my-page/steamed-products',
 
@@ -50,15 +56,15 @@ export const PAGE_URLS = {
     '/client/pages/my-page/terms-and-conditions/marketing-consent',
 
   //Order history sub pages
-  ORDER_DETAILS: (orderId: string) =>
-    `/client/pages/my-page/order-history/${orderId}`,
+  ORDER_DETAILS: (orderItemId: string) =>
+    `/client/pages/my-page/order-history/items/${orderItemId}`,
   ORDER_CANCEL: (orderId: string) =>
     `/client/pages/my-page/order-history/${orderId}/cancel`,
   ORDER_TRACKING: (orderId: string) =>
     `/client/pages/my-page/order-history/${orderId}/tracking`,
 
-  ORDER_REFUND: (orderId: string) =>
-    `/client/pages/my-page/order-history/${orderId}/tracking/refund`,
+  ORDER_RETURN: (orderId: string) =>
+    `/client/pages/my-page/order-history/${orderId}/tracking/return`,
 
   ORDER_EXCHANGE: (orderId: string) =>
     `/client/pages/my-page/order-history/${orderId}/tracking/exchange`,
@@ -73,6 +79,8 @@ export const PAGE_URLS = {
   SELLER_MYPAGE: '/client/seller/pages/my-page',
   SELLER_REGISTRATION: '/client/seller/pages/registration',
   BUSINESS_INFORMATION: '/client/seller/pages/my-page/business-information',
+  BUSINESS_OPTIONS: '/client/seller/pages/my-page/business-information/business-options',
+  SELLER_STORE_INFO: '/client/seller/pages/change-profile',
   REGISTER_PRODUCT: '/client/seller/pages/register-product',
   MY_REFFERAL_CODE: '/client/pages/my-page/referral-code',
 };

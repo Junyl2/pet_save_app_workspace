@@ -1,18 +1,23 @@
 .container {
-  min-height: 100vh;
-  background-color: #ffffff;
-  padding-top: 60px;
+  min-height: calc(100vh - 64px);
+  background-color: #f2f4f7;
+  margin-top: 64px;
+  margin-left: -1rem;
+  margin-right: -1rem;
 }
 
-.content {
+/* .content {
   padding: 0 16px;
-}
+} */
 
 /* Tab Navigation */
 .tabContainer {
+  position: sticky;
+  top: 64px;
   display: flex;
   border-bottom: 1px solid #e5e5e5;
-  margin-bottom: 20px;
+  background-color: #fff;
+  z-index: 500;
 }
 
 .tab {
@@ -20,13 +25,13 @@
   padding: 16px 0;
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
-  color: #666;
+  color: #000;
   cursor: pointer;
   position: relative;
   transition: color 0.2s ease;
-  
+  font-family: 'Pretendard' !important;
 }
 
 .tab:hover {
@@ -38,7 +43,7 @@
   font-weight: 600;
 }
 
-.activeTab::after {
+/* .activeTab::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -47,13 +52,15 @@
   height: 2px;
   background-color: #8bc4a8;
 }
+ */
 
 /* Review Container */
 .reviewContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
   background-color: #ffffff;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 14px 1rem;
 }
 
 /* Review Header */
@@ -61,9 +68,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
   position: relative;
-  
 }
 
 .userInfo {
@@ -95,15 +100,26 @@
   gap: 4px;
 }
 
+.usernameAndRating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .username {
   font-size: 16px;
   font-weight: 600;
   color: #333;
 }
 
+.starsContainer {
+  display: flex;
+  gap: 2px;
+}
+
 .userIdAndDate {
   font-size: 12px;
-  color: #666;
+  color: rgba(0, 0, 0, 0.4);
 }
 
 .headerActions {
@@ -159,15 +175,6 @@
 }
 
 /* Rating */
-.ratingContainer {
-  margin-bottom: 16px;
-}
-
-.stars {
-  display: flex;
-  gap: 4px;
-}
-
 .star {
   font-size: 20px;
 }
@@ -182,18 +189,21 @@
 
 /* Product Name */
 .productName {
-  font-size: 18px;
+  font-size: 12px;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 20px;
-  line-height: 1.4;
+  color: #000;
+}
+
+.imagesAndContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Review Images */
 .imagesContainer {
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
   overflow-x: auto;
   padding-bottom: 4px;
 }
@@ -214,8 +224,8 @@
 
 /* Review Text */
 .reviewText {
-  font-size: 16px;
-  color: #333;
+  font-size: 14px;
+  color: #000;
   line-height: 1.6;
   white-space: pre-wrap;
 }
@@ -236,43 +246,47 @@
   .container {
     padding-top: 50px;
   }
-  
+
   .content {
     padding: 0 12px;
   }
-  
+
   .reviewContainer {
-    padding: 16px;
+    padding: 14px 1rem;
   }
-  
+
   .tab {
     font-size: 15px;
     padding: 14px 0;
   }
-  
+
   .profileImage {
     width: 36px;
     height: 36px;
   }
-  
+
   .username {
     font-size: 15px;
   }
-  
+
+  .star {
+    font-size: 12px;
+  }
+
   .userIdAndDate {
     font-size: 11px;
   }
-  
+
   .productName {
     font-size: 16px;
   }
-  
+
   .reviewImage {
     width: 100px;
     height: 100px;
   }
-  
+
   .reviewText {
-    font-size: 15px;
+    font-size: 12px;
   }
 }

@@ -1,13 +1,13 @@
 .page {
   background: #fff;
-  min-height: 100dvh;
+  min-height: calc(100vh - 112px);
 }
 
 /* Tabs (Frame 1575) */
 .topTabsBar {
   height: 48px;
   background: #fff;
-  margin-top: 71.59px;
+  margin-top: 64px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
@@ -77,10 +77,49 @@
 }
 
 /* White card with thin border and radius 10 */
-.card {
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+.messageBox {
+  position: relative;
+  /* background: #f7f7f7; */
+  padding: 1rem 0rem 0rem 0rem;
   border-radius: 10px;
+  white-space: pre-line;
+}
+
+.messageContent {
+  background-color: #ffffff;
+  padding: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+}
+
+.messageContent p {
+  margin-bottom: 12px;
+}
+
+.imagesContainer {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.imagesContainer :global(div[class*='wrapper']) {
+  justify-content: flex-start !important;
+  width: 100%;
+}
+
+.deleteButton {
+  background-color: #e53e3e;
+  color: #fff;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 2rem;
+}
+
+.card {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
 }
 
 .cardTall {
@@ -121,7 +160,7 @@
   background: #fff;
   border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  margin: 16px;
+  margin: 64px 16px 16px 16px;
   position: relative;
   overflow: hidden;
 }

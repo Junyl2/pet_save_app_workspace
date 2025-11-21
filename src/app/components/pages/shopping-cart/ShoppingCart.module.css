@@ -33,20 +33,26 @@
   padding: 1rem 0rem !important;
   background-color: #fff;
 }
+.imageThumb {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  object-position: center;
+}
 
 .right {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   width: 100%;
-  margin-left: 1rem;
+  gap: 10px;
 }
 
 .deleteButton {
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  width: 100px;
+  width: auto;
 }
 
 .nameAndDelete {
@@ -57,18 +63,31 @@
 
 .info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .info h3 {
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 600;
   margin: 0;
-  color: #222;
+  color: #000000;
+  line-height: 16px;
 }
 
 .info p {
-  font-size: 0.875rem;
-  color: #666;
+  font-size: 12px;
+  margin: 0;
+  line-height: 12px;
+}
+
+.info p:first-child {
+  color: #000000;
+}
+
+.info p:not(:first-child):not(.expiredDate) {
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .priceSection {
@@ -76,14 +95,14 @@
   flex-direction: column;
   align-items: flex-start;
   min-width: 120px;
-  margin-right: 1rem;
+  gap: 5px;
 }
 
 .original {
-  font-size: 0.875rem;
-  color: rgba(0, 0, 0, 0.6);
+  font-size: 12px;
+  line-height: 12px;
+  color: rgba(0, 0, 0, 0.5);
   text-decoration: line-through;
-  margin-bottom: 0.25rem;
 }
 .summaryBox {
   display: flex;
@@ -99,7 +118,7 @@
 }
 
 .discount {
-  font-size: 1rem;
+  font-size: 15px;
   color: #000000;
 }
 
@@ -108,9 +127,16 @@
 }
 
 .priceSection p {
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-  color: #333;
+  font-size: 18px;
+  line-height: 18px;
+  color: #000000;
+  margin: 0;
+}
+
+.priceSection > span:not(.original):not(.discount) {
+  font-size: 18px;
+  line-height: 18px;
+  color: #000000;
 }
 
 .deleteBtn {
@@ -152,20 +178,28 @@
 .quantityControls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  justify-content: flex-start;
+  width: 94px;
+  height: 30px;
+  gap: 18px;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 5px;
+  background-color: #ffffff;
+  padding: 5px;
+  box-sizing: border-box;
 }
 
 .quantityControls button {
-  width: 32px;
-  height: 32px;
+  width: 20px;
+  height: 20px;
   border: none;
   background-color: transparent;
   cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .disabledButton {
@@ -186,20 +220,40 @@
   border: none;
   padding: 0.8rem 0rem;
   border-radius: 3px;
+  cursor: pointer;
 }
-.bulkDeleteButton,
+.bulkDeleteButton {
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  height: 22px;
+  width: 45px;
+  padding: 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 10px;
+}
+
 .oneDelete {
   background-color: #fff;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 5px;
-  padding: 0.2rem 0.3rem 0.1rem 0.3rem;
+  width: 28px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
   color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  padding: 0;
 }
 .quantityControls span {
-  min-width: 20px;
+  min-width: 8px;
   text-align: center;
-  font-size: 0.95rem;
+  font-size: 16px;
+  line-height: 16px;
   font-weight: 500;
+  color: rgba(20, 20, 20, 0.8);
 }
 .selectAll {
   display: flex;
@@ -214,8 +268,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem !important;
+  gap: 10px;
+  padding: 9.5px 1rem !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   margin-left: -1rem;
   margin-right: -1rem;
@@ -271,4 +325,52 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
+}
+
+/* Expired product styles */
+.expiredItem {
+  opacity: 0.7;
+  background-color: #fafafa;
+  border-left: 4px solid #ff6b6b;
+}
+
+.expiredDate {
+  font-size: 12px;
+  line-height: 12px;
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quantityControlsDisabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.quantityControls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Image container styles for consistent sizing */
+.thumb {
+  width: 70px;
+  height: 70px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }

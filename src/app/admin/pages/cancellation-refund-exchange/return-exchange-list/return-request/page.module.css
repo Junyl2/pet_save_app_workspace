@@ -1,0 +1,73 @@
+.container {
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  font-family: 'Pretendard', sans-serif;
+  color: #141414;
+}
+
+/*  Center text for both header and rows */
+.header,
+.row {
+  display: grid;
+  grid-template-columns: 1.5fr 2fr 1.5fr 1.5fr 2fr 1.5fr 2fr;
+  align-items: center;
+  text-align: center;
+  padding: 0 24px;
+  height: 60px;
+}
+
+.header {
+  background-color: #f1f9f6;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  color: #1f4a31;
+  font-weight: 600;
+}
+
+.row {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  background-color: #ffffff;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Buttons */
+.cancelBtn {
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid #2b6442;
+  color: #141414;
+  border-radius: 100px;
+  width: 74px;
+  height: 29px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cancelBtn:hover {
+  background-color: #f8f8f8;
+}
+
+.startBtn {
+  background-color: #2b6442;
+  color: #ffffff;
+  border: none;
+  border-radius: 100px;
+  width: 128px;
+  height: 29px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.startBtn:hover {
+  background-color: #245537;
+}

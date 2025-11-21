@@ -1,0 +1,181 @@
+/* Base skeleton animation - shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* Wrapper aligns with ShopList page paddings/background */
+.wrapper {
+  background-color: #f2f4f7;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  margin-top: 181px;
+}
+
+/* --- Current Location Button (skeleton) --- */
+.currentBtnSkeleton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+}
+
+.locationIconSkeleton {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.currentTextSkeleton {
+  height: 12px;
+  width: 140px;
+}
+
+/* --- List container --- */
+.container {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+  background-color: #f2f4f7;
+  padding: 1rem 0rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding: 1rem;
+  }
+}
+
+/* Optional divider like your reference */
+.divider {
+  background-color: #f2f4f7;
+  height: 1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  box-sizing: border-box;
+}
+
+/* --- Card (matches .shopCard layout) --- */
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 0.75rem 1rem;
+  cursor: default;
+  min-height: 95px; /* keeps row height stable */
+}
+
+/* Phone button position and skeleton circle */
+.phoneButton {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: default;
+}
+
+.iconSkeleton {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+}
+
+/* Thumbnail area (95x95 like your ShopList) */
+.imageWrapper {
+  flex-shrink: 0;
+  width: 95px;
+  height: 95px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 5px;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+}
+
+.imageSkeleton {
+  composes: skeleton;
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
+}
+
+/* Content stack to mirror .shopInfo */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Header (shop name line) */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nameSkeleton {
+  composes: skeleton;
+  width: 50%;
+  height: 14px;
+}
+
+/* Secondary line (address) */
+.detailSkeleton {
+  composes: skeleton;
+  width: 80%;
+  height: 12px;
+}
+
+/* Info row: address & distance feel */
+.infoRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.infoSkeleton {
+  composes: skeleton;
+  width: 60%;
+  height: 12px;
+}
+
+.distanceSkeleton {
+  composes: skeleton;
+  width: 70px;
+  height: 12px;
+}
+
+/* Keep small negative margin parity if needed on wider screens */
+@media (min-width: 400px) {
+  .header {
+    margin-bottom: -0.2rem;
+  }
+}
