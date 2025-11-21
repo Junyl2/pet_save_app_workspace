@@ -22,6 +22,7 @@ interface ReturnRequestItem {
   requester: { name: string };
   items: Array<{ product: ProductInfo }>;
   returnRequestId?: string;
+  exchangeOption: string;
 }
 
 interface ReturnExchangeDrawerProps {
@@ -38,6 +39,7 @@ export const ReturnExchangeDrawer: React.FC<ReturnExchangeDrawerProps> = ({
   onStatusUpdate,
 }) => {
   const [toast, setToast] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
@@ -54,10 +56,13 @@ export const ReturnExchangeDrawer: React.FC<ReturnExchangeDrawerProps> = ({
 
   const handleStatusChange = async (status: 'APPROVED' | 'REJECTED') => {
     if (!requestData.returnRequestId) return;
+
     try {
       await returnExchangeService.updateStatus(requestData.returnRequestId, {
         status,
+        ...(status === 'REJECTED' ? { rejectReason } : {}),
       });
+
       setToast(status === 'APPROVED' ? '승인 완료' : '반려 완료');
       onStatusUpdate(requestData.returnRequestId, status);
       onClose();
@@ -72,7 +77,6 @@ export const ReturnExchangeDrawer: React.FC<ReturnExchangeDrawerProps> = ({
     product?.salePrice ??
     0
   ).toLocaleString('ko-KR');
-  const exchangeOption = '옵션: 교환 옵션 (임시 표시)';
 
   const getTypeClass = () =>
     requestData.type === 'RETURN' ? styles.typeRed : styles.typeViolet;
@@ -124,24 +128,48 @@ export const ReturnExchangeDrawer: React.FC<ReturnExchangeDrawerProps> = ({
               {getStatusLabel()}
             </span>
           </div>
+
           <p className={styles.productName}>
             {product?.productName || '상품명 없음'}
           </p>
-          <p className={styles.text}>{exchangeOption}</p>
+          {/* 실제 교환 옵션 표시 */}
+          {requestData.type === 'EXCHANGE' && (
+            <p className={styles.text}>
+              옵션: {requestData.exchangeOption || '없음'}
+            </p>
+          )}
+
           <p className={styles.text}>
             구매자: {requestData.requester?.name || '알 수 없음'}
           </p>
           <p className={styles.text}>상품금액: {productPrice}원</p>
+
           <p className={styles.method}>
             교환 방식: {requestData.collectionMethod || '미지정'}
           </p>
         </div>
 
+        {/* 요청 사유 */}
         <div className={styles.reasonSection}>
           <p className={styles.label}>요청 사유</p>
           <div className={styles.reasonBox}>
             {requestData.reason || '사유가 없습니다.'}
           </div>
+        </div>
+
+        {/* 반려 사유 (NEW FIELD) */}
+        <div className={styles.reasonSection}>
+          <p className={styles.label}>반려사유</p>
+          <textarea
+            className={styles.reasonBox}
+            placeholder="반품 반려 사유를 입력해주세요."
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            style={{
+              minHeight: '70px',
+              resize: 'none',
+            }}
+          />
         </div>
 
         <div className={styles.actions}>
@@ -152,9 +180,11 @@ export const ReturnExchangeDrawer: React.FC<ReturnExchangeDrawerProps> = ({
           >
             승인
           </button>
+
           <button
             type="button"
             className={styles.rejectBtn}
+            disabled={rejectReason.trim().length === 0}
             onClick={() => handleStatusChange('REJECTED')}
           >
             반려

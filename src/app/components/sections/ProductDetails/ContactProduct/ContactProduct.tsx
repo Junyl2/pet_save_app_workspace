@@ -42,6 +42,8 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  console.log('ContactProduct props:', { productId, storeId });
+
   /** Fetch product or store info */
   useEffect(() => {
     const fetchData = async () => {
@@ -61,12 +63,16 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
           setSelectedProductId(productId);
         } else if (storeId) {
           // Fetch store info and get first product
-          const storeResponse = await StoreService.getStoreSummary(storeId);
+          const storeResponse = await StoreService.getStoreDetails(storeId);
+          console.log('storeResponse:', storeResponse);
+
           if (storeResponse.error || !storeResponse.data?.data) {
             toast.error('매장 정보를 불러오는데 실패했습니다.');
             return;
           }
+
           setStore(storeResponse.data.data);
+          console.log('Store raw data:', storeResponse.data.data);
 
           // Get first product from store to use for inquiry
           const productsResponse =
@@ -117,16 +123,21 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
   if (!product && !store) return <p>정보를 찾을 수 없습니다.</p>;
 
   // Use store info if product is not available
-  const displayStore =
-    product?.store ||
-    (store
-      ? {
-          storeId: store.storeId || '',
-          name: store.businessName || '',
-          address: store.roadAddress || '',
-          profileUrl: store.businessProfileImage || null,
-        }
-      : null);
+  const displayStore = (() => {
+    const p = product?.store;
+    const s = store;
+
+    if (!p && !s) return null;
+
+    return {
+      storeId: s?.storeId ?? p?.storeId ?? '',
+      name: p?.name ?? s?.businessName ?? '',
+      address: p?.address ?? s?.roadAddress ?? '',
+      profileUrl: p?.profileUrl ?? s?.businessProfileImage ?? null,
+      phoneInquiryAllowed: p?.phoneInquiryAllowed ?? false,
+    };
+  })();
+  console.log('displayStore:', displayStore);
 
   /** File handling */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -281,19 +292,21 @@ export const ContactProduct = ({ productId, storeId }: ContactProductProps) => {
           </div>
 
           <div className={styles.contactWrapper}>
-            <button
-              className={styles.contactButton}
-              onClick={() => {
-                if (!displayStore.storeId) {
-                  toast.error('판매자 정보를 찾을 수 없습니다.');
-                  return;
-                }
-                setShowDrawer(true);
-              }}
-            >
-              <IoCallOutline size={16} className={styles.call} />
-              전화 문의
-            </button>
+            {displayStore.phoneInquiryAllowed && (
+              <button
+                className={styles.contactButton}
+                onClick={() => {
+                  if (!displayStore.storeId) {
+                    toast.error('판매자 정보를 찾을 수 없습니다.');
+                    return;
+                  }
+                  setShowDrawer(true);
+                }}
+              >
+                <IoCallOutline size={16} className={styles.call} />
+                전화 문의
+              </button>
+            )}
           </div>
         </div>
       )}

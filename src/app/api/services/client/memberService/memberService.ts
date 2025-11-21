@@ -36,6 +36,7 @@ export interface MemberSummary {
   memberId: string;
   storeId: string | null;
   name: string;
+  nickname: string;
   email: string;
   phoneNumber: string;
   profileImageUrl: string | null;
@@ -44,6 +45,7 @@ export interface MemberSummary {
   detailedAddress: string | null;
   birthdate: string | null;
   verifiedAt: string | null;
+  numberOfReports: number;
   availablePointsBalance: number;
   numberOfWishlists: number;
   numberOfProducts: number;

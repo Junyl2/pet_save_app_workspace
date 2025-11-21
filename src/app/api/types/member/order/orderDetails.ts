@@ -98,6 +98,7 @@ export interface OrderItemResponse {
   storeAddress: string;
   storePhoneNumber: string;
   createdAt: string;
+  returnStatus?: string;
 }
 
 /**

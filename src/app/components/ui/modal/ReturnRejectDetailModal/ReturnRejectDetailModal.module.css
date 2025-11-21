@@ -1,0 +1,130 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.modal {
+  background: #fff;
+  width: 100%;
+  max-width: 375px;
+  border-radius: 10px;
+  padding: 20px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .modal {
+    max-width: 400px;
+  }
+}
+
+.loading {
+  text-align: center;
+  font-size: 14px;
+  padding: 40px 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.orderNumberRow {
+  display: flex;
+  gap: 8px;
+}
+
+.label {
+  font-size: 13px;
+  color: #000;
+}
+
+.value {
+  font-size: 13px;
+  opacity: 0.6;
+  color: #000;
+}
+
+.closeBtn {
+  border: none;
+  background: none;
+  font-size: 18px;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.productSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.productSection > * {
+  margin: 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  width: fit-content;
+}
+
+.returnBadge {
+  background: #ffe4e6;
+  color: #c01037;
+}
+
+.exchangeBadge {
+  background: #e0e6ff;
+  color: #432dd8;
+}
+
+.productName {
+  font-size: 13px;
+  color: #000;
+}
+
+.option,
+.buyer,
+.price,
+.method {
+  font-size: 12px;
+  color: #000;
+}
+
+.method {
+  color: #2c3dff;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.section > * {
+  margin: 0;
+}
+
+.fieldTitle {
+  font-size: 13px;
+  color: #000;
+}
+
+.reasonBox,
+.rejectBox {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 8px 10px;
+  font-size: 13px;
+  border-radius: 5px;
+  color: #000;
+}

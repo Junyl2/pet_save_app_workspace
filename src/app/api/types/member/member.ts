@@ -1,8 +1,8 @@
 /**
- * Member information interface
+ * Member information interface (FULL DETAILS)
  */
 export interface MemberInfo {
-  memberId: string; // Changed from 'id' to 'memberId' to match API response
+  memberId: string;
   username?: string;
   email?: string;
   name?: string;
@@ -15,25 +15,37 @@ export interface MemberInfo {
   profileFileId?: string;
   profileImageUrl?: string;
   loginType?: string;
-  storeId?: string | null; // Store ID if user is a seller
-  businessApprovalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null; // Business registration approval status
-  availablePointsBalance?: number; // Available points balance
-  referralCode?: string; // User's referral code
+  storeId?: string | null;
+
+  businessApprovalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+
+  availablePointsBalance?: number;
+  hasRecentReports?: boolean;
+  numberOfReports?: number;
+
+  referralCode?: string;
+
   zipCode?: string;
   roadAddress?: string;
   detailedAddress?: string;
   verifiedAt?: string;
+
   numberOfWishlists?: number;
   numberOfProducts?: number;
   numberOfReviewsMade?: number;
   numberOfReferrals?: number;
+
   defaultDeliveryAddress?: {
     deliveryAddressId: string;
+    addressTitle?: string;
+    receiverName?: string;
+    receiverPhone?: string;
     roadAddress: string;
     detailedAddress: string;
     zipCode: string;
     default: boolean;
   };
+
   businessName?: string;
   businessRegistrationNumber?: string;
   representativeName?: string;
@@ -43,6 +55,7 @@ export interface MemberInfo {
   accountNumber?: string;
   depositorName?: string;
   bankbook?: string;
+
   classification?: string;
   verified?: boolean;
   createdAt?: string;
@@ -50,13 +63,13 @@ export interface MemberInfo {
 }
 
 /**
- * Member API response interface
+ * Member details response interface (GET /members/{id}/details)
  */
-export interface MemberApiResponse {
+export interface MemberDetailsResponse {
   success: boolean;
   status: number;
   resultMsg: string;
-  divisionCode: string;
+  divisionCode: string | null;
   data: MemberInfo;
   errorId: string | null;
 }
@@ -72,12 +85,32 @@ export interface MemberUpdateRequest {
   phoneNumber?: string;
   birthDate?: string;
   deliveryAddress?: string;
+
+  // Newly added because PUT example includes these:
+  nickname?: string;
+  roadAddress?: string;
+  detailedAddress?: string;
+  zipCode?: string;
+  businessRegistrationCopyId?: string;
+  bankbookCopyId?: string;
 }
 
 /**
  * Member update response interface
  */
 export interface MemberUpdateResponse {
+  success: boolean;
+  status: number;
+  resultMsg: string;
+  divisionCode: string;
+  data: MemberInfo;
+  errorId: string | null;
+}
+
+/**
+ * Member API response interface
+ */
+export interface MemberApiResponse {
   success: boolean;
   status: number;
   resultMsg: string;

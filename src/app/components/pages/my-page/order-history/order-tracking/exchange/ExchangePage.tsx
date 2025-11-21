@@ -78,18 +78,32 @@ export default function ExchangePage() {
 
       const payload: CreateReturnExchangeRequest = {
         type: 'EXCHANGE',
-        reason: data.selectedReason,
+
+        reason:
+          data.selectedReason === 'OTHER'
+            ? data.customReason || ''
+            : data.selectedReason,
+
         orderItemIds: [currentProduct.orderItemId],
+
         collectionMethod:
           currentProduct.deliveryType === 'pickup'
             ? 'CUSTOMER_RETURN'
             : 'COURIER_PICKUP',
-        exchangeOption: data.selectedOption || '',
+
+        exchangeOption:
+          data.selectedOption === '기타 요청'
+            ? data.customReasonOption || ''
+            : data.selectedOption,
       };
 
       const res = await returnExchangeService.create(payload);
       toast.dismiss();
-
+      if (res.error) {
+        const cleanMessage = res.error.replace(/^(\d{3}:\s*)/, '');
+        toast.error(cleanMessage);
+        return;
+      }
       const apiRes = res.data;
       if (apiRes && apiRes.success) {
         toast.success(
@@ -101,13 +115,37 @@ export default function ExchangePage() {
         } else {
           setCurrentStep('success');
         }
-      } else {
-        toast.error(apiRes?.resultMsg || '교환 요청 중 오류가 발생했습니다.');
+
+        return;
       }
-    } catch (err) {
+
+      toast.error(apiRes?.resultMsg || '교환 요청 중 오류가 발생했습니다.');
+    } catch (err: any) {
       toast.dismiss();
-      toast.error('서버 오류가 발생했습니다. 다시 시도해주세요.');
-      console.error('교환 요청 실패:', err);
+
+      // Axios Error → backend response exists
+      if (err?.response?.data) {
+        const backendMessage =
+          err.response.data.resultMsg ||
+          err.response.data.message ||
+          JSON.stringify(err.response.data);
+
+        toast.error(backendMessage);
+        console.error('Backend Error:', err.response.data);
+        return;
+      }
+
+      if (err?.message) {
+        toast.error(err.message);
+        console.error('Axios Error:', err);
+        return;
+      }
+
+      // Fallback
+      toast.error(
+        '이 상품은 반품이 불가능합니다. 반품 요청 상태가 이미 처리되었습니다'
+      );
+      console.error('Unknown Error:', err);
     }
   };
 

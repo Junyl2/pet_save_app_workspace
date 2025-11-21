@@ -1,100 +1,172 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import styles from './BlockListPage.module.css';
+
 import { ProductHeader } from '@/app/components/sections/ProductDetails/Header/ProductHeader';
+import Loading from '@/app/components/ui/Loading/Loading';
+
 import { BlockService } from '@/app/api/services/client/memberService/block/blockService';
 import { MemberService } from '@/app/api/services/client/memberService/memberService';
-import { StoreService } from '@/app/api/services/client/storeService/storeService';
-import ClientPagination from '@/app/components/admin/ui/ClientPagination/ClientPagination';
-import Loading from '@/app/components/ui/Loading/Loading';
-import toast from 'react-hot-toast';
+import { ReportService } from '@/app/api/services/client/memberService/report/reportService';
+
 import { BlockedStore } from '@/app/api/types/member/block/block';
 
 const PAGE_SIZE = 10;
 
-type BlockedStoreWithImage = BlockedStore & {
-  businessProfileImage?: string | null;
-};
 export default function BlockListPage() {
-  const router = useRouter();
   const [memberId, setMemberId] = useState<string | null>(null);
-  const [blockedStores, setBlockedStores] = useState<BlockedStoreWithImage[]>(
+
+  // Infinite scroll state
+  const [accumulatedBlocks, setAccumulatedBlocks] = useState<BlockedStore[]>(
     []
   );
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchMemberId = async () => {
-    try {
-      const res = await MemberService.getMyInfo();
-      if (res.error || !res.data?.data) {
-        toast.error('회원 정보를 불러오지 못했습니다.');
-        setLoading(false);
-        return;
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const observerRef = useRef<HTMLDivElement | null>(null);
+
+  // Unblock processing UI
+  const [processingStoreId, setProcessingStoreId] = useState<string | null>(
+    null
+  );
+
+  // Reports
+  const [myReportCount, setMyReportCount] = useState(0);
+  const [receivedReportCount] = useState(0);
+
+  /* -------------------------------------------------------
+     Fetch Member ID
+  ------------------------------------------------------- */
+  useEffect(() => {
+    const loadMemberId = async () => {
+      try {
+        const res = await MemberService.getMyInfo();
+        if (res.error || !res.data?.data?.memberId) {
+          toast.error('회원 정보를 가져오는 데 실패했습니다.');
+          setLoadingInitial(false);
+          return;
+        }
+        setMemberId(res.data.data.memberId);
+      } catch (err) {
+        console.error('[BlockListPage] loadMemberId error:', err);
+        toast.error('회원 정보를 불러오는 중 오류가 발생했습니다.');
+        setLoadingInitial(false);
       }
-      setMemberId(res.data.data.memberId);
-    } catch (error) {
-      console.error('[BlockListPage] Failed to get member info:', error);
-      toast.error('회원 정보를 가져오는 중 오류가 발생했습니다.');
-      setLoading(false);
-    }
-  };
+    };
 
-  const fetchBlockedStores = async (id: string, page: number) => {
-    setLoading(true);
-    try {
-      const res = await BlockService.getBlocksByMember(id, {
-        page: page - 1,
-        size: PAGE_SIZE,
-        sortBy: 'createdAt',
-        direction: 'desc',
-      });
+    loadMemberId();
+  }, []);
 
-      if (res.error || !res.data?.data) {
-        toast.error(res.error || '차단 목록을 불러오지 못했습니다.');
-        setBlockedStores([]);
-        return;
+  /* -------------------------------------------------------
+     Load Report Stats
+  ------------------------------------------------------- */
+  useEffect(() => {
+    const loadReportStats = async () => {
+      try {
+        const res = await ReportService.getMyReports({ page: 0, size: 1 });
+        if (!res.error && res.data?.data?.pageInfo) {
+          setMyReportCount(res.data.data.pageInfo.totalElements);
+        }
+      } catch {
+        console.error('Failed to load report stats');
+      }
+    };
+
+    if (memberId) loadReportStats();
+  }, [memberId]);
+
+  /* -------------------------------------------------------
+     Infinite Scroll - Fetch Blocked Stores
+  ------------------------------------------------------- */
+  const loadBlockedStores = useCallback(
+    async (page: number) => {
+      if (!memberId) return;
+
+      if (page === 0) {
+        setAccumulatedBlocks([]);
+        setHasMore(true);
       }
 
-      const { content, pageInfo } = res.data.data;
+      setIsLoadingMore(true);
 
-      // fetch each store's profile image in parallel
-      const storesWithImages = await Promise.all(
-        content.map(async (store) => {
-          try {
-            const storeRes = await StoreService.getStoreDetails(store.storeId);
-            const image =
-              storeRes.data?.data?.businessProfileImage ??
-              '/images/default-store.png';
-            return { ...store, businessProfileImage: image };
-          } catch {
-            return {
-              ...store,
-              businessProfileImage: '/images/default-store.png',
-            };
-          }
-        })
-      );
+      try {
+        const res = await BlockService.getMyBlockedStores({
+          page,
+          size: PAGE_SIZE,
+          sortBy: 'createdAt',
+          direction: 'desc',
+        });
 
-      setBlockedStores(storesWithImages);
-      setTotalPages(pageInfo.totalPages);
-    } catch (error) {
-      console.error('[BlockListPage] Fetch block list error:', error);
-      toast.error('차단 목록을 불러오는 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
+        if (res.error || !res.data?.data) {
+          toast.error('차단한 가게를 불러오는 데 실패했습니다.');
+          return;
+        }
 
-  const handleUnblock = async (storeId: string, storeName: string) => {
+        const { content, pageInfo } = res.data.data;
+
+        setAccumulatedBlocks((prev) =>
+          page === 0 ? content : [...prev, ...content]
+        );
+
+        setHasMore(pageInfo.hasNext);
+      } catch (err) {
+        console.error('[BlockListPage] loadBlockedStores error:', err);
+        toast.error('차단 가게 목록을 가져오는 중 오류가 발생했습니다.');
+      } finally {
+        setIsLoadingMore(false);
+        setLoadingInitial(false);
+      }
+    },
+    [memberId]
+  );
+
+  /* -------------------------------------------------------
+     Trigger next page on scroll
+  ------------------------------------------------------- */
+  useEffect(() => {
     if (!memberId) return;
 
-    setIsProcessing(storeId);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          const nextPage = currentPage + 1;
+          setCurrentPage(nextPage);
+          loadBlockedStores(nextPage);
+        }
+      },
+      { threshold: 0.25 }
+    );
+
+    const target = observerRef.current;
+    if (target) observer.observe(target);
+
+    return () => {
+      if (target) observer.unobserve(target);
+    };
+  }, [currentPage, hasMore, isLoadingMore, loadBlockedStores, memberId]);
+
+  /* -------------------------------------------------------
+     Initial page load
+  ------------------------------------------------------- */
+  useEffect(() => {
+    if (memberId) {
+      setCurrentPage(0);
+      loadBlockedStores(0);
+    }
+  }, [memberId, loadBlockedStores]);
+
+  /* -------------------------------------------------------
+     Unblock
+  ------------------------------------------------------- */
+  const handleUnblock = async (storeId: string, storeName: string) => {
+    setProcessingStoreId(storeId);
+
     try {
       const res = await BlockService.toggleBlockStore(storeId);
 
@@ -104,112 +176,131 @@ export default function BlockListPage() {
       }
 
       const isUnblocked =
-        res.data?.resultMsg?.includes('unblocked') ||
-        res.data?.resultMsg?.includes('해제');
+        res.data?.resultMsg?.includes('해제') ||
+        res.data?.resultMsg?.toLowerCase().includes('unblock');
 
       if (isUnblocked) {
         toast.success(`${storeName} 차단을 해제했습니다.`);
 
-        // Remove from local state immediately for instant UI update
-        const updatedStores = blockedStores.filter((s) => s.storeId !== storeId);
-        setBlockedStores(updatedStores);
+        const updated = accumulatedBlocks.filter(
+          (store) => store.storeId !== storeId
+        );
+        setAccumulatedBlocks(updated);
 
-        // If current page becomes empty and we're not on page 1, go to previous page
-        if (updatedStores.length === 0 && currentPage > 1) {
-          // Page change will trigger useEffect to refetch
-          setCurrentPage(currentPage - 1);
-        } else {
-          // Refetch current page to ensure pagination and data are in sync
-          await fetchBlockedStores(memberId, currentPage);
+        if (updated.length === 0) {
+          loadBlockedStores(0);
         }
       } else {
         toast.success(`${storeName} 차단되었습니다.`);
-        // Refetch to update the list
-        await fetchBlockedStores(memberId, currentPage);
+        loadBlockedStores(0);
       }
     } catch (err) {
       console.error('[BlockListPage] unblock error:', err);
-      toast.error('요청 처리 중 오류가 발생했습니다.');
+      toast.error('차단 해제 처리 중 오류가 발생했습니다.');
     } finally {
-      setIsProcessing(null);
+      setProcessingStoreId(null);
     }
   };
 
-  useEffect(() => {
-    fetchMemberId();
-  }, []);
+  /* -------------------------------------------------------
+     UI
+  ------------------------------------------------------- */
 
-  useEffect(() => {
-    if (memberId) fetchBlockedStores(memberId, currentPage);
-  }, [memberId, currentPage]);
-
-  if (loading) return <Loading />;
+  if (loadingInitial) return <Loading />;
 
   return (
     <>
       <ProductHeader />
+
       <div className={styles.container}>
-        {/*   {blockedStores.length !== 0 && (
-          <h1 className={styles.title}>차단 목록</h1>
-        )} */}
+        {/* ---------------- REPORT SECTION ---------------- */}
+        <div className={styles.reportStatsContainer}>
+          <p className={styles.label}>신고 관리</p>
 
+          <div className={styles.reportStatsInner}>
+            <div className={styles.statsRow}>
+              <span className={styles.statsLabel}>내가 신고한 횟수</span>
+              <span className={styles.statsReported}>{myReportCount}회</span>
+            </div>
+
+            <div className={styles.statsDivider} />
+
+            <div className={styles.statsRow}>
+              <span className={styles.statsLabel}>신고 받은 횟수</span>
+              <span className={styles.statsReceived}>
+                {receivedReportCount}회
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ---------------- EMPTY STATES ---------------- */}
         {!memberId ? (
-          <div className={styles.emptyState}>
-            <IllustrationEmpty />
-            <p>로그인이 필요합니다.</p>
-          </div>
-        ) : blockedStores.length === 0 ? (
-          <div className={styles.emptyState}>
-            <IllustrationEmpty />
-            <p>차단한 가게가 없습니다.</p>
-          </div>
+          <EmptyState message="로그인이 필요합니다." />
+        ) : accumulatedBlocks.length === 0 ? (
+          <EmptyState message="차단한 가게가 없습니다." />
         ) : (
-          <ul className={styles.list}>
-            {blockedStores.map((store) => (
-              <li key={store.blockId} className={styles.listItem}>
-                <div className={styles.avatarWrap}>
-                  <Image
-                    src={
-                      store.businessProfileImage || '/images/default-store.png'
+          <div>
+            <div className={styles.blockedHeader}>
+              <span className={styles.blockedLabel}>차단된 가게</span>
+              <span className={styles.blockedCount}>
+                {accumulatedBlocks.length}개
+              </span>
+            </div>
+
+            <ul className={styles.list}>
+              {accumulatedBlocks.map((store) => (
+                <li key={store.blockId} className={styles.listItem}>
+                  <div className={styles.avatarWrap}>
+                    <Image
+                      src={
+                        store.storeProfileImageUrl ||
+                        '/images/default-store.png'
+                      }
+                      alt={store.storeName}
+                      width={55}
+                      height={55}
+                      className={styles.avatar}
+                    />
+                  </div>
+
+                  <div className={styles.infoWrap}>
+                    <p className={styles.storeName}>{store.storeName}</p>
+                    <p className={styles.phone}>
+                      {store.storePhoneNumber || '전화번호 없음'}
+                    </p>
+                    <p className={styles.address}>
+                      {store.storeAddress || '주소 정보 없음'}
+                    </p>
+                  </div>
+
+                  <button
+                    className={styles.unblockBtn}
+                    disabled={processingStoreId === store.storeId}
+                    onClick={() =>
+                      handleUnblock(store.storeId, store.storeName)
                     }
-                    alt={store.storeName}
-                    width={50}
-                    height={50}
-                    className={styles.avatar}
-                  />
-                </div>
+                  >
+                    {processingStoreId === store.storeId
+                      ? '해제 중...'
+                      : '차단해제'}
+                  </button>
+                </li>
+              ))}
+            </ul>
 
-                <div className={styles.infoWrap}>
-                  <p className={styles.storeName}>{store.storeName}</p>
-                  <p className={styles.date}>
-                    차단일:{' '}
-                    {new Date(store.createdAt).toLocaleDateString('ko-KR', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                    })}
-                  </p>
-                </div>
+            {/* Infinite scroll trigger */}
+            {hasMore && (
+              <div
+                ref={observerRef}
+                style={{ height: '20px', width: '100%' }}
+              />
+            )}
 
-                <button
-                  className={styles.unblockBtn}
-                  disabled={isProcessing === store.storeId}
-                  onClick={() => handleUnblock(store.storeId, store.storeName)}
-                >
-                  {isProcessing === store.storeId ? '해제 중...' : '차단 해제'}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {memberId && totalPages > 1 && (
-          <div className={styles.pagination}>
-            <ClientPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
+            {/* Loading more indicator */}
+            {isLoadingMore && (
+              <p className={styles.loadingMore}>불러오는 중...</p>
+            )}
           </div>
         )}
       </div>
@@ -217,6 +308,21 @@ export default function BlockListPage() {
   );
 }
 
+/* -------------------------------------------------------
+   EMPTY STATE COMPONENT
+------------------------------------------------------- */
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className={styles.emptyState}>
+      <IllustrationEmpty />
+      <p>{message}</p>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------
+   ILLUSTRATION COMPONENT
+------------------------------------------------------- */
 function IllustrationEmpty() {
   return (
     <svg
@@ -224,7 +330,6 @@ function IllustrationEmpty() {
       viewBox="0 0 400 300"
       width="180"
       height="180"
-      aria-hidden="true"
     >
       <circle cx="200" cy="150" r="120" fill="#E8F8F4" />
       <path

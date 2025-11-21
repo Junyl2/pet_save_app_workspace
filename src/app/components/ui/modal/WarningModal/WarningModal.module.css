@@ -1,0 +1,42 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: 8px;
+}
+
+.icon {
+  margin-bottom: 20px;
+}
+
+.heading {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f1f1f;
+  margin-bottom: 12px;
+}
+
+.text {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 28px;
+  white-space: pre-line;
+}
+
+.button {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  background: #66bfa7;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.button:active {
+  opacity: 0.85;
+}

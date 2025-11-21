@@ -19,6 +19,8 @@ export interface ExchangeFormData {
   selectedOption: string;
   selectedReason: string;
   productSelected: boolean;
+  customReasonOption?: string; // option custom input
+  customReason?: string; // reason custom input
 }
 
 /** 교환 옵션 */
@@ -29,7 +31,7 @@ const EXCHANGE_OPTIONS: string[] = [
   '다른 맛 또는 종류로 교환',
   '다른 색상 또는 디자인으로 교환',
   '다른 상품으로 교환',
-  '기타 요청',
+  '기타 요청', // CUSTOM trigger for option
 ];
 
 /** 교환 사유 */
@@ -42,16 +44,21 @@ const EXCHANGE_REASONS: string[] = [
   '제품 설명과 달라 교환 요청드립니다.',
   '사이즈/용량이 맞지 않아 교환 원합니다.',
   '색상/디자인이 달라 교환을 요청합니다.',
-  '기타 사유 (10자 이상 입력 필수)',
+  '기타 사유 (10자 이상 입력 필수)', // CUSTOM trigger for reason
 ];
 
-export function ExchangeForm({ product, onSubmit }: ExchangeFormProps) {
+export function ExchangeForm({ product, onSubmit, onBack }: ExchangeFormProps) {
   const [selectedOption, setSelectedOption] = useState('');
   const [selectedReason, setSelectedReason] = useState('');
   const [productSelected, setProductSelected] = useState(true);
 
+  const [customReasonOption, setCustomReasonOption] = useState(''); // textarea for "기타 요청"
+  const [customReason, setCustomReason] = useState(''); // textarea for "기타 사유"
+
+  const isOptionCustom = selectedOption === '기타 요청';
+  const isReasonCustom = selectedReason === '기타 사유 (10자 이상 입력 필수)';
+
   const handleSubmit = () => {
-    //  Validation before calling API
     if (!productSelected) {
       toast.error('교환할 상품을 선택해주세요.');
       return;
@@ -67,16 +74,18 @@ export function ExchangeForm({ product, onSubmit }: ExchangeFormProps) {
       return;
     }
 
-    if (selectedReason.trim().length < 10) {
-      toast.error('사유는 10자 이상 입력해주세요.');
+    if (isReasonCustom && customReason.trim().length < 10) {
+      toast.error('기타 사유는 10자 이상 입력해주세요.');
       return;
     }
 
-    //  Pass valid data to parent (ExchangePage)
+    // pass data to parent
     onSubmit({
       selectedOption,
-      selectedReason,
+      selectedReason: isReasonCustom ? 'OTHER' : selectedReason,
       productSelected,
+      customReasonOption: isOptionCustom ? customReasonOption : undefined,
+      customReason: isReasonCustom ? customReason : undefined,
     });
   };
 
@@ -87,6 +96,8 @@ export function ExchangeForm({ product, onSubmit }: ExchangeFormProps) {
     <div className={styles.container}>
       <div className={styles.titleSection}>
         <h1 className={styles.title}>교환품 선택해 주세요</h1>
+
+        {/* 상품 선택 */}
         <div className={styles.productSelection}>
           <ProductSelectionStep
             product={product}
@@ -95,7 +106,7 @@ export function ExchangeForm({ product, onSubmit }: ExchangeFormProps) {
           />
         </div>
 
-        {/* 교환 옵션 선택 */}
+        {/* 교환 옵션 */}
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>교환 옵션 선택</h3>
           <div className={styles.selectWrapper}>
@@ -111,18 +122,39 @@ export function ExchangeForm({ product, onSubmit }: ExchangeFormProps) {
               ))}
             </select>
           </div>
-        </div>
-        <div className={styles.divider}> </div>
 
-        {/* 교환 사유 선택 */}
+          {/* ⭐ Custom textarea appears below 옵션 input */}
+          {isOptionCustom && (
+            <textarea
+              className={styles.customReasonInput}
+              placeholder="기타 옵션 요청 내용을 입력해주세요."
+              value={customReasonOption}
+              onChange={(e) => setCustomReasonOption(e.target.value)}
+            />
+          )}
+        </div>
+
+        <div className={styles.divider}></div>
+
+        {/* 교환 사유 */}
         <div className={styles.section}>
           <ExchangeReasonStep
             selectedReason={selectedReason}
             onReasonChange={setSelectedReason}
             reasons={EXCHANGE_REASONS}
           />
+
+          {isReasonCustom && (
+            <textarea
+              className={styles.customReasonInput}
+              placeholder="기타 사유를 입력해주세요. (10자 이상)"
+              value={customReason}
+              onChange={(e) => setCustomReason(e.target.value)}
+            />
+          )}
         </div>
-        <div className={styles.divider}> </div>
+
+        <div className={styles.divider}></div>
       </div>
 
       <div className={styles.collectInfo}>

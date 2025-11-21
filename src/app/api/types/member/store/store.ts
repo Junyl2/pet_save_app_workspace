@@ -19,7 +19,7 @@ export interface StoreInfo {
   businessPhoneNumber?: string;
   businessEmail: string;
   averageRating?: number;
-  phoneInquiryAllowed?: boolean;
+  phoneInquiryAllowed: boolean;
   openingHours?: string;
   closingHours?: string;
   numberOfProducts?: number;

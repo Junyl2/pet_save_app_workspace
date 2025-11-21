@@ -214,7 +214,8 @@ export default function ReturnPage() {
           onClick={handleNext}
           disabled={
             (currentStep === 0 && selectedItems.length === 0) ||
-            (currentStep === 1 && !selectedReason) ||
+            (currentStep === 1 &&
+              (!selectedReason || detailReason.trim().length < 10)) ||
             (currentStep === 2 && !returnMethod)
           }
         >

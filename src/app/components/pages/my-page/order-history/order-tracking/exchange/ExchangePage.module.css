@@ -1,5 +1,6 @@
 .container {
-  padding-top: 90px;
+  margin-top: 64px;
+  min-height: 100vh;
 }
 /* Header Styles */
 .header {

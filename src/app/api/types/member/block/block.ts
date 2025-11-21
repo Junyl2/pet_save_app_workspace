@@ -22,6 +22,9 @@ export interface BlockedStore {
   createdAt: string;
   updatedAt: string;
   businessProfileImage: string;
+  storeProfileImageUrl: string;
+  storePhoneNumber: string;
+  storeAddress: string;
 }
 
 /**
@@ -57,6 +60,14 @@ export type GetBlockByIdResponse = BlockBaseResponse<BlockedStore>;
  * Get member's block list (GET /member/{memberId}/blocks)
  */
 export type GetBlocksByMemberResponse = BlockBaseResponse<{
+  content: BlockedStore[];
+  pageInfo: BlockPageInfo;
+}>;
+/**
+ * Get current user's blocked stores
+ * GET /members/me/blocks
+ */
+export type GetMyBlockedStoresResponse = BlockBaseResponse<{
   content: BlockedStore[];
   pageInfo: BlockPageInfo;
 }>;

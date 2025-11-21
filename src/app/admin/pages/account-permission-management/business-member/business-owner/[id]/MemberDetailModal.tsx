@@ -3,163 +3,102 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import styles from './MemberDetailModal.module.css';
-import { BusinessRegistrationService } from '@/app/api/services/client/auth/businessRegistrationService';
+
+import { MemberService } from '@/app/api/services/client/memberService/memberService';
+import { MemberManagementService } from '@/app/api/services/admin/memberManagementService/memberManangementService';
 import { ConfirmationModal } from '@/app/components/admin/ui/ConfirmationModal/ConfirmationModal';
 import { useToast } from '@/app/components/admin/hooks/useToast';
 import { ToastContainer } from '@/app/components/admin/ui/ToastContainer/ToastContainer';
+
+import { MemberInfo, MemberUpdateRequest } from '@/app/api/types/member/member';
 
 interface MemberDetailModalProps {
   open: boolean;
   onClose: () => void;
   memberId?: string | null;
-  requestId?: string | null;
   onUpdate?: () => void;
 }
 
-interface MemberBusinessInfo {
-  requestId: string;
-  applicantId: string;
-  applicantName: string;
-  applicantNickname: string;
-  applicantEmail: string;
-  applicantPhoneNumber: string;
-  applicantProfileImageUrl: string;
-  representativeName: string;
-  businessName: string;
-  businessPhoneNumber: string;
-  businessHourStart: string;
-  businessHourEnd: string;
+/** Local UI State (only fields rendered on screen) */
+interface MemberUIFields {
+  profileImageUrl: string;
+  name: string;
+  nickname: string;
+  email: string;
+  phoneNumber: string;
+
   roadAddress: string;
   detailedAddress: string;
   zipCode: string;
-  fullAddress: string;
+
   businessRegistrationNumber: string;
-  businessEmail: string;
-  bankName: string;
-  accountNumber: string;
-  depositorName: string;
   businessRegistrationCopy: string;
   bankbook: string;
-  latitude: number;
-  longitude: number;
-  status: string;
-  submittedAt: string;
-  reviewedAt: string;
-  reviewedBy: string;
-  rejectionReason: string;
-  adminNotes: string;
 }
 
 export default function MemberDetailModal({
   open,
   onClose,
-  requestId,
+  memberId,
   onUpdate,
 }: MemberDetailModalProps) {
   const modalRef = useRef<HTMLDivElement | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const [info, setInfo] = useState<MemberBusinessInfo | null>(null);
+  const [info, setInfo] = useState<MemberUIFields | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const { toast, showSuccess, showError, hideToast } = useToast();
 
-  /** Fetch business info */
+  /** Fetch member details */
   useEffect(() => {
-    const fetchBusinessInfo = async (): Promise<void> => {
-      if (!open || !requestId) return;
+    const fetchMember = async () => {
+      if (!open || !memberId) return;
 
       setLoading(true);
       try {
-        const response =
-          await BusinessRegistrationService.getBusinessRegistrationByRequestId(
-            requestId
-          );
+        const response = await MemberService.getMemberDetails(memberId);
 
         if (response.error || !response.data?.success) {
-          console.error('Failed to fetch business info:', response.error);
+          console.error('Failed to fetch member details:', response.error);
           setInfo(null);
           return;
         }
 
-        const responseData = response.data.data;
-        let businessData: Record<string, unknown> | null = null;
-
-        if (Array.isArray(responseData)) {
-          businessData = responseData[0] ?? null;
-        } else if (responseData && typeof responseData === 'object') {
-          if (Array.isArray((responseData as any).content)) {
-            businessData = (responseData as any).content[0] ?? null;
-          } else {
-            businessData = responseData as Record<string, unknown>;
-          }
-        }
-
-        if (!businessData) {
-          setInfo(null);
-          return;
-        }
+        const data: MemberInfo = response.data.data;
 
         setInfo({
-          requestId: (businessData.requestId as string) ?? '',
-          applicantId: (businessData.applicantId as string) ?? '',
-          applicantName: (businessData.applicantName as string) ?? '-',
-          applicantNickname: (businessData.applicantNickname as string) ?? '-',
-          applicantEmail:
-            (businessData.businessEmail as string) ??
-            (businessData.applicantEmail as string) ??
-            '-',
-          applicantPhoneNumber:
-            (businessData.applicantPhoneNumber as string) ?? '-',
-          applicantProfileImageUrl:
-            (businessData.applicantProfileImageUrl as string) ?? '',
-          representativeName:
-            (businessData.representativeName as string) ?? '-',
-          businessName: (businessData.businessName as string) ?? '-',
-          businessPhoneNumber:
-            (businessData.businessPhoneNumber as string) ?? '-',
-          businessHourStart: (businessData.businessHourStart as string) ?? '-',
-          businessHourEnd: (businessData.businessHourEnd as string) ?? '-',
-          roadAddress: (businessData.roadAddress as string) ?? '-',
-          detailedAddress: (businessData.detailedAddress as string) ?? '-',
-          zipCode: (businessData.zipCode as string) ?? '-',
-          fullAddress: (businessData.fullAddress as string) ?? '-',
-          businessRegistrationNumber:
-            (businessData.businessRegistrationNumber as string) ?? '-',
-          businessEmail: (businessData.businessEmail as string) ?? '-',
-          bankName: (businessData.bankName as string) ?? '-',
-          accountNumber: (businessData.accountNumber as string) ?? '-',
-          depositorName: (businessData.depositorName as string) ?? '-',
-          businessRegistrationCopy:
-            (businessData.businessRegistrationCopy as string) ?? '',
-          bankbook: (businessData.bankbook as string) ?? '',
-          latitude: (businessData.latitude as number) ?? 0,
-          longitude: (businessData.longitude as number) ?? 0,
-          status: (businessData.status as string) ?? '-',
-          submittedAt: (businessData.submittedAt as string) ?? '-',
-          reviewedAt: (businessData.reviewedAt as string) ?? '-',
-          reviewedBy: (businessData.reviewedBy as string) ?? '-',
-          rejectionReason: (businessData.rejectionReason as string) ?? '',
-          adminNotes: (businessData.adminNotes as string) ?? '',
+          profileImageUrl: data.profileImageUrl ?? '',
+          name: data.name ?? '',
+          nickname: data.nickname ?? '',
+          email: data.email ?? '',
+          phoneNumber: data.phoneNumber ?? '',
+
+          roadAddress: data.roadAddress ?? '',
+          detailedAddress: data.detailedAddress ?? '',
+          zipCode: data.zipCode ?? '',
+
+          businessRegistrationNumber: data.businessRegistrationNumber ?? '',
+          businessRegistrationCopy: data.businessRegistrationCopy ?? '',
+          bankbook: data.bankbook ?? '',
         });
-      } catch (error) {
-        console.error('Error fetching business info:', error);
+      } catch (err) {
+        console.error('Error fetching member details:', err);
         setInfo(null);
       } finally {
         setLoading(false);
       }
     };
 
-    void fetchBusinessInfo();
-  }, [open, requestId]);
+    fetchMember();
+  }, [open, memberId]);
 
-  /** Close modal when clicking outside */
+  /** close when clicking outside */
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent): void => {
+    const handleClickOutside = (e: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
         onClose();
       }
@@ -169,102 +108,83 @@ export default function MemberDetailModal({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open, onClose]);
 
-  /** Input change handler */
+  /** Update input values */
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    key: keyof MemberBusinessInfo
-  ): void => {
+    key: keyof MemberUIFields
+  ) => {
     if (!info) return;
-    const newValue = e.target.value;
-    setInfo((prev) => (prev ? { ...prev, [key]: newValue } : prev));
+    const val = e.target.value;
+    setInfo((prev) => (prev ? { ...prev, [key]: val } : prev));
   };
 
-  /** Handle Save */
-  const handleEditToggle = async (): Promise<void> => {
-    if (!isEditing) {
-      setIsEditing(true);
-      return;
-    }
-
-    if (!requestId || !info) return;
+  /** Save changes (PUT /members/{id}) */
+  const handleSave = async () => {
+    if (!memberId || !info) return;
 
     setSaving(true);
 
     try {
-      const updateData: Record<string, string> = {};
+      const updateData: MemberUpdateRequest = {
+        name: info.name || undefined,
+        nickname: info.nickname || undefined,
+        email: info.email || undefined,
+        phoneNumber: info.phoneNumber || undefined,
 
-      const addIfValid = (field: string, value: string): void => {
-        if (value?.trim() && value !== '-') {
-          updateData[field] = value.trim();
-        }
+        roadAddress: info.roadAddress || undefined,
+        detailedAddress: info.detailedAddress || undefined,
+        zipCode: info.zipCode || undefined,
+
+        // File ID fields are NOT editable here, so we won't send them
       };
 
-      addIfValid('name', info.applicantName);
-      addIfValid('nickname', info.applicantNickname);
-      addIfValid('email', info.applicantEmail);
-      addIfValid('phoneNumber', info.applicantPhoneNumber);
-      addIfValid('roadAddress', info.roadAddress);
-      addIfValid('zipCode', info.zipCode);
-      addIfValid('detailedAddress', info.detailedAddress);
-
-      const response =
-        await BusinessRegistrationService.updateBusinessRegistrationByRequestId(
-          requestId,
-          updateData
-        );
+      const response = await MemberService.updateMemberInfo(
+        memberId,
+        updateData
+      );
 
       if (response.error || !response.data?.success) {
-        showError(
-          response.error ??
-            response.data?.resultMsg ??
-            '정보 수정 실패했습니다.'
-        );
+        showError(response.error ?? response.data?.resultMsg ?? '수정 실패');
         setSaving(false);
         return;
       }
 
-      showSuccess('정보가 성공적으로 수정되었습니다.');
+      showSuccess('회원 정보가 성공적으로 수정되었습니다.');
       setIsEditing(false);
 
       if (onUpdate) onUpdate();
-    } catch (error) {
-      console.error('Error updating business info:', error);
-      showError('정보 수정 중 오류가 발생했습니다.');
+    } catch (err) {
+      console.error('Error updating member:', err);
+      showError('정보 수정 중 오류 발생');
     } finally {
       setSaving(false);
     }
   };
 
-  /** Open delete confirmation modal */
-  const handleDeleteClick = (): void => {
-    setDeleteConfirmOpen(true);
-  };
-
-  /** Handle delete */
-  const handleDelete = async (): Promise<void> => {
-    if (!requestId) return;
+  /** DELETE member */
+  const handleDelete = async () => {
+    if (!memberId) return;
 
     setDeleteConfirmOpen(false);
     setDeleting(true);
 
     try {
-      const response =
-        await BusinessRegistrationService.deleteBusinessRegistration(requestId);
+      const response = await MemberManagementService.deleteMember(memberId);
 
       if (response.error || !response.data?.success) {
         showError(
-          response.error ?? response.data?.resultMsg ?? '사업자 등록 삭제 실패'
+          response.error ?? response.data?.resultMsg ?? '회원 삭제 실패'
         );
         setDeleting(false);
         return;
       }
 
-      showSuccess('사업자 등록이 성공적으로 삭제되었습니다.');
+      showSuccess('회원이 성공적으로 삭제되었습니다.');
       onClose();
       if (onUpdate) onUpdate();
-    } catch (error) {
-      console.error('Error deleting business registration:', error);
-      showError('사업자 등록 삭제 중 오류가 발생했습니다.');
+    } catch (err) {
+      console.error('Delete error:', err);
+      showError('회원 삭제 중 오류 발생');
     } finally {
       setDeleting(false);
     }
@@ -280,13 +200,12 @@ export default function MemberDetailModal({
             <div className={styles.loading}>불러오는 중...</div>
           ) : (
             <>
-              {/* original UI remains exactly the same */}
+              {/* Profile section */}
               <div className={styles.profileSection}>
                 <div className={styles.avatarWrapper}>
                   <Image
                     src={
-                      info?.applicantProfileImageUrl ||
-                      '/images/profile-placeholder.png'
+                      info?.profileImageUrl || '/images/profile-placeholder.png'
                     }
                     alt="Profile Avatar"
                     width={160}
@@ -297,51 +216,51 @@ export default function MemberDetailModal({
                 </div>
 
                 <div className={styles.infoSection}>
-                  {/* All rows unchanged */}
+                  {/* NAME */}
                   <div className={styles.infoRow}>
                     <div className={styles.labelBox}>이름</div>
                     <input
                       className={styles.valueBox}
-                      value={info?.applicantName ?? ''}
-                      onChange={(e) => handleInputChange(e, 'applicantName')}
+                      value={info?.name ?? ''}
+                      onChange={(e) => handleInputChange(e, 'name')}
                       readOnly={!isEditing}
                     />
                   </div>
 
+                  {/* NICKNAME */}
                   <div className={styles.infoRow}>
                     <div className={styles.labelBox}>닉네임</div>
                     <input
                       className={styles.valueBox}
-                      value={info?.applicantNickname ?? ''}
-                      onChange={(e) =>
-                        handleInputChange(e, 'applicantNickname')
-                      }
+                      value={info?.nickname ?? ''}
+                      onChange={(e) => handleInputChange(e, 'nickname')}
                       readOnly={!isEditing}
                     />
                   </div>
 
+                  {/* EMAIL */}
                   <div className={styles.infoRow}>
                     <div className={styles.labelBox}>이메일</div>
                     <input
                       className={styles.valueBox}
-                      value={info?.applicantEmail ?? ''}
-                      onChange={(e) => handleInputChange(e, 'applicantEmail')}
+                      value={info?.email ?? ''}
+                      onChange={(e) => handleInputChange(e, 'email')}
                       readOnly={!isEditing}
                     />
                   </div>
 
+                  {/* PHONE */}
                   <div className={styles.infoRow}>
                     <div className={styles.labelBox}>휴대폰 번호</div>
                     <input
                       className={styles.valueBox}
-                      value={info?.applicantPhoneNumber ?? ''}
-                      onChange={(e) =>
-                        handleInputChange(e, 'applicantPhoneNumber')
-                      }
+                      value={info?.phoneNumber ?? ''}
+                      onChange={(e) => handleInputChange(e, 'phoneNumber')}
                       readOnly={!isEditing}
                     />
                   </div>
 
+                  {/* ROAD ADDRESS */}
                   <div className={styles.infoRow}>
                     <div className={styles.labelBox}>주소</div>
                     <input
@@ -352,6 +271,7 @@ export default function MemberDetailModal({
                     />
                   </div>
 
+                  {/* DETAIL ADDRESS */}
                   <div className={styles.infoRow}>
                     <div className={styles.labelBox}>상세주소</div>
                     <input
@@ -362,6 +282,7 @@ export default function MemberDetailModal({
                     />
                   </div>
 
+                  {/* ZIP CODE */}
                   <div className={styles.infoRow}>
                     <div className={styles.labelBox}>우편번호</div>
                     <input
@@ -372,6 +293,7 @@ export default function MemberDetailModal({
                     />
                   </div>
 
+                  {/* BUSINESS NUMBER */}
                   <div className={styles.infoRow}>
                     <div className={styles.labelBox}>사업자 등록번호</div>
                     <input
@@ -381,6 +303,7 @@ export default function MemberDetailModal({
                     />
                   </div>
 
+                  {/* BUSINESS CERTIFICATE */}
                   <div className={styles.infoRow}>
                     <div className={styles.labelBox}>사업자 등록증</div>
                     <div className={styles.fileBox}>
@@ -402,12 +325,13 @@ export default function MemberDetailModal({
                     </div>
                   </div>
 
+                  {/* BANKBOOK */}
                   <div className={styles.infoRow}>
                     <div className={styles.labelBox}>통장 사본</div>
                     <div className={styles.fileBox}>
                       <input
                         className={styles.valueBox}
-                        value="Bank Account Copy.pdf"
+                        value="Bankbook.pdf"
                         readOnly
                       />
                       {info?.bankbook && (
@@ -425,12 +349,12 @@ export default function MemberDetailModal({
                 </div>
               </div>
 
-              {/* Buttons */}
+              {/* BUTTONS */}
               <div className={styles.buttonRow}>
                 <button
                   type="button"
                   className={styles.deleteBtn}
-                  onClick={handleDeleteClick}
+                  onClick={() => setDeleteConfirmOpen(true)}
                   disabled={deleting}
                 >
                   {deleting ? '삭제 중...' : '삭제'}
@@ -439,7 +363,9 @@ export default function MemberDetailModal({
                 <button
                   type="button"
                   className={styles.editBtn}
-                  onClick={handleEditToggle}
+                  onClick={() =>
+                    isEditing ? handleSave() : setIsEditing(true)
+                  }
                   disabled={saving}
                 >
                   {saving ? '저장 중...' : isEditing ? '저장' : '수정'}
@@ -450,12 +376,12 @@ export default function MemberDetailModal({
         </div>
       </div>
 
-      {/* DELETE CONFIRM MODAL */}
+      {/* CONFIRM DELETE */}
       <ConfirmationModal
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={handleDelete}
-        message="정말로 이 사업자 등록을 삭제하시겠습니까?"
+        message="정말로 이 회원을 삭제하시겠습니까?"
         confirmText="삭제"
         cancelText="취소"
       />

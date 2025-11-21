@@ -89,7 +89,8 @@ export const ReasonSelectionStep: React.FC<ReasonSelectionStepProps> = ({
         <h3 className={styles.sectionTitle}>상세 문의</h3>
         <textarea
           className={styles.textarea}
-          placeholder="우려한 상품과 다른 상품이 배송되었어요"
+          placeholder="우려한 상품과 다른 상품이 배송되었어요
+           (최소 10자 이상 입력해주세요.)"
           value={detailReason || ''}
           onChange={(e) =>
             onReasonChange(selectedReason, subReason, e.target.value)

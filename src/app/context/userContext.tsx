@@ -18,11 +18,15 @@ export type Role = 'client' | 'seller';
 export type BusinessApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | null;
 
 export interface User {
+  memberId?: string;
   username: string;
   role: Role;
   location?: string;
   businessApprovalStatus?: BusinessApprovalStatus;
   storeId?: string | null;
+
+  hasRecentReports?: boolean;
+  numberOfReports?: number;
 }
 
 interface BusinessData {
@@ -193,11 +197,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         );
 
         const updatedUser: User = {
+          memberId: userData.memberId,
           username: userData.username || currentUser?.username || '',
           role: userRole,
           location: userData.location || currentUser?.location,
           businessApprovalStatus,
           storeId: userData.storeId || currentUser?.storeId,
+
+          hasRecentReports: userData.hasRecentReports ?? false,
+          numberOfReports: userData.numberOfReports,
         };
 
         console.log('✅ Updated user from backend:', updatedUser);

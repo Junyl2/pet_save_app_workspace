@@ -118,6 +118,9 @@
   row-gap: 8px;
   margin-left: 1rem;
 }
+.cardContent > * {
+  font-size: 12px !important;
+}
 
 /* Tags container */
 .tagsContainer {
@@ -128,7 +131,6 @@
 /* Tag */
 .tag {
   border-radius: 10px;
-  font-size: 12px;
   padding: 3px 10px;
   height: 20px;
   display: inline-flex;
@@ -138,21 +140,25 @@
 .tagRed {
   background: rgba(255, 228, 230, 1);
   color: rgba(199, 0, 54, 1);
+  font-size: 11px !important;
 }
 
 .tagGreen {
   background: rgba(231, 246, 241, 1);
   color: rgba(47, 125, 113, 1);
+  font-size: 11px !important;
 }
 
 .tagPurple {
   background: rgba(224, 231, 255, 1);
   color: rgba(67, 45, 215, 1);
+  font-size: 11px !important;
 }
 
 .tagGray {
   background: rgba(217, 217, 217, 1);
   color: rgba(255, 255, 255, 1);
+  font-size: 11px !important;
 }
 
 /* Card text */
@@ -170,7 +176,7 @@
 
 /* Detail button */
 .detailButton {
-  flex: 0 0 260px;
+  flex: 1 0 260px;
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 5px;
@@ -178,7 +184,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 /* Action button */
@@ -194,7 +200,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .actionButtonGreen {

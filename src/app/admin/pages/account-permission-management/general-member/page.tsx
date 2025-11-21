@@ -38,20 +38,26 @@ export default function GeneralMemberPage() {
           keyword?: string;
           dateStart?: string;
           dateEnd?: string;
+          role?: 'ADMIN' | 'USER' | 'SELLER';
         } = {
           page: page - 1,
           size: PAGE_SIZE,
           sortBy: 'createdAt',
           direction: 'desc',
+          role: 'USER',
         };
 
         if (filters.dateStart?.trim()) {
           const dateStart = filters.dateStart.trim();
-          params.dateStart = dateStart.includes('T') ? dateStart.split('T')[0] : dateStart;
+          params.dateStart = dateStart.includes('T')
+            ? dateStart.split('T')[0]
+            : dateStart;
         }
         if (filters.dateEnd?.trim()) {
           const dateEnd = filters.dateEnd.trim();
-          params.dateEnd = dateEnd.includes('T') ? dateEnd.split('T')[0] : dateEnd;
+          params.dateEnd = dateEnd.includes('T')
+            ? dateEnd.split('T')[0]
+            : dateEnd;
         }
         if (filters.keyword?.trim()) {
           params.keyword = filters.keyword.trim();
@@ -77,7 +83,13 @@ export default function GeneralMemberPage() {
     };
 
     void fetchMembers();
-  }, [page, filters.dateStart, filters.dateEnd, filters.keyword, filterTrigger]);
+  }, [
+    page,
+    filters.dateStart,
+    filters.dateEnd,
+    filters.keyword,
+    filterTrigger,
+  ]);
 
   useEffect(() => {
     if (filterTrigger > 0 && page !== 1) {
@@ -111,20 +123,26 @@ export default function GeneralMemberPage() {
           keyword?: string;
           dateStart?: string;
           dateEnd?: string;
+          role?: 'ADMIN' | 'USER' | 'SELLER';
         } = {
           page: page - 1,
           size: PAGE_SIZE,
           sortBy: 'createdAt',
           direction: 'desc',
+          role: 'USER',
         };
 
         if (filters.dateStart?.trim()) {
           const dateStart = filters.dateStart.trim();
-          params.dateStart = dateStart.includes('T') ? dateStart.split('T')[0] : dateStart;
+          params.dateStart = dateStart.includes('T')
+            ? dateStart.split('T')[0]
+            : dateStart;
         }
         if (filters.dateEnd?.trim()) {
           const dateEnd = filters.dateEnd.trim();
-          params.dateEnd = dateEnd.includes('T') ? dateEnd.split('T')[0] : dateEnd;
+          params.dateEnd = dateEnd.includes('T')
+            ? dateEnd.split('T')[0]
+            : dateEnd;
         }
         if (filters.keyword?.trim()) {
           params.keyword = filters.keyword.trim();
@@ -157,7 +175,7 @@ export default function GeneralMemberPage() {
       <div className={styles.wrapper}>
         <div className={styles.headerRow}>
           <div className={styles.col}>이름</div>
-          {/*      <div className={styles.col}>닉네임</div> */}
+          <div className={styles.col}>닉네임</div>
           <div className={styles.col}>연락처</div>
           <div className={styles.col}>이메일</div>
           <div className={styles.col}>회원분류</div>
@@ -183,7 +201,7 @@ export default function GeneralMemberPage() {
               aria-label={`${member.name} 상세 보기`}
             >
               <div className={styles.col}>{member.name ?? '-'}</div>
-              {/*   <div className={styles.col}>{member.name ?? '-'}</div> */}
+              <div className={styles.col}>{member.nickname ?? '-'}</div>
               <div className={styles.col}>{member.phoneNumber ?? '-'}</div>
               <div className={styles.col}>{member.email ?? '-'}</div>
               <div className={styles.col}>{member.classification ?? '-'}</div>

@@ -10,7 +10,6 @@ export type ReturnExchangeStatus =
 
 export type CollectionMethod = 'COURIER_PICKUP' | 'CUSTOMER_RETURN' | string;
 
-// Exchange options expected by backend (extend as needed)
 export type ExchangeOption =
   | 'RETURN_ONLY'
   | 'SIZE_CHANGE'
@@ -36,6 +35,7 @@ export interface CreateReturnExchangeRequest {
 
 export interface UpdateReturnExchangeStatusRequest {
   status: ReturnExchangeStatus;
+  rejectReason?: string;
 }
 
 export interface ReturnExchangeItem {
@@ -63,4 +63,48 @@ export interface ReturnExchangeQueryParams {
   size?: number;
   sortBy?: 'createdAt' | 'updatedAt';
   direction?: 'asc' | 'desc';
+}
+export interface ReturnRequestByOrderItemResponse {
+  returnRequestId: string;
+  orderNumber: string;
+  requester: {
+    memberId: string;
+    name: string;
+    profileImageUrl: string;
+    phoneNumber: string;
+  };
+  storeName: string;
+  storeProfileImageUrl: string;
+  type: ReturnExchangeType;
+  reason: string;
+  rejectReason: string | null;
+  exchangeOption: string;
+  status: ReturnExchangeStatus;
+  collectionMethod: CollectionMethod;
+  items: ReturnRequestItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReturnRequestItem {
+  returnRequestItemId: string;
+  orderItemId: string;
+  storeId: string;
+  product: {
+    productId: string;
+    productName: string;
+    productNumber: string;
+    productThumbnail: string;
+    quantity: number;
+    category: string[];
+    salePrice: number;
+    discountedPrice: number;
+    expiryDate: string;
+  };
+  unitPrice: number;
+  subtotal: number;
+  totalAmount: number;
+  discountAllocated: number;
+  refundableAmount: number;
+  orderedQuantity: number;
 }

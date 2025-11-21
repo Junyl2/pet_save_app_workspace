@@ -14,6 +14,7 @@ import { ToastMessage } from '@/app/components/ui/Toast/ToastMessage';
 import { OrderItemResponse } from '@/app/api/types/member/order/orderDetails';
 import Loading from '@/app/components/ui/Loading/Loading';
 import { ReviewService } from '@/app/api/services/client/memberService/review/reviewService';
+import RejectReasonModal from '@/app/components/ui/modal/ReturnRejectDetailModal/ReturnRejectDetailModal';
 
 /**
  * Displays detailed order information for a single orderItemId.
@@ -35,6 +36,7 @@ export default function OrderDetail() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [checkingReview, setCheckingReview] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
 
   /**
    * Store order history URL when component mounts (for navigation after delete)
@@ -290,7 +292,7 @@ export default function OrderDetail() {
             window.location.href = PAGE_URLS.ORDER_HISTORY;
           }
         }, 1200);
-        return; 
+        return;
       }
 
       // Check if there's an error in the response
@@ -535,8 +537,20 @@ export default function OrderDetail() {
       {/* Ordered Items */}
       <div className={styles.itemsSection}>
         <div className={styles.itemsHeader}>
-          <h3 className={`${styles.sectionTitle} ${getStatusClass(status)}`}>
-            {getStatusText(status)}
+          <h3
+            className={`${styles.sectionTitle} ${
+              orderItem.returnStatus === 'REJECTED'
+                ? styles.statusRed
+                : orderItem.returnStatus === 'REQUESTED'
+                ? styles.statusGray
+                : getStatusClass(status)
+            }`}
+          >
+            {orderItem.returnStatus === 'REJECTED'
+              ? '반려됨'
+              : orderItem.returnStatus === 'REQUESTED'
+              ? '교환/반품 요청중'
+              : getStatusText(status)}
           </h3>
         </div>
 
@@ -568,7 +582,55 @@ export default function OrderDetail() {
         </div>
 
         {/* Conditional Actions */}
-        <div className={styles.primaryActions}>{renderActions(status)}</div>
+        <div className={styles.primaryActions}>
+          {/* Case 1: REJECTED */}
+          {orderItem.returnStatus === 'REJECTED' && (
+            <>
+              <button
+                className={styles.secondaryButton}
+                onClick={() => setIsRejectModalOpen(true)}
+              >
+                반려 사유보기
+              </button>
+
+              <button
+                className={styles.secondaryButton}
+                onClick={() =>
+                  router.push(
+                    `/contact-product?productId=${orderItem.productId}&storeId=${orderItem.storeId}`
+                  )
+                }
+              >
+                가게 조회
+              </button>
+            </>
+          )}
+
+          {/* Case 2: REQUESTED */}
+          {orderItem.returnStatus === 'REQUESTED' && (
+            <>
+              <button
+                className={styles.secondaryButton}
+                disabled
+                style={{ opacity: 0.6, cursor: 'not-allowed' }}
+              >
+                교환/반품 요청중
+              </button>
+
+              <button
+                className={styles.secondaryButton}
+                onClick={() =>
+                  router.push(`/client/pages/store/${orderItem.storeId}`)
+                }
+              >
+                가게 조회
+              </button>
+            </>
+          )}
+
+          {/* Case 3: Normal order actions */}
+          {!orderItem.returnStatus && renderActions(status)}
+        </div>
       </div>
 
       {/* Extra Actions */}
@@ -659,6 +721,12 @@ export default function OrderDetail() {
         onClose={() => setIsDeleteModalOpen(false)}
         modalTitle="주문 내역을 삭제하시겠습니까?"
         onDelete={handleConfirmDelete}
+      />
+
+      <RejectReasonModal
+        open={isRejectModalOpen}
+        orderItemId={orderItem.orderItemId}
+        onClose={() => setIsRejectModalOpen(false)}
       />
     </div>
   );

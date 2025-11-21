@@ -43,24 +43,20 @@ export default function ReportModal({
   if (!show) return null;
 
   const handleOptionClick = async (option: string) => {
-    // Determine target type and ID based on context
     let targetType: ReportTargetType;
     let targetId: string;
 
+    // Identify target
     if (pathname.includes('/products/') && product) {
-      // Product page - report the product
       targetType = 'PRODUCT';
       targetId = product.productId;
     } else if (pathname.includes('/seller-details/') && storeId) {
-      // Store page - report the store
       targetType = 'STORE';
       targetId = storeId;
     } else if (product) {
-      // Fallback to product if available
       targetType = 'PRODUCT';
       targetId = product.productId;
     } else {
-      console.error('Missing target data for report');
       toast.error('신고할 대상을 찾을 수 없습니다.');
       return;
     }
@@ -68,46 +64,39 @@ export default function ReportModal({
     setIsSubmitting(true);
 
     try {
-      // Try with Korean text first, then fallback to mapped reason code
       const reasonCode = REASON_MAPPING[option] || option;
 
       const reportData: CreateReportRequest = {
         targetType,
         targetId,
         reason: reasonCode,
-        description: option, // Keep Korean text for description
+        description: option,
       };
-
-      console.log('Report data being sent:', reportData);
-      console.log('Selected reason (Korean):', option);
-      console.log('Reason code (mapped):', reasonCode);
-      console.log('Target type:', targetType);
-      console.log('Target ID:', targetId);
 
       const response = await ReportService.createReport(reportData);
 
+      // If backend returns error field
       if (response.error) {
-        console.error('Report submission failed:', response.error);
+        const lower = response.error.toLowerCase();
 
-        // Check if it's a duplicate report error (409)
         if (
-          response.error.includes('409') ||
-          response.error.includes('이미 해당 대상을 신고하셨습니다')
+          lower.includes('409') ||
+          lower.includes('이미 해당 대상을 신고하셨습니다')
         ) {
-          toast.error('이미 신고하신 대상입니다.');
+          toast.error('이미 신고한 대상입니다.');
         } else {
-          toast.error('신고 제출에 실패했습니다. 다시 시도해주세요.');
+          toast.error('신고 제출에 실패했습니다.');
         }
-        onClose(); // Close modal when error occurs
+
+        onClose();
         return;
       }
 
-      console.log('Report submitted successfully:', response.data);
       setSubmitted(true);
-    } catch (error) {
-      console.error('Report submission error:', error);
-      toast.error('신고 제출 중 오류가 발생했습니다. 다시 시도해주세요.');
-      onClose(); // Close modal when error occurs
+    } catch (error: unknown) {
+      // Network or unexpected errors
+      toast.error('신고 제출 중 오류가 발생했습니다.');
+      onClose();
     } finally {
       setIsSubmitting(false);
     }
@@ -122,12 +111,12 @@ export default function ReportModal({
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
-        {/* Close button */}
+        {/* Header */}
         <div className={styles.headerModal}>
           {!submitted && (
             <>
               <button className={styles.closeButton} onClick={handleClose}>
-                <IoCloseOutline size={35} color="rgba(0,0,0,0.3" />
+                <IoCloseOutline size={35} color="rgba(0,0,0,0.3)" />
               </button>
               <h2 className={styles.title}>신고하기</h2>
             </>
@@ -144,7 +133,7 @@ export default function ReportModal({
                 <li
                   key={index}
                   className={styles.option}
-                  onClick={() => handleOptionClick(option)}
+                  onClick={() => !isSubmitting && handleOptionClick(option)}
                   style={{
                     opacity: isSubmitting ? 0.6 : 1,
                     cursor: isSubmitting ? 'not-allowed' : 'pointer',

@@ -9,6 +9,7 @@ export interface Store {
   averageRating: number;
   openingHourStart: string | null;
   openingHourEnd: string | null;
+  phoneInquiryAllowed: boolean;
 }
 
 // ----- Base summary returned by list OR details (no images/expired here) -----

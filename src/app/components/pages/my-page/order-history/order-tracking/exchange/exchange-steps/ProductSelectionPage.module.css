@@ -175,14 +175,17 @@
 .nextContainer {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
   width: 100%;
-  max-width: 470px; /* match container max-width */
   padding: 16px;
   background-color: white;
   border-top: 1px solid #f3f4f6;
   box-sizing: border-box;
+}
+@media (min-width: 1024px) {
+  .nextContainer {
+    max-width: 468px;
+    width: 100%;
+  }
 }
 
 .nextButton {

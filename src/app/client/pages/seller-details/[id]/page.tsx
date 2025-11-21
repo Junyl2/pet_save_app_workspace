@@ -193,19 +193,22 @@ export default function SellerDetailsPage() {
           <div className={styles.sellerMoreDetails}>
             <div className={styles.details}>
               <IoCallOutline size={18} color="rgba(0,0,0,0.8)" />
+
               <p className={styles.phone}>{phoneNumber}</p>
-              <button
-                className={styles.callButton}
-                onClick={() => {
-                  if (phoneNumber === '전화번호 없음') {
-                    toast.error('전화번호 정보가 없습니다.');
-                    return;
-                  }
-                  setShowDrawer(true);
-                }}
-              >
-                전화 연결
-              </button>
+              {store.phoneInquiryAllowed && (
+                <button
+                  className={styles.callButton}
+                  onClick={() => {
+                    if (phoneNumber === '전화번호 없음') {
+                      toast.error('전화번호 정보가 없습니다.');
+                      return;
+                    }
+                    setShowDrawer(true);
+                  }}
+                >
+                  전화 연결
+                </button>
+              )}
             </div>
 
             <div className={styles.details}>

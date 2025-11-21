@@ -29,7 +29,7 @@ export const ProductHeader = () => {
   );
 
   const isReturnExchangeFlow =
-    pathname.includes('/client/pages/my-page/order-history/') &&
+    pathname.includes('/client/pages/my-page/order-history') &&
     (pathname.includes('/tracking/return') ||
       pathname.includes('/tracking/exchange'));
 

@@ -286,9 +286,11 @@
 }
 
 .statusRed {
-  color: #f44336; /* red */
+  color: #f44336;
 }
-
+.statusGray {
+  color: #7a7a7a;
+}
 /* --- Modal Overlay --- */
 
 .modalOverlay {

@@ -15,6 +15,7 @@ interface PaginatedReturnExchange {
   content: Array<{
     returnRequestId: string;
     orderNumber: string;
+    exchangeOption: string;
     requester: {
       memberId: string;
       name: string;
@@ -228,7 +229,10 @@ export default function RefundRequestPage() {
                 const product = item.items?.[0]?.product;
                 const thumbnail =
                   product?.productThumbnail || '/images/products/dogfood.png';
-                const exchangeOption = '옵션: 교환 옵션 (임시 표시)';
+                const exchangeOption =
+                  item.type === 'EXCHANGE'
+                    ? `옵션: ${item.exchangeOption || '없음'}`
+                    : '';
 
                 const koreanStatus = getKoreanStatus(item.status);
 
@@ -268,7 +272,9 @@ export default function RefundRequestPage() {
                       <div className={styles.cardText}>
                         {product?.productName}
                       </div>
-                      <div className={styles.cardText}>{exchangeOption}</div>
+                      {item.type === 'EXCHANGE' && (
+                        <div className={styles.cardText}>{exchangeOption}</div>
+                      )}
                       <div className={styles.cardText}>
                         구매자: {item.requester?.name}
                       </div>

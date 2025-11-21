@@ -5,6 +5,7 @@ import {
   ReturnExchangeItem,
   ReturnExchangeQueryParams,
   UpdateReturnExchangeStatusRequest,
+  ReturnRequestByOrderItemResponse,
 } from '@/app/api/types/member/return-exchange/returnExchange';
 
 /**
@@ -16,7 +17,7 @@ export const returnExchangeService = {
   /**
    * [POST] /return-requests
    * Create a new return or exchange request.
-   * - Accessible by: **Authenticated Users**
+   * - Accessible by: Authenticated Users
    */
   async create(payload: CreateReturnExchangeRequest) {
     return apiClient.post<BaseApiResponse<ReturnExchangeItem>>(
@@ -28,7 +29,7 @@ export const returnExchangeService = {
   /**
    * [GET] /return-requests
    * Fetch all return/exchange requests (with optional filters).
-   * - Accessible by: **Admin**
+   * - Accessible by: Admin
    */
   async getAll(params?: ReturnExchangeQueryParams) {
     const query = new URLSearchParams(
@@ -91,6 +92,17 @@ export const returnExchangeService = {
     return apiClient.put<BaseApiResponse<ReturnExchangeItem>>(
       `/return-requests/${returnRequestId}/status`,
       payload
+    );
+  },
+
+  /**
+   * [GET] /return-requests/order-items/{orderItemId}
+   * Get return/exchange request by specific order item ID.
+   * - Accessible by: Store Owner, Requester, Admin
+   */
+  async getByOrderItemId(orderItemId: string) {
+    return apiClient.get<BaseApiResponse<ReturnRequestByOrderItemResponse>>(
+      `/return-requests/order-items/${orderItemId}`
     );
   },
 };

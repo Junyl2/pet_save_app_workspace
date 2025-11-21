@@ -177,7 +177,9 @@ export const ProductActions = ({
           <button
             className={styles.messageButton}
             onClick={() =>
-              router.push(`/contact-product?productId=${productId}`)
+              router.push(
+                `/contact-product?productId=${productId}&storeId=${storeId}`
+              )
             }
           >
             <Image

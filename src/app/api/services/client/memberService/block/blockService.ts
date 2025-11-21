@@ -4,6 +4,7 @@ import {
   CheckBlockedResponse,
   GetBlockByIdResponse,
   GetBlocksByMemberResponse,
+  GetMyBlockedStoresResponse,
 } from '@/app/api/types/member/block/block';
 
 /**
@@ -17,71 +18,48 @@ export class BlockService {
 
   /**
    * Toggle block status of a store
-   * Endpoint: POST /api/pet-save/stores/{storeId}/toggle-block
+   * POST /api/pet-save/stores/{storeId}/toggle-block
    */
   static async toggleBlockStore(
     storeId: string
   ): Promise<ApiResponse<ToggleBlockResponse>> {
     try {
-      const response = await apiClient.post<ToggleBlockResponse>(
+      return await apiClient.post<ToggleBlockResponse>(
         `${this.STORE_BASE}/${storeId}/toggle-block`
       );
-
-      if (response.error) {
-        console.error(
-          '[BlockService] toggleBlockStore failed:',
-          response.error
-        );
-      }
-
-      return response;
     } catch (error) {
-      console.error('[BlockService] toggleBlockStore service error:', error);
+      console.error('[BlockService] toggleBlockStore error:', error);
       return {
         data: null,
         error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to toggle block store',
+          error instanceof Error ? error.message : 'Failed to toggle block',
       };
     }
   }
 
   /**
    * Check if a store is blocked
-   * Endpoint: GET /api/pet-save/stores/{storeId}/check-blocked
+   * GET /stores/{storeId}/check-blocked
    */
   static async checkIfStoreBlocked(
     storeId: string
   ): Promise<ApiResponse<CheckBlockedResponse>> {
     try {
-      const response = await apiClient.get<CheckBlockedResponse>(
+      return await apiClient.get<CheckBlockedResponse>(
         `${this.STORE_BASE}/${storeId}/check-blocked`
       );
-
-      if (response.error) {
-        console.error(
-          '[BlockService] checkIfStoreBlocked failed:',
-          response.error
-        );
-      }
-
-      return response;
     } catch (error) {
-      console.error('[BlockService] checkIfStoreBlocked service error:', error);
+      console.error('[BlockService] checkIfStoreBlocked error:', error);
       return {
         data: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to check block status',
+        error: error instanceof Error ? error.message : 'Failed to check block',
       };
     }
   }
 
   /**
    * Get blocks by member ID (OWNER/ADMIN)
-   * Endpoint: GET /api/pet-save/member/{memberId}/blocks
+   * GET /member/{memberId}/blocks
    */
   static async getBlocksByMember(
     memberId: string,
@@ -100,49 +78,67 @@ export class BlockService {
         direction: params?.direction ?? 'desc',
       }).toString();
 
-      const response = await apiClient.get<GetBlocksByMemberResponse>(
+      return await apiClient.get<GetBlocksByMemberResponse>(
         `${this.MEMBER_BASE}/${memberId}/blocks?${query}`
       );
-
-      if (response.error) {
-        console.error(
-          '[BlockService] getBlocksByMember failed:',
-          response.error
-        );
-      }
-
-      return response;
     } catch (error) {
-      console.error('[BlockService] getBlocksByMember service error:', error);
+      console.error('[BlockService] getBlocksByMember error:', error);
       return {
         data: null,
         error:
           error instanceof Error
             ? error.message
-            : 'Failed to fetch member block list',
+            : 'Failed to fetch member blocks',
       };
     }
   }
 
   /**
-   * Get block details by block ID (OWNER/ADMIN)
-   * Endpoint: GET /api/pet-save/blocks/{blockId}
+   * Get *my* blocked stores
+   * GET /members/me/blocks
+   */
+  static async getMyBlockedStores(params?: {
+    page?: number;
+    size?: number;
+    sortBy?: 'createdAt';
+    direction?: 'asc' | 'desc';
+  }): Promise<ApiResponse<GetMyBlockedStoresResponse>> {
+    try {
+      const query = new URLSearchParams({
+        page: String(params?.page ?? 0),
+        size: String(params?.size ?? 10),
+        sortBy: params?.sortBy ?? 'createdAt',
+        direction: params?.direction ?? 'desc',
+      }).toString();
+
+      return await apiClient.get<GetMyBlockedStoresResponse>(
+        `/members/me/blocks?${query}`
+      );
+    } catch (error) {
+      console.error('[BlockService] getMyBlockedStores error:', error);
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch my blocked stores',
+      };
+    }
+  }
+
+  /**
+   * Get block details by blockId
+   * GET /blocks/{blockId}
    */
   static async getBlockById(
     blockId: string
   ): Promise<ApiResponse<GetBlockByIdResponse>> {
     try {
-      const response = await apiClient.get<GetBlockByIdResponse>(
+      return await apiClient.get<GetBlockByIdResponse>(
         `${this.BLOCKS_BASE}/${blockId}`
       );
-
-      if (response.error) {
-        console.error('[BlockService] getBlockById failed:', response.error);
-      }
-
-      return response;
     } catch (error) {
-      console.error('[BlockService] getBlockById service error:', error);
+      console.error('[BlockService] getBlockById error:', error);
       return {
         data: null,
         error:
