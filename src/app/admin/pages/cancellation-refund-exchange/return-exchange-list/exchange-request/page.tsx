@@ -12,7 +12,7 @@ interface ExchangeRequestRow {
   orderNumber: string;
   orderDate: string;
   requesterName: string;
-  requesterContact: string;
+  phoneNumber: string;
   productName: string;
   exchangeDate: string;
   typeLabel: string;
@@ -35,6 +35,7 @@ interface ApiReturnRequest {
     memberId: string;
     name: string;
     profileImageUrl?: string;
+    phoneNumber?: string | null; // ADDED
   };
   storeName: string;
   storeProfileImageUrl?: string | null;
@@ -66,6 +67,7 @@ export default function ExchangeRequestPage() {
 
   const fetchExchangeRequests = useCallback(async (): Promise<void> => {
     setLoading(true);
+
     try {
       const params: {
         page: number;
@@ -83,12 +85,8 @@ export default function ExchangeRequestPage() {
         type: 'EXCHANGE',
       };
 
-      if (filters.dateStart) {
-        params.dateStart = filters.dateStart;
-      }
-      if (filters.dateEnd) {
-        params.dateEnd = filters.dateEnd;
-      }
+      if (filters.dateStart) params.dateStart = filters.dateStart;
+      if (filters.dateEnd) params.dateEnd = filters.dateEnd;
 
       const { data } = await returnExchangeService.getAll(params);
 
@@ -105,23 +103,29 @@ export default function ExchangeRequestPage() {
               timeStyle: 'short',
             }),
             requesterName: r.requester.name ?? '-',
-            requesterContact: '-', // not provided in payload
+
+            // FIXED: Use phoneNumber
+            phoneNumber:
+              r.requester.phoneNumber && r.requester.phoneNumber.trim() !== ''
+                ? r.requester.phoneNumber
+                : '-',
+
             productName: r.items?.[0]?.product?.productName ?? '-',
             exchangeDate: new Date(r.createdAt).toLocaleString('ko-KR', {
               dateStyle: 'short',
               timeStyle: 'short',
             }),
-            typeLabel: r.type === 'EXCHANGE' ? '교환' : '반품',
+            typeLabel: '교환',
           })) ?? [];
 
       setRequests(mapped);
       setTotalPages(result.pageInfo?.totalPages ?? 1);
-      } catch (err) {
-        console.error('Failed to fetch exchange requests:', err);
-        setRequests([]);
-      } finally {
-        setLoading(false);
-      }
+    } catch (err) {
+      console.error('Failed to fetch exchange requests:', err);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
   }, [page, filters.dateStart, filters.dateEnd]);
 
   useEffect(() => {
@@ -159,7 +163,7 @@ export default function ExchangeRequestPage() {
               <div>{req.orderNumber}</div>
               <div>{req.orderDate}</div>
               <div>{req.requesterName}</div>
-              <div>{req.requesterContact}</div>
+              <div>{req.phoneNumber}</div> {/* FIXED */}
               <div>{req.productName}</div>
               <div>{req.exchangeDate}</div>
               <div>{req.typeLabel}</div>

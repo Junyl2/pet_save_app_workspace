@@ -10,12 +10,12 @@ import { useOrderFilter } from '@/app/context/orderFilterContext';
 
 interface ReturnRequestRow {
   orderNumber: string;
-  orderDate: string; // updatedAt
+  orderDate: string;
   requesterName: string;
-  requesterContact: string;
+  phoneNumber: string;
   productName: string;
-  returnDate: string; // createdAt
-  typeLabel: string; // RETURN or EXCHANGE
+  returnDate: string;
+  typeLabel: string;
 }
 
 interface ReturnExchangeResponse {
@@ -35,6 +35,7 @@ interface ApiReturnRequest {
     memberId: string;
     name: string;
     profileImageUrl?: string;
+    phoneNumber?: string | null;
   };
   storeName: string;
   storeProfileImageUrl?: string | null;
@@ -66,6 +67,7 @@ export default function ReturnRequestPage() {
 
   const fetchReturnRequests = useCallback(async (): Promise<void> => {
     setLoading(true);
+
     try {
       const params: {
         page: number;
@@ -83,12 +85,8 @@ export default function ReturnRequestPage() {
         type: 'RETURN',
       };
 
-      if (filters.dateStart) {
-        params.dateStart = filters.dateStart;
-      }
-      if (filters.dateEnd) {
-        params.dateEnd = filters.dateEnd;
-      }
+      if (filters.dateStart) params.dateStart = filters.dateStart;
+      if (filters.dateEnd) params.dateEnd = filters.dateEnd;
 
       const { data } = await returnExchangeService.getAll(params);
 
@@ -105,7 +103,13 @@ export default function ReturnRequestPage() {
               timeStyle: 'short',
             }),
             requesterName: r.requester.name ?? '-',
-            requesterContact: '-', // not provided
+
+            // FIX: Normalize phone number safely
+            phoneNumber:
+              r.requester.phoneNumber && r.requester.phoneNumber.trim() !== ''
+                ? r.requester.phoneNumber
+                : '-',
+
             productName: r.items?.[0]?.product?.productName ?? '-',
             returnDate: new Date(r.createdAt).toLocaleString('ko-KR', {
               dateStyle: 'short',
@@ -116,12 +120,12 @@ export default function ReturnRequestPage() {
 
       setRequests(mapped);
       setTotalPages(result.pageInfo?.totalPages ?? 1);
-      } catch (err) {
-        console.error('Failed to fetch return requests:', err);
-        setRequests([]);
-      } finally {
-        setLoading(false);
-      }
+    } catch (err) {
+      console.error('Failed to fetch return requests:', err);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
   }, [page, filters.dateStart, filters.dateEnd]);
 
   useEffect(() => {
@@ -159,7 +163,7 @@ export default function ReturnRequestPage() {
               <div>{req.orderNumber}</div>
               <div>{req.orderDate}</div>
               <div>{req.requesterName}</div>
-              <div>{req.requesterContact}</div>
+              <div>{req.phoneNumber}</div>
               <div>{req.productName}</div>
               <div>{req.returnDate}</div>
               <div>{req.typeLabel}</div>
